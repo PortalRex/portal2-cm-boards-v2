@@ -30,7 +30,6 @@ New databases get everything from `db/dbscript/schema.sql`. An existing database
 | Migration | What it adds |
 |---|---|
 | `20261012000000_multi_game.sql` | Portal Stories: Mel as game 2 next to Portal 2; `legacy_changelog_ids` (old board id → changelog id per game); `changelog.autorender_id`. |
-| `20261013000000_fullgame.sql` | Full-game (speedrun.com-style) tables `fg_*`: games, categories, levels, variables, runners, runs. Kept apart from Challenge Mode. |
 | `20261014000000_segments.sql` | `changelog.segments` (jsonb): SAR mtrigger segments per run, imported from autorender. |
 | `20261015000000_auth.sql` | `sessions` (Steam sign-in sessions, token hashes only) and `openid_nonces` (replay guard). |
 | `20261016000000_admin.sql` | `admin_actions` (audit log) and `users.frozen` / `frozen_reason`. |
@@ -42,6 +41,7 @@ New databases get everything from `db/dbscript/schema.sql`. An existing database
 | `20261022000000_run_stats.sql` | `changelog.portals` (portal count from the demo's scoreboard), carried to linked copies. |
 | `20261023000000_run_reports.sql` | `run_reports` (anonymous run reports). |
 | `20261024000000_profile_overrides.sql` | `users.name_locked` / `avatar_locked` (staff-set names and pictures). |
+| `20261025000000_drop_fullgame.sql` | Drops the full-game `fg_*` tables from databases that had the earlier full-game migration (the feature was removed). |
 
 `import_boards.py` builds a fresh database from the old boards' MySQL dumps and runs the BSP-name step itself (see
 [§10](#10-import-and-maintenance-scripts)).
@@ -135,11 +135,6 @@ All under `/api/v1`. Auth: **public**, **signed in**, **staff** (any tier or ser
 | `POST /submissions/preview` | signed in | Read a demo (multipart `demo`): map, time, players, matching board maps. Saves nothing. |
 | `POST /submissions` | signed in | Submit a run from a demo; admins may also enter map/time/player/partner by hand. See [§8](#8-run-submissions-and-demos). |
 | `POST /runs/{id}/demo` | signed in | Add the demo for a pending run (its player, co-op partner or staff); checked against the run, then verified. |
-
-### Full-game boards (read-only)
-
-`GET /fullgame/games`, `/fullgame/games/{game}`, `/fullgame/board/{game}/{category}[/{level}]`, `/fullgame/runners/{id}`,
-`/fullgame/runs/{id}` serve the imported full-game leaderboards. (The frontend's Full Game tab is currently switched off.)
 
 ### Staff
 
@@ -245,7 +240,6 @@ In `db/dbscript/` unless noted:
 | `import_boards.py` | Builds the database from the old Portal 2 and Mel MySQL dumps: users (Mel-only bans kept per board), runs, co-op pairs, legacy ids, games with slugs, BSP names, staff roles from the old admin flag. `--demo-players` pairs co-op partners found in demos (hosts → blue). |
 | `parse_demo_players.py` | Reads both players (and the host) out of every co-op demo in the archive (~3 min for 178k demos). |
 | `import_autorender.py` | Copies autorender video ids and mtrigger segments onto runs (clears dead ids). |
-| `import_fullgame.py` | Copies the full-game boards into the `fg_*` tables. |
 | `server/demo-parser/demo_stats.mjs` | Reads the scoreboard (time, portals) from an archive of demos in parallel → CSV (~45 min for 178k). |
 | `import_demo_stats.py` | Loads those portal counts into `changelog.portals` (only where the demo's time matches the run). |
 

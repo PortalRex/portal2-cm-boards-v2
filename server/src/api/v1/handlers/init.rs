@@ -1,7 +1,7 @@
 use actix_web::web;
 
 use crate::api::v1::handlers::{
-    admin::*, auth::*, changelog::*, chapters::*, coop::*, fullgame::*, game_boards::*, maps::*, moderation::*, points::*, runs::*, sp::*, stats::*, submissions::*, catalog::*, reports::*,
+    admin::*, auth::*, changelog::*, chapters::*, coop::*, game_boards::*, maps::*, moderation::*, points::*, runs::*, sp::*, stats::*, submissions::*, catalog::*, reports::*,
     users::*,
 };
 
@@ -112,12 +112,6 @@ pub fn init(cfg: &mut web::ServiceConfig) {
             .service(badges)
             .service(users_badges)
             .service(points_game)
-            .service(ranks_game)
-            .service(fullgame_games)
-            .service(fullgame_game)
-            .service(fullgame_board)
-            .service(fullgame_board_level)
-            .service(fullgame_run)
-            .service(fullgame_runner),
+            .service(ranks_game),
     );
 }

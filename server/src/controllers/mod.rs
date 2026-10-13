@@ -74,8 +74,6 @@ pub mod chapters;
 pub mod coop;
 /// Controllers for demos
 pub mod demos;
-/// Controllers for the full-game boards
-pub mod fullgame;
 /// Per-game aggregates computed from the changelog (points, ranks)
 pub mod game_boards;
 /// Controllers for maps

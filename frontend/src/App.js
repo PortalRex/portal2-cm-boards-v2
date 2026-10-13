@@ -35,9 +35,6 @@ function App() {
         <Route path="/leaderboard/mel" element={<Navigate to="/leaderboard/mel/overall" replace />} />
         <Route path="/leaderboard/mel/:kind" element={<Aggregated game="mel" />} />
         <Route path="/profile/:profileId" element={<Profile />} />
-        {/* Full-game boards are switched off for now (pages kept in pages/FullGame). */}
-        <Route path="/fullgame/*" element={<Navigate to="/" replace />} />
-        <Route path="/more/fullgame" element={<Navigate to="/" replace />} />
         <Route path="/more/settings" element={<Settings />} />
         <Route path="/more/wall-of-shame" element={<WallOfShame />} />
         <Route path="/admin" element={<Admin />} />

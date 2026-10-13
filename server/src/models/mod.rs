@@ -13,8 +13,6 @@ pub mod chapters;
 pub mod coop;
 /// Demo models
 pub mod demos;
-/// Full-game (speedrun.com-style) boards.
-pub mod fullgame;
 /// Maps-based models.
 pub mod maps;
 /// Point-based models.

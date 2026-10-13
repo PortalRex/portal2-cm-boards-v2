@@ -10,8 +10,6 @@ pub mod chapters;
 pub mod coop;
 /// Demo endpoints
 ///pub mod demos;
-/// Full-game (speedrun.com-style) board endpoints.
-pub mod fullgame;
 /// Per-game aggregate endpoints computed from the changelog.
 pub mod game_boards;
 /// Mounting of the endpoints.
