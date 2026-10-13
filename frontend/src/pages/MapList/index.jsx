@@ -70,18 +70,34 @@ export default function MapList() {
   );
 }
 
-function ScoreIcons({ entry, game, size }) {
+// Which icon columns a card needs: the kinds any of its runs has.
+const iconSlots = (entries) => ({
+  autorender: entries.some((e) => e.autorenderId),
+  youtube: entries.some((e) => e.youtubeId),
+  demo: entries.some((e) => e.demoId),
+});
+
+// A run's video / demo icons, each in its own fixed-width column so a missing one leaves a gap
+// instead of shifting the others.
+function ScoreIcons({ entry, game, size, slots }) {
+  const slot = (key, show, icon) =>
+    show ? (
+      <span key={key} className="mc-icon-slot" style={{ width: size + 6 }}>
+        {icon}
+      </span>
+    ) : null;
   return (
     <span className="mc-icons">
-      {entry.autorenderId && <AutorenderLink run={entry} game={game} size={size + 2} />}
-      {entry.youtubeId && <YouTubeLink id={entry.youtubeId} size={size + 4} />}
-      <DemoLink demoId={entry.demoId} size={size} hideMissing />
+      {slot("autorender", slots.autorender, entry.autorenderId && <AutorenderLink run={entry} game={game} size={size + 2} />)}
+      {slot("youtube", slots.youtube, entry.youtubeId && <YouTubeLink id={entry.youtubeId} size={size + 4} />)}
+      {slot("demo", slots.demo, <DemoLink demoId={entry.demoId} size={size} hideMissing />)}
     </span>
   );
 }
 
 function MapCard({ map, scores }) {
   const [wr, ...rest] = scores || [];
+  const slots = iconSlots(rest.slice(0, 6));
   return (
     <article className="map-card">
       <Link to={mapPath(map)} className="mc-head" style={{ backgroundImage: `url("${map.image}")` }}>
@@ -97,7 +113,7 @@ function MapCard({ map, scores }) {
                 <PlayerLink key={i} player={p} className="mc-wr-name" />
               ))}
             </div>
-            <ScoreIcons entry={wr} game={map.game} size={22} />
+            <ScoreIcons entry={wr} game={map.game} size={22} slots={iconSlots([wr])} />
             <span className="mc-wr-time num">{formatScore(wr.score)}</span>
           </>
         ) : (
@@ -115,7 +131,7 @@ function MapCard({ map, scores }) {
                 </span>
               ))}
             </span>
-            <ScoreIcons entry={entry} game={map.game} size={18} />
+            <ScoreIcons entry={entry} game={map.game} size={18} slots={slots} />
             <span className="mc-time num">{formatScore(entry.score)}</span>
           </li>
         ))}

@@ -674,6 +674,13 @@
   text-align: center;
 }
 
+/* The previous week / day, faded while the next one loads. */
+.following.is-stale,
+.daily.is-stale {
+  opacity: 0.45;
+  transition: opacity 0.15s;
+}
+
 .su-activity-pager button {
   display: inline-flex;
   padding: 4px;
@@ -689,10 +696,17 @@
 
 /* Phones: recap and daily rows keep map, players, rank and time; co-op names stack. */
 @media (max-width: 600px) {
+  /* The pager moves under the tabs when a longer label wouldn't fit beside them (it used to be
+     pushed out of view, hiding the forward arrow). */
   .su-activity-controls {
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     justify-content: space-between;
+    row-gap: 8px;
     width: 100%;
+  }
+
+  .su-activity-pager {
+    margin-left: auto;
   }
 
   .following.recap li {

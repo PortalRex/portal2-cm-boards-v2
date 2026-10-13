@@ -147,6 +147,11 @@
   display: block;
 }
 
+.mc-icon-slot {
+  display: inline-flex;
+  justify-content: center;
+}
+
 .mc-rows {
   margin: 0;
   padding: 0;

@@ -188,9 +188,10 @@ function RecapPanel({ game }) {
   const weekRange = recap.data && `${shortDate(recap.data.start)} – ${shortDate(new Date(new Date(`${recap.data.end}T00:00:00Z`) - DAY_MS).toISOString().slice(0, 10))}`;
   const pager =
     tab === "recap"
-      ? { offset: weekOffset, set: setWeekOffset, label: weekOffset === 0 ? "This week" : weekRange || "…", unit: "week" }
+      ? // While another week loads, the previous week's data is still there: don't label it as the new one.
+        { offset: weekOffset, set: setWeekOffset, label: weekOffset === 0 ? "This week" : (!recap.loading && weekRange) || "…", unit: "week" }
       : tab === "daily"
-        ? { offset: dayOffset, set: setDayOffset, label: dayOffset === 0 ? "Today" : daily.data ? shortDate(daily.data.date) : "…", unit: "day" }
+        ? { offset: dayOffset, set: setDayOffset, label: dayOffset === 0 ? "Today" : !daily.loading && daily.data ? shortDate(daily.data.date) : "…", unit: "day" }
         : null;
   const actions = (
     <div className="su-activity-controls">
@@ -229,7 +230,7 @@ function DailyChambers({ daily, today }) {
   if (daily.loading && !chambers.length) return <Loading />;
   if (!chambers.length) return <EmptyState>No daily chambers.</EmptyState>;
   return (
-    <div className="daily">
+    <div className={`daily${daily.loading ? " is-stale" : ""}`}>
       {chambers.map((c) => (
         <section key={c.mode} className="daily-chamber">
           <header className="daily-head">
@@ -279,7 +280,7 @@ function WeeklyRecap({ recap }) {
   if (recap.loading && !runs.length) return <Loading />;
   if (!runs.length) return <EmptyState>No runs this week yet.</EmptyState>;
   return (
-    <ol className="following recap">
+    <ol className={`following recap${recap.loading ? " is-stale" : ""}`}>
       {runs.map((e) => (
         <li key={`${e.game}-${e.id}`}>
           <Link to={mapPath(e.map)} className="following-map">
