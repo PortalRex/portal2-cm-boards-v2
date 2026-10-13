@@ -718,6 +718,10 @@
   cursor: pointer;
 }
 
+.su-activity-pager.is-placeholder {
+  visibility: hidden;
+}
+
 .su-activity-pager button:disabled {
   opacity: 0.3;
   cursor: default;

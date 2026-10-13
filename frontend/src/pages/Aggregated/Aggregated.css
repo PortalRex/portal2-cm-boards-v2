@@ -42,27 +42,42 @@
 }
 
 .agg-panel {
-  max-width: 980px;
+  max-width: 1440px;
   margin: 0 auto;
+}
+
+/* Two panels with the background showing between them, so the boards read as separate. */
+.agg-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+.agg-board {
+  min-width: 0;
+  padding: 0 0 20px;
   background: rgb(var(--panel-rgb) / 0.97);
   border-radius: var(--radius);
   overflow: hidden;
 }
 
-.agg-panel-head {
+.agg-board-head {
+  display: flex;
+  align-items: center;
   height: 48px;
+  margin: 0 0 18px;
+  padding: 0 20px;
   background: var(--panel-head);
+  font-size: 16px;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
 }
 
-.agg-columns {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 26px;
-  padding: 20px 20px 24px;
-}
-
-.agg-board {
-  min-width: 0;
+.agg-board .agg-pagination,
+.agg-board .agg-row {
+  margin-left: 20px;
+  margin-right: 20px;
 }
 
 .agg-pagination {
@@ -119,7 +134,13 @@
 @media (max-width: 860px) {
   .agg-columns {
     grid-template-columns: 1fr;
-    padding: 14px 8px;
+    gap: 14px;
+  }
+
+  .agg-board .agg-pagination,
+  .agg-board .agg-row {
+    margin-left: 8px;
+    margin-right: 8px;
   }
 
   .agg-kicker {

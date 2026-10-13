@@ -229,13 +229,24 @@ function RecapPanel({ game }) {
           </button>
         ))}
       </div>
-      {pager && (
+      {pager ? (
         <div className="su-activity-pager">
           <button type="button" onClick={() => pager.set((o) => o + 1)} aria-label={`Previous ${pager.unit}`}>
             <TriangleLeft />
           </button>
           <span>{pager.label}</span>
           <button type="button" onClick={() => pager.set((o) => Math.max(0, o - 1))} disabled={pager.offset === 0} aria-label={`Next ${pager.unit}`}>
+            <TriangleRight />
+          </button>
+        </div>
+      ) : (
+        // Following has no pager; keep its space so the tabs don't jump when switching.
+        <div className="su-activity-pager is-placeholder" aria-hidden="true">
+          <button type="button" tabIndex={-1} disabled>
+            <TriangleLeft />
+          </button>
+          <span>This week</span>
+          <button type="button" tabIndex={-1} disabled>
             <TriangleRight />
           </button>
         </div>

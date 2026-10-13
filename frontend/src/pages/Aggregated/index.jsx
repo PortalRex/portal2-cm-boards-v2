@@ -93,7 +93,7 @@ function AggregatedContent({ game, kind, title, apiKind, kicker = "Aggregated po
   const data = useApi(() => (apiKind ? fetchAggregatedBoard(game, apiKind) : Promise.resolve(null)), [game, apiKind]);
 
   return (
-    <Layout background={background} tint="warm" narrow>
+    <Layout background={background} tint="warm">
       <header className="agg-header">
         <p className="agg-kicker">{kicker}</p>
         <h1 className="agg-title">{title}</h1>
@@ -132,14 +132,15 @@ function AggregatedContent({ game, kind, title, apiKind, kicker = "Aggregated po
         )}
       </header>
 
+      {/* Points and times as two separate panels side by side. */}
       <section className="agg-panel">
-        <div className="agg-panel-head" />
         {data.loading && !data.data ? (
           <Loading />
         ) : (
           <div className="agg-columns">
-            <Board rows={data.data?.points || []} valueLabel="Aggregated points" value={(r) => formatPoints(r.points)} />
+            <Board title="Points" rows={data.data?.points || []} valueLabel="Aggregated points" value={(r) => formatPoints(r.points)} />
             <Board
+              title="Time"
               rows={data.data?.times || []}
               valueLabel="Aggregated time"
               value={(r) => formatLongScore(r.score)}
@@ -166,12 +167,13 @@ function NoSeason() {
   );
 }
 
-function Board({ rows, valueLabel, value, empty = "No players yet." }) {
+function Board({ title, rows, valueLabel, value, empty = "No players yet." }) {
   const [page, setPage] = useState(0);
   const pageCount = Math.ceil(rows.length / PAGE_SIZE);
   const visible = rows.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
   return (
     <div className="agg-board">
+      <h2 className="agg-board-head">{title}</h2>
       <div className="agg-pagination">
         <Pagination page={page} pageCount={pageCount} onChange={setPage} />
       </div>
