@@ -12,8 +12,8 @@ const pointsFor = (rank) => Math.max(1, (201 - rank) ** 2 / 200);
 const EXAMPLES = [1, 2, 5, 10, 25, 50, 100, 150, 200];
 
 const TEAM = [
-  { role: "Developers and admins", names: ["mlugg", "NeKz", "Jonese1234"] },
-  { role: "Admins", names: ["Betsruner", "Bexc", "Daniel", "Rex"] },
+  { role: "Developers and admins", names: ["Jonese1234", "Rex", "Daniel"] },
+  { role: "Admins", names: ["Betsruner", "Bexc"] },
 ];
 
 // About the boards, based on the original board's About page (board.portal2.sr/about).
