@@ -20,7 +20,8 @@ import { TimeButton } from "../../components/RunHistory";
 import { BANNED_OPTIONS, RANK_OPTIONS, RUN_LIMITS, RUN_TOGGLES, TIME_OPTIONS } from "../../lib/runFilters";
 import "./MapPage.css";
 
-const PAGE_SIZE = 25;
+// Runs per page on the board and in Chamber History.
+const PAGE_SIZE = 40;
 const CATEGORIES = [{ value: "main", label: "Main Challenge Mode" }];
 const MEL_CATEGORIES = [{ value: "main", label: "Challenge Mode" }];
 
