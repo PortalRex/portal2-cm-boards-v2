@@ -25,9 +25,15 @@ STEAM.API_KEY=
 BACKBLAZE.KEYID=
 BACKBLAZE.KEY=
 BACKBLAZE.BUCKET=
+SERVER.PUBLIC_URL=http://localhost:3000
+SERVICE.TOKEN=
 RUST_LOG=1
 RUST_LOG="actix_web=info"
 ```
+
+- `SERVER.PUBLIC_URL` is the address people use to reach the site, which serves the API under `/api` (e.g. `https://board.portal2.sr`). Steam sign-in sends users back to it, and session cookies are marked Secure when it's https. Defaults to `http://localhost:3000`.
+- `STEAM.API_KEY` is used to fill in a user's Steam name and avatar when they sign in (sign-in itself works without it).
+- `SERVICE.TOKEN` is a long random string shared with the board's own services in `/backend` (set the same value as `SERVICE_TOKEN` in `backend/.env`). They send it in an `X-Service-Token` header. Every endpoint that changes data requires either that token or a signed-in admin (`users.admin > 0`); when it's unset, only admins can make changes.
 
 Assuming the database is up and running, start the server with `cargo run` in `/server`
 
