@@ -6,6 +6,7 @@ import { addRunDemo, deleteRun, fetchCoopHalves, fetchReactionRecord, fetchReact
 import { bumpDataVersion, useDataVersion } from "../lib/dataVersion";
 import useApi from "../hooks/useApi";
 import useCurrentUser, { isStaff } from "../hooks/useCurrentUser";
+import { isMultiplayerMode } from "../data/maps";
 import { coopRoles, setRoleOverride, useRoleOverrides } from "../lib/coopRoles";
 import { formatDate, formatScore } from "../lib/format";
 import "./RunDetails.css";
@@ -231,7 +232,7 @@ function AdminTools({ run, game }) {
   const [state, setState] = useState({ busy: false, message: null, error: null });
   const changelogId = run.changelogId ?? run.id;
   if (!isStaff(user) || changelogId == null) return null;
-  const coop = run.coopId != null || (run.players?.length ?? 0) > 1 || run.map?.mode === "coop";
+  const coop = run.coopId != null || (run.players?.length ?? 0) > 1 || isMultiplayerMode(run.map?.mode);
 
   const act = async (label, fn) => {
     setState({ busy: true, message: null, error: null });
@@ -286,7 +287,7 @@ function AdminTools({ run, game }) {
           {confirmDelete ? "Click again to delete permanently" : "Delete run"}
         </button>
       </div>
-      {coop && game === "portal2" && (
+      {coop && game !== "mel" && (
         <form
           className="sd-admin-partner"
           onSubmit={(e) => {

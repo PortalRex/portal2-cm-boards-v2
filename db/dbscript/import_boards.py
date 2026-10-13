@@ -46,7 +46,7 @@ import psycopg2
 from psycopg2.extras import execute_values
 
 P2_GAME, MEL_GAME = 1, 2
-GAMES = [(P2_GAME, "Portal 2"), (MEL_GAME, "Portal Stories: Mel")]
+GAMES = [(P2_GAME, "Portal 2", "portal2", 1), (MEL_GAME, "Portal Stories: Mel", "mel", 2)]
 FILLER_USER = "N/A"
 BATCH = 5000
 INT_MAX = 2**31 - 1
@@ -120,7 +120,7 @@ class Importer:
 
     def reference(self):
         log("games, countries, evidence requirements")
-        self.insert("games", ["id", "game_name"], GAMES)
+        self.insert("games", ["id", "game_name", "slug", "sort_order"], GAMES)
         with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "countries.sql"), encoding="utf-8") as fp:
             self.cur.execute(fp.read())
         evidence = rows(self.p2, "SELECT * FROM evidence_requirements")

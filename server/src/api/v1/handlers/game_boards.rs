@@ -6,15 +6,16 @@ use actix_web::{get, http::header, web, HttpRequest, HttpResponse, Responder};
 use sqlx::PgPool;
 
 /// Chapter `game_mode`s (and chapter, for `chapter-<id>`) that make up each aggregated board.
-fn scope_for(board: &str) -> Option<(Option<&'static [&'static str]>, Option<i32>)> {
-    match board {
-        "overall" => Some((None, None)),
-        "sp" => Some((Some(&["sp"]), None)),
-        "coop" => Some((Some(&["coop"]), None)),
-        "story" => Some((Some(&["story"]), None)),
-        "advanced" => Some((Some(&["advanced"]), None)),
-        _ => board.strip_prefix("chapter-")?.parse().ok().map(|id| (None, Some(id))),
+/// `overall`, `chapter-<id>`, or a chapter `game_mode` (board key).
+fn scope_for(board: &str) -> Option<(Option<&str>, Option<i32>)> {
+    if board == "overall" {
+        return Some((None, None));
     }
+    if let Some(id) = board.strip_prefix("chapter-") {
+        return id.parse().ok().map(|id| (None, Some(id)));
+    }
+    let valid = (1..=20).contains(&board.len()) && board.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_');
+    valid.then_some((Some(board), None))
 }
 
 /// **GET** aggregated points for any game, computed from the changelog.
@@ -32,9 +33,10 @@ async fn points_game(req: HttpRequest, pool: web::Data<PgPool>, cache: web::Data
     let Some((modes, chapter)) = scope_for(&board) else {
         return Ok(HttpResponse::NotFound().body("Unknown board."));
     };
+    let mode_list = [modes.unwrap_or("")];
     let scope = match (modes, chapter) {
         (_, Some(id)) => Scope::Chapter(id),
-        (Some(modes), None) => Scope::Modes(modes),
+        (Some(_), None) => Scope::Modes(&mode_list),
         (None, None) => Scope::All,
     };
     let board = cache.board(pool.get_ref(), game_id, &board, scope).await?;

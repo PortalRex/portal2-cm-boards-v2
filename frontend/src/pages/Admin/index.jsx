@@ -5,7 +5,8 @@ import { Panel, Select, Loading, EmptyState, PlayerLink, RankNumber } from "../.
 import { MoreIcon } from "../../components/Icons";
 import { fetchAudit, setRunBanned, setRunWrHidden } from "../../api/client";
 import { bumpDataVersion } from "../../lib/dataVersion";
-import useCurrentUser, { isStaff } from "../../hooks/useCurrentUser";
+import useCurrentUser, { isRoleAdmin, isStaff } from "../../hooks/useCurrentUser";
+import GamesEditor from "./GamesEditor";
 import { formatDate, formatScore, timeAgo } from "../../lib/format";
 import { getMap, mapPath } from "../../data/maps";
 import background from "../../scenes/global/img/Background.png";
@@ -27,6 +28,24 @@ const ACTIONS = {
   "profile.freeze": "Froze profile",
   "profile.unfreeze": "Unfroze profile",
   "profile.set_role": "Changed role",
+  "season.create": "Created season",
+  "game.create": "Created game",
+  "game.update": "Edited game",
+  "game.delete": "Deleted game",
+  "game.layout": "Rearranged maps",
+  "game.link": "Linked games",
+  "game.unlink": "Unlinked games",
+  "chapter.create": "Added chapter",
+  "chapter.update": "Edited chapter",
+  "chapter.delete": "Deleted chapter",
+  "map.create": "Added map",
+  "map.update": "Edited map",
+  "map.delete": "Deleted map",
+  "map.link": "Linked maps",
+  "map.unlink": "Unlinked maps",
+  "category.create": "Added category",
+  "category.update": "Renamed category",
+  "category.delete": "Deleted category",
 };
 const TONES = {
   "run.ban": "warn",
@@ -44,23 +63,56 @@ const TONES = {
   "profile.freeze": "bad",
   "profile.unfreeze": "ok",
   "profile.set_role": "info",
+  "season.create": "ok",
+  "game.create": "ok",
+  "game.update": "info",
+  "game.delete": "bad",
+  "game.layout": "info",
+  "game.link": "info",
+  "game.unlink": "warn",
+  "chapter.create": "ok",
+  "chapter.update": "info",
+  "chapter.delete": "bad",
+  "map.create": "ok",
+  "map.update": "info",
+  "map.delete": "bad",
+  "map.link": "info",
+  "map.unlink": "warn",
+  "category.create": "ok",
+  "category.update": "info",
+  "category.delete": "bad",
 };
 const TABS = [
   { value: "runs", label: "Runs", actions: ["run.ban", "run.unban", "run.verify", "run.unverify", "run.delete", "demo.remove", "run.hide_wr", "run.show_wr", "coop.set_partner", "coop.set_host"] },
   { value: "profiles", label: "Profiles", actions: ["profile.ban", "profile.unban", "profile.freeze", "profile.unfreeze", "profile.set_role"] },
+  { value: "catalog", label: "Games", actions: ["season.create", "game.create", "game.update", "game.delete", "game.layout", "game.link", "game.unlink", "chapter.create", "chapter.update", "chapter.delete", "map.create", "map.update", "map.delete", "map.link", "map.unlink", "category.create", "category.update", "category.delete"] },
 ];
 const PAGE = 50;
 
 // Admins only: a changelog of every change admins (or the board's services) have made.
 export default function Admin() {
   const user = useCurrentUser();
+  const [section, setSection] = useState("log");
+  const games = section === "games" && isRoleAdmin(user);
+  const actions = isRoleAdmin(user) && (
+    <div className="segmented">
+      <button type="button" className={section === "log" ? "is-active" : ""} onClick={() => setSection("log")}>
+        Changelog
+      </button>
+      <button type="button" className={section === "games" ? "is-active" : ""} onClick={() => setSection("games")}>
+        Games
+      </button>
+    </div>
+  );
   return (
     <Layout background={background} tint="mono">
-      <Panel icon={MoreIcon} title="Admin changelog" bodyClassName="admin-body">
+      <Panel icon={MoreIcon} title={games ? "Games and maps" : "Admin changelog"} actions={actions} bodyClassName="admin-body">
         {!user ? (
           <EmptyState>Sign in with an admin account to see the admin changelog.</EmptyState>
         ) : !isStaff(user) ? (
           <EmptyState>Staff only.</EmptyState>
+        ) : games ? (
+          <GamesEditor />
         ) : (
           <AuditLog />
         )}
@@ -129,6 +181,19 @@ function AuditLog() {
             </div>
             {entries.map((e) => (
               <RunAuditRow key={e.id} entry={e} onChanged={() => load(undefined, true)} />
+            ))}
+          </div>
+        ) : kind === "catalog" ? (
+          <div className="audit-table" role="table">
+            <div className="audit-row is-profile audit-head" role="row">
+              <span>Action</span>
+              <span>What</span>
+              <span>Admin</span>
+              <span>Reason</span>
+              <span className="end">When</span>
+            </div>
+            {entries.map((e) => (
+              <CatalogAuditRow key={e.id} entry={e} />
             ))}
           </div>
         ) : (
@@ -252,6 +317,36 @@ function RunAuditRow({ entry, onChanged }) {
           <RankNumber rank={entry.post_rank} />
         </span>
         <span className="end num">{entry.score != null ? formatScore(entry.score) : "—"}</span>
+        <span>
+          <ActedBy entry={entry} />
+        </span>
+        <Reason entry={entry} open={open} onToggle={() => setOpen((o) => !o)} />
+        <When entry={entry} />
+      </div>
+      {open && <pre className="audit-details">{pretty(entry.details)}</pre>}
+    </div>
+  );
+}
+
+// Game, chapter, map and category edits: what was changed, with the details on demand.
+function CatalogAuditRow({ entry }) {
+  const [open, setOpen] = useState(false);
+  let details = {};
+  try {
+    details = typeof entry.details === "string" ? JSON.parse(entry.details) : entry.details || {};
+  } catch {
+    details = {};
+  }
+  const what = details.name ? `${entry.target_type} ${details.name}` : `${entry.target_type} ${entry.target_id}`;
+  return (
+    <div className="audit-entry">
+      <div className="audit-row is-profile" role="row">
+        <Badge action={entry.action} />
+        <span>
+          <button type="button" className="audit-what" onClick={() => setOpen((o) => !o)}>
+            {what}
+          </button>
+        </span>
         <span>
           <ActedBy entry={entry} />
         </span>

@@ -371,7 +371,7 @@ async fn test_db_pages() {
 
     let sppres = SpPreview::get_sp_previews(&pool, 1).await.unwrap();
     assert_eq!(sppres.len(), 60);
-    let cooppres = CoopPreview::get_coop_previews(&pool).await.unwrap();
+    let cooppres = CoopPreview::get_coop_previews(&pool, 1).await.unwrap();
     assert_eq!(cooppres.len(), 48);
 
     let _spbanned = SpBanned::get_sp_banned(&pool, sp_map_id).await.unwrap();

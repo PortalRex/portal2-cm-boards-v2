@@ -165,8 +165,8 @@ impl CoopPreview {
         Ok(vec_final)
     }
     /// Collects the top 7 preview data for all Coop maps.
-    pub async fn get_coop_previews(pool: &PgPool) -> Result<Vec<Vec<CoopPreview>>, sqlx::Error> {
-        let map_id_vec = Maps::get_steam_ids(pool, true, 1).await?;
+    pub async fn get_coop_previews(pool: &PgPool, game_id: i32) -> Result<Vec<Vec<CoopPreview>>, sqlx::Error> {
+        let map_id_vec = Maps::get_steam_ids(pool, true, game_id).await?;
         let futures: Vec<_> = map_id_vec
             .iter()
             .map(|map_id| CoopPreview::get_coop_preview(pool, map_id))

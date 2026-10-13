@@ -90,5 +90,7 @@ pub mod sp;
 pub mod stats;
 /// Run submissions from demos
 pub mod submissions;
+/// Games, seasons, chapters, maps and categories
+pub mod catalog;
 /// Controllers for users
 pub mod users;

@@ -276,8 +276,8 @@ async fn submission_create(
         demo_file: demo_file.clone(),
         demo_partner_name: partner.as_ref().and_then(|(_, n)| n.clone()),
     };
-    let id = match submissions::insert_run(pool.get_ref(), run).await? {
-        Ok(id) => id,
+    let recorded = match submissions::insert_run(pool.get_ref(), run).await? {
+        Ok(r) => r,
         Err(refused) => {
             if let (Some(name), Some(dir)) = (&demo_file, config.demo.storage.as_deref()) {
                 let _ = tokio::fs::remove_file(Path::new(dir).join(name)).await;
@@ -289,17 +289,25 @@ async fn submission_create(
         }
     };
 
+    let id = recorded.changelog_id;
     if !overrides.is_empty() {
         let details = json!({ "entered_by_hand": overrides, "map_id": map.steam_id, "score": score, "profile_number": profile_number, "partner": partner.as_ref().map(|p| &p.0), "demo": demo_file.is_some() });
         moderation::log_by_user(pool.get_ref(), &user.profile_number, "run.manual_submit", "run", &id.to_string(), details).await?;
     }
     cache.update_current_state(if map.is_coop { COOP_PREVIEWS } else { SP_PREVIEWS }, false).await;
-    if cache.default_cat_ids.contains_key(&map.steam_id) {
-        cache.reload_rank(pool.get_ref(), &map.steam_id, &config, map.is_coop).await;
+    if cache.default_cat_ids.contains_key(&recorded.map.steam_id) {
+        cache.reload_rank(pool.get_ref(), &recorded.map.steam_id, &config, map.is_coop).await;
     }
     invalidate_points().await;
 
-    Ok(HttpResponse::Ok().json(json!({ "changelog_id": id, "map_id": map.steam_id, "map_name": map.name, "score": score, "partner": partner.map(|p| p.0) })))
+    Ok(HttpResponse::Ok().json(json!({
+        "changelog_id": id,
+        "map_id": recorded.map.steam_id,
+        "map_name": recorded.map.name,
+        "score": score,
+        "partner": partner.map(|p| p.0),
+        "boards": recorded.boards,
+    })))
 }
 
 /// **POST** Add the demo for a pending run (form field `demo`). The demo must be of the run's

@@ -1,7 +1,7 @@
 use actix_web::web;
 
 use crate::api::v1::handlers::{
-    admin::*, auth::*, changelog::*, chapters::*, coop::*, fullgame::*, game_boards::*, maps::*, moderation::*, points::*, runs::*, sp::*, stats::*, submissions::*,
+    admin::*, auth::*, changelog::*, chapters::*, coop::*, fullgame::*, game_boards::*, maps::*, moderation::*, points::*, runs::*, sp::*, stats::*, submissions::*, catalog::*,
     users::*,
 };
 
@@ -28,6 +28,24 @@ pub fn init(cfg: &mut web::ServiceConfig) {
             .service(submission_create)
             .service(recap_weekly)
             .service(daily_chambers)
+            .service(catalog_get)
+            .service(admin_game_create)
+            .service(admin_game_update)
+            .service(admin_game_delete)
+            .service(admin_game_layout)
+            .service(admin_chapter_create)
+            .service(admin_chapter_update)
+            .service(admin_chapter_delete)
+            .service(admin_map_create)
+            .service(admin_map_update)
+            .service(admin_map_delete)
+            .service(admin_category_create)
+            .service(admin_category_update)
+            .service(admin_category_delete)
+            .service(admin_map_link)
+            .service(admin_map_unlink)
+            .service(admin_game_link)
+            .service(admin_game_unlink)
             .service(run_add_demo)
             .service(steam_login)
             .service(steam_callback)

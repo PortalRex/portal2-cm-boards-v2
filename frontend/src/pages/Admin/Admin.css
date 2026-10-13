@@ -210,3 +210,13 @@
   display: block;
   font-size: 13px;
 }
+
+.audit-what {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent-light);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}

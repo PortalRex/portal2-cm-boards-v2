@@ -3,7 +3,7 @@ import { Link, Navigate, useLocation, useNavigate, useParams } from "react-route
 import Layout from "../../components/Layout";
 import { Pagination, Select, Avatar, Flag, PlayerLink, Loading, EmptyState } from "../../components/ui";
 import { fetchAggregatedBoard } from "../../api/boards";
-import { MODE_LABELS, chapterDbId, p2ChapterByDbId, spChapters, coopChapters } from "../../data/maps";
+import { GAMES, MODE_LABELS, chapterDbId, isMultiplayerMode, p2ChapterByDbId, spChapters, coopChapters } from "../../data/maps";
 import useApi from "../../hooks/useApi";
 import { formatPoints, formatLongScore } from "../../lib/format";
 import background from "../../scenes/global/img/OverallOpaque.png";
@@ -15,7 +15,6 @@ const KINDS = {
     overall: ["Overall", "overall"],
     sp: ["Single Player", "sp"],
     coop: ["Cooperative", "coop"],
-    season: ["Season 1", null],
   },
   mel: {
     story: ["Story Mode", "story"],
@@ -24,24 +23,58 @@ const KINDS = {
   },
 };
 
-const CATEGORIES = [
-  { value: "portal2", label: "Portal 2 Challenge Mode" },
-  { value: "mel", label: "Portal Stories: Mel" },
-];
 const BASE = { portal2: "/leaderboard", mel: "/leaderboard/mel" };
+// Leaderboard home of a game: built-in games keep their old addresses.
+export const gameBoardsPath = (game) => (BASE[game] ? `${BASE[game]}/overall` : `/leaderboard/game/${game}/overall`);
+const categories = () =>
+  Object.values(GAMES).map((g) => ({ value: g.id, label: g.id === "portal2" ? "Portal 2 Challenge Mode" : g.label }));
+
+// The season running now (else the latest one), for /leaderboard/season.
+export function currentSeason() {
+  const seasons = Object.values(GAMES).filter((g) => g.kind === "season" && !g.hidden);
+  const now = Date.now();
+  const live = seasons.filter((g) => new Date(`${g.startsAt}Z`) <= now && (!g.endsAt || new Date(`${g.endsAt}Z`) > now));
+  const byStart = (a, b) => new Date(b.startsAt) - new Date(a.startsAt);
+  return live.sort(byStart)[0] || seasons.sort(byStart)[0] || null;
+}
 const PAGE_SIZE = 20;
 
 // Portal 2 board picker: the three aggregated boards plus one per chapter.
-const P2_BOARDS = [
+const p2Boards = () => [
   ...["overall", "sp", "coop"].map((k) => ({ value: `/leaderboard/${k}`, label: KINDS.portal2[k][0] })),
   ...[...spChapters, ...coopChapters].map((c) => ({
     value: `/leaderboard/chapter/${chapterDbId(c)}`,
-    label: `${c.mode === "coop" ? "Course" : "Chapter"} ${c.number}: ${c.name}`,
+    label: `${isMultiplayerMode(c.mode) ? "Course" : "Chapter"} ${c.number}: ${c.name}`,
   })),
 ];
 
 export default function Aggregated({ game = "portal2" }) {
-  const { kind, chapterId } = useParams();
+  const { kind, chapterId, gameId, board } = useParams();
+  if (kind === "season") {
+    const season = currentSeason();
+    return season ? <Navigate to={gameBoardsPath(season.id)} replace /> : <NoSeason />;
+  }
+  if (gameId) {
+    const g = GAMES[gameId];
+    if (!g) return <Navigate to="/leaderboard/overall" replace />;
+    if (BASE[gameId]) return <Navigate to={gameBoardsPath(gameId)} replace />;
+    const boardKey = board === "overall" || g.modes.includes(board) ? board : null;
+    if (!boardKey) return <Navigate to={gameBoardsPath(gameId)} replace />;
+    const title = boardKey === "overall" ? "Overall" : MODE_LABELS[boardKey] || boardKey;
+    // Season dates are UTC; show them as entered.
+    const day = (ts) => String(ts).slice(0, 10);
+    const span = g.kind === "season" && g.startsAt ? `${day(g.startsAt)} – ${g.endsAt ? day(g.endsAt) : "ongoing"}` : null;
+    return (
+      <AggregatedContent
+        key={`${gameId}-${boardKey}`}
+        game={gameId}
+        kind={boardKey}
+        title={title}
+        apiKind={`game:${gameId}:${boardKey}`}
+        kicker={span ? `${g.label} · ${span}` : g.label}
+      />
+    );
+  }
   if (chapterId) {
     const chapter = p2ChapterByDbId(chapterId);
     if (!chapter) return <Navigate to="/leaderboard/overall" replace />;
@@ -64,9 +97,9 @@ function AggregatedContent({ game, kind, title, apiKind, kicker = "Aggregated po
         <p className="agg-kicker">{kicker}</p>
         <h1 className="agg-title">{title}</h1>
         <div className="agg-selects">
-          <Select value={game} onChange={(g) => navigate(`${BASE[g]}/overall`)} options={CATEGORIES} label="Category" className="agg-select" />
-          {game === "portal2" && P2_BOARDS.some((b) => b.value === pathname) && (
-            <Select value={pathname} onChange={(to) => navigate(to)} options={P2_BOARDS} label="Board" className="agg-select" />
+          <Select value={game} onChange={(g) => navigate(gameBoardsPath(g))} options={categories()} label="Category" className="agg-select" />
+          {game === "portal2" && p2Boards().some((b) => b.value === pathname) && (
+            <Select value={pathname} onChange={(to) => navigate(to)} options={p2Boards()} label="Board" className="agg-select" />
           )}
         </div>
         {game === "mel" && (
@@ -78,13 +111,20 @@ function AggregatedContent({ game, kind, title, apiKind, kicker = "Aggregated po
             ))}
           </nav>
         )}
+        {!BASE[game] && GAMES[game] && (
+          <nav className="agg-modes" aria-label={`${GAMES[game].label} boards`}>
+            {["overall", ...GAMES[game].modes].map((k) => (
+              <Link key={k} to={`/leaderboard/game/${game}/${k}`} className={k === kind ? "is-active" : ""}>
+                {k === "overall" ? "Overall" : MODE_LABELS[k] || k}
+              </Link>
+            ))}
+          </nav>
+        )}
       </header>
 
       <section className="agg-panel">
         <div className="agg-panel-head" />
-        {!apiKind ? (
-          <EmptyState>Season standings aren’t published yet.</EmptyState>
-        ) : data.loading && !data.data ? (
+        {data.loading && !data.data ? (
           <Loading />
         ) : (
           <div className="agg-columns">
@@ -97,6 +137,20 @@ function AggregatedContent({ game, kind, title, apiKind, kicker = "Aggregated po
             />
           </div>
         )}
+      </section>
+    </Layout>
+  );
+}
+
+function NoSeason() {
+  return (
+    <Layout background={background} tint="warm" narrow>
+      <header className="agg-header">
+        <p className="agg-kicker">Seasons</p>
+        <h1 className="agg-title">No season yet</h1>
+      </header>
+      <section className="agg-panel">
+        <EmptyState>There’s no season running. Check back soon.</EmptyState>
       </section>
     </Layout>
   );

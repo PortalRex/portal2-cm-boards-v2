@@ -12,7 +12,7 @@ import { fetchBoard, fetchWrHistory, fetchMapChangelog } from "../../api/boards"
 import { fetchProfileScores, fetchWrHistoryForStaff, setRunWrHidden } from "../../api/client";
 import useCurrentUser, { isStaff } from "../../hooks/useCurrentUser";
 import { bumpDataVersion } from "../../lib/dataVersion";
-import { getMap, gameForMode, mapPath } from "../../data/maps";
+import { findMap, getMap, gameForMode, isMultiplayerMode, mapPath } from "../../data/maps";
 import useApi from "../../hooks/useApi";
 import { useDataVersion } from "../../lib/dataVersion";
 import { formatScore, timeAgo, formatDate, parseTimestamp } from "../../lib/format";
@@ -24,7 +24,7 @@ const MEL_CATEGORIES = [{ value: "main", label: "Challenge Mode" }];
 
 export default function MapPage() {
   const { mode, levelId } = useParams();
-  const map = getMap(levelId, gameForMode(mode));
+  const map = getMap(levelId, gameForMode(mode)) || findMap(levelId);
   if (!map) return <Navigate to="/maps" replace />;
   if (map.mode !== mode) return <Navigate to={mapPath(map)} replace />;
   return <MapPageContent key={`${map.game}-${map.id}`} map={map} />;
@@ -180,7 +180,7 @@ function WrHistoryChart({ points, loading }) {
 function Leaderboard({ map, board }) {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
-  const coop = map.mode === "coop";
+  const coop = isMultiplayerMode(map.mode);
   const q = search.trim().toLowerCase();
   const rows = (board.data || []).filter((e) => !q || e.players.some((p) => p.name.toLowerCase().includes(q)));
   const pageCount = Math.ceil(rows.length / PAGE_SIZE);

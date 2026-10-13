@@ -196,3 +196,14 @@ pub async fn get_valid_changelog_insert(
     // Step 4
     Ok(ChangelogInsert::new_from_submission(cl, values, &cache.default_cat_ids).await)
 }
+
+/// The game a map belongs to (1, Portal 2, if it's unknown).
+pub async fn map_game_id(pool: &PgPool, map_id: &str) -> i32 {
+    sqlx::query_scalar::<_, i32>("SELECT c.game_id FROM maps AS m JOIN chapters AS c ON c.id = m.chapter_id WHERE m.steam_id = $1")
+        .bind(map_id)
+        .fetch_optional(pool)
+        .await
+        .ok()
+        .flatten()
+        .unwrap_or(1)
+}

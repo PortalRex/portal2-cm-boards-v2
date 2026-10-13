@@ -1,0 +1,377 @@
+.ge {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.ge-games {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ge-game {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 8px 12px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 16px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ge-game small {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.ge-game:hover {
+  background: var(--seg-hover);
+}
+
+.ge-game.is-active {
+  border-color: var(--border);
+  background: var(--seg-active);
+}
+
+.ge-new {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.ge-main {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.ge-card {
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--row-alt);
+}
+
+.ge-card h3 {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 600;
+}
+
+.ge-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.ge-tag {
+  padding: 2px 10px;
+  border-radius: 4px;
+  background: var(--seg-active);
+  color: var(--text-2);
+  font-size: 13px;
+}
+
+.ge-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ge-form label {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 180px;
+}
+
+.ge-form label > span {
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.ge-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.ge input,
+.ge select {
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--control);
+  color: var(--text);
+  font: inherit;
+  font-size: 15px;
+}
+
+.ge input:focus,
+.ge select:focus {
+  outline: none;
+  border-color: var(--accent-light);
+}
+
+.ge input[type="checkbox"] {
+  height: auto;
+}
+
+.ge button {
+  height: 32px;
+  padding: 0 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  background: var(--control);
+  color: var(--text);
+  font: inherit;
+  font-size: 15px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.ge button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.ge button.is-primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+.ge button.is-danger {
+  border-color: var(--hl-red, #a14a4a);
+  color: var(--hl-red-text, #f3a0a0);
+}
+
+.ge-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.ge-hint {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.ge-error {
+  margin: 0;
+  color: var(--hl-red-text, #f3a0a0);
+  font-size: 14px;
+}
+
+.ge-chapters {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.ge-chapter {
+  padding: 10px 12px;
+  border: 1px dashed transparent;
+  border-radius: 6px;
+  background: var(--row);
+}
+
+.ge-chapter.is-over {
+  border-color: var(--accent-light);
+  background: var(--seg-hover);
+}
+
+.ge-chapter-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.ge-chapter-head strong {
+  font-size: 16px;
+}
+
+.ge-chapter-head small {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.ge-order {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.ge .ge-order button {
+  height: 22px;
+  padding: 0 6px;
+  font-size: 10px;
+}
+
+.ge .ge-link {
+  height: auto;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent-light);
+  font-size: 13px;
+}
+
+.ge .ge-link.is-danger {
+  color: var(--hl-red-text, #f3a0a0);
+}
+
+.ge-maps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ge .ge-map {
+  height: 30px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 15px;
+  background: var(--control-raised);
+  font-size: 14px;
+  cursor: grab;
+}
+
+.is-readonly .ge-map {
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  font-size: 14px;
+}
+
+.ge .ge-map.is-dragging {
+  opacity: 0.4;
+}
+
+.ge .ge-map.is-open {
+  border-color: var(--accent-light);
+}
+
+.ge .ge-map-add {
+  border-style: dashed;
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.ge-inline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.ge-add-form {
+  margin-top: 4px;
+}
+
+.ge .ge-add {
+  margin-top: 12px;
+  border-style: dashed;
+  background: none;
+  color: var(--text-muted);
+}
+
+.ge input.ge-short {
+  width: 150px;
+}
+
+.ge-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+}
+
+.ge-map-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--row-alt);
+}
+
+.ge-id {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.ge-cats {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.ge-cat {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.ge-cat.is-main {
+  border-color: var(--accent);
+}
+
+.ge-cat small {
+  color: var(--accent-light);
+  font-size: 12px;
+}
+
+@media (max-width: 900px) {
+  .ge {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ge-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0 0;
+}
+
+.ge .ge-game {
+  height: auto;
+  border-color: transparent;
+  background: none;
+}
+
+.ge .ge-game.is-active {
+  border-color: var(--border);
+  background: var(--seg-active);
+}

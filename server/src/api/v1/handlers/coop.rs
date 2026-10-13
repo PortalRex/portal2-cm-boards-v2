@@ -47,9 +47,14 @@ use sqlx::PgPool;
 ///             },...]},...}
 /// ```
 #[get("/coop")]
-async fn coop(pool: web::Data<PgPool>, cache: web::Data<CacheState>) -> Result<impl Responder> {
+async fn coop(pool: web::Data<PgPool>, cache: web::Data<CacheState>, game: web::Query<crate::models::chapters::GameID>) -> Result<impl Responder> {
+    // Only the Portal 2 previews are cached; other games (seasons) are queried directly.
+    let game_id = game.into_inner().game_id.unwrap_or(1);
+    if game_id != 1 {
+        return Ok(web::Json(CoopPreview::get_coop_previews(pool.get_ref(), game_id).await?));
+    }
     if !cache.get_current_state(COOP_PREVIEWS).await {
-        let previews = CoopPreview::get_coop_previews(pool.get_ref()).await?;
+        let previews = CoopPreview::get_coop_previews(pool.get_ref(), 1).await?;
         if write_to_file("coop_previews", &previews).await.is_ok() {
             cache.update_current_state(COOP_PREVIEWS, true).await;
         } else {
@@ -121,12 +126,12 @@ async fn coop_map(
     let map_id = map_id.into_inner();
     let cat_id = ids
         .cat_id
-        .unwrap_or_else(|| cache.into_inner().default_cat_ids[&map_id]);
+        .unwrap_or(cache.default_cat(pool.get_ref(), &map_id).await);
     let coop_entries = CoopMap::get_coop_map_page(
         pool.get_ref(),
         &map_id,
         cat_id,
-        ids.game_id.unwrap_or(1),
+        match ids.game_id { Some(g) => g, None => crate::tools::helpers::map_game_id(pool.get_ref(), &map_id).await },
     )
     .await?;
     Ok(web::Json(
@@ -167,7 +172,7 @@ async fn coop_banned_all(
     let map_id = map_id.into_inner();
     let cat_id = params
         .cat_id
-        .unwrap_or_else(|| cache.into_inner().default_cat_ids[&map_id]);
+        .unwrap_or(cache.default_cat(pool.get_ref(), &map_id).await);
     Ok(web::Json(
         CoopBanned::get_coop_banned(pool.get_ref(), &map_id, cat_id).await?,
     ))
@@ -211,7 +216,7 @@ async fn coop_banned(
     let cat_id = Some(
         params
             .cat_id
-            .unwrap_or(cache.into_inner().default_cat_ids[&map_id]),
+            .unwrap_or(cache.default_cat(pool.get_ref(), &map_id).await),
     );
     let is_banned = Changelog::check_banned_scores(
         pool.get_ref(),

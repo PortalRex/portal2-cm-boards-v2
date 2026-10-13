@@ -4,13 +4,14 @@ import { Panel, Select, PlayerLink, Loading } from "../../components/ui";
 import { PinIcon, TrophyIcon, DownloadIcon } from "../../components/Icons";
 import { AutorenderLink, YouTubeLink } from "../../components/RunMedia";
 import { fetchPreviews } from "../../api/boards";
-import { GAMES, MODE_LABELS, chaptersFor, mapPath } from "../../data/maps";
+import { GAMES, MODE_LABELS, chaptersFor, isMultiplayerMode, mapPath } from "../../data/maps";
 import useApi from "../../hooks/useApi";
 import { formatScore } from "../../lib/format";
 import background from "../../scenes/global/img/Background.png";
 import "./MapList.css";
 
-const GAME_OPTIONS = Object.values(GAMES).map((g) => ({ value: g.id, label: g.label }));
+// Built when rendering: the game list comes from the server's catalog at startup.
+const gameOptions = () => Object.values(GAMES).map((g) => ({ value: g.id, label: g.label }));
 
 export default function MapList() {
   const [params, setParams] = useSearchParams();
@@ -33,7 +34,7 @@ export default function MapList() {
         <div className="ml-controls">
           <div className="ml-control">
             <span className="ml-label">Category</span>
-            <Select value={game} onChange={(g) => update(g, GAMES[g].modes[0])} options={GAME_OPTIONS} label="Category" className="ml-select" />
+            <Select value={game} onChange={(g) => update(g, GAMES[g].modes[0])} options={gameOptions()} label="Category" className="ml-select" />
           </div>
           <div className="ml-control">
             <span className="ml-label">Mode</span>
@@ -53,7 +54,7 @@ export default function MapList() {
           <section key={chapter.name} className="ml-chapter">
             <header className="ml-chapter-head">
               <span className="ml-chapter-number">
-                {mode === "coop" ? "Course" : "Chapter"} {String(chapter.number).padStart(2, "0")}
+                {isMultiplayerMode(mode) ? "Course" : "Chapter"} {String(chapter.number).padStart(2, "0")}
               </span>
               <h2>{chapter.name}</h2>
             </header>

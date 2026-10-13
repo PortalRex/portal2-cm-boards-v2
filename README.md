@@ -40,6 +40,14 @@ RUST_LOG="actix_web=info"
 
 Assuming the database is up and running, start the server with `cargo run` in `/server`
 
+#### Games, seasons and linked leaderboards
+
+Admins manage games, chapters, maps and categories from the staff panel (**Staff → Games**), including dragging maps between chapters. The site loads this catalog from `GET /api/v1/catalog` at startup, so new games and seasons appear in the map list, leaderboards, profiles and score updates without code changes.
+
+- A **season** copies a game's map pool and is open between a start and an optional end date (UTC).
+- Maps can be **linked** (each season's maps are linked to the originals by default; a whole game can be linked to another, e.g. Season 1 to Season 0). A run set on one linked map is also recorded on the other if it beats the player's best there; times set before the link aren't copied, and links to a season only apply inside its dates. A submission that isn't an improvement on the submitted map is recorded on the first linked board where it is, and refused if it improves none.
+- This is done by database triggers (`migrations/20261021000000_games_seasons.sql`), which keep the linked copies in step with the original run (bans, verification, demos, deletion, co-op pairing).
+
 #### Features
 
 * Endpoints interacting with the data on the boards. Documented [here](https://danielbatesj.github.io/Portal2-Boards-Rust-API-Docs/docs/target/doc/doc/server/index.html).

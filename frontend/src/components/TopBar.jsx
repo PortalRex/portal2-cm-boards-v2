@@ -5,6 +5,7 @@ import {
   HistoryIcon, PinIcon, BarsIcon, MoreIcon, TrophyIcon, PersonIcon, PeopleIcon, MenuIcon, CloseIcon, LightModeIcon, DarkModeIcon, SteamIcon, UploadIcon,
 } from "./Icons";
 import { Avatar, Flag } from "./ui";
+import { GAMES } from "../data/maps";
 import useCurrentUser, { clearCurrentUser, isStaff } from "../hooks/useCurrentUser";
 import { logout, steamLoginUrl } from "../api/client";
 import useTheme from "../hooks/useTheme";
@@ -12,11 +13,22 @@ import SubmitRun from "./SubmitRun";
 import "./TopBar.css";
 
 const LEADERBOARD_MENU = [
-  { to: "/leaderboard/season", label: "Season 1", icon: TrophyIcon, highlight: true },
   { to: "/leaderboard/overall", label: "Overall", icon: BarsIcon },
   { to: "/leaderboard/sp", label: "Single Player", icon: PersonIcon },
   { to: "/leaderboard/coop", label: "Cooperative", icon: PeopleIcon },
   { to: "/leaderboard/chapter/7", label: "By Chapter", icon: PinIcon },
+];
+
+// Seasons and added games come from the catalog, ahead of the built-in boards.
+const leaderboardMenu = () => [
+  ...Object.values(GAMES)
+    .filter((g) => g.kind === "season" && !g.hidden)
+    .sort((a, b) => new Date(b.startsAt) - new Date(a.startsAt))
+    .map((g) => ({ to: `/leaderboard/game/${g.id}/overall`, label: g.label, icon: TrophyIcon, highlight: true })),
+  ...Object.values(GAMES)
+    .filter((g) => g.kind === "game" && g.id !== "portal2" && g.id !== "mel" && !g.hidden)
+    .map((g) => ({ to: `/leaderboard/game/${g.id}/overall`, label: g.label, icon: BarsIcon })),
+  ...LEADERBOARD_MENU,
 ];
 
 const MORE_MENU = [
@@ -30,7 +42,7 @@ const MORE_MENU = [
 const NAV = [
   { to: "/", label: "Score Updates", icon: HistoryIcon, end: true },
   { to: "/maps", label: "Map List", icon: PinIcon, match: ["/maps", "/map/"] },
-  { to: "/leaderboard/overall", label: "Leaderboard", icon: BarsIcon, menu: LEADERBOARD_MENU, match: ["/leaderboard"] },
+  { to: "/leaderboard/overall", label: "Leaderboard", icon: BarsIcon, menu: "leaderboard", match: ["/leaderboard"] },
   { to: "/more/about", label: "More", icon: MoreIcon, menu: MORE_MENU, match: ["/more"] },
 ];
 
@@ -65,7 +77,7 @@ function NavItem({ item, pathname }) {
       </NavLink>
       {item.menu && (
         <div className="nav-menu" role="menu">
-          {item.menu.map((m) => (
+          {(item.menu === "leaderboard" ? leaderboardMenu() : item.menu).map((m) => (
             <MenuItem key={m.label} item={m} />
           ))}
         </div>

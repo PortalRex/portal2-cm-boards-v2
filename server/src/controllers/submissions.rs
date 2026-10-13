@@ -77,7 +77,7 @@ pub async fn maps_for_bsp(pool: &PgPool, bsp: &str) -> Result<Vec<BoardMap>, sql
         r#"
             SELECT m.steam_id, m.name, c.game_id, c.game_mode, c.is_multiplayer AS is_coop, m.default_cat_id
             FROM maps AS m JOIN chapters AS c ON c.id = m.chapter_id
-            WHERE lower(m.bsp_name) = lower($1)
+            WHERE lower(m.bsp_name) = lower($1) AND m.source_map IS NULL
             ORDER BY c.game_id, m.id
         "#,
     )
@@ -207,34 +207,72 @@ pub async fn attach_proof(pool: &PgPool, run: &ProofTarget, demo_file: &str, par
     tx.commit().await
 }
 
-/// Inserts a submitted run (with its demo and co-op pairing) in one transaction. Refuses times
-/// that aren't an improvement on the player's personal best. Returns the new changelog id.
-pub async fn insert_run(pool: &PgPool, run: NewRun<'_>) -> Result<Result<i64, Refused>, sqlx::Error> {
-    let Some(category) = run.map.default_cat_id else {
-        return Ok(Err(Refused::Invalid("That map has no board category.".into())));
-    };
-    let mut tx = pool.begin().await?;
-    let previous: Option<(i64, i32)> = sqlx::query_as(
+/// Where a submitted run was recorded.
+#[derive(Debug, Serialize)]
+pub struct Recorded {
+    pub changelog_id: i64,
+    /// The map the run was recorded on first (the submitted map, unless it wasn't an
+    /// improvement there but was on a linked board).
+    pub map: BoardMap,
+    /// Every board it counts on: "Game · Map".
+    pub boards: Vec<String>,
+}
+
+async fn personal_best(tx: &mut sqlx::Transaction<'_, sqlx::Postgres>, map: &BoardMap, profile_number: &str) -> Result<Option<(i64, i32)>, sqlx::Error> {
+    sqlx::query_as(
         r#"
             SELECT id, score FROM changelog
             WHERE profile_number = $1 AND map_id = $2 AND category_id = $3 AND verified AND NOT banned
             ORDER BY score ASC, timestamp ASC LIMIT 1
         "#,
     )
-    .bind(run.profile_number)
-    .bind(&run.map.steam_id)
-    .bind(category)
-    .fetch_optional(&mut *tx)
-    .await?;
-    if let Some((_, pb)) = previous {
-        if run.score >= pb {
-            return Ok(Err(Refused::Invalid(format!(
-                "This isn't faster than your current best on {} ({}).",
-                run.map.name,
-                format_time(pb)
-            ))));
+    .bind(profile_number)
+    .bind(&map.steam_id)
+    .bind(map.default_cat_id)
+    .fetch_optional(&mut **tx)
+    .await
+}
+
+/// Inserts a submitted run (with its demo and co-op pairing) in one transaction. Each board
+/// only takes improvements on the player's best there: the run goes on the submitted map if
+/// it's an improvement, else on the first linked board where it is (the database then records
+/// it on any other linked board it improves). Refused when it improves none of them.
+pub async fn insert_run(pool: &PgPool, run: NewRun<'_>) -> Result<Result<Recorded, Refused>, sqlx::Error> {
+    if run.map.default_cat_id.is_none() {
+        return Ok(Err(Refused::Invalid("That map has no board category.".into())));
+    }
+    let mut tx = pool.begin().await?;
+    let linked: Vec<String> = sqlx::query_scalar("SELECT steam_id FROM linked_maps($1, (now() AT TIME ZONE 'utc')::timestamp)")
+        .bind(&run.map.steam_id)
+        .fetch_all(&mut *tx)
+        .await?;
+    let mut candidates = vec![run.map.clone()];
+    for id in linked {
+        if let Some(m) = map_by_id(pool, &id).await? {
+            candidates.push(m);
         }
     }
+    let mut chosen = None;
+    let mut submitted_pb = None;
+    for (i, map) in candidates.into_iter().enumerate() {
+        let previous = personal_best(&mut tx, &map, run.profile_number).await?;
+        if i == 0 {
+            submitted_pb = previous.map(|p| p.1);
+        }
+        if previous.map_or(true, |(_, pb)| run.score < pb) {
+            chosen = Some((map, previous));
+            break;
+        }
+    }
+    let Some((board, previous)) = chosen else {
+        return Ok(Err(Refused::Invalid(format!(
+            "This isn't faster than your current best on {} ({}).",
+            run.map.name,
+            format_time(submitted_pb.unwrap_or(run.score))
+        ))));
+    };
+    let category = board.default_cat_id.unwrap_or_default();
+    let run = NewRun { map: &board, ..run };
     let pre_rank = match previous {
         Some((_, pb)) => Some(rank_for(&mut tx, run.map, run.profile_number, pb).await?),
         None => None,
@@ -290,8 +328,19 @@ pub async fn insert_run(pool: &PgPool, run: NewRun<'_>) -> Result<Result<i64, Re
             }
         }
     }
+    let boards: Vec<String> = sqlx::query_scalar(
+        r#"
+            SELECT g.game_name || ' · ' || m.name FROM changelog AS x
+                JOIN maps AS m ON m.steam_id = x.map_id JOIN chapters AS c ON c.id = m.chapter_id JOIN games AS g ON g.id = c.game_id
+            WHERE x.id = $1 OR x.mirror_of = $1
+            ORDER BY x.id
+        "#,
+    )
+    .bind(id)
+    .fetch_all(&mut *tx)
+    .await?;
     tx.commit().await?;
-    Ok(Ok(id))
+    Ok(Ok(Recorded { changelog_id: id, map: board, boards }))
 }
 
 /// Board time format: 1:23.45 / 23.45.

@@ -28,6 +28,8 @@ pub mod runs;
 pub mod sp;
 /// Run submissions.
 pub mod submissions;
+/// The game catalog and its admin editor.
+pub mod catalog;
 /// Endpoints for usefull statistics
 pub mod stats;
 /// User-related endpoints.

@@ -188,6 +188,22 @@ impl CacheState {
             ranks: Arc::new(Mutex::new(current_ranks)),
         }
     }
+    /// A map's default category: from the startup cache, else the database (maps added since
+    /// startup, e.g. a new season). 0 when the map has none, which matches no runs.
+    pub async fn default_cat(&self, pool: &PgPool, map_id: &str) -> i32 {
+        if let Some(id) = self.default_cat_ids.get(map_id) {
+            return *id;
+        }
+        sqlx::query_scalar::<_, Option<i32>>("SELECT default_cat_id FROM maps WHERE steam_id = $1")
+            .bind(map_id)
+            .fetch_optional(pool)
+            .await
+            .ok()
+            .flatten()
+            .flatten()
+            .unwrap_or(0)
+    }
+
     /// Try to load points data from files rather than expecting that the backend must send over the data fresh every time the web server is run.
     async fn load(x: &'static str) -> Result<HashMap<String, Points>> {
         read_from_file::<HashMap<String, Points>>(x).await

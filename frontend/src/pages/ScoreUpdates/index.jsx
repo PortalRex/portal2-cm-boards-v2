@@ -20,7 +20,8 @@ import ScoreRow from "./ScoreRow";
 import "./ScoreUpdates.css";
 
 const PAGE_SIZE = 20;
-const GAME_OPTIONS = Object.values(GAMES).map((g) => ({ value: g.id, label: g.label }));
+// Built when rendering: the game list comes from the server's catalog at startup.
+const gameOptions = () => Object.values(GAMES).map((g) => ({ value: g.id, label: g.label }));
 const LIMITS = ["100", "200", "500"];
 const DEFAULTS = { game: "portal2", mode: "", map: "", q: "", limit: "200", banned: "hide", page: "0" };
 const TOGGLES = [
@@ -103,7 +104,7 @@ export default function ScoreUpdates() {
       <Panel icon={HistoryIcon} title="Score Updates" bodyClassName="su-body">
         <div className="su-toolbar">
           <SearchBox value={get("q")} onChange={(v) => set({ q: v })} placeholder="Search players" showFilter={false} />
-          <Select value={game} onChange={(g) => set({ game: g, mode: "", map: "" })} options={GAME_OPTIONS} label="Game" className="su-game" />
+          <Select value={game} onChange={(g) => set({ game: g, mode: "", map: "" })} options={gameOptions()} label="Game" className="su-game" />
           <Pagination page={page} pageCount={pageCount} onChange={setPage} />
         </div>
 

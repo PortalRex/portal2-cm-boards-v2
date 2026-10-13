@@ -5,19 +5,22 @@ import { DownloadIcon, ChevronDownIcon, TriangleRight } from "../../components/I
 import { AutorenderLink, YouTubeLink, useRenderedSet } from "../../components/RunMedia";
 import RunDetails from "../../components/RunDetails";
 import { toggleOnRowClick } from "../../lib/rows";
-import { fetchMelProfile } from "../../api/client";
+import { fetchGameProfile } from "../../api/client";
 import useApi from "../../hooks/useApi";
 import { useDataVersion } from "../../lib/dataVersion";
-import { chaptersFor, mapPath, MODE_LABELS } from "../../data/maps";
+import { GAMES, chaptersFor, isMultiplayerMode, mapPath, MODE_LABELS } from "../../data/maps";
 import { rankColor } from "../../lib/ranks";
 import { formatScore, formatDelta, formatDate, timeAgo } from "../../lib/format";
 import { youtubeChannelLabel, youtubeChannelUrl } from "../../lib/youtube";
 import { ROLE_LABELS } from "../../hooks/useCurrentUser";
 
-const TABS = [
+// Portal 2's boards, then a tab per other game (Mel, seasons, ...), then Legacy and Info.
+const profileTabs = () => [
   { key: "sp", label: "Singleplayer" },
   { key: "coop", label: "Cooperative" },
-  { key: "mel", label: "Portal Stories: Mel" },
+  ...Object.values(GAMES)
+    .filter((g) => g.id !== "portal2")
+    .map((g) => ({ key: `game:${g.id}`, label: g.label })),
   { key: "legacy", label: "Legacy" },
   { key: "info", label: "Info" },
 ];
@@ -54,7 +57,7 @@ export default function ProfileTabs({ profile }) {
   return (
     <section className="pf-tabs">
       <div className="pf-tablist" role="tablist">
-        {TABS.map((t) => (
+        {profileTabs().map((t) => (
           <button
             key={t.key}
             type="button"
@@ -74,8 +77,16 @@ export default function ProfileTabs({ profile }) {
       <div className="pf-tabpanel" role="tabpanel">
         {tab === "sp" || tab === "coop" ? (
           <ModeTab mode={tab} profile={profile} selectedMap={selectedMap} onSelectMap={setSelectedMap} sort={sort} onSort={setSort} />
-        ) : tab === "mel" ? (
-          <MelTab profileNumber={profile.player.profileNumber} selectedMap={selectedMap} onSelectMap={setSelectedMap} sort={sort} onSort={setSort} />
+        ) : tab.startsWith("game:") ? (
+          <GameTab
+            key={tab}
+            game={tab.slice(5)}
+            profileNumber={profile.player.profileNumber}
+            selectedMap={selectedMap}
+            onSelectMap={setSelectedMap}
+            sort={sort}
+            onSort={setSort}
+          />
         ) : tab === "legacy" ? (
           <LegacyTab scores={profile.scores} />
         ) : (
@@ -110,20 +121,22 @@ function ModeTab({ mode, profile, selectedMap, onSelectMap, sort, onSort }) {
   );
 }
 
-// Portal Stories: Mel results come from melboard, keyed by the same Steam profile number.
-function MelTab({ profileNumber, selectedMap, onSelectMap, sort, onSort }) {
-  const [mode, setMode] = useState("story");
+// Results in another game (Portal Stories: Mel, a season, ...), board by board.
+function GameTab({ game, profileNumber, selectedMap, onSelectMap, sort, onSort }) {
+  const modes = GAMES[game]?.modes || [];
+  const [mode, setMode] = useState(modes[0]);
   const version = useDataVersion();
-  const mel = useApi(() => fetchMelProfile(profileNumber), [profileNumber, version]);
-  if (mel.loading && !mel.data) return <Loading label="Loading Mel results" />;
-  const scores = mel.data?.scores || {};
-  if (!Object.keys(scores).length) return <EmptyState>No Portal Stories: Mel scores for this player.</EmptyState>;
+  const results = useApi(() => fetchGameProfile(profileNumber, game), [profileNumber, game, version]);
+  const label = GAMES[game]?.label || game;
+  if (results.loading && !results.data) return <Loading label={`Loading ${label} results`} />;
+  const scores = results.data?.scores || {};
+  if (!Object.keys(scores).length) return <EmptyState>No {label} scores for this player.</EmptyState>;
   const chapters = chaptersFor(mode);
   return (
     <>
       <div className="pf-controls">
         <div className="segmented pf-mel-modes" role="tablist">
-          {["story", "advanced"].map((m) => (
+          {modes.map((m) => (
             <button key={m} type="button" role="tab" aria-selected={mode === m} className={mode === m ? "is-active" : ""} onClick={() => setMode(m)}>
               {MODE_LABELS[m]}
             </button>
@@ -134,10 +147,18 @@ function MelTab({ profileNumber, selectedMap, onSelectMap, sort, onSort }) {
       <h2 className="pf-section-title">Summary</h2>
       <Summary chapters={chapters} scores={scores} />
       {orderedChapters(chapters, scores, sort).map((chapter) => (
-        <ChapterTable key={chapter.name} chapter={chapter} scores={scores} coop={false} game="mel" selectedMap={selectedMap} onSelectMap={onSelectMap} />
+        <ChapterTable
+          key={chapter.name}
+          chapter={chapter}
+          scores={scores}
+          coop={isMultiplayerMode(mode)}
+          game={game}
+          selectedMap={selectedMap}
+          onSelectMap={onSelectMap}
+        />
       ))}
       <div className="pf-bottom">
-        <History history={mel.data.history} game="mel" map={selectedMap} />
+        <History history={results.data.history} game={game} map={selectedMap} />
       </div>
     </>
   );
@@ -155,7 +176,7 @@ function Summary({ chapters, scores }) {
               {avg ?? "–"}
             </span>
             <span className="pf-summary-chapter">
-              <small>{chapter.mode === "coop" ? "Course" : "Chapter"} {chapter.number}</small>
+              <small>{isMultiplayerMode(chapter.mode) ? "Course" : "Chapter"} {chapter.number}</small>
               {chapter.name}
             </span>
             <span className="pf-summary-tiles">

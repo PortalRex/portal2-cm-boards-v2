@@ -267,9 +267,11 @@ const MEL_ADVANCED_CHAPTERS = [
   { number: 5, name: "Intrusion", maps: [["43", "Core Access", "sp_a4_core_access"], ["44", "Finale", "sp_a4_finale"]] },
 ];
 
+// Games and their boards ("modes"). Starts with the built-in Portal 2 and Mel lists and is
+// replaced by the server's catalog (games, seasons and their maps) at startup; see applyCatalog.
 export const GAMES = {
-  portal2: { id: "portal2", label: "Portal 2", gameDir: "portal2", modes: ["sp", "coop"] },
-  mel: { id: "mel", label: "Portal Stories: Mel", gameDir: "portal_stories", modes: ["story", "advanced"] },
+  portal2: { id: "portal2", dbId: 1, label: "Portal 2", kind: "game", gameDir: "portal2", modes: ["sp", "coop"] },
+  mel: { id: "mel", dbId: 2, label: "Portal Stories: Mel", kind: "game", gameDir: "portal_stories", modes: ["story", "advanced"] },
 };
 
 export const MODE_LABELS = {
@@ -279,7 +281,11 @@ export const MODE_LABELS = {
   advanced: "Advanced Mode",
 };
 
-export const gameForMode = (mode) => (mode === "story" || mode === "advanced" ? "mel" : "portal2");
+const MODE_GAME = { sp: "portal2", coop: "portal2", story: "mel", advanced: "mel" };
+const MULTIPLAYER_MODES = new Set(["coop"]);
+
+export const gameForMode = (mode) => MODE_GAME[mode] || (mode === "story" || mode === "advanced" ? "mel" : "portal2");
+export const isMultiplayerMode = (mode) => MULTIPLAYER_MODES.has(mode);
 
 const toChapters = (chapters, mode) =>
   chapters.map((chapter) => {
@@ -288,6 +294,7 @@ const toChapters = (chapters, mode) =>
       ...chapter,
       mode,
       game,
+      multiplayer: mode === "coop",
       maps: chapter.maps.map(([id, title, bsp]) => ({
         id,
         title,
@@ -314,6 +321,8 @@ export const allMaps = [...spChapters, ...coopChapters].flatMap((c) => c.maps);
 export const melMaps = [...storyChapters, ...advancedChapters].flatMap((c) => c.maps);
 
 const mapsByKey = Object.fromEntries([...allMaps, ...melMaps].map((m) => [`${m.game}:${m.id}`, m]));
+// Built-in maps by id, for chamber images and map file names the catalog doesn't carry.
+const BUILTIN_MAPS = new Map([...allMaps, ...melMaps].map((m) => [m.id, m]));
 
 export const getMap = (id, game = "portal2") => mapsByKey[`${game}:${id}`];
 
@@ -324,6 +333,106 @@ export const mapsForMode = (mode) => chaptersFor(mode).flatMap((c) => c.maps);
 export const mapPath = (map) => `/map/${map.mode}/${map.id}`;
 
 // Portal 2 chapters' ids in the database: co-op courses are 1-6, singleplayer chapters 7-15.
-export const chapterDbId = (chapter) => (chapter.mode === "coop" ? chapter.number : chapter.number + 6);
+export const chapterDbId = (chapter) => chapter.dbId ?? (chapter.mode === "coop" ? chapter.number : chapter.number + 6);
 export const p2Chapters = [...spChapters, ...coopChapters];
 export const p2ChapterByDbId = (id) => p2Chapters.find((c) => chapterDbId(c) === Number(id));
+
+// --- server catalog ------------------------------------------------------------------
+
+// Games 1 and 2 keep their historic keys and board names; other games use their link name,
+// and their boards are "<slug>-<game_mode>" (e.g. "season-1-sp").
+const BUILTIN_KEYS = { 1: "portal2", 2: "mel" };
+const BASE_MODE_LABELS = { sp: "Singleplayer", coop: "Cooperative", story: "Story Mode", advanced: "Advanced Mode" };
+const titleCase = (s) => s.replace(/[_-]+/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+const refill = (array, items) => array.splice(0, array.length, ...items);
+const clear = (obj) => Object.keys(obj).forEach((k) => delete obj[k]);
+
+export const gameKey = (game) => BUILTIN_KEYS[game.id] || game.slug;
+
+// Replaces the built-in map lists with the server's catalog (GET /catalog). Everything above
+// reads from the structures updated here, so it runs once, before the app renders.
+export function applyCatalog(catalog) {
+  if (!Array.isArray(catalog) || !catalog.length) return;
+  const byId = Object.fromEntries(catalog.map((g) => [g.id, g]));
+  clear(GAMES);
+  clear(MODE_GAME);
+  clear(CHAPTERS_BY_MODE);
+  MULTIPLAYER_MODES.clear();
+  Object.keys(MODE_LABELS).forEach((k) => BASE_MODE_LABELS[k] || delete MODE_LABELS[k]);
+  catalog.forEach((g) => {
+    const key = gameKey(g);
+    const builtin = Boolean(BUILTIN_KEYS[g.id]);
+    const base = g.base_game_id ? byId[g.base_game_id] : null;
+    const modeKey = (m) => (builtin ? m : `${key}-${m}`);
+    const groups = new Map();
+    g.chapters.forEach((c) => {
+      const mk = modeKey(c.game_mode);
+      if (!groups.has(mk)) groups.set(mk, { multiplayer: c.is_multiplayer, mode: c.game_mode, chapters: [] });
+      groups.get(mk).chapters.push(c);
+    });
+    // Singleplayer boards first, then co-op.
+    const modes = [...groups.keys()].sort((a, b) => groups.get(a).multiplayer - groups.get(b).multiplayer);
+    GAMES[key] = {
+      id: key,
+      dbId: g.id,
+      slug: g.slug,
+      label: g.name,
+      kind: g.kind,
+      hidden: g.hidden,
+      base: base ? gameKey(base) : null,
+      startsAt: g.starts_at,
+      endsAt: g.ends_at,
+      gameDir: (BUILTIN_KEYS[g.id] === "mel" || (base && BUILTIN_KEYS[base.id] === "mel")) ? "portal_stories" : "portal2",
+      modes,
+    };
+    modes.forEach((mk) => {
+      const group = groups.get(mk);
+      MODE_GAME[mk] = key;
+      if (group.multiplayer) MULTIPLAYER_MODES.add(mk);
+      if (!MODE_LABELS[mk]) MODE_LABELS[mk] = BASE_MODE_LABELS[group.mode] || titleCase(group.mode);
+      CHAPTERS_BY_MODE[mk] = group.chapters.map((c, i) => ({
+        name: c.name || `Chapter ${i + 1}`,
+        number: i + 1,
+        dbId: c.id,
+        mode: mk,
+        game: key,
+        multiplayer: c.is_multiplayer,
+        maps: c.maps.map((m) => {
+          const known = BUILTIN_MAPS.get(m.source_map || m.steam_id);
+          return {
+            id: m.steam_id,
+            title: m.name,
+            mode: mk,
+            game: key,
+            bsp: m.bsp_name || known?.bsp || null,
+            chapter: c.name,
+            chapterNumber: i + 1,
+            image: known?.image ?? null,
+            sourceId: m.source_map || null,
+            defaultCategory: m.default_cat_id,
+            categories: m.categories || [],
+          };
+        }),
+      }));
+    });
+  });
+  refill(spChapters, CHAPTERS_BY_MODE.sp || []);
+  refill(coopChapters, CHAPTERS_BY_MODE.coop || []);
+  refill(storyChapters, CHAPTERS_BY_MODE.story || []);
+  refill(advancedChapters, CHAPTERS_BY_MODE.advanced || []);
+  refill(allMaps, [...spChapters, ...coopChapters].flatMap((c) => c.maps));
+  refill(melMaps, [...storyChapters, ...advancedChapters].flatMap((c) => c.maps));
+  refill(p2Chapters, [...spChapters, ...coopChapters]);
+  clear(mapsByKey);
+  Object.values(CHAPTERS_BY_MODE).forEach((chapters) =>
+    chapters.forEach((c) => c.maps.forEach((m) => {
+      mapsByKey[`${m.game}:${m.id}`] = m;
+    })),
+  );
+}
+
+// A map by id in any game (map ids are unique across games).
+export const findMap = (id) => Object.values(mapsByKey).find((m) => m.id === String(id));
+
+// Every map of a game, in board and chapter order.
+export const mapsForGame = (game) => (GAMES[game]?.modes || []).flatMap((m) => mapsForMode(m));

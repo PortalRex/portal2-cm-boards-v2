@@ -121,13 +121,13 @@ pub async fn sp_map(
     let map_id = map_id.into_inner();
     let cat_id = ids
         .cat_id
-        .unwrap_or(cache.into_inner().default_cat_ids[&map_id]);
+        .unwrap_or(cache.default_cat(pool.get_ref(), &map_id).await);
     let sp_map = SpMap::get_sp_map_page(
         pool.get_ref(),
         &map_id,
         config.proof.results,
         cat_id,
-        ids.game_id.unwrap_or(1),
+        match ids.game_id { Some(g) => g, None => crate::tools::helpers::map_game_id(pool.get_ref(), &map_id).await },
     )
     .await?;
     let mut ranked_vec = Vec::with_capacity(config.proof.results as usize);
@@ -207,7 +207,7 @@ async fn sp_banned(
     let cat_id = Some(
         params
             .cat_id
-            .unwrap_or(cache.into_inner().default_cat_ids[&map_id]),
+            .unwrap_or(cache.default_cat(pool.get_ref(), &map_id).await),
     );
     let is_banned = Changelog::check_banned_scores(
         pool.get_ref(),
@@ -311,7 +311,7 @@ async fn sp_history(
         &query.map_id,
         query
             .cat_id
-            .unwrap_or(cache.into_inner().default_cat_ids[&query.map_id]),
+            .unwrap_or(cache.default_cat(pool.get_ref(), &query.map_id).await),
         query.game_id.unwrap_or(1),
     )
     .await
@@ -387,7 +387,7 @@ pub async fn sp_validate(
             map_id: data.map_id.clone(),
             category_id: Some(
                 data.cat_id
-                    .unwrap_or(cache.into_inner().default_cat_ids[&data.map_id]),
+                    .unwrap_or(cache.default_cat(pool.get_ref(), &data.map_id).await),
             ),
             game_id: Some(data.game_id.unwrap_or(1)),
             note: None,

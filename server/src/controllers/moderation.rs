@@ -74,7 +74,7 @@ fn actor_profile(actor: &AdminOrService) -> Option<&str> {
     }
 }
 
-async fn log_action(
+pub(crate) async fn log_action(
     tx: &mut Transaction<'_, Postgres>,
     actor: &AdminOrService,
     action: &str,
@@ -134,7 +134,8 @@ pub async fn list_actions(pool: &PgPool, q: &AuditQuery) -> Result<Vec<AdminActi
                   AND ($5::text IS NULL OR a.action = $5)
                   AND ($7::text IS NULL
                        OR ($7 = 'runs' AND a.target_type IN ('run', 'coop'))
-                       OR ($7 = 'profiles' AND a.target_type = 'profile'))
+                       OR ($7 = 'profiles' AND a.target_type = 'profile')
+                       OR ($7 = 'catalog' AND a.target_type IN ('game', 'chapter', 'map', 'category')))
                 ORDER BY a.id DESC
                 LIMIT $6
             )

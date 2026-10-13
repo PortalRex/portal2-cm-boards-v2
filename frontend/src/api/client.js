@@ -3,7 +3,7 @@
 // requests carry `game_id`. If the server can't be reached, or
 // REACT_APP_USE_MOCK=true, the deterministic sample data in ./mock is used so the
 // UI can be developed without a database.
-import { getMap, mapsForMode, p2ChapterByDbId } from "../data/maps";
+import { GAMES, findMap, gameForMode, getMap, isMultiplayerMode, mapsForGame, mapsForMode, p2ChapterByDbId } from "../data/maps";
 import { countryById } from "../data/countries";
 import { API_BASE, GAME_IDS } from "./config";
 import { getJson as get, withFallback } from "./http";
@@ -13,11 +13,11 @@ import { formatSegments } from "./autorender";
 export { API_BASE };
 
 const getJson = (path, params) => get(API_BASE, path, params);
-const gameParam = (game) => (game === "mel" ? { game_id: GAME_IDS.mel } : {});
+const gameParam = (game) => (game && game !== "portal2" && GAME_IDS[game] ? { game_id: GAME_IDS[game] } : {});
 const sample = (live, fallback) => withFallback("api", live, fallback);
 
 // Map ids are Steam leaderboard ids for Portal 2 and board ids (1-44) for Mel.
-const lookupMap = (id, game) => getMap(String(id), game) || getMap(String(id), game === "mel" ? "portal2" : "mel");
+const lookupMap = (id, game) => getMap(String(id), game) || findMap(id);
 
 // --- adapters ----------------------------------------------------------------
 
@@ -143,7 +143,8 @@ const toggle = (on) => (on ? true : undefined);
 
 export function fetchChangelog({ search, profileNumber, mapId, limit = 200, game = "portal2", mode, wr, video, demo, pending, banned = "hide" } = {}) {
   const filters = { mode, wr, video, demo, pending, banned };
-  const byMode = (entries) => (mode === "story" || mode === "advanced" ? entries.filter((e) => e.map.mode === mode) : entries);
+  const multiplayer = mode ? isMultiplayerMode(mode) : undefined;
+  const byMode = (entries) => (mode && mode !== "sp" && mode !== "coop" ? entries.filter((e) => e.map.mode === mode) : entries);
   return sample(
     async () => {
       const rows = await getJson("/changelog", {
@@ -151,8 +152,8 @@ export function fetchChangelog({ search, profileNumber, mapId, limit = 200, game
         nick_name: search || undefined,
         profile_number: profileNumber,
         chamber: mapId,
-        sp: mode === "coop" ? false : undefined,
-        coop: mode === "sp" ? false : mode === "coop" ? true : undefined,
+        sp: multiplayer ? false : undefined,
+        coop: multiplayer === false ? false : multiplayer ? true : undefined,
         wr_gain: toggle(wr),
         yt: toggle(video),
         has_demo: toggle(demo),
@@ -292,12 +293,11 @@ export function fetchActivity() {
   );
 }
 
-// Top 7 per map. Mel is single player only, so both of its modes use /sp.
+// Top 7 per map, from /coop for co-op boards and /sp for the rest.
 export function fetchMapPreviews(mode) {
-  const mel = mode === "story" || mode === "advanced";
   return sample(
     async () => {
-      const groups = await getJson(mode === "coop" ? "/coop" : "/sp", gameParam(mel ? "mel" : "portal2"));
+      const groups = await getJson(isMultiplayerMode(mode) ? "/coop" : "/sp", gameParam(gameForMode(mode)));
       const wanted = new Set(mapsForMode(mode).map((m) => m.id));
       const out = {};
       groups.forEach((group) => {
@@ -312,8 +312,9 @@ export function fetchMapPreviews(mode) {
 export function fetchMapBoard(map) {
   return sample(
     async () => {
-      const rows = await getJson(`/map/${map.mode === "coop" ? "coop" : "sp"}/${map.id}`, gameParam(map.game));
-      return rows.map(map.mode === "coop" ? adaptCoopRanked : adaptSpRanked);
+      const coop = isMultiplayerMode(map.mode);
+      const rows = await getJson(`/map/${coop ? "coop" : "sp"}/${map.id}`, gameParam(map.game));
+      return rows.map(coop ? adaptCoopRanked : adaptSpRanked);
     },
     () => mock.mockBoard(map.id, map.game),
   );
@@ -342,8 +343,17 @@ const POINTS = {
   "mel-overall": ["mel", "overall", 40],
 };
 
-// "chapter-<id>" is one Portal 2 chapter (database chapter id, see chapterDbId).
+// "chapter-<id>" is one Portal 2 chapter (database chapter id, see chapterDbId);
+// "game:<game>:<board>" is any game's board ("overall" or one of its modes).
 function pointsBoard(kind) {
+  const generic = /^game:([^:]+):(.+)$/.exec(kind);
+  if (generic) {
+    const [, game, board] = generic;
+    const maps = board === "overall" ? mapsForGame(game) : mapsForMode(board);
+    // The server keys boards by the chapters' game_mode; built-in games use the mode itself.
+    const serverBoard = board === "overall" ? "overall" : board.startsWith(`${game}-`) ? board.slice(game.length + 1) : board;
+    return [game, serverBoard, maps.length];
+  }
   const chapterId = /^chapter-(\d+)$/.exec(kind)?.[1];
   if (!chapterId) return POINTS[kind];
   return ["portal2", `chapter-${chapterId}`, p2ChapterByDbId(chapterId)?.maps.length ?? 0];
@@ -396,20 +406,23 @@ export function pointsHistory(history) {
   return [...byDay.values()];
 }
 
-// Mel results for the profile's Mel tab: { scores, history }.
-export function fetchMelProfile(profileNumber) {
+// A player's results in a game other than Portal 2 (Mel, seasons) for its profile tab:
+// { scores, history }.
+export function fetchGameProfile(profileNumber, game) {
   return sample(
     async () => {
       const [ranks, history] = await Promise.all([
-        getJson(`/ranks/game/${GAME_IDS.mel}/${profileNumber}`),
-        getJson("/changelog", { profile_number: profileNumber, limit: 500, ...gameParam("mel") }),
+        getJson(`/ranks/game/${GAME_IDS[game] ?? GAMES[game]?.dbId}/${profileNumber}`),
+        getJson("/changelog", { profile_number: profileNumber, limit: 500, ...gameParam(game) }),
       ]);
-      const entries = history.map((r) => adaptChangelog(r, "mel"));
-      return { scores: scoresFromRanks(profileNumber, ranks, entries, "mel"), history: entries };
+      const entries = history.map((r) => adaptChangelog(r, game));
+      return { scores: scoresFromRanks(profileNumber, ranks, entries, game), history: entries };
     },
-    () => mock.mockMelProfile(profileNumber),
+    () => (game === "mel" ? mock.mockMelProfile(profileNumber) : { scores: {}, history: [] }),
   );
 }
+
+export const fetchMelProfile = (profileNumber) => fetchGameProfile(profileNumber, "mel");
 
 // Combines ProfilePage.ranks ({ map_id: rank }) with the player's latest run per map.
 function scoresFromRanks(profileNumber, ranks, history, game) {
@@ -580,3 +593,31 @@ export function submitRun(file, fields) {
   });
   return postForm("/submissions", form);
 }
+
+// --- game catalog (admin editor) -------------------------------------------------------
+
+async function sendJson(method, path, body) {
+  const res = await fetch(apiUrl(path), { method, headers: { "Content-Type": "application/json" }, body: body === undefined ? undefined : JSON.stringify(body) });
+  if (res.status === 401) throw new Error("Sign in required.");
+  if (!res.ok) throw new Error((await res.text()) || `Request failed (${res.status})`);
+  return res.headers.get("content-type")?.includes("application/json") ? res.json() : null;
+}
+
+export const fetchCatalog = () => getJson("/catalog");
+export const adminCreateGame = (game) => sendJson("POST", "/admin/games", game);
+export const adminUpdateGame = (id, changes) => sendJson("PUT", `/admin/games/${id}`, changes);
+export const adminDeleteGame = (id) => sendJson("DELETE", `/admin/games/${id}`);
+export const adminSaveLayout = (id, chapters) => sendJson("PUT", `/admin/games/${id}/layout`, { chapters });
+export const adminCreateChapter = (gameId, chapter) => sendJson("POST", `/admin/games/${gameId}/chapters`, chapter);
+export const adminUpdateChapter = (id, changes) => sendJson("PUT", `/admin/chapters/${id}`, changes);
+export const adminDeleteChapter = (id) => sendJson("DELETE", `/admin/chapters/${id}`);
+export const adminCreateMap = (chapterId, map) => sendJson("POST", `/admin/chapters/${chapterId}/maps`, map);
+export const adminUpdateMap = (steamId, changes) => sendJson("PUT", `/admin/maps/${encodeURIComponent(steamId)}`, changes);
+export const adminDeleteMap = (steamId) => sendJson("DELETE", `/admin/maps/${encodeURIComponent(steamId)}`);
+export const adminCreateCategory = (steamId, name) => sendJson("POST", `/admin/maps/${encodeURIComponent(steamId)}/categories`, { name });
+export const adminUpdateCategory = (id, name) => sendJson("PUT", `/admin/categories/${id}`, { name });
+export const adminDeleteCategory = (id) => sendJson("DELETE", `/admin/categories/${id}`);
+export const adminLinkMap = (steamId, other) => sendJson("POST", `/admin/maps/${encodeURIComponent(steamId)}/links`, { map: other });
+export const adminUnlinkMap = (steamId, other) => sendJson("DELETE", `/admin/maps/${encodeURIComponent(steamId)}/links/${encodeURIComponent(other)}`);
+export const adminLinkGames = (id, other) => sendJson("POST", `/admin/games/${id}/links`, { game_id: other });
+export const adminUnlinkGames = (id, other) => sendJson("DELETE", `/admin/games/${id}/links/${other}`);

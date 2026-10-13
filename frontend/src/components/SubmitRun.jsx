@@ -2,18 +2,25 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { CloseIcon, UploadIcon } from "./Icons";
 import { previewDemo, submitRun } from "../api/client";
-import { allMaps, getMap, mapPath, melMaps, MODE_LABELS } from "../data/maps";
+import { GAMES, findMap, getMap, mapPath, mapsForMode, MODE_LABELS } from "../data/maps";
 import { formatScore } from "../lib/format";
 import { isRoleAdmin } from "../hooks/useCurrentUser";
 import "./SubmitRun.css";
 
-const boardMap = (m) => getMap(m.steam_id, m.game_id === 2 ? "mel" : "portal2");
+const boardMap = (m) => findMap(m.steam_id) || getMap(m.steam_id, m.game_id === 2 ? "mel" : "portal2");
 
-// Map choices for admins, grouped by board.
-const MAP_GROUPS = ["sp", "coop", "story", "advanced"].map((mode) => ({
-  mode,
-  maps: [...allMaps, ...melMaps].filter((m) => m.mode === mode),
-}));
+// Map choices for admins, grouped by board. Seasons are left out: runs go on the original map
+// and count for the season automatically.
+const mapGroups = () =>
+  Object.values(GAMES)
+    .filter((g) => g.kind !== "season")
+    .flatMap((g) =>
+      g.modes.map((mode) => ({
+        mode,
+        label: g.id === "portal2" ? MODE_LABELS[mode] : `${g.label} · ${MODE_LABELS[mode] || mode}`,
+        maps: mapsForMode(mode),
+      })),
+    );
 
 function DemoDrop({ file, onFile, busy }) {
   const input = useRef(null);
@@ -122,8 +129,8 @@ function AdminFields({ fields, set }) {
         <span>Map</span>
         <select value={fields.map_id} onChange={(e) => set("map_id", e.target.value)}>
           <option value="">From the demo</option>
-          {MAP_GROUPS.map((g) => (
-            <optgroup key={g.mode} label={MODE_LABELS[g.mode] || g.mode}>
+          {mapGroups().map((g) => (
+            <optgroup key={g.mode} label={g.label}>
               {g.maps.map((m) => (
                 <option key={`${m.game}:${m.id}`} value={m.id}>
                   {m.title}
@@ -207,7 +214,7 @@ export default function SubmitRun({ user, onClose }) {
     }
   };
 
-  const doneMap = done && (getMap(done.map_id, "portal2") || getMap(done.map_id, "mel"));
+  const doneMap = done && findMap(done.map_id);
 
   return (
     <div className="sr-backdrop" onMouseDown={(e) => e.target === e.currentTarget && !sending && onClose()}>
@@ -223,6 +230,11 @@ export default function SubmitRun({ user, onClose }) {
             <p>
               <strong>{formatScore(done.score)}</strong> on {doneMap ? <Link to={mapPath(doneMap)} onClick={onClose}>{done.map_name}</Link> : done.map_name} is on the boards.
             </p>
+            {done.boards?.length > 1 && (
+              <p className="sr-muted">
+                Counted on: {done.boards.join(", ")}
+              </p>
+            )}
             <div className="sr-actions">
               <button type="button" className="sr-secondary" onClick={() => { setDone(null); setFile(null); setPreview(null); setFields(EMPTY); }}>
                 Submit another

@@ -28,6 +28,8 @@ function App() {
         <Route path="/map/:mode/:levelId" element={<MapPage />} />
         <Route path="/leaderboard" element={<Navigate to="/leaderboard/overall" replace />} />
         <Route path="/leaderboard/chapter/:chapterId" element={<Aggregated />} />
+        <Route path="/leaderboard/game/:gameId" element={<Aggregated />} />
+        <Route path="/leaderboard/game/:gameId/:board" element={<Aggregated />} />
         <Route path="/leaderboard/:kind" element={<Aggregated />} />
         <Route path="/leaderboard/mel" element={<Navigate to="/leaderboard/mel/overall" replace />} />
         <Route path="/leaderboard/mel/:kind" element={<Aggregated game="mel" />} />
