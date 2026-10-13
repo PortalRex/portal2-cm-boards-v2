@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Navigate, useParams } from "react-router-dom";
-import { Brush, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import Layout from "../../components/Layout";
 import { Panel, Select, Pagination, SearchBox, Avatar, PlayerLink, OutlineButton, Loading, EmptyState, RankNumber } from "../../components/ui";
 import { PinIcon, TrophyIcon, CommentIcon, HistoryIcon, WikiIcon } from "../../components/Icons";
@@ -81,98 +81,155 @@ function MapPageContent({ map }) {
   );
 }
 
-// Maps with more world records than this get a range slider under the chart.
-const WR_SLIDER_MIN = 12;
+// Range buttons over the WR history: the whole history, or the last N years (only ranges shorter
+// than the history are offered).
+const WR_RANGES = [
+  { value: "all", label: "All", years: null },
+  { value: "10y", label: "10Y", years: 10 },
+  { value: "5y", label: "5Y", years: 5 },
+  { value: "2y", label: "2Y", years: 2 },
+  { value: "1y", label: "1Y", years: 1 },
+];
+const YEAR_MS = 365.25 * 24 * 3600 * 1000;
+// Records are drawn as dots only when there are few enough to tell apart.
+const WR_DOTS_MAX = 25;
+const MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+// Axis ticks for [from, to]: the start of each year (or each quarter for short ranges), thinned
+// to at most `max` so labels never overlap.
+function timeTicks(from, to, max = 7) {
+  const short = to - from < 2.5 * YEAR_MS;
+  const ticks = [];
+  const d = new Date(from);
+  let cur = short ? new Date(d.getFullYear(), Math.floor(d.getMonth() / 3) * 3 + 3, 1) : new Date(d.getFullYear() + 1, 0, 1);
+  while (cur.getTime() <= to) {
+    ticks.push(cur.getTime());
+    cur = short ? new Date(cur.getFullYear(), cur.getMonth() + 3, 1) : new Date(cur.getFullYear() + 1, 0, 1);
+  }
+  const step = Math.max(1, Math.ceil(ticks.length / max));
+  return { ticks: ticks.filter((_, i) => i % step === 0), short };
+}
+
+function WrTooltip({ active, payload }) {
+  const p = active && payload?.[0]?.payload;
+  if (!p || p.now) return null;
+  return (
+    <div className="mp-chart-tip">
+      <span className="muted">{formatDate(p.t)}</span>
+      <strong className="num">{formatScore(p.score)}</strong>
+      <span>{p.player}</span>
+      {p.gain != null && <span className="num green">−{formatScore(p.gain)}</span>}
+    </div>
+  );
+}
 
 function WrHistoryChart({ points, loading }) {
-  const data = useMemo(
-    () =>
-      (points || []).map((p) => ({
-        ...p,
-        t: parseTimestamp(p.timestamp).getTime(),
-      })),
-    [points],
-  );
-  const [range, setRange] = useState(null);
-  useEffect(() => setRange(null), [data]);
-  if (loading && !data.length)
+  // Records oldest first, each with how much it took off the previous one.
+  const records = useMemo(() => {
+    const list = (points || []).map((p) => ({ ...p, t: parseTimestamp(p.timestamp).getTime() })).sort((a, b) => a.t - b.t);
+    return list.map((p, i) => ({ ...p, gain: i > 0 && list[i - 1].score > p.score ? list[i - 1].score - p.score : null }));
+  }, [points]);
+  const [range, setRange] = useState("all");
+  useEffect(() => setRange("all"), [records]);
+  if (loading && !records.length)
     return (
       <div className="mp-chart">
         <Loading />
       </div>
     );
-  if (!data.length) return <div className="mp-chart mp-chart-empty muted">No world record history</div>;
-  const slider = data.length > WR_SLIDER_MIN;
-  const start = range?.startIndex ?? 0;
-  const end = range?.endIndex ?? data.length - 1;
-  // The time axis follows the slider; scale the times to what's in view too.
-  const scores = data.slice(start, end + 1).map((d) => d.score);
+  if (!records.length) return <div className="mp-chart mp-chart-empty muted">No world record history</div>;
+
+  const now = Date.now();
+  const first = records[0].t;
+  const span = now - first;
+  const ranges = WR_RANGES.filter((r) => !r.years || r.years * YEAR_MS < span);
+  const years = ranges.find((r) => r.value === range)?.years;
+  const from = years ? now - years * YEAR_MS : first;
+  // What's in view: the record standing at the start of the range, the ones set in it, and the
+  // current one carried on to today.
+  const before = records.filter((r) => r.t < from);
+  const inRange = records.filter((r) => r.t >= from);
+  const data = [
+    ...(before.length ? [{ ...before[before.length - 1], t: from, carried: true }] : []),
+    ...inRange,
+    { ...records[records.length - 1], t: now, now: true, gain: null },
+  ];
+  const scores = data.map((d) => d.score);
   const min = Math.min(...scores);
   const max = Math.max(...scores);
+  const pad = Math.max(1, Math.round((max - min) * 0.08));
+  const { ticks, short } = timeTicks(from, now);
+  const dots = inRange.length <= WR_DOTS_MAX;
+
   return (
-    <div className={`mp-chart${slider ? " has-slider" : ""}`}>
-      <TrophyIcon className="mp-chart-trophy" />
-      <ResponsiveContainer width="100%" height={slider ? 190 : 150}>
-        <LineChart data={data} margin={{ top: 10, right: 30, bottom: 0, left: 0 }}>
+    <div className="mp-chart">
+      <div className="mp-chart-head">
+        <span className="muted mp-chart-count">
+          {records.length} world record{records.length === 1 ? "" : "s"}
+          {years ? ` · ${inRange.length} in view` : ""}
+        </span>
+        {ranges.length > 1 && (
+          <div className="segmented mp-chart-ranges" role="group" aria-label="Range">
+            {ranges.map((r) => (
+              <button key={r.value} type="button" className={range === r.value ? "is-active" : ""} onClick={() => setRange(r.value)}>
+                {r.label}
+              </button>
+            ))}
+          </div>
+        )}
+        <TrophyIcon className="mp-chart-trophy" />
+      </div>
+      <ResponsiveContainer width="100%" height={170}>
+        <AreaChart data={data} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
+          <defs>
+            <linearGradient id="wrFill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#9d5fd0" stopOpacity={0.35} />
+              <stop offset="100%" stopColor="#9d5fd0" stopOpacity={0.02} />
+            </linearGradient>
+          </defs>
           <CartesianGrid stroke="var(--chart-grid)" vertical={false} />
           <XAxis
             dataKey="t"
             type="number"
             scale="time"
-            domain={["dataMin", "dataMax"]}
-            tickFormatter={(t) => new Date(t).getFullYear()}
-            tick={{ fill: "var(--text-2)", fontSize: 14 }}
+            domain={[from, now]}
+            ticks={ticks}
+            tickFormatter={(t) => (short ? `${MONTHS_SHORT[new Date(t).getMonth()]} ${new Date(t).getFullYear()}` : new Date(t).getFullYear())}
+            tick={{ fill: "var(--text-2)", fontSize: 13 }}
             axisLine={false}
             tickLine={false}
-            minTickGap={30}
           />
           <YAxis
-            domain={[min, max]}
-            ticks={[min, Math.round((min + max) / 2), max]}
+            domain={[min - pad, max + pad]}
+            ticks={min === max ? [min] : [min, Math.round((min + max) / 2), max]}
             allowDataOverflow
             tickFormatter={formatScore}
-            tick={{ fill: "var(--text-muted)", fontSize: 14 }}
+            tick={{ fill: "var(--text-muted)", fontSize: 13 }}
             axisLine={false}
             tickLine={false}
-            width={52}
+            width={56}
           />
-          <Tooltip
-            isAnimationActive={false}
-            contentStyle={{
-              background: "var(--menu)",
-              border: "1px solid var(--border)",
-              borderRadius: 4,
-            }}
-            labelFormatter={(t) => formatDate(t)}
-            formatter={(v, _n, item) => [formatScore(v), item.payload.player]}
-          />
-          <Line
-            type="linear"
+          <Tooltip isAnimationActive={false} content={<WrTooltip />} cursor={{ stroke: "var(--border-strong)" }} />
+          <Area
+            type="stepAfter"
             dataKey="score"
-            stroke="#9d5fd0"
+            stroke="#b17ee0"
             strokeWidth={2}
-            dot={{
-              r: 4,
-              stroke: "#c48ef0",
-              strokeWidth: 2,
-              fill: "var(--panel)",
-            }}
+            fill="url(#wrFill)"
+            dot={
+              dots
+                ? (props) =>
+                    props.payload.now || props.payload.carried ? (
+                      <g key={props.index} />
+                    ) : (
+                      <circle key={props.index} cx={props.cx} cy={props.cy} r={3.5} fill="var(--panel)" stroke="#c48ef0" strokeWidth={2} />
+                    )
+                : false
+            }
+            activeDot={{ r: 5, fill: "#c48ef0", stroke: "var(--panel)", strokeWidth: 2 }}
             isAnimationActive={false}
           />
-          {slider && (
-            <Brush
-              dataKey="t"
-              height={22}
-              travellerWidth={8}
-              startIndex={start}
-              endIndex={end}
-              onChange={(r) => setRange({ startIndex: r.startIndex, endIndex: r.endIndex })}
-              tickFormatter={(t) => new Date(t).getFullYear()}
-              stroke="#9d5fd0"
-              fill="var(--panel)"
-            />
-          )}
-        </LineChart>
+        </AreaChart>
       </ResponsiveContainer>
     </div>
   );

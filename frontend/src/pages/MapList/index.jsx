@@ -82,7 +82,7 @@ const iconSlots = (entries) => ({
 function ScoreIcons({ entry, game, size, slots }) {
   const slot = (key, show, icon) =>
     show ? (
-      <span key={key} className="mc-icon-slot" style={{ width: size + 6 }}>
+      <span key={key} className="mc-icon-slot">
         {icon}
       </span>
     ) : null;
@@ -97,7 +97,8 @@ function ScoreIcons({ entry, game, size, slots }) {
 
 function MapCard({ map, scores }) {
   const [wr, ...rest] = scores || [];
-  const slots = iconSlots(rest.slice(0, 6));
+  // One set of icon columns for the whole card (WR row included), so icons line up.
+  const slots = iconSlots([wr, ...rest.slice(0, 6)].filter(Boolean));
   return (
     <article className="map-card">
       <Link to={mapPath(map)} className="mc-head" style={{ backgroundImage: `url("${map.image}")` }}>
@@ -113,7 +114,7 @@ function MapCard({ map, scores }) {
                 <PlayerLink key={i} player={p} className="mc-wr-name" />
               ))}
             </div>
-            <ScoreIcons entry={wr} game={map.game} size={22} slots={iconSlots([wr])} />
+            <ScoreIcons entry={wr} game={map.game} size={22} slots={slots} />
             <span className="mc-wr-time num">{formatScore(wr.score)}</span>
           </>
         ) : (

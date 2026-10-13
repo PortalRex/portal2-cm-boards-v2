@@ -130,8 +130,11 @@
   text-overflow: ellipsis;
 }
 
+/* The WR and row times share one width so the icon columns before them line up. */
 .mc-wr-time {
   flex-shrink: 0;
+  min-width: 66px;
+  text-align: right;
   font-size: 17px;
   font-weight: 600;
   color: var(--text);
@@ -150,6 +153,7 @@
 .mc-icon-slot {
   display: inline-flex;
   justify-content: center;
+  width: 28px;
 }
 
 .mc-rows {
@@ -181,7 +185,8 @@
 }
 
 .mc-time {
-  min-width: 48px;
+  flex-shrink: 0;
+  min-width: 66px;
   text-align: right;
   font-weight: 600;
 }
