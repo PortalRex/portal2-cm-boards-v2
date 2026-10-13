@@ -5,7 +5,7 @@ import { RunVideo, runVideo } from "./RunMedia";
 import { REPORT_REASONS, addRunDemo, deleteRun, fetchCoopHalves, reportRun, fetchReactionRecord, fetchReactions, fetchSegments, removeRunDemo, setCoopHost, setReaction, setRunBanned, setRunPartner, setRunVerified } from "../api/client";
 import { bumpDataVersion, useDataVersion } from "../lib/dataVersion";
 import useApi from "../hooks/useApi";
-import useCurrentUser, { isStaff } from "../hooks/useCurrentUser";
+import useCurrentUser, { isRoleAdmin, isStaff } from "../hooks/useCurrentUser";
 import { isMultiplayerMode } from "../data/maps";
 import { coopRoles, setRoleOverride, useRoleOverrides } from "../lib/coopRoles";
 import { formatDate, formatScore } from "../lib/format";
@@ -337,20 +337,23 @@ function AdminTools({ run, game }) {
               Mark pending
             </button>
           ))}
-        {run.demoId && (
+        {/* Removing demos and deleting runs is for the admin tier. */}
+        {isRoleAdmin(user) && run.demoId && (
           <button type="button" disabled={state.busy} onClick={() => act("Demo removed.", () => removeRunDemo(changelogId, why))}>
             Remove demo
           </button>
         )}
-        <button
-          type="button"
-          className="is-danger"
-          disabled={state.busy}
-          onClick={() => (confirmDelete ? act("Run deleted.", () => deleteRun(changelogId, why)) : setConfirmDelete(true))}
-          onBlur={() => setConfirmDelete(false)}
-        >
-          {confirmDelete ? "Click again to delete permanently" : "Delete run"}
-        </button>
+        {isRoleAdmin(user) && (
+          <button
+            type="button"
+            className="is-danger"
+            disabled={state.busy}
+            onClick={() => (confirmDelete ? act("Run deleted.", () => deleteRun(changelogId, why)) : setConfirmDelete(true))}
+            onBlur={() => setConfirmDelete(false)}
+          >
+            {confirmDelete ? "Click again to delete permanently" : "Delete run"}
+          </button>
+        )}
       </div>
       {coop && game !== "mel" && (
         <form

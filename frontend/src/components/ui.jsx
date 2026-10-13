@@ -139,13 +139,20 @@ export function YouTubeEmbed({ id, title = "YouTube video" }) {
 const rankStyle = (rank) => (rank == null ? undefined : { "--rank-color": rankTextColor(rank, "light"), "--rank-color-dark": rankTextColor(rank, "dark") });
 
 // A run's rank; world records show the old board's pink trophy instead of "1". On
-// coloured rank tiles pass `inherit` so the trophy takes the tile's text colour.
-export function RankNumber({ rank, empty = "–", inherit = false }) {
+// coloured rank tiles pass `inherit` so the trophy takes the tile's text colour; `colored`
+// colours the number by rank (the old board's scale, as in score updates).
+export function RankNumber({ rank, empty = "–", inherit = false, colored = false }) {
   if (rank == null) return empty;
   if (rank === 1) {
     return <TrophyIcon className="rank-trophy" style={inherit ? undefined : { color: WR_COLOR }} titleAccess="World record (rank 1)" />;
   }
-  return rank;
+  return colored ? (
+    <span className="rank-colored" style={rankStyle(rank)}>
+      {rank}
+    </span>
+  ) : (
+    rank
+  );
 }
 
 export function RankChange({ pre, post }) {

@@ -56,6 +56,14 @@ async fn refresh(cache: &CacheState, pool: &PgPool, config: &Config, touched: &T
     }
 }
 
+/// Refuses staff below the admin tier (the backend service is allowed).
+fn admin_tier_only(auth: &AdminOrService, msg: &'static str) -> Option<HttpResponse> {
+    match auth {
+        AdminOrService::Admin(user) if !user.is_role_admin() => Some(HttpResponse::Forbidden().body(msg)),
+        _ => None,
+    }
+}
+
 async fn respond(result: moderation::ActionResult<Touched>, cache: &CacheState, pool: &PgPool, config: &Config) -> Result<HttpResponse> {
     Ok(match result? {
         Ok(touched) => {
@@ -120,6 +128,9 @@ async fn admin_run_delete(
     body: Option<web::Json<Reason>>,
 ) -> Result<impl Responder> {
     let body = body.map(|b| b.into_inner()).unwrap_or_default();
+    if let Some(r) = admin_tier_only(&auth, "Only admins can delete runs.") {
+        return Ok(r);
+    }
     let result = moderation::delete_run(pool.get_ref(), &auth, id.into_inner(), reason(&body.reason)).await;
     respond(result, &cache, &pool, &config).await
 }
@@ -135,6 +146,9 @@ async fn admin_run_demo_delete(
     body: Option<web::Json<Reason>>,
 ) -> Result<impl Responder> {
     let body = body.map(|b| b.into_inner()).unwrap_or_default();
+    if let Some(r) = admin_tier_only(&auth, "Only admins can remove demos.") {
+        return Ok(r);
+    }
     let result = moderation::remove_demo(pool.get_ref(), &auth, id.into_inner(), reason(&body.reason)).await;
     respond(result, &cache, &pool, &config).await
 }

@@ -29,14 +29,14 @@
   align-items: center;
   gap: 36px;
   min-height: 180px;
-  padding: 0 36px 0 40px;
+  padding: 20px 36px 20px 40px;
   background: var(--card);
   border-radius: var(--radius-lg);
 }
 
 .pf-avatar {
   border-radius: 20px;
-  margin: -10px 0 -10px;
+  flex-shrink: 0;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
 }
 
@@ -57,7 +57,7 @@
   margin: 0;
   font-size: 40px;
   font-weight: 700;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
 /* Admin controls sit on their own line under the name, so they never crowd it. */
@@ -864,6 +864,11 @@
     width: 96px !important;
     height: 96px !important;
     margin: 0;
+  }
+
+  /* Name and badges fill the row beside the picture; follow / compare / links wrap below. */
+  .pf-identity {
+    flex: 1 1 calc(100% - 112px);
   }
 
   .pf-name-row h1 {

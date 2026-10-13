@@ -352,3 +352,13 @@
 .segmented button:hover:not(.is-active) {
   background: var(--seg-hover);
 }
+
+/* A rank number coloured by rank (RankNumber with colored). */
+.rank-colored {
+  color: var(--rank-color-dark);
+  font-weight: 600;
+}
+
+:root[data-theme="light"] .rank-colored {
+  color: var(--rank-color);
+}

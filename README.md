@@ -6,6 +6,8 @@ A re-write of the original Portal 2 Challenge Mode Leaderboards designed to take
 
 ## Web-Server
 
+Everything this fork changes in the server, database and backend service (endpoints, migrations, config, permissions) is summarised in [BACKEND_CHANGES.md](BACKEND_CHANGES.md).
+
 ### Building
 
 Using sqlx to pass queries to our database. REST API to be documented. Requires the Database to be up and operational.

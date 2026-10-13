@@ -236,7 +236,7 @@ function Leaderboard({ map, board }) {
               <div className={`mp-entry${open ? " is-open" : ""}`} key={key}>
                 <div className="mp-row is-expandable" role="row" aria-expanded={open} onClick={toggleOnRowClick(() => setOpenKey(open ? null : key))}>
                   <span className="mp-rank num">
-                    <RankNumber rank={e.rank} />
+                    <RankNumber rank={e.rank} colored />
                   </span>
                   {cells.map((p, j) =>
                     p ? (
@@ -295,7 +295,7 @@ function YourBest({ map, board, onShow }) {
     <>
       <span className="mp-yourbest-label">Your best</span>
       <span className="mp-yourbest-rank num">
-        <RankNumber rank={rank} />
+        <RankNumber rank={rank} colored />
       </span>
       <span className="mp-yourbest-time num">{formatScore(score)}</span>
       {partner && <span className="muted">with {partner.name}</span>}
@@ -396,7 +396,7 @@ function ChamberHistory({ map }) {
           </span>
           <span className="end num">
             <span className="rank-pair">
-              <RankNumber rank={e.preRank} /> → <RankNumber rank={e.postRank} />
+              <RankNumber rank={e.preRank} colored /> → <RankNumber rank={e.postRank} colored />
             </span>
           </span>
           <span className="end num">{formatScore(e.score)}</span>
