@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { Link, useParams } from "react-router-dom";
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import Layout from "../../components/Layout";
@@ -150,14 +151,25 @@ function PeakPoints({ profileNumber }) {
 function RoleBar({ board, points }) {
   const prog = roleProgress(board, points);
   const text = prog.reached ? `${prog.reached} threshold reached` : `${prog.missing.toLocaleString()} points to ${prog.next} | ${prog.percent}%`;
+  const [pos, setPos] = useState(null);
+  // The label goes on the page body (the card would clip it), above the bar and inside the window.
+  const show = (e) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    const half = 110;
+    setPos({ x: Math.min(Math.max(r.left + r.width / 2, half + 8), window.innerWidth - half - 8), y: r.top });
+  };
   return (
-    <span className="pf-bar-wrap" tabIndex={0} aria-label={text}>
+    <span className="pf-bar-wrap" tabIndex={0} aria-label={text} onMouseEnter={show} onMouseLeave={() => setPos(null)} onFocus={show} onBlur={() => setPos(null)}>
       <span className={`pf-bar ${board === "overall" ? "is-red" : ""}`}>
         <span style={{ width: `${Math.min(100, prog.percent)}%` }} />
       </span>
-      <span className="pf-bar-tip" role="tooltip">
-        {text}
-      </span>
+      {pos &&
+        createPortal(
+          <span className="comment-bubble" role="tooltip" style={{ left: pos.x, top: pos.y }}>
+            {text}
+          </span>,
+          document.body,
+        )}
     </span>
   );
 }
