@@ -123,8 +123,10 @@
   line-height: 1.05;
 }
 
+/* Room for descenders (g, y): the ellipsis box clips anything outside its line height. */
 .mc-wr-name {
   font-size: 17px;
+  line-height: 1.3;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -133,7 +135,7 @@
 /* The WR and row times share one width so the icon columns before them line up. */
 .mc-wr-time {
   flex-shrink: 0;
-  min-width: 66px;
+  min-width: 60px;
   text-align: right;
   font-size: 17px;
   font-weight: 600;
@@ -143,7 +145,7 @@
 .mc-icons {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 2px;
 }
 
 .mc-icons svg {
@@ -178,6 +180,7 @@
 .mc-name {
   flex: 1;
   min-width: 0;
+  line-height: 1.3;
   color: var(--text-2);
   white-space: nowrap;
   overflow: hidden;
@@ -186,7 +189,7 @@
 
 .mc-time {
   flex-shrink: 0;
-  min-width: 66px;
+  min-width: 60px;
   text-align: right;
   font-weight: 600;
 }

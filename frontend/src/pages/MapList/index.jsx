@@ -70,27 +70,23 @@ export default function MapList() {
   );
 }
 
-// Which icon columns a card needs: the kinds any of its runs has.
-const iconSlots = (entries) => ({
-  autorender: entries.some((e) => e.autorenderId),
-  youtube: entries.some((e) => e.youtubeId),
-  demo: entries.some((e) => e.demoId),
-});
+// Whether a card needs a demo column (the video columns are always there).
+const iconSlots = (entries) => ({ demo: entries.some((e) => e.demoId) });
 
-// A run's video / demo icons, each in its own fixed-width column so a missing one leaves a gap
-// instead of shifting the others.
+// A run's demo / video icons, each in its own fixed-width column. The autorender and YouTube
+// columns are always kept, right before the time, so the play icon sits in the same place on
+// every card and row whether or not there's a YouTube video.
 function ScoreIcons({ entry, game, size, slots }) {
-  const slot = (key, show, icon) =>
-    show ? (
-      <span key={key} className="mc-icon-slot">
-        {icon}
-      </span>
-    ) : null;
+  const slot = (key, icon) => (
+    <span key={key} className="mc-icon-slot">
+      {icon}
+    </span>
+  );
   return (
     <span className="mc-icons">
-      {slot("autorender", slots.autorender, entry.autorenderId && <AutorenderLink run={entry} game={game} size={size + 2} />)}
-      {slot("youtube", slots.youtube, entry.youtubeId && <YouTubeLink id={entry.youtubeId} size={size + 4} />)}
-      {slot("demo", slots.demo, <DemoLink demoId={entry.demoId} size={size} hideMissing />)}
+      {slots.demo && slot("demo", <DemoLink demoId={entry.demoId} size={size} hideMissing />)}
+      {slot("autorender", entry.autorenderId && <AutorenderLink run={entry} game={game} size={size + 2} />)}
+      {slot("youtube", entry.youtubeId && <YouTubeLink id={entry.youtubeId} size={size + 4} />)}
     </span>
   );
 }
