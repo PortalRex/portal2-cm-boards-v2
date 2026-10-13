@@ -52,6 +52,8 @@ function adaptChangelog(row, game) {
     scoreDelta: row.score_delta,
     pointsDelta: null,
     players,
+    // Whose half of the run this row is (for co-op, the player who set a PB with it).
+    submitter: row.profile_number,
     youtubeId: row.youtube_id,
     autorenderId: row.autorender_id ?? null,
     demoId: row.demo_id,

@@ -299,6 +299,38 @@
   background: linear-gradient(90deg, transparent 46px, var(--portal-neutral) 46px, transparent 70%);
 }
 
+/* A pastel outline in the player's colour marks who set a PB with a co-op run. */
+.score-row.is-coop .sr-player.is-pb {
+  --pb-outline: #c3c6cc;
+  outline: 2px solid var(--pb-outline);
+  outline-offset: -2px;
+  border-radius: 4px;
+}
+
+.score-row.is-coop .sr-player.is-pb.tint-blue {
+  --pb-outline: #7fbcff;
+}
+
+.score-row.is-coop .sr-player.is-pb.tint-orange {
+  --pb-outline: #ffb877;
+}
+
+/* Wide screens: a co-op run's two players side by side on one line. */
+@media (min-width: 1200px) {
+  .score-row.is-coop .sr-players {
+    flex-direction: row;
+  }
+
+  .score-row.is-coop .sr-player {
+    flex: 1 1 0;
+    gap: 12px;
+  }
+
+  .score-row.is-coop .sr-player-name {
+    font-size: 17px;
+  }
+}
+
 .sr-time,
 .sr-delta,
 .sr-points {

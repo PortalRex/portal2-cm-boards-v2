@@ -82,7 +82,7 @@ export default function ScoreUpdates() {
     return [{ value: "", label: "All chambers" }, ...maps.map((m) => ({ value: m.id, label: m.title }))];
   }, [game, mode]);
 
-  const entries = changelog.data || [];
+  const entries = useMemo(() => mergeCoopHalves(changelog.data || []), [changelog.data]);
   const pageCount = Math.ceil(entries.length / PAGE_SIZE);
   const visible = entries.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
   const rendered = useRenderedSet(visible, game);
@@ -408,4 +408,24 @@ function ActivityChart({ points, loading }) {
       </LineChart>
     </ResponsiveContainer>
   );
+}
+
+// Both halves of a co-op run come as separate rows when both players set a PB with it; they're
+// shown as one row (where the newer half was) with `pbs` listing each player's improvement.
+function mergeCoopHalves(entries) {
+  const runs = new Map();
+  const out = [];
+  entries.forEach((e) => {
+    const pb = { profileNumber: e.submitter, preRank: e.preRank, postRank: e.postRank, scoreDelta: e.scoreDelta };
+    const key = e.coopId != null ? `${e.game}-${e.coopId}` : null;
+    const run = key && runs.get(key);
+    if (run) {
+      run.pbs.push(pb);
+      return;
+    }
+    const merged = { ...e, pbs: e.coopId != null ? [pb] : null };
+    if (key) runs.set(key, merged);
+    out.push(merged);
+  });
+  return out;
 }

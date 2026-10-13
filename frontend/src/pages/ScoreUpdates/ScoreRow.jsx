@@ -34,12 +34,20 @@ export default function ScoreRow({ entry, rendered, myReaction }) {
         </div>
 
         <div className="sr-players">
-          {players.map((p, i) => (
-            <div key={i} className={`sr-player ${coop ? tintFor(rolesKnown, i) : ""}`} title={coop && !rolesKnown ? "Unknown which player was blue" : undefined}>
-              <Avatar src={p.avatar} name={p.name} size={46} />
-              <PlayerLink player={p} className="sr-player-name" />
-            </div>
-          ))}
+          {players.map((p, i) => {
+            // Outlined: this player set a PB with the run.
+            const pb = coop ? entry.pbs?.find((x) => x.profileNumber && x.profileNumber === p.profileNumber) : null;
+            const title = [
+              pb && `${p.name} set a PB${pb.scoreDelta != null ? ` (${formatDelta(pb.scoreDelta, "s")})` : ""}${pb.postRank ? `, rank ${pb.preRank ?? "–"} → ${pb.postRank}` : ""}`,
+              coop && !rolesKnown && "Unknown which player was blue",
+            ].filter(Boolean).join(". ");
+            return (
+              <div key={i} className={`sr-player${coop ? ` ${tintFor(rolesKnown, i)}` : ""}${pb ? " is-pb" : ""}`} title={title || undefined}>
+                <Avatar src={p.avatar} name={p.name} size={46} />
+                <PlayerLink player={p} className="sr-player-name" />
+              </div>
+            );
+          })}
         </div>
 
         <div className="sr-time num">
