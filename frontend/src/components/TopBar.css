@@ -267,7 +267,7 @@
 
   .menu-toggle {
     display: inline-flex;
-    order: -1;
+    order: 99;
   }
 
   .topbar-user {
@@ -326,6 +326,24 @@
 
 @media (max-width: 480px) {
   .topbar-user .flag {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .topbar-inner {
+    padding: 0 14px;
+  }
+
+  .brand span {
+    font-size: 26px;
+  }
+
+  .sign-in {
+    padding: 0 10px;
+  }
+
+  .sign-in-label {
     display: none;
   }
 }

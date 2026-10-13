@@ -272,7 +272,6 @@
     --mp-cols: 32px minmax(0, 1fr) 76px;
   }
 
-  .mp-table.is-coop .mp-player + .mp-player,
   .mp-ago,
   .mp-icons,
   .mp-row-head span:nth-child(n + 3):not(.end) {
@@ -419,4 +418,25 @@ button.mp-yourbest:hover {
 .mp-wr-toggle:disabled {
   opacity: 0.5;
   cursor: default;
+}
+
+/* Phones: co-op boards show both players, smaller. */
+@media (max-width: 900px) {
+  .mp-table.is-coop {
+    --mp-cols: 28px minmax(0, 1fr) minmax(0, 1fr) 58px;
+  }
+
+  .mp-table.is-coop .mp-row-head span:nth-child(3) {
+    display: block;
+  }
+
+  .mp-table.is-coop .mp-player {
+    gap: 6px;
+    font-size: 14px;
+  }
+
+  .mp-table.is-coop .mp-player .avatar {
+    width: 24px !important;
+    height: 24px !important;
+  }
 }

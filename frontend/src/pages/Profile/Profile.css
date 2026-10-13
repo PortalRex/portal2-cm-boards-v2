@@ -54,6 +54,7 @@
 
 .pf-name-row h1 {
   min-width: 0;
+  max-width: 100%;
   margin: 0;
   font-size: 40px;
   font-weight: 700;
@@ -1044,13 +1045,13 @@
   gap: 24px;
 }
 
-.pf-stat-grid {
+.pf-figures {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
   gap: 12px;
 }
 
-.pf-stat {
+.pf-figure {
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -1059,19 +1060,19 @@
   background: var(--row);
 }
 
-.pf-stat-label {
+.pf-figure-label {
   color: var(--text-muted);
   font-size: 14px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
 
-.pf-stat-value {
+.pf-figure-value {
   font-size: 28px;
   font-weight: 600;
 }
 
-.pf-stat-note {
+.pf-figure-note {
   color: var(--text-muted);
   font-size: 14px;
 }
@@ -1134,4 +1135,20 @@
 .pf-locked {
   color: var(--text-muted);
   font-size: 13px;
+}
+
+/* Phones: long names shrink and break; stat cards spread across the width. */
+@media (max-width: 800px) {
+  .pf-name-row h1 {
+    font-size: clamp(22px, 7vw, 30px);
+    word-break: break-word;
+  }
+
+  .pf-points .card-body {
+    justify-content: space-around;
+  }
+
+  .pf-side {
+    grid-template-columns: 1fr;
+  }
 }

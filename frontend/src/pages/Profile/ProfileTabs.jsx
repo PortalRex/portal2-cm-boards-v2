@@ -412,7 +412,7 @@ function StatsTab({ profileNumber }) {
         <EmptyState>No stats for this player.</EmptyState>
       ) : (
         <>
-          <div className="pf-stat-grid">
+          <div className="pf-figures">
             <Stat label="Runs" value={s.runs} note={`${s.verified_runs} verified`} />
             <Stat label="Singleplayer maps" value={`${s.sp_maps} / ${s.sp_map_count}`} note={pct(s.sp_maps, s.sp_map_count)} hide={!s.sp_map_count} />
             <Stat label="Co-op maps" value={`${s.coop_maps} / ${s.coop_map_count}`} note={pct(s.coop_maps, s.coop_map_count)} hide={!s.coop_map_count} />
@@ -472,10 +472,10 @@ function StatsTab({ profileNumber }) {
 function Stat({ label, value, note, hide }) {
   if (hide) return null;
   return (
-    <div className="pf-stat">
-      <span className="pf-stat-label">{label}</span>
-      <span className="pf-stat-value num">{value}</span>
-      {note && <span className="pf-stat-note">{note}</span>}
+    <div className="pf-figure">
+      <span className="pf-figure-label">{label}</span>
+      <span className="pf-figure-value num">{value}</span>
+      {note && <span className="pf-figure-note">{note}</span>}
     </div>
   );
 }

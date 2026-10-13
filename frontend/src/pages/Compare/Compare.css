@@ -224,8 +224,79 @@
 }
 
 @media (max-width: 760px) {
-  .cmp-players,
+  .cmp-body {
+    padding: 14px 10px 20px;
+  }
+
+  .cmp-players {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .cmp-slot {
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 6px;
+    text-align: center;
+  }
+
+  .cmp-slot .avatar {
+    width: 48px !important;
+    height: 48px !important;
+  }
+
+  .cmp-slot-name {
+    align-items: center;
+    max-width: 100%;
+    font-size: 17px;
+    overflow-wrap: anywhere;
+  }
+
+  .cmp-change {
+    align-self: center;
+  }
+
+  .cmp-swap {
+    width: 34px;
+    height: 34px;
+  }
+
   .cmp-summary {
-    grid-template-columns: 1fr;
+    grid-template-columns: 70px minmax(0, 1fr) 70px;
+    gap: 8px;
+    padding: 12px 8px;
+  }
+
+  .cmp-score strong {
+    font-size: 26px;
+  }
+
+  .cmp-score span {
+    font-size: 12px;
+    text-align: center;
+  }
+
+  .cmp-mid {
+    font-size: 13px;
+  }
+
+  .cmp-row {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr) minmax(0, 1fr);
+    font-size: 14px;
+  }
+
+  .cmp-side {
+    gap: 6px;
+    padding: 0 6px;
+  }
+
+  .cmp-rank {
+    min-width: 22px;
+    font-size: 12px;
+  }
+
+  .cmp-map {
+    font-size: 13px;
   }
 }

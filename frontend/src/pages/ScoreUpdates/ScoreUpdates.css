@@ -644,3 +644,56 @@
   opacity: 0.3;
   cursor: default;
 }
+
+/* Phones: recap and daily rows keep map, players, rank and time; co-op names stack. */
+@media (max-width: 600px) {
+  .su-activity-controls {
+    flex-wrap: nowrap;
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .following.recap li {
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.3fr) 30px 58px;
+    height: auto;
+    min-height: 34px;
+    padding: 3px 0;
+  }
+
+  .following.daily-runs li {
+    grid-template-columns: 20px minmax(0, 1fr) 30px 58px;
+  }
+
+  .recap-delta {
+    display: none;
+  }
+
+  .su-activity-views button {
+    padding: 0 8px;
+    white-space: nowrap;
+  }
+
+  .su-activity-pager span {
+    min-width: 0;
+    white-space: nowrap;
+  }
+
+  .recap .following-player {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+
+  .recap-name .avatar {
+    width: 18px !important;
+    height: 18px !important;
+  }
+
+  .recap-amp {
+    display: none;
+  }
+
+  .recap-time {
+    padding-right: 6px;
+  }
+}

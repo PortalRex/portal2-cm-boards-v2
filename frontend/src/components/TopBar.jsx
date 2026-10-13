@@ -91,7 +91,7 @@ function ProfileMenu({ user, pathname, search }) {
   if (!user) {
     return (
       <a className="sign-in" href={steamLoginUrl(pathname + search)} title="Sign in through Steam">
-        <SteamIcon size={20} /> Sign in
+        <SteamIcon size={20} /> <span className="sign-in-label">Sign in</span>
       </a>
     );
   }

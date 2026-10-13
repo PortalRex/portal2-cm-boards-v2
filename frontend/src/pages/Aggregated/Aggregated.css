@@ -153,3 +153,27 @@
 .agg-modes a:hover:not(.is-active) {
   background: var(--seg-hover);
 }
+
+@media (max-width: 600px) {
+  .agg-row {
+    grid-template-columns: 34px 30px minmax(0, 1fr) auto;
+    min-height: 40px;
+    padding: 0 8px 0 4px;
+    font-size: 16px;
+  }
+
+  .agg-row .avatar {
+    width: 30px !important;
+    height: 30px !important;
+    border-radius: 4px;
+  }
+
+  .agg-title {
+    font-size: 38px;
+  }
+
+  .agg-modes {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}
