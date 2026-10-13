@@ -12,6 +12,7 @@ use env_logger::Env;
 use stages::fetching::*;
 use std::collections::HashMap;
 
+mod http;
 mod api;
 mod models;
 mod points;

@@ -9,7 +9,7 @@ pub fn upload_new_pfp(profile_number: &str) -> Result<String> {
         "http://localhost:8080/api/v1/user/avatar/{}",
         profile_number
     );
-    Ok(reqwest::blocking::Client::new()
+    Ok(crate::http::blocking_client()
         .put(&post_url)
         .json(&AvatarInsert { avatar: &avatar })
         .send()?
@@ -43,7 +43,7 @@ pub async fn add_user(profile_number: &str) -> Result<Users> {
     };
 
     let url = String::from("http://localhost:8080/api/v1/user");
-    let client = reqwest::Client::new();
+    let client = crate::http::client();
     Ok(client
         .post(&url)
         .json(&new_user)
@@ -54,7 +54,7 @@ pub async fn add_user(profile_number: &str) -> Result<Users> {
 }
 
 pub async fn upload_changelog_and_demo(cl: &ChangelogInsert, demo: &DemoInsert) -> Result<i64> {
-    let client = reqwest::Client::new();
+    let client = crate::http::client();
     let new_id = client
         .post("http://localhost:8080/api/v1/sp/post_score")
         .json(cl)
