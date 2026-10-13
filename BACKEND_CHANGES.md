@@ -58,6 +58,7 @@ New environment variables for the server (dotted names, as in `server/.env.examp
 | `DEMO.PARSER` | For submissions | Path to `server/demo-parser/parse_demo.mjs` (run `npm install` in that folder). |
 | `DEMO.STORAGE` | For submissions | Directory submitted demos are saved in. |
 | `DEMO.NODE` | No | Node executable if `node` isn't on the PATH (Node 18+). |
+| `RANKS.COOP` | No | How co-op runs are ranked: `run` (default) gives each run one rank, so the next team down is rank 2; `player` gives each player a rank, so a run fills two (1, 1, 3) as the old boards did. See [§6](#6-changed-behaviour-of-existing-endpoints). |
 | `DEMO.ARCHIVE` | For old demos | Folders holding the old boards' demo files (several separated by `;`, searched recursively). Needed for downloading imported runs' demos. |
 
 `STEAM.API_KEY` (existing) is now also used to fill in names and avatars at sign-in, to create accounts for new co-op
@@ -189,6 +190,12 @@ All under `/api/v1`. Auth: **public**, **signed in**, **staff** (any tier or ser
 - **`GET /user/{id}`** adds `frozen`, `role`, `name_locked`, `avatar_locked`; drops `auth_hash`, `discord_id`.
 - **Sign-in and `PUT /user/avatar/{id}`** leave staff-set pictures alone.
 - **Changes to runs** (posting, editing, moderation) invalidate the points cache and previews.
+- **Co-op ranks by run** (`RANKS.COOP`, default `run`): each co-op run takes one rank, so after a tied pair at rank 1
+  the next team is rank 2 (it was 3, as each player took a rank). Runs with the same time share a rank. This applies
+  to points and aggregate boards, profile ranks, the points-over-time chart, the rank stored with new submissions and
+  the co-op map page (which already numbered runs, now with ties shared). Both halves of a run are recognised by their
+  shared `coop_id`. `RANKS.COOP=player` restores the old ranking everywhere; the rank cache file is rebuilt when the
+  setting changes. Ranks stored on past runs (`pre_rank` / `post_rank`) aren't rewritten.
 
 ## 7. Caching and performance
 

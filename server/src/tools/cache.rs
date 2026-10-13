@@ -93,6 +93,9 @@ pub struct Ranks {
     pub current_ranks: HashMap<String, HashMap<String, i32>>,
     #[serde(default)]
     pub map_scores: HashMap<String, Vec<i32>>,
+    /// Whether co-op was ranked by run when this was built (rebuilt when the setting changes).
+    #[serde(default)]
+    pub coop_by_run: bool,
 }
 
 /// SP ranks with ties sharing a rank (entries are ordered by score).
@@ -224,7 +227,7 @@ impl CacheState {
         if try_from_file {
             match read_from_file::<Ranks>(id).await {
                 // Cache files written before `map_scores` existed are rebuilt.
-                Ok(r) if !r.map_scores.is_empty() => {
+                Ok(r) if !r.map_scores.is_empty() && r.coop_by_run == crate::tools::config::coop_by_run() => {
                     // let elapsed = now.elapsed();
                     // println!("Elapsed: {:.2?}", elapsed);
                     return Ok(r);
@@ -271,7 +274,7 @@ impl CacheState {
                 }
             }
         }
-        let fin = Ranks { current_ranks, map_scores };
+        let fin = Ranks { current_ranks, map_scores, coop_by_run: crate::tools::config::coop_by_run() };
         write_to_file(id, &fin).await.unwrap();
         // let elapsed = now.elapsed();
         // println!("Elapsed: {:.2?}", elapsed);

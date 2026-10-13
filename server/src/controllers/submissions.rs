@@ -127,10 +127,28 @@ const FASTER_PLAYERS: &str = r#"
       AND cl.profile_number <> $4 AND cl.profile_number <> $5
 "#;
 
+/// Like [FASTER_PLAYERS], counting runs instead: faster players' bests, with both halves of a
+/// co-op run (same coop_id) counted once.
+const FASTER_RUNS: &str = r#"
+    SELECT COUNT(DISTINCT pb.run_key) FROM (
+        SELECT DISTINCT ON (cl.profile_number) COALESCE('c' || cl.coop_id, 'r' || cl.id) AS run_key
+        FROM changelog AS cl
+        JOIN users AS u ON u.profile_number = cl.profile_number
+        WHERE cl.map_id = $1 AND cl.category_id = $2 AND cl.score < $3
+          AND cl.verified AND NOT cl.banned AND NOT u.banned
+          AND cl.profile_number <> $4 AND cl.profile_number <> $5
+        ORDER BY cl.profile_number, cl.score, cl.timestamp
+    ) AS pb
+"#;
+
+fn faster_query() -> &'static str {
+    if crate::tools::config::coop_by_run() { FASTER_RUNS } else { FASTER_PLAYERS }
+}
+
 /// Rank a time would have on a map: 1 + players whose best is faster, the same ranking the
 /// boards use.
 async fn rank_for(tx: &mut sqlx::Transaction<'_, sqlx::Postgres>, map: &BoardMap, profile_number: &str, score: i32) -> Result<i32, sqlx::Error> {
-    let faster: i64 = sqlx::query_scalar(FASTER_PLAYERS)
+    let faster: i64 = sqlx::query_scalar(faster_query())
         .bind(&map.steam_id)
         .bind(map.default_cat_id)
         .bind(score)
@@ -143,7 +161,7 @@ async fn rank_for(tx: &mut sqlx::Transaction<'_, sqlx::Postgres>, map: &BoardMap
 
 /// Whether a new run without a demo would be pending: it would rank within [PROOF_RANK].
 pub async fn needs_proof(pool: &PgPool, map_id: &str, category_id: i32, profile_number: &str, score: i32) -> Result<bool, sqlx::Error> {
-    let faster: i64 = sqlx::query_scalar(FASTER_PLAYERS)
+    let faster: i64 = sqlx::query_scalar(faster_query())
         .bind(map_id)
         .bind(category_id)
         .bind(score)

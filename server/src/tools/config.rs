@@ -1,3 +1,4 @@
+use std::sync::atomic::{AtomicBool, Ordering};
 use config::ConfigError;
 use serde::Deserialize;
 
@@ -62,6 +63,29 @@ pub struct DemoConfig {
     pub archive: Option<String>,
 }
 
+/// How co-op runs are ranked (`RANKS.COOP`). `run` (the default): a run takes one rank, so the
+/// next team down is rank 2. `player`: each player takes a rank, so a run fills two (1, 1, 3),
+/// as the old boards ranked them.
+#[derive(Deserialize, Debug, Clone, Default)]
+pub struct RanksConfig {
+    pub coop: Option<String>,
+}
+
+static COOP_BY_RUN: AtomicBool = AtomicBool::new(true);
+
+/// Whether co-op runs take one rank each (see [RanksConfig]).
+pub fn coop_by_run() -> bool {
+    COOP_BY_RUN.load(Ordering::Relaxed)
+}
+
+impl RanksConfig {
+    /// Sets the co-op ranking for the whole server; called once at startup.
+    pub fn apply(&self) {
+        let by_player = self.coop.as_deref().map(str::trim).is_some_and(|m| m.eq_ignore_ascii_case("player"));
+        COOP_BY_RUN.store(!by_player, Ordering::Relaxed);
+    }
+}
+
 /// Wrapper for all other config variables.
 #[derive(Deserialize, Debug, Clone)]
 pub struct Config {
@@ -74,6 +98,8 @@ pub struct Config {
     pub service: ServiceConfig,
     #[serde(default)]
     pub demo: DemoConfig,
+    #[serde(default)]
+    pub ranks: RanksConfig,
 }
 // Extracts the environment variables from the .env file at the src level.
 impl Config {

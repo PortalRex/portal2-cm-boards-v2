@@ -1,7 +1,8 @@
 //! A player's points over time, as they actually were: at each sample date, every map's rank
 //! is worked out against everyone's best time as of that date (so being passed lowers it),
 //! using the same rules as the points boards (verified, unbanned runs in the map's main
-//! category; ties share a rank; points from [crate::tools::helpers::score]).
+//! category; ties share a rank; co-op by run or by player as set by
+//! [crate::tools::config::coop_by_run]; points from [crate::tools::helpers::score]).
 //!
 //! Each game's run timeline (every qualifying run, in time order per map) is read once and
 //! kept in memory; it's dropped with the points cache whenever runs change.
@@ -24,12 +25,13 @@ struct RunRow {
     profile_number: String,
     score: i32,
     timestamp: NaiveDateTime,
+    run_key: i64,
 }
 
 struct MapTimeline {
     mode: usize,
-    /// (time, player index, score), oldest first.
-    runs: Vec<(NaiveDateTime, u32, i32)>,
+    /// (time, player index, score, run), oldest first. Both halves of a co-op run share the run.
+    runs: Vec<(NaiveDateTime, u32, i32, i64)>,
 }
 
 struct Timeline {
@@ -63,7 +65,8 @@ async fn timeline(pool: &PgPool, game_id: i32) -> Result<Arc<Timeline>, sqlx::Er
             -- About 40k imported runs have no date; they count from Portal 2's release, as the
             -- boards count them.
             SELECT cl.map_id, c.game_mode, cl.profile_number, cl.score,
-                COALESCE(cl.timestamp, TIMESTAMP '2011-04-19 00:00:00') AS timestamp
+                COALESCE(cl.timestamp, TIMESTAMP '2011-04-19 00:00:00') AS timestamp,
+                COALESCE(cl.coop_id, -cl.id) AS run_key
             FROM changelog AS cl
                 JOIN users AS u ON u.profile_number = cl.profile_number
                 JOIN maps AS m ON m.steam_id = cl.map_id
@@ -95,7 +98,7 @@ async fn timeline(pool: &PgPool, game_id: i32) -> Result<Arc<Timeline>, sqlx::Er
         }
         let next_player = players.len() as u32;
         let pi = *players.entry(r.profile_number).or_insert(next_player);
-        maps[mi].runs.push((r.timestamp, pi, r.score));
+        maps[mi].runs.push((r.timestamp, pi, r.score, r.run_key));
     }
     let t = Arc::new(Timeline { modes, players, maps });
     cache().games.lock().await.insert(game_id, t.clone());
@@ -132,37 +135,59 @@ pub async fn points_history(pool: &PgPool, game_id: i32, profile_number: &str) -
     }
     let ends: Vec<NaiveDateTime> = dates.iter().map(|d| d.and_hms_opt(23, 59, 59).unwrap()).collect();
 
+    let by_run = crate::tools::config::coop_by_run();
     let mut totals = vec![vec![0.0f64; t.modes.len()]; dates.len()];
     for map in &t.maps {
         if !map.runs.iter().any(|r| r.1 == me) {
             continue;
         }
         // Sweep the map's runs in time order, keeping each player's best and a count of bests
-        // per time, and read the player's rank at each sample date.
-        let mut best: HashMap<u32, i32> = HashMap::new();
+        // per time (players, or distinct runs when co-op ranks by run), and read the player's
+        // rank at each sample date.
+        let mut best: HashMap<u32, (i32, i64)> = HashMap::new();
+        let mut run_refs: HashMap<i64, u32> = HashMap::new();
         let mut counts: BTreeMap<i32, u32> = BTreeMap::new();
         let mut i = 0;
         for (si, end) in ends.iter().enumerate() {
             while i < map.runs.len() && map.runs[i].0 <= *end {
-                let (_, p, s) = map.runs[i];
+                let (_, p, s, run) = map.runs[i];
                 match best.get(&p) {
-                    Some(&old) if old <= s => {}
+                    Some(&(old, _)) if old <= s => {}
                     old => {
-                        if let Some(&o) = old {
-                            if let Some(c) = counts.get_mut(&o) {
-                                *c -= 1;
-                                if *c == 0 {
-                                    counts.remove(&o);
+                        if let Some(&(o, orun)) = old {
+                            let gone = if by_run {
+                                let refs = run_refs.entry(orun).or_insert(1);
+                                *refs -= 1;
+                                *refs == 0
+                            } else {
+                                true
+                            };
+                            if gone {
+                                run_refs.remove(&orun);
+                                if let Some(c) = counts.get_mut(&o) {
+                                    *c -= 1;
+                                    if *c == 0 {
+                                        counts.remove(&o);
+                                    }
                                 }
                             }
                         }
-                        best.insert(p, s);
-                        *counts.entry(s).or_insert(0) += 1;
+                        best.insert(p, (s, run));
+                        let new = if by_run {
+                            let refs = run_refs.entry(run).or_insert(0);
+                            *refs += 1;
+                            *refs == 1
+                        } else {
+                            true
+                        };
+                        if new {
+                            *counts.entry(s).or_insert(0) += 1;
+                        }
                     }
                 }
                 i += 1;
             }
-            if let Some(&mine) = best.get(&me) {
+            if let Some(&(mine, _)) = best.get(&me) {
                 let faster: u32 = counts.range(..mine).map(|(_, c)| *c).sum();
                 totals[si][map.mode] += score(faster as i32 + 1) as f64;
             }

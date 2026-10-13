@@ -37,6 +37,20 @@ pub async fn get_default_cat_ids(pool: &PgPool) -> HashMap<String, i32> {
 
 /// Filters out all obsolete times from the result, then truncates to x entries.
 pub async fn filter_coop_entries(coop_entries: Vec<CoopMap>, limit: usize) -> Vec<CoopRanked> {
+    let mut ranked = filter_coop_entries_raw(coop_entries, limit);
+    // Ranking by run: runs with the same time share a rank, like single player.
+    if crate::tools::config::coop_by_run() {
+        for i in 1..ranked.len() {
+            if ranked[i].map_data.score == ranked[i - 1].map_data.score {
+                ranked[i].rank = ranked[i - 1].rank;
+                ranked[i].points = ranked[i - 1].points;
+            }
+        }
+    }
+    ranked
+}
+
+fn filter_coop_entries_raw(coop_entries: Vec<CoopMap>, limit: usize) -> Vec<CoopRanked> {
     let mut coop_entries_filtered = Vec::new();
     let mut remove_dups: HashSet<String> = HashSet::with_capacity(limit);
     remove_dups.insert("N/A".to_string());

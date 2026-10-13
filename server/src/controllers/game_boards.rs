@@ -18,7 +18,7 @@ pub struct PbRank {
 }
 
 /// Personal bests (default category, verified, neither run nor player banned) ranked
-/// per map, for maps of `game_id` whose chapter `game_mode` is in `modes` (all modes when `None`),
+/// per map (co-op by run or by player, see [crate::tools::config::coop_by_run]), for maps of `game_id` whose chapter `game_mode` is in `modes` (all modes when `None`),
 /// optionally limited to one chapter.
 pub async fn pb_ranks(pool: &PgPool, game_id: i32, modes: Option<&[&str]>, chapter: Option<i32>) -> Result<Vec<PbRank>, sqlx::Error> {
     let modes: Option<Vec<String>> = modes.map(|m| m.iter().map(|s| s.to_string()).collect());
@@ -26,7 +26,9 @@ pub async fn pb_ranks(pool: &PgPool, game_id: i32, modes: Option<&[&str]>, chapt
         r#"
             WITH pbs AS (
                 SELECT DISTINCT ON (cl.profile_number, cl.map_id)
-                    cl.profile_number, cl.map_id, cl.score, c.game_mode, c.id AS chapter_id
+                    cl.profile_number, cl.map_id, cl.score, c.game_mode, c.id AS chapter_id,
+                    -- Both halves of a co-op run share a coop_id: one run.
+                    COALESCE('c' || cl.coop_id, 'r' || cl.id) AS run_key
                 FROM changelog AS cl
                     INNER JOIN users AS u ON (u.profile_number = cl.profile_number)
                     INNER JOIN maps AS m ON (m.steam_id = cl.map_id)
@@ -40,15 +42,25 @@ pub async fn pb_ranks(pool: &PgPool, game_id: i32, modes: Option<&[&str]>, chapt
                     AND cl.category_id = m.default_cat_id
                     AND cl.profile_number <> 'N/A'
                 ORDER BY cl.profile_number, cl.map_id, cl.score ASC, cl.timestamp ASC
+            ),
+            -- Each run counted once (its players' bests can point at the same run).
+            runs AS (
+                SELECT map_id, run_key, MIN(score) AS score FROM pbs GROUP BY map_id, run_key
+            ),
+            run_ranks AS (
+                SELECT map_id, run_key, (RANK() OVER (PARTITION BY map_id ORDER BY score ASC))::int AS rank FROM runs
             )
-            SELECT profile_number, map_id, score, game_mode, chapter_id,
-                (RANK() OVER (PARTITION BY map_id ORDER BY score ASC))::int AS rank
-            FROM pbs
+            SELECT p.profile_number, p.map_id, p.score, p.game_mode, p.chapter_id,
+                CASE WHEN $4 THEN r.rank
+                    ELSE (RANK() OVER (PARTITION BY p.map_id ORDER BY p.score ASC))::int END AS rank
+            FROM pbs AS p
+                JOIN run_ranks AS r ON r.map_id = p.map_id AND r.run_key = p.run_key
         "#,
     )
     .bind(game_id)
     .bind(modes)
     .bind(chapter)
+    .bind(crate::tools::config::coop_by_run())
     .fetch_all(pool)
     .await
 }
