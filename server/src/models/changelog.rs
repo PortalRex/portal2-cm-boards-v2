@@ -165,6 +165,8 @@ pub struct ChangelogQueryParams {
     pub yt: Option<bool>,
     /// `true` shows only banned runs, `false` hides them; omitted shows both.
     pub banned: Option<bool>,
+    /// `false` shows only pending runs, `true` only verified ones; omitted shows both.
+    pub verified: Option<bool>,
     /// With `wr_gain`: also include runs staff removed from the WR history.
     pub include_hidden_wr: Option<bool>,
     pub first: Option<i64>,

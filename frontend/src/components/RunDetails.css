@@ -385,3 +385,38 @@
   color: var(--accent-light);
   cursor: pointer;
 }
+
+/* Pending run: add the demo to verify it */
+.sd-pending {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-radius: 6px;
+  background: var(--pending);
+  color: var(--pending-text);
+  font-size: 16px;
+}
+
+.sd-pending-upload {
+  display: inline-flex;
+  align-items: center;
+  height: 32px;
+  padding: 0 14px;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  color: var(--text);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.sd-pending-upload:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.sd-pending-upload.is-busy {
+  opacity: 0.6;
+  cursor: default;
+}

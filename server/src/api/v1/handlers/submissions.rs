@@ -302,6 +302,79 @@ async fn submission_create(
     Ok(HttpResponse::Ok().json(json!({ "changelog_id": id, "map_id": map.steam_id, "map_name": map.name, "score": score, "partner": partner.map(|p| p.0) })))
 }
 
+/// **POST** Add the demo for a pending run (form field `demo`). The demo must be of the run's
+/// map, with the run's exact time, and have the uploader in it; the run is then verified.
+/// The run's player (or co-op partner) can do this, and staff for anyone's run.
+#[post("/runs/{id}/demo")]
+async fn run_add_demo(
+    user: SignedIn,
+    pool: web::Data<PgPool>,
+    config: web::Data<Config>,
+    cache: web::Data<CacheState>,
+    id: web::Path<i64>,
+    payload: Multipart,
+) -> Result<impl Responder> {
+    let user = user.0;
+    let Some(run) = submissions::proof_target(pool.get_ref(), id.into_inner()).await? else {
+        return Ok(HttpResponse::NotFound().body("No such run."));
+    };
+    let players: Vec<&str> = [Some(run.profile_number.as_str()), run.p_id1.as_deref(), run.p_id2.as_deref()]
+        .into_iter()
+        .flatten()
+        .filter(|p| *p != moderation::FILLER)
+        .collect();
+    let staff = user.is_admin();
+    if !staff && !players.contains(&user.profile_number.as_str()) {
+        return Ok(HttpResponse::Forbidden().body("You can only add demos to your own runs."));
+    }
+    if run.banned {
+        return Ok(bad("This run is hidden from the boards."));
+    }
+    if run.verified == Some(true) {
+        return Ok(bad("This run is already verified."));
+    }
+    if run.demo_id.is_some() {
+        return Ok(bad("This run already has a demo; staff will review it."));
+    }
+    let form = match read_form(payload).await {
+        Ok(f) => f,
+        Err(e) => return Ok(bad(e)),
+    };
+    let Some(bytes) = form.demo.as_deref() else {
+        return Ok(bad("Choose a demo file."));
+    };
+    let info = match parse_upload(&config, bytes).await {
+        Ok(i) => i,
+        Err(e) => return Ok(bad(e)),
+    };
+    let same_map = matches!((info.map_name.as_deref(), run.bsp_name.as_deref()), (Some(a), Some(b)) if a.eq_ignore_ascii_case(b));
+    if !same_map {
+        return Ok(bad(format!("This demo is of {}, not this run's map.", info.map_name.as_deref().unwrap_or("another map"))));
+    }
+    if info.time_score != Some(run.score) {
+        return Ok(bad(match info.time_score {
+            Some(t) => format!("This demo's time is {}, but the run is {}.", submissions::format_time(t), submissions::format_time(run.score)),
+            None => "This demo doesn't contain a finished challenge mode run.".to_string(),
+        }));
+    }
+    if !info.players.iter().any(|p| players.contains(&p.steam_id.as_str())) {
+        return Ok(bad("This run's player isn't in this demo."));
+    }
+    let name = format!("{}_{}_{}_{}.dem", run.map_id, run.score, run.profile_number, &crate::tools::auth::random_token()[..10]);
+    if let Err(e) = save_demo(&config, bytes, &name).await {
+        return Ok(bad(e));
+    }
+    let partner_name = info.players.iter().find(|p| p.steam_id != run.profile_number).map(|p| p.name.clone());
+    submissions::attach_proof(pool.get_ref(), &run, &name, if run.is_coop { partner_name.as_deref() } else { None }).await?;
+
+    cache.update_current_state(if run.is_coop { COOP_PREVIEWS } else { SP_PREVIEWS }, false).await;
+    if cache.default_cat_ids.contains_key(&run.map_id) {
+        cache.reload_rank(pool.get_ref(), &run.map_id, &config, run.is_coop).await;
+    }
+    invalidate_points().await;
+    Ok(HttpResponse::NoContent().finish())
+}
+
 #[cfg(test)]
 mod tests {
     use super::parse_time;

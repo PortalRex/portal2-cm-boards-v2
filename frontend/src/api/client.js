@@ -137,11 +137,12 @@ function adaptPoints(wrapper, mapCount) {
 //   mode    "sp" | "coop" on the server for Portal 2; "story" | "advanced" are filtered here (Mel)
 //   wr      only runs that took the world record
 //   video   only runs with a YouTube video;  demo  only runs with a demo
+//   pending only runs waiting for verification
 //   banned  "hide" (default) | "show" | "only"
 const toggle = (on) => (on ? true : undefined);
 
-export function fetchChangelog({ search, profileNumber, mapId, limit = 200, game = "portal2", mode, wr, video, demo, banned = "hide" } = {}) {
-  const filters = { mode, wr, video, demo, banned };
+export function fetchChangelog({ search, profileNumber, mapId, limit = 200, game = "portal2", mode, wr, video, demo, pending, banned = "hide" } = {}) {
+  const filters = { mode, wr, video, demo, pending, banned };
   const byMode = (entries) => (mode === "story" || mode === "advanced" ? entries.filter((e) => e.map.mode === mode) : entries);
   return sample(
     async () => {
@@ -155,6 +156,7 @@ export function fetchChangelog({ search, profileNumber, mapId, limit = 200, game
         wr_gain: toggle(wr),
         yt: toggle(video),
         has_demo: toggle(demo),
+        verified: pending ? false : undefined,
         banned: banned === "only" ? true : banned === "show" ? undefined : false,
         ...gameParam(game),
       });
@@ -216,6 +218,7 @@ export const setRunPartner = (changelogId, steamId, reason) => send("PUT", `/adm
 export const setProfileBanned = (profileNumber, banned, reason) => send("PUT", `/admin/users/${profileNumber}/banned`, { banned, reason });
 export const setProfileFrozen = (profileNumber, frozen, reason) => send("PUT", `/admin/users/${profileNumber}/freeze`, { frozen, reason });
 export const setProfileRole = (profileNumber, role, reason) => send("PUT", `/admin/users/${profileNumber}/role`, { role, reason });
+export const setRunVerified = (changelogId, verified, reason) => send("PUT", `/admin/runs/${changelogId}/verified`, { verified, reason });
 export const setRunWrHidden = (changelogId, hidden, reason) => send("PUT", `/admin/runs/${changelogId}/wr_history`, { hidden, reason });
 
 // Staff: every WR on a map, including runs removed from the history, newest first.
@@ -519,6 +522,29 @@ function adaptProfile(profileNumber, page, user, history, pbs) {
   };
 }
 
+// --- weekly recap ---------------------------------------------------------------
+
+// The top 5 runs of the week containing `day` (a Date; weeks start Monday, UTC).
+export async function fetchWeeklyRecap(game, day) {
+  const week = day.toISOString().slice(0, 10);
+  const data = await getJson("/recap/weekly", { week, ...gameParam(game) });
+  return { start: data.start, end: data.end, runs: data.runs.map((r) => adaptChangelog(r, game)) };
+}
+
+// The daily chambers (one map per board) for `day` (a Date, UTC) and the runs set on them that day.
+export async function fetchDailyChambers(game, day) {
+  const date = day.toISOString().slice(0, 10);
+  const data = await getJson("/daily", { date, ...gameParam(game) });
+  return {
+    date: data.date,
+    chambers: data.chambers.map((c) => ({
+      mode: c.map.game_mode,
+      map: lookupMap(c.map.steam_id, game),
+      runs: c.runs.map((r) => adaptChangelog(r, game)),
+    })),
+  };
+}
+
 // --- run submissions ---------------------------------------------------------
 
 async function postForm(path, form) {
@@ -533,6 +559,15 @@ export function previewDemo(file) {
   const form = new FormData();
   form.append("demo", file);
   return postForm("/submissions/preview", form);
+}
+
+// Adds the demo for a pending run; the server checks it matches and verifies the run.
+export async function addRunDemo(changelogId, file) {
+  const form = new FormData();
+  form.append("demo", file);
+  const res = await fetch(apiUrl(`/runs/${changelogId}/demo`), { method: "POST", body: form });
+  if (res.status === 401) throw new Error("Sign in required.");
+  if (!res.ok) throw new Error((await res.text()) || `Request failed (${res.status})`);
 }
 
 // Submits a run. `fields` holds youtube, comment, mel_mode and the admin-only map_id, time,

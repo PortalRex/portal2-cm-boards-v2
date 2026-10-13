@@ -35,6 +35,25 @@
   margin-bottom: 26px;
 }
 
+.mp-chart.has-slider {
+  height: 190px;
+}
+
+/* WR history range slider (recharts Brush) */
+.mp-chart .recharts-brush-texts {
+  fill: var(--text-muted);
+  font-size: 12px;
+}
+
+.mp-chart .recharts-brush-traveller rect {
+  fill: #9d5fd0;
+}
+
+.mp-chart .recharts-brush-slide {
+  fill: #9d5fd0;
+  fill-opacity: 0.22;
+}
+
 .mp-chart-empty {
   display: flex;
   align-items: center;

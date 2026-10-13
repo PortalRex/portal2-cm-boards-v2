@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Navigate, useParams } from "react-router-dom";
-import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Brush, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import Layout from "../../components/Layout";
 import { Panel, Select, Pagination, SearchBox, Avatar, PlayerLink, OutlineButton, Loading, EmptyState, RankNumber } from "../../components/ui";
 import { PinIcon, TrophyIcon, CommentIcon, DownloadIcon, HistoryIcon, WikiIcon } from "../../components/Icons";
@@ -81,6 +81,9 @@ function MapPageContent({ map }) {
   );
 }
 
+// Maps with more world records than this get a range slider under the chart.
+const WR_SLIDER_MIN = 12;
+
 function WrHistoryChart({ points, loading }) {
   const data = useMemo(
     () =>
@@ -90,6 +93,8 @@ function WrHistoryChart({ points, loading }) {
       })),
     [points],
   );
+  const [range, setRange] = useState(null);
+  useEffect(() => setRange(null), [data]);
   if (loading && !data.length)
     return (
       <div className="mp-chart">
@@ -97,13 +102,17 @@ function WrHistoryChart({ points, loading }) {
       </div>
     );
   if (!data.length) return <div className="mp-chart mp-chart-empty muted">No world record history</div>;
-  const scores = data.map((d) => d.score);
+  const slider = data.length > WR_SLIDER_MIN;
+  const start = range?.startIndex ?? 0;
+  const end = range?.endIndex ?? data.length - 1;
+  // The time axis follows the slider; scale the times to what's in view too.
+  const scores = data.slice(start, end + 1).map((d) => d.score);
   const min = Math.min(...scores);
   const max = Math.max(...scores);
   return (
-    <div className="mp-chart">
+    <div className={`mp-chart${slider ? " has-slider" : ""}`}>
       <TrophyIcon className="mp-chart-trophy" />
-      <ResponsiveContainer width="100%" height={150}>
+      <ResponsiveContainer width="100%" height={slider ? 190 : 150}>
         <LineChart data={data} margin={{ top: 10, right: 30, bottom: 0, left: 0 }}>
           <CartesianGrid stroke="var(--chart-grid)" vertical={false} />
           <XAxis
@@ -120,6 +129,7 @@ function WrHistoryChart({ points, loading }) {
           <YAxis
             domain={[min, max]}
             ticks={[min, Math.round((min + max) / 2), max]}
+            allowDataOverflow
             tickFormatter={formatScore}
             tick={{ fill: "var(--text-muted)", fontSize: 14 }}
             axisLine={false}
@@ -148,6 +158,19 @@ function WrHistoryChart({ points, loading }) {
             }}
             isAnimationActive={false}
           />
+          {slider && (
+            <Brush
+              dataKey="t"
+              height={22}
+              travellerWidth={8}
+              startIndex={start}
+              endIndex={end}
+              onChange={(r) => setRange({ startIndex: r.startIndex, endIndex: r.endIndex })}
+              tickFormatter={(t) => new Date(t).getFullYear()}
+              stroke="#9d5fd0"
+              fill="var(--panel)"
+            />
+          )}
         </LineChart>
       </ResponsiveContainer>
     </div>

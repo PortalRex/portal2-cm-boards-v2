@@ -2,7 +2,7 @@ import { useState } from "react";
 import { OutlineButton, PlayerLink } from "./ui";
 import { DownloadIcon, YouTubeIcon, PlayIcon, VideocamIcon, ThumbUpIcon, ThumbUpOutlineIcon, ThumbDownIcon, ThumbDownOutlineIcon } from "./Icons";
 import { RunVideo, runVideo } from "./RunMedia";
-import { deleteRun, fetchCoopHalves, fetchReactionRecord, fetchReactions, fetchSegments, removeRunDemo, setCoopHost, setReaction, setRunBanned, setRunPartner } from "../api/client";
+import { addRunDemo, deleteRun, fetchCoopHalves, fetchReactionRecord, fetchReactions, fetchSegments, removeRunDemo, setCoopHost, setReaction, setRunBanned, setRunPartner, setRunVerified } from "../api/client";
 import { bumpDataVersion, useDataVersion } from "../lib/dataVersion";
 import useApi from "../hooks/useApi";
 import useCurrentUser, { isStaff } from "../hooks/useCurrentUser";
@@ -123,6 +123,7 @@ export default function RunDetails({ run, map, game = "portal2", rendered, showR
             <dt>Status:</dt>
             <dd>{run.banned ? "Banned" : run.verified === false ? "Pending" : "Verified"}</dd>
           </dl>
+          <PendingProof run={run} />
           {showReactions && <ReactionsBar changelogId={own} />}
           <AdminTools run={run} game={game} />
           <div className="sd-buttons">
@@ -260,6 +261,16 @@ function AdminTools({ run, game }) {
             Hide from boards
           </button>
         )}
+        {!run.banned &&
+          (run.verified === false ? (
+            <button type="button" disabled={state.busy} onClick={() => act("Run verified.", () => setRunVerified(changelogId, true, why))}>
+              Verify run
+            </button>
+          ) : (
+            <button type="button" disabled={state.busy} onClick={() => act("Run marked pending.", () => setRunVerified(changelogId, false, why))}>
+              Mark pending
+            </button>
+          ))}
         {run.demoId && (
           <button type="button" disabled={state.busy} onClick={() => act("Demo removed.", () => removeRunDemo(changelogId, why))}>
             Remove demo
@@ -291,6 +302,48 @@ function AdminTools({ run, game }) {
       )}
       <WhoReacted changelogId={changelogId} />
       {state.message && <span className="sd-admin-ok">{state.message}</span>}
+      {state.error && <span className="sd-roles-error">{state.error}</span>}
+    </div>
+  );
+}
+
+// A pending run without a demo: its player (or co-op partner), or staff, can add the demo.
+// The server checks the map, the exact time and the player, then verifies the run.
+function PendingProof({ run }) {
+  const user = useCurrentUser();
+  const [state, setState] = useState({ busy: false, done: false, error: null });
+  const changelogId = run.changelogId ?? run.id;
+  if (!user || user.sample || run.verified !== false || run.banned || run.demoId || changelogId == null) return null;
+  const mine = (run.players || []).some((p) => p.profileNumber === user.profileNumber);
+  if (!mine && !isStaff(user)) return null;
+  const upload = async (file) => {
+    setState({ busy: true, done: false, error: null });
+    try {
+      await addRunDemo(changelogId, file);
+      setState({ busy: false, done: true, error: null });
+      bumpDataVersion();
+    } catch (e) {
+      setState({ busy: false, done: false, error: e.message });
+    }
+  };
+  return (
+    <div className="sd-pending">
+      <span>{state.done ? "Demo added. The run is verified." : "This run is pending until its demo is added."}</span>
+      {!state.done && (
+        <label className={`sd-pending-upload${state.busy ? " is-busy" : ""}`}>
+          {state.busy ? "Checking demo…" : "Add demo"}
+          <input
+            type="file"
+            accept=".dem"
+            hidden
+            disabled={state.busy}
+            onChange={(e) => {
+              if (e.target.files?.[0]) upload(e.target.files[0]);
+              e.target.value = "";
+            }}
+          />
+        </label>
+      )}
       {state.error && <span className="sd-roles-error">{state.error}</span>}
     </div>
   );

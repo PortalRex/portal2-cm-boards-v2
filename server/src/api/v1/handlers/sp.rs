@@ -412,7 +412,15 @@ async fn sp_post_score(
     if crate::controllers::moderation::is_frozen(pool.get_ref(), &params.profile_number).await? {
         return Ok(actix_web::HttpResponse::Conflict().body("This profile is frozen."));
     }
-    let id = Changelog::insert_changelog(pool.get_ref(), params.0).await?;
+    // Unless the caller says otherwise, a run without a demo that would rank in the top
+    // PROOF_RANK is pending until a demo is added or staff verify it.
+    let mut run = params.into_inner();
+    if run.verified.is_none() {
+        let pending = run.demo_id.is_none()
+            && crate::controllers::submissions::needs_proof(pool.get_ref(), &run.map_id, run.category_id, &run.profile_number, run.score).await?;
+        run.verified = Some(!pending);
+    }
+    let id = Changelog::insert_changelog(pool.get_ref(), run).await?;
     cache.update_current_state(SP_PREVIEWS, false).await;
     crate::tools::points_cache::invalidate_points().await;
     Ok(actix_web::HttpResponse::Ok().json(id))

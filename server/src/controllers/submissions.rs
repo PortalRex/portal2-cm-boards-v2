@@ -112,26 +112,99 @@ pub struct NewRun<'a> {
     pub demo_partner_name: Option<String>,
 }
 
-/// Rank a time would have on a map: 1 + players whose best (verified, unbanned, default
-/// category) is faster, the same ranking the boards use.
+/// Runs that would rank this high or better need a demo; without one they're pending (no
+/// points, not on the boards) until a demo is added or staff verify them.
+pub const PROOF_RANK: i32 = 200;
+
+/// Players whose best (verified, unbanned, in the category) is faster than a time.
+const FASTER_PLAYERS: &str = r#"
+    SELECT COUNT(DISTINCT cl.profile_number) FROM changelog AS cl
+    JOIN users AS u ON u.profile_number = cl.profile_number
+    WHERE cl.map_id = $1 AND cl.category_id = $2 AND cl.score < $3
+      AND cl.verified AND NOT cl.banned AND NOT u.banned
+      AND cl.profile_number <> $4 AND cl.profile_number <> $5
+"#;
+
+/// Rank a time would have on a map: 1 + players whose best is faster, the same ranking the
+/// boards use.
 async fn rank_for(tx: &mut sqlx::Transaction<'_, sqlx::Postgres>, map: &BoardMap, profile_number: &str, score: i32) -> Result<i32, sqlx::Error> {
-    let faster: i64 = sqlx::query_scalar(
+    let faster: i64 = sqlx::query_scalar(FASTER_PLAYERS)
+        .bind(&map.steam_id)
+        .bind(map.default_cat_id)
+        .bind(score)
+        .bind(profile_number)
+        .bind(FILLER)
+        .fetch_one(&mut **tx)
+        .await?;
+    Ok(faster as i32 + 1)
+}
+
+/// Whether a new run without a demo would be pending: it would rank within [PROOF_RANK].
+pub async fn needs_proof(pool: &PgPool, map_id: &str, category_id: i32, profile_number: &str, score: i32) -> Result<bool, sqlx::Error> {
+    let faster: i64 = sqlx::query_scalar(FASTER_PLAYERS)
+        .bind(map_id)
+        .bind(category_id)
+        .bind(score)
+        .bind(profile_number)
+        .bind(FILLER)
+        .fetch_one(pool)
+        .await?;
+    Ok(faster as i32 + 1 <= PROOF_RANK)
+}
+
+/// A run a demo is being added to.
+#[derive(Debug, FromRow)]
+pub struct ProofTarget {
+    pub id: i64,
+    pub profile_number: String,
+    pub score: i32,
+    pub map_id: String,
+    pub bsp_name: Option<String>,
+    pub is_coop: bool,
+    pub coop_id: Option<i64>,
+    pub demo_id: Option<i64>,
+    pub banned: bool,
+    pub verified: Option<bool>,
+    /// Both players of a co-op run (None for singleplayer).
+    pub p_id1: Option<String>,
+    pub p_id2: Option<String>,
+}
+
+pub async fn proof_target(pool: &PgPool, cl_id: i64) -> Result<Option<ProofTarget>, sqlx::Error> {
+    sqlx::query_as::<_, ProofTarget>(
         r#"
-            SELECT COUNT(DISTINCT cl.profile_number) FROM changelog AS cl
-            JOIN users AS u ON u.profile_number = cl.profile_number
-            WHERE cl.map_id = $1 AND cl.category_id = $2 AND cl.score < $3
-              AND cl.verified AND NOT cl.banned AND NOT u.banned
-              AND cl.profile_number <> $4 AND cl.profile_number <> $5
+            SELECT cl.id, cl.profile_number, cl.score, cl.map_id, m.bsp_name, c.is_multiplayer AS is_coop,
+                cl.coop_id, cl.demo_id, cl.banned, cl.verified, cb.p_id1, cb.p_id2
+            FROM changelog AS cl
+            JOIN maps AS m ON m.steam_id = cl.map_id JOIN chapters AS c ON c.id = m.chapter_id
+            LEFT JOIN coop_bundled AS cb ON cb.id = cl.coop_id
+            WHERE cl.id = $1 AND cl.profile_number <> $2
         "#,
     )
-    .bind(&map.steam_id)
-    .bind(map.default_cat_id)
-    .bind(score)
-    .bind(profile_number)
+    .bind(cl_id)
     .bind(FILLER)
-    .fetch_one(&mut **tx)
-    .await?;
-    Ok(faster as i32 + 1)
+    .fetch_optional(pool)
+    .await
+}
+
+/// Attaches a demo to a pending run and verifies it (both halves of a co-op run).
+pub async fn attach_proof(pool: &PgPool, run: &ProofTarget, demo_file: &str, partner_name: Option<&str>) -> Result<(), sqlx::Error> {
+    let mut tx = pool.begin().await?;
+    let demo_id: i64 = sqlx::query_scalar("INSERT INTO demos (file_id, partner_name, parsed_successfully, cl_id) VALUES ($1, $2, true, $3) RETURNING id")
+        .bind(demo_file)
+        .bind(partner_name)
+        .bind(run.id)
+        .fetch_one(&mut *tx)
+        .await?;
+    sqlx::query("UPDATE changelog SET demo_id = $2, verified = true WHERE id = $1").bind(run.id).bind(demo_id).execute(&mut *tx).await?;
+    if let Some(coop_id) = run.coop_id {
+        sqlx::query("UPDATE changelog SET verified = true WHERE id IN (SELECT unnest(ARRAY[cl_id1, cl_id2]) FROM coop_bundled WHERE id = $1) AND profile_number <> $2")
+            .bind(coop_id)
+            .bind(FILLER)
+            .execute(&mut *tx)
+            .await?;
+    }
+    tx.commit().await
 }
 
 /// Inserts a submitted run (with its demo and co-op pairing) in one transaction. Refuses times

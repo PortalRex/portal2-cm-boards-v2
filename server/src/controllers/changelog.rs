@@ -154,6 +154,98 @@ impl ChangelogPage {
             .await?;
         Ok(res)
     }
+
+    /// Runs set between `start` and `end` (UTC), optionally on one map: verified, unbanned runs
+    /// by unbanned players, keeping each player's fastest run per map (a co-op run once, for
+    /// both players). Fastest first.
+    pub async fn best_runs_between(pool: &PgPool, game_id: i32, start: NaiveDateTime, end: NaiveDateTime, map_id: Option<&str>) -> Result<Vec<ChangelogPage>, sqlx::Error> {
+        let params = ChangelogQueryParams { limit: Some(5000), game_id: Some(game_id), chamber: map_id.map(str::to_string), ..Default::default() };
+        let mut filters = vec![
+            format!("cl.timestamp >= '{}'\n", start.format("%Y-%m-%d %H:%M:%S")),
+            format!("cl.timestamp < '{}'\n", end.format("%Y-%m-%d %H:%M:%S")),
+            "cl.verified IS TRUE\n".to_string(),
+            "cl.banned = false\n".to_string(),
+            "u.banned IS NOT TRUE\n".to_string(),
+            "cl.post_rank IS NOT NULL\n".to_string(),
+            "cl.profile_number <> 'N/A'\n".to_string(),
+        ];
+        let query_string = build_filtered_changelog(pool, params, Some(&mut filters)).await?;
+        let mut runs = sqlx::query_as::<_, ChangelogPage>(&query_string).fetch_all(pool).await?;
+        runs.sort_by(|a, b| a.score.cmp(&b.score).then(a.timestamp.cmp(&b.timestamp)));
+        let mut seen = std::collections::HashSet::new();
+        runs.retain(|r| {
+            let players: Vec<&str> = [Some(r.profile_number.as_str()), r.blue_profile_number.as_deref(), r.orange_profile_number.as_deref()]
+                .into_iter()
+                .flatten()
+                .filter(|p| *p != "N/A")
+                .collect();
+            if players.iter().any(|p| seen.contains(&(r.map_id.clone(), p.to_string()))) {
+                return false;
+            }
+            for p in players {
+                seen.insert((r.map_id.clone(), p.to_string()));
+            }
+            true
+        });
+        Ok(runs)
+    }
+
+    /// The best `count` runs set between `start` and `end`: best rank first, then the biggest
+    /// improvement, then the earliest.
+    pub async fn top_runs_between(pool: &PgPool, game_id: i32, start: NaiveDateTime, end: NaiveDateTime, count: usize) -> Result<Vec<ChangelogPage>, sqlx::Error> {
+        let mut runs = Self::best_runs_between(pool, game_id, start, end, None).await?;
+        runs.sort_by(|a, b| {
+            a.post_rank
+                .cmp(&b.post_rank)
+                .then(a.score_delta.unwrap_or(0).cmp(&b.score_delta.unwrap_or(0)))
+                .then(a.timestamp.cmp(&b.timestamp))
+        });
+        runs.truncate(count);
+        Ok(runs)
+    }
+}
+
+/// A day's daily chamber for one board (singleplayer, co-op, Mel Story, Mel Advanced).
+#[derive(Debug, Clone, Serialize, sqlx::FromRow)]
+pub struct DailyMap {
+    pub steam_id: String,
+    pub name: String,
+    pub game_mode: String,
+    pub is_coop: bool,
+}
+
+/// The daily chambers for a game on a day: one map per board, picked by a hash of the date and
+/// board, so everyone gets the same maps and they change at midnight UTC.
+pub async fn daily_maps(pool: &PgPool, game_id: i32, day: chrono::NaiveDate) -> Result<Vec<DailyMap>, sqlx::Error> {
+    let maps = sqlx::query_as::<_, DailyMap>(
+        r#"
+            SELECT m.steam_id, m.name, c.game_mode, c.is_multiplayer AS is_coop
+            FROM maps AS m JOIN chapters AS c ON c.id = m.chapter_id
+            WHERE c.game_id = $1 AND m.default_cat_id IS NOT NULL
+            ORDER BY c.is_multiplayer, c.game_mode, m.id
+        "#,
+    )
+    .bind(game_id)
+    .fetch_all(pool)
+    .await?;
+    let mut modes: Vec<String> = Vec::new();
+    for m in &maps {
+        if !modes.contains(&m.game_mode) {
+            modes.push(m.game_mode.clone());
+        }
+    }
+    Ok(modes
+        .iter()
+        .map(|mode| {
+            let pool: Vec<&DailyMap> = maps.iter().filter(|m| &m.game_mode == mode).collect();
+            pool[(daily_hash(&format!("{day}:{mode}")) % pool.len() as u64) as usize].clone()
+        })
+        .collect())
+}
+
+/// FNV-1a, so the pick doesn't depend on the Rust version's default hasher.
+fn daily_hash(key: &str) -> u64 {
+    key.bytes().fold(0xcbf29ce484222325u64, |h, b| (h ^ b as u64).wrapping_mul(0x100000001b3))
 }
 
 impl Graph {
@@ -248,11 +340,18 @@ pub async fn build_filtered_changelog(pool: &PgPool, params: ChangelogQueryParam
             if params.include_hidden_wr != Some(true) {
                 filters.push("cl.wr_hidden = false\n".to_string());
             }
-            // Banned runs never held a world record, so hide them unless asked for explicitly.
+            // Pending runs don't count until they're verified.
+            filters.push("cl.verified IS TRUE\n".to_string());
+            // Banned runs (and runs by banned players) never held a world record, so hide them
+            // unless asked for explicitly.
             if params.banned.is_none() {
                 filters.push("cl.banned = 'false'\n".to_string());
+                filters.push("u.banned IS NOT TRUE\n".to_string());
             }
         }
+    }
+    if let Some(verified) = params.verified {
+        filters.push(if verified { "cl.verified IS TRUE\n" } else { "cl.verified IS NOT TRUE\n" }.to_string());
     }
     if let Some(banned) = params.banned {
         filters.push(format!("cl.banned = '{}'\n", banned));
@@ -336,6 +435,7 @@ impl Default for ChangelogQueryParams {
             wr_gain: None,
             has_demo: None,
             banned: None,
+            verified: None,
             include_hidden_wr: None,
             yt: None,
             first: None,

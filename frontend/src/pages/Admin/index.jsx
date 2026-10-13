@@ -13,6 +13,8 @@ import "./Admin.css";
 
 const ACTIONS = {
   "run.ban": "Hid from boards",
+  "run.verify": "Verified run",
+  "run.unverify": "Marked run pending",
   "run.unban": "Restored",
   "run.delete": "Deleted",
   "demo.remove": "Removed demo",
@@ -28,6 +30,8 @@ const ACTIONS = {
 };
 const TONES = {
   "run.ban": "warn",
+  "run.verify": "ok",
+  "run.unverify": "warn",
   "run.unban": "ok",
   "run.delete": "bad",
   "demo.remove": "warn",
@@ -42,7 +46,7 @@ const TONES = {
   "profile.set_role": "info",
 };
 const TABS = [
-  { value: "runs", label: "Runs", actions: ["run.ban", "run.unban", "run.delete", "demo.remove", "run.hide_wr", "run.show_wr", "coop.set_partner", "coop.set_host"] },
+  { value: "runs", label: "Runs", actions: ["run.ban", "run.unban", "run.verify", "run.unverify", "run.delete", "demo.remove", "run.hide_wr", "run.show_wr", "coop.set_partner", "coop.set_host"] },
   { value: "profiles", label: "Profiles", actions: ["profile.ban", "profile.unban", "profile.freeze", "profile.unfreeze", "profile.set_role"] },
 ];
 const PAGE = 50;

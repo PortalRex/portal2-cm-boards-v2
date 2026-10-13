@@ -5,7 +5,7 @@ import Layout from "../../components/Layout";
 import { Panel, Pagination, SearchBox, Select, Avatar, PlayerLink, Loading, EmptyState, RankNumber } from "../../components/ui";
 import { HistoryIcon, TriangleLeft, TriangleRight } from "../../components/Icons";
 import { useRenderedSet } from "../../components/RunMedia";
-import { fetchActivity, fetchMyReactions } from "../../api/client";
+import { fetchActivity, fetchDailyChambers, fetchMyReactions, fetchWeeklyRecap } from "../../api/client";
 import useCurrentUser from "../../hooks/useCurrentUser";
 import { fetchChangelogFor, fetchFollowingFeed } from "../../api/boards";
 import { GAMES, MODE_LABELS, mapPath, mapsForMode } from "../../data/maps";
@@ -13,7 +13,7 @@ import useApi from "../../hooks/useApi";
 import { useDataVersion } from "../../lib/dataVersion";
 import useDebounced from "../../hooks/useDebounced";
 import useFollows from "../../hooks/useFollows";
-import { timeAgo, formatDate } from "../../lib/format";
+import { timeAgo, formatDate, formatDelta, formatScore } from "../../lib/format";
 import { ACTIVITY_VIEWS, activityWindow } from "../../lib/activity";
 import background from "../../scenes/global/img/Background.png";
 import ScoreRow from "./ScoreRow";
@@ -27,6 +27,7 @@ const TOGGLES = [
   ["wr", "World records"],
   ["video", "Has video"],
   ["demo", "Has demo"],
+  ["pending", "Pending"],
 ];
 const BANNED_OPTIONS = [
   { value: "hide", label: "Hide banned" },
@@ -65,6 +66,7 @@ export default function ScoreUpdates() {
     wr: get("wr") === "1",
     video: get("video") === "1",
     demo: get("demo") === "1",
+    pending: get("pending") === "1",
     banned: BANNED_OPTIONS.some((o) => o.value === get("banned")) ? get("banned") : DEFAULTS.banned,
   };
   const page = Math.max(0, Number(get("page")) || 0);
@@ -89,14 +91,12 @@ export default function ScoreUpdates() {
   const visibleIds = visible.map((e) => e.id).join(",");
   const mine = useApi(() => (signedIn && visibleIds ? fetchMyReactions(visible.map((e) => e.id)).catch(() => ({})) : Promise.resolve({})), [visibleIds, signedIn, version]);
   const setPage = (p) => set({ page: String(p) });
-  const filtered = Boolean(filters.mapId || mode || filters.wr || filters.video || filters.demo || filters.banned !== "hide" || query);
+  const filtered = Boolean(filters.mapId || mode || filters.wr || filters.video || filters.demo || filters.pending || filters.banned !== "hide" || query);
 
   return (
     <Layout background={background} tint="mono">
       <div className="su-top">
-        <Panel icon={HistoryIcon} title="Following" className="su-following" bodyClassName="su-following-body">
-          <Following />
-        </Panel>
+        <RecapPanel game={game} />
         <ActivityPanel data={activity.data} loading={activity.loading} />
       </div>
 
@@ -130,7 +130,7 @@ export default function ScoreUpdates() {
             className="su-filter-select su-limit"
           />
           {filtered && (
-            <button type="button" className="su-clear" onClick={() => set({ mode: "", map: "", q: "", wr: false, video: false, demo: false, banned: "hide" })}>
+            <button type="button" className="su-clear" onClick={() => set({ mode: "", map: "", q: "", wr: false, video: false, demo: false, pending: false, banned: "hide" })}>
               Clear filters
             </button>
           )}
@@ -163,6 +163,146 @@ export default function ScoreUpdates() {
         )}
       </Panel>
     </Layout>
+  );
+}
+
+const DAY_MS = 24 * 3600 * 1000;
+const WEEK_MS = 7 * DAY_MS;
+const TABS = [
+  { value: "recap", label: "Weekly", title: "Weekly Recap" },
+  { value: "daily", label: "Daily", title: "Daily Chambers" },
+  { value: "following", label: "Following", title: "Following" },
+];
+const shortDate = (iso) => new Date(`${iso}T00:00:00Z`).toLocaleDateString(undefined, { month: "short", day: "numeric", timeZone: "UTC" });
+
+// Weekly recap (the week's top 5 runs), daily chambers (one random map per board each day)
+// and the players you follow, as tabs. Recap and daily page back through past weeks / days.
+function RecapPanel({ game }) {
+  const [tab, setTab] = useState("recap");
+  const [weekOffset, setWeekOffset] = useState(0);
+  const [dayOffset, setDayOffset] = useState(0);
+  const version = useDataVersion();
+  const recap = useApi(() => (tab === "recap" ? fetchWeeklyRecap(game, new Date(Date.now() - weekOffset * WEEK_MS)) : Promise.resolve(null)), [tab, game, weekOffset, version]);
+  const daily = useApi(() => (tab === "daily" ? fetchDailyChambers(game, new Date(Date.now() - dayOffset * DAY_MS)) : Promise.resolve(null)), [tab, game, dayOffset, version]);
+  const weekRange = recap.data && `${shortDate(recap.data.start)} – ${shortDate(new Date(new Date(`${recap.data.end}T00:00:00Z`) - DAY_MS).toISOString().slice(0, 10))}`;
+  const pager =
+    tab === "recap"
+      ? { offset: weekOffset, set: setWeekOffset, label: weekOffset === 0 ? "This week" : weekRange || "…", unit: "week" }
+      : tab === "daily"
+        ? { offset: dayOffset, set: setDayOffset, label: dayOffset === 0 ? "Today" : daily.data ? shortDate(daily.data.date) : "…", unit: "day" }
+        : null;
+  const actions = (
+    <div className="su-activity-controls">
+      <div className="segmented su-activity-views">
+        {TABS.map((t) => (
+          <button key={t.value} type="button" className={tab === t.value ? "is-active" : ""} onClick={() => setTab(t.value)}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+      {pager && (
+        <div className="su-activity-pager">
+          <button type="button" onClick={() => pager.set((o) => o + 1)} aria-label={`Previous ${pager.unit}`}>
+            <TriangleLeft />
+          </button>
+          <span>{pager.label}</span>
+          <button type="button" onClick={() => pager.set((o) => Math.max(0, o - 1))} disabled={pager.offset === 0} aria-label={`Next ${pager.unit}`}>
+            <TriangleRight />
+          </button>
+        </div>
+      )}
+    </div>
+  );
+  return (
+    <Panel icon={HistoryIcon} title={TABS.find((t) => t.value === tab).title} actions={actions} className="su-following" bodyClassName="su-following-body">
+      {tab === "recap" ? <WeeklyRecap recap={recap} /> : tab === "daily" ? <DailyChambers daily={daily} today={dayOffset === 0} /> : <Following />}
+    </Panel>
+  );
+}
+
+// Runs shown per daily chamber (the map page has the rest).
+const DAILY_SHOWN = 3;
+
+function DailyChambers({ daily, today }) {
+  const chambers = daily.data?.chambers || [];
+  if (daily.loading && !chambers.length) return <Loading />;
+  if (!chambers.length) return <EmptyState>No daily chambers.</EmptyState>;
+  return (
+    <div className="daily">
+      {chambers.map((c) => (
+        <section key={c.mode} className="daily-chamber">
+          <header className="daily-head">
+            <span className="daily-mode">{MODE_LABELS[c.mode] || c.mode}</span>
+            {c.map ? (
+              <Link to={mapPath(c.map)} className="daily-map">
+                {c.map.title}
+              </Link>
+            ) : (
+              <span className="daily-map">Unknown map</span>
+            )}
+            {c.runs.length > DAILY_SHOWN && <span className="muted daily-more">+{c.runs.length - DAILY_SHOWN} more</span>}
+          </header>
+          {c.runs.length ? (
+            <ol className="following recap daily-runs">
+              {c.runs.slice(0, DAILY_SHOWN).map((e, i) => (
+                <li key={`${e.game}-${e.id}`}>
+                  <span className="daily-place num">{i + 1}</span>
+                  <span className="following-player">
+                            {e.players.map((p, j) => (
+                      <span key={p.profileNumber || j} className="recap-name">
+                        {j > 0 && <span className="muted recap-amp">&</span>}
+                        <Avatar src={p.avatar} name={p.name} size={22} />
+                        <PlayerLink player={p} />
+                      </span>
+                    ))}
+                  </span>
+                  <span className="following-rank num">
+                    <RankNumber rank={e.postRank} />
+                  </span>
+                  <span className="num recap-time">{formatScore(e.score)}</span>
+                  <span className="green recap-delta">{timeAgo(e.timestamp)}</span>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <p className="muted daily-empty">{today ? "No times yet today. Be the first!" : "No times that day."}</p>
+          )}
+        </section>
+      ))}
+    </div>
+  );
+}
+
+function WeeklyRecap({ recap }) {
+  const runs = recap.data?.runs || [];
+  if (recap.loading && !runs.length) return <Loading />;
+  if (!runs.length) return <EmptyState>No runs this week yet.</EmptyState>;
+  return (
+    <ol className="following recap">
+      {runs.map((e) => (
+        <li key={`${e.game}-${e.id}`}>
+          <Link to={mapPath(e.map)} className="following-map">
+            {e.map.title}
+          </Link>
+          <span className="following-player">
+            {e.players.map((p, j) => (
+              <span key={p.profileNumber || j} className="recap-name">
+                {j > 0 && <span className="muted recap-amp">&</span>}
+                <Avatar src={p.avatar} name={p.name} size={22} />
+                <PlayerLink player={p} />
+              </span>
+            ))}
+          </span>
+          <span className="following-rank num">
+            <RankNumber rank={e.postRank} />
+          </span>
+          <span className="num recap-time">{formatScore(e.score)}</span>
+          <span className="green num recap-delta" title={timeAgo(e.timestamp)}>
+            {e.scoreDelta != null ? formatDelta(e.scoreDelta) : "new"}
+          </span>
+        </li>
+      ))}
+    </ol>
   );
 }
 

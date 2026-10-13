@@ -225,6 +225,56 @@ pub async fn default_categories_all(pool: web::Data<PgPool>) -> impl Responder {
 ///     "demo_id" : 1251
 /// }
 /// ```
+#[derive(Deserialize)]
+pub struct WeeklyQuery {
+    /// Any date in the week (weeks start on Monday, UTC); defaults to this week.
+    pub week: Option<chrono::NaiveDate>,
+    pub game_id: Option<i32>,
+}
+
+/// **GET** The week's top 5 runs: best rank first, then the biggest improvement.
+///
+/// ```json
+/// { "start": "2026-10-12", "end": "2026-10-19", "runs": [ ...changelog entries... ] }
+/// ```
+#[get("/recap/weekly")]
+pub async fn recap_weekly(pool: web::Data<PgPool>, query: web::Query<WeeklyQuery>) -> Result<impl Responder> {
+    use chrono::Datelike;
+    let day = query.week.unwrap_or_else(|| chrono::Utc::now().date_naive());
+    let start = day - chrono::Duration::days(day.weekday().num_days_from_monday() as i64);
+    let end = start + chrono::Duration::days(7);
+    let runs = ChangelogPage::top_runs_between(pool.get_ref(), query.game_id.unwrap_or(1), start.and_hms_opt(0, 0, 0).unwrap(), end.and_hms_opt(0, 0, 0).unwrap(), 5).await?;
+    Ok(web::Json(serde_json::json!({ "start": start, "end": end, "runs": runs })))
+}
+
+#[derive(Deserialize)]
+pub struct DailyQuery {
+    /// The day (UTC); defaults to today.
+    pub date: Option<chrono::NaiveDate>,
+    pub game_id: Option<i32>,
+}
+
+/// **GET** The day's daily chambers (one map per board) with the runs set on them that day,
+/// fastest first.
+///
+/// ```json
+/// { "date": "2026-10-13", "chambers": [{ "map": { "steam_id": "47458", "name": "Portal Gun", "game_mode": "sp", "is_coop": false }, "runs": [...] }] }
+/// ```
+#[get("/daily")]
+pub async fn daily_chambers(pool: web::Data<PgPool>, query: web::Query<DailyQuery>) -> Result<impl Responder> {
+    let day = query.date.unwrap_or_else(|| chrono::Utc::now().date_naive());
+    let game_id = query.game_id.unwrap_or(1);
+    let start = day.and_hms_opt(0, 0, 0).unwrap();
+    let end = start + chrono::Duration::days(1);
+    let mut chambers = Vec::new();
+    for map in crate::controllers::changelog::daily_maps(pool.get_ref(), game_id, day).await? {
+        let mut runs = ChangelogPage::best_runs_between(pool.get_ref(), game_id, start, end, Some(&map.steam_id)).await?;
+        runs.truncate(10);
+        chambers.push(serde_json::json!({ "map": map, "runs": runs }));
+    }
+    Ok(web::Json(serde_json::json!({ "date": day, "chambers": chambers })))
+}
+
 #[put("/changelog/demo")]
 pub async fn changelog_demo_update(
     _auth: AdminOrService,
@@ -239,8 +289,14 @@ pub async fn changelog_demo_update(
         ids.demo_id.unwrap(),
     )
     .await?;
+    // A run that was pending for lack of a demo has one now.
+    sqlx::query("UPDATE changelog SET verified = true WHERE id = $1 AND verified IS NOT TRUE AND NOT banned")
+        .bind(ids.cl_id.unwrap())
+        .execute(pool.get_ref())
+        .await?;
     cache
         .update_current_states(&[SP_PREVIEWS, COOP_PREVIEWS], &[false, false])
         .await;
+    crate::tools::points_cache::invalidate_points().await;
     Ok(web::Json(return_changelog))
 }

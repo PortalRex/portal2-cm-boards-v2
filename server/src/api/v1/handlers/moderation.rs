@@ -89,6 +89,26 @@ async fn admin_run_banned(
     respond(result, &cache, &pool, &config).await
 }
 
+#[derive(Deserialize)]
+pub struct VerifyBody {
+    pub verified: bool,
+    pub reason: Option<String>,
+}
+
+/// **PUT** Verify a pending run (`{"verified": true}`) or mark it pending again. Any staff tier.
+#[put("/admin/runs/{id}/verified")]
+async fn admin_run_verified(
+    auth: AdminOrService,
+    pool: web::Data<PgPool>,
+    config: web::Data<Config>,
+    cache: web::Data<CacheState>,
+    id: web::Path<i64>,
+    body: web::Json<VerifyBody>,
+) -> Result<impl Responder> {
+    let result = moderation::set_run_verified(pool.get_ref(), &auth, id.into_inner(), body.verified, reason(&body.reason)).await;
+    respond(result, &cache, &pool, &config).await
+}
+
 /// **DELETE** Delete a run permanently (both halves of a co-op run). Optional body `{"reason": ...}`.
 #[delete("/admin/runs/{id}")]
 async fn admin_run_delete(

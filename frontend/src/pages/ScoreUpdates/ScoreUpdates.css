@@ -1,7 +1,7 @@
 /* Top row: Following + Daily Activity */
 .su-top {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 2.2fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
   gap: 30px;
   margin-bottom: 30px;
 }
@@ -62,6 +62,89 @@
 
 .following-date {
   padding-right: 8px;
+}
+
+/* Weekly recap */
+.following.recap li {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) 34px 64px 60px;
+}
+
+.su-following .panel-title,
+.su-following h2 {
+  white-space: nowrap;
+}
+
+.recap .following-player {
+  gap: 0 8px;
+}
+
+.recap-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.recap-amp {
+  margin-right: 2px;
+}
+
+.recap-time {
+  text-align: right;
+}
+
+.recap-delta {
+  padding-right: 8px;
+  text-align: right;
+  font-size: 13px;
+}
+
+/* Daily chambers */
+.daily {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.daily-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 0 8px 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+.daily-mode {
+  color: var(--text-muted);
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.daily-map {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.daily-more {
+  margin-left: auto;
+  font-size: 13px;
+}
+
+.following.daily-runs li {
+  grid-template-columns: 24px minmax(0, 2fr) 34px 64px 92px;
+}
+
+.daily-place {
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.daily-empty {
+  margin: 6px 8px 0;
+  font-size: 14px;
 }
 
 /* Score updates table */
@@ -517,10 +600,6 @@
   color: var(--banned-text);
   font-size: 13px;
   white-space: nowrap;
-}
-
-.score-row.is-banned .score-row-main {
-  opacity: 0.6;
 }
 
 /* Activity chart paging */

@@ -251,6 +251,21 @@ pub async fn set_run_banned(pool: &PgPool, actor: &AdminOrService, cl_id: i64, b
     Ok(Ok(Touched { map_id: run.map_id, is_coop: run.is_coop, ids }))
 }
 
+/// Verifies a pending run (or marks it pending again), both halves of a co-op run.
+pub async fn set_run_verified(pool: &PgPool, actor: &AdminOrService, cl_id: i64, verified: bool, reason: Option<&str>) -> ActionResult<Touched> {
+    let mut tx = pool.begin().await?;
+    let run = match target_run(&mut tx, cl_id).await? {
+        Ok(run) => run,
+        Err(refused) => return Ok(Err(refused)),
+    };
+    let ids = run_halves(&mut tx, &run).await?;
+    sqlx::query("UPDATE changelog SET verified = $2 WHERE id = ANY($1)").bind(&ids).bind(verified).execute(&mut *tx).await?;
+    let action = if verified { "run.verify" } else { "run.unverify" };
+    log_action(&mut tx, actor, action, "run", &cl_id.to_string(), reason, json!({ "changelog_ids": ids, "map_id": run.map_id, "score": run.score })).await?;
+    tx.commit().await?;
+    Ok(Ok(Touched { map_id: run.map_id, is_coop: run.is_coop, ids }))
+}
+
 /// Deletes a run (both halves of a co-op run) and what hangs off it: its co-op pairing,
 /// mtrigger entries, old-board id mapping and demo rows. The audit log keeps the full rows.
 pub async fn delete_run(pool: &PgPool, actor: &AdminOrService, cl_id: i64, reason: Option<&str>) -> ActionResult<Touched> {
