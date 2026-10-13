@@ -1396,3 +1396,13 @@ CREATE UNIQUE INDEX IF NOT EXISTS unq_run_reports_open ON run_reports (changelog
 -- Steam sign-ins and avatar refreshes from undoing that until staff reset them.
 ALTER TABLE users ADD COLUMN IF NOT EXISTS name_locked boolean NOT NULL DEFAULT false;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_locked boolean NOT NULL DEFAULT false;
+
+--
+-- Empty Mel chapters removed (migrations/20261026000000_empty_chapters.sql).
+--
+
+-- Removes chapters without maps that the Mel import created (the Mel board's empty Advanced
+-- "1952" chapter, imported as a second Story chapter). Apply to databases created from an
+-- older schema.sql; the importer now skips them.
+DELETE FROM chapters AS c
+WHERE c.game_id = 2 AND NOT EXISTS (SELECT 1 FROM maps AS m WHERE m.chapter_id = c.id);

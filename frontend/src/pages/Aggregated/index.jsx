@@ -40,9 +40,10 @@ export function currentSeason() {
 const PAGE_SIZE = 20;
 
 // Portal 2 board picker: the three aggregated boards plus one per chapter.
-const p2Boards = () => [
-  ...["overall", "sp", "coop"].map((k) => ({ value: `/leaderboard/${k}`, label: KINDS.portal2[k][0] })),
-  ...[...spChapters, ...coopChapters].map((c) => ({
+// Single Player / Cooperative: all of the mode's chapters, or one chapter / course.
+const chapterBoards = (mode) => [
+  { value: `/leaderboard/${mode}`, label: mode === "coop" ? "All courses" : "All chapters" },
+  ...(mode === "coop" ? coopChapters : spChapters).map((c) => ({
     value: `/leaderboard/chapter/${chapterDbId(c)}`,
     label: `${isMultiplayerMode(c.mode) ? "Course" : "Chapter"} ${c.number}: ${c.name}`,
   })),
@@ -79,7 +80,7 @@ export default function Aggregated({ game = "portal2" }) {
     const chapter = p2ChapterByDbId(chapterId);
     if (!chapter) return <Navigate to="/leaderboard/overall" replace />;
     const kicker = `${MODE_LABELS[chapter.mode]} · ${chapter.mode === "coop" ? "Course" : "Chapter"} ${chapter.number}`;
-    return <AggregatedContent key={`chapter-${chapterId}`} game="portal2" title={chapter.name} apiKind={`chapter-${chapterId}`} kicker={kicker} />;
+    return <AggregatedContent key={`chapter-${chapterId}`} game="portal2" kind={chapter.mode} title={chapter.name} apiKind={`chapter-${chapterId}`} kicker={kicker} />;
   }
   if (!KINDS[game][kind]) return <Navigate to={`${BASE[game]}/overall`} replace />;
   const [title, apiKind] = KINDS[game][kind];
@@ -98,10 +99,19 @@ function AggregatedContent({ game, kind, title, apiKind, kicker = "Aggregated po
         <h1 className="agg-title">{title}</h1>
         <div className="agg-selects">
           <Select value={game} onChange={(g) => navigate(gameBoardsPath(g))} options={categories()} label="Category" className="agg-select" />
-          {game === "portal2" && p2Boards().some((b) => b.value === pathname) && (
-            <Select value={pathname} onChange={(to) => navigate(to)} options={p2Boards()} label="Board" className="agg-select" />
+          {game === "portal2" && (kind === "sp" || kind === "coop") && (
+            <Select value={pathname} onChange={(to) => navigate(to)} options={chapterBoards(kind)} label="Chapter" className="agg-select" />
           )}
         </div>
+        {game === "portal2" && (
+          <nav className="agg-modes" aria-label="Portal 2 boards">
+            {Object.entries(KINDS.portal2).map(([k, [label]]) => (
+              <Link key={k} to={`${BASE.portal2}/${k}`} className={k === kind ? "is-active" : ""}>
+                {label}
+              </Link>
+            ))}
+          </nav>
+        )}
         {game === "mel" && (
           <nav className="agg-modes" aria-label="Mel boards">
             {Object.entries(KINDS.mel).map(([k, [label]]) => (

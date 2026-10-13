@@ -252,3 +252,12 @@
     display: none;
   }
 }
+
+.mc-name a {
+  color: inherit;
+}
+
+.mc-name a:hover {
+  color: var(--text);
+  text-decoration: underline;
+}

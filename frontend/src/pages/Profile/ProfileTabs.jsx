@@ -113,7 +113,7 @@ function ModeTab({ mode, profile, selectedMap, onSelectMap, sort, onSort }) {
       <Summary chapters={chapters} scores={profile.scores} />
 
       {orderedChapters(chapters, profile.scores, sort).map((chapter) => (
-        <ChapterTable key={chapter.name} chapter={chapter} scores={profile.scores} coop={mode === "coop"} game="portal2" rendered={rendered} selectedMap={selectedMap} onSelectMap={onSelectMap} />
+        <ChapterTable key={chapter.dbId ?? `${chapter.mode}-${chapter.name}`} chapter={chapter} scores={profile.scores} coop={mode === "coop"} game="portal2" rendered={rendered} selectedMap={selectedMap} onSelectMap={onSelectMap} />
       ))}
 
       <div className="pf-bottom">
@@ -151,7 +151,7 @@ function GameTab({ game, profileNumber, selectedMap, onSelectMap, sort, onSort }
       <Summary chapters={chapters} scores={scores} />
       {orderedChapters(chapters, scores, sort).map((chapter) => (
         <ChapterTable
-          key={chapter.name}
+          key={chapter.dbId ?? `${chapter.mode}-${chapter.name}`}
           chapter={chapter}
           scores={scores}
           coop={isMultiplayerMode(mode)}
@@ -174,7 +174,7 @@ function Summary({ chapters, scores }) {
         const ranks = chapter.maps.map((m) => scores[m.id]?.rank).filter(Boolean);
         const avg = ranks.length ? Math.round(ranks.reduce((a, b) => a + b, 0) / ranks.length) : null;
         return (
-          <div className="pf-summary-row" key={chapter.name}>
+          <div className="pf-summary-row" key={chapter.dbId ?? `${chapter.mode}-${chapter.name}`}>
             <span className={`pf-summary-avg num${avg ? " rank-tint" : ""}`} style={rankVars(avg)} title="Average rank">
               {avg ?? "–"}
             </span>
@@ -369,7 +369,7 @@ function LegacyTab({ scores }) {
         <section key={mode} className="pf-legacy-col">
           <h2 className="pf-section-title">{MODE_LABELS[mode]}</h2>
           {chaptersFor(mode).map((chapter) => (
-            <div key={chapter.name} className="pf-legacy-chapter">
+            <div key={chapter.dbId ?? `${chapter.mode}-${chapter.name}`} className="pf-legacy-chapter">
               <h3>{chapter.name}</h3>
               {chapter.maps.map((m) => {
                 const s = scores[m.id];

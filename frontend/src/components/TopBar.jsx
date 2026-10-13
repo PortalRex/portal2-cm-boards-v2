@@ -3,6 +3,7 @@ import { Link, NavLink, useLocation } from "react-router-dom";
 import logo from "../scenes/global/img/portal2logo.png";
 import {
   HistoryIcon, PinIcon, BarsIcon, MoreIcon, TrophyIcon, PersonIcon, PeopleIcon, MenuIcon, CloseIcon, LightModeIcon, DarkModeIcon, SteamIcon, UploadIcon,
+  DiscordIcon, GitHubIcon, DonateIcon, CompareIcon, GavelIcon, InfoIcon,
 } from "./Icons";
 import { Avatar, Flag } from "./ui";
 import { GAMES } from "../data/maps";
@@ -16,7 +17,6 @@ const LEADERBOARD_MENU = [
   { to: "/leaderboard/overall", label: "Overall", icon: BarsIcon },
   { to: "/leaderboard/sp", label: "Single Player", icon: PersonIcon },
   { to: "/leaderboard/coop", label: "Cooperative", icon: PeopleIcon },
-  { to: "/leaderboard/chapter/7", label: "By Chapter", icon: PinIcon },
 ];
 
 // Seasons and added games come from the catalog, ahead of the built-in boards.
@@ -32,18 +32,18 @@ const leaderboardMenu = () => [
 ];
 
 const MORE_MENU = [
-  { to: "/more/discord", label: "Discord" },
-  { href: "https://github.com/p2sr/portal2-cm-boards-v2", label: "GitHub" },
-  { to: "/more/donators", label: "Donators" },
-  { to: "/compare", label: "Compare Players" },
-  { to: "/more/wall-of-shame", label: "Wall Of Shame" },
-  { to: "/more/about", label: "About" },
+  { to: "/more/discord", label: "Discord", icon: DiscordIcon },
+  { href: "https://github.com/p2sr/portal2-cm-boards-v2", label: "GitHub", icon: GitHubIcon },
+  { to: "/more/donators", label: "Donators", icon: DonateIcon },
+  { to: "/compare", label: "Compare Players", icon: CompareIcon },
+  { to: "/more/wall-of-shame", label: "Wall Of Shame", icon: GavelIcon },
+  { to: "/more/about", label: "About", icon: InfoIcon },
 ];
 
 const NAV = [
   { to: "/", label: "Score Updates", icon: HistoryIcon, end: true },
-  { to: "/maps", label: "Map List", icon: PinIcon, match: ["/maps", "/map/"] },
-  { to: "/leaderboard/overall", label: "Leaderboard", icon: BarsIcon, menu: "leaderboard", match: ["/leaderboard"] },
+  { to: "/maps", label: "Leaderboard", icon: PinIcon, match: ["/maps", "/map/"] },
+  { to: "/leaderboard/overall", label: "Aggregate", icon: BarsIcon, menu: "leaderboard", match: ["/leaderboard"] },
   { to: "/more/about", label: "More", icon: MoreIcon, menu: MORE_MENU, match: ["/more"] },
 ];
 

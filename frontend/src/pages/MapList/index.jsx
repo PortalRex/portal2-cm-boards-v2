@@ -30,7 +30,7 @@ export default function MapList() {
 
   return (
     <Layout background={background} tint="mono">
-      <Panel icon={PinIcon} title="Map List" bodyClassName="ml-body">
+      <Panel icon={PinIcon} title="Leaderboards" bodyClassName="ml-body">
         <div className="ml-controls">
           <div className="ml-control">
             <span className="ml-label">Category</span>
@@ -51,7 +51,7 @@ export default function MapList() {
         {previews.loading && !previews.data && <Loading />}
 
         {chapters.map((chapter) => (
-          <section key={chapter.name} className="ml-chapter">
+          <section key={chapter.dbId ?? `${chapter.mode}-${chapter.number}`} className="ml-chapter">
             <header className="ml-chapter-head">
               <span className="ml-chapter-number">
                 {isMultiplayerMode(mode) ? "Course" : "Chapter"} {String(chapter.number).padStart(2, "0")}
@@ -106,7 +106,14 @@ function MapCard({ map, scores }) {
       <ol className="mc-rows" start={2}>
         {rest.slice(0, 6).map((entry, i) => (
           <li key={i}>
-            <span className="mc-name">{entry.players.map((p) => p.name).join(" & ")}</span>
+            <span className="mc-name">
+              {entry.players.map((p, j) => (
+                <span key={p.profileNumber || j}>
+                  {j > 0 && " & "}
+                  <PlayerLink player={p} />
+                </span>
+              ))}
+            </span>
             <ScoreIcons entry={entry} game={map.game} size={18} />
             <span className="mc-time num">{formatScore(entry.score)}</span>
           </li>

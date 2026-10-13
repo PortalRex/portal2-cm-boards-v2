@@ -163,7 +163,10 @@ class Importer:
         maps = rows(self.mel, "SELECT * FROM maps ORDER BY id")
         # melboard reuses maps.is_coop to mark Advanced Mode maps.
         advanced_chapters = {m["chapter_id"] for m in maps if m["is_coop"]}
-        chapters = rows(self.mel, "SELECT * FROM chapters ORDER BY id")
+        # The Mel board has an empty Advanced "1952" chapter (Advanced mode starts at Extended
+        # Relaxation); chapters without maps are left out.
+        used = {m["chapter_id"] for m in maps}
+        chapters = [c for c in rows(self.mel, "SELECT * FROM chapters ORDER BY id") if c["id"] in used]
         self.mel_chapter_ids = {c["id"]: chapter_base + i for i, c in enumerate(chapters, start=1)}
         self.insert(
             "chapters", ["id", "chapter_name", "is_multiplayer", "game_id", "game_mode"],

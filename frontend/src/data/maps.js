@@ -365,7 +365,7 @@ export function applyCatalog(catalog) {
     const base = g.base_game_id ? byId[g.base_game_id] : null;
     const modeKey = (m) => (builtin ? m : `${key}-${m}`);
     const groups = new Map();
-    g.chapters.forEach((c) => {
+    g.chapters.filter((c) => c.maps.length).forEach((c) => {
       const mk = modeKey(c.game_mode);
       if (!groups.has(mk)) groups.set(mk, { multiplayer: c.is_multiplayer, mode: c.game_mode, chapters: [] });
       groups.get(mk).chapters.push(c);
