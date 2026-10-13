@@ -1,5 +1,7 @@
 // Icon set used across the boards. Most come from @mui/icons-material; the
 // brand marks MUI doesn't ship are drawn inline.
+import wikiIcon from "../scenes/global/img/p2sr-wiki.png";
+
 export { default as HistoryIcon } from "@mui/icons-material/History";
 export { default as TimerIcon } from "@mui/icons-material/TimerOutlined";
 export { default as PinIcon } from "@mui/icons-material/LocationOnOutlined";
@@ -69,9 +71,5 @@ export const TwitchIcon = ({ size = 24 }) => (
   </svg>
 );
 
-// Portal-gun "P2SR wiki" glyph shown next to the wiki link on map pages.
-export const WikiIcon = ({ size = 22 }) => (
-  <svg {...svgProps(size)}>
-    <path d="M9 2h3v8.5L15.5 7 17 8.5 13 12.5V22h-3v-6l-3.5 3.5L5 18l4-4Zm6.5 9.5L19 15l-1.5 1.5L14 13Z" />
-  </svg>
-);
+// The P2SR wiki's own icon (its favicon, from wiki.portal2.sr), next to the wiki link on map pages.
+export const WikiIcon = ({ size = 22 }) => <img src={wikiIcon} width={size} height={size} alt="" className="wiki-icon" />;
