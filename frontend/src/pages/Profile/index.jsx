@@ -26,6 +26,9 @@ export default function Profile() {
   const version = useDataVersion();
   const profile = useApi(() => fetchProfile(profileId), [profileId, version]);
   const p = profile.data;
+  // Peak points: shown in their own card, and Legends is kept once a peak reached it.
+  const profileNumber = p?.player.profileNumber;
+  const peak = useApi(() => (profileNumber ? fetchPointsPeak(profileNumber) : Promise.resolve(null)), [profileNumber, version]);
 
   return (
     <Layout background={p?.player.avatar} blur>
@@ -36,7 +39,7 @@ export default function Profile() {
       ) : (
         <div className="profile">
           <div className="pf-row pf-row-1">
-            <ProfileHeader player={p.player} role={playerRole(p.points)} />
+            <ProfileHeader player={p.player} role={playerRole(p.points, peak.data)} />
             <Card icon={SparkleIcon} title="Challenge Mode Points" collapseId="profile.points" className="pf-points">
               <div className="stat-row">
                 {[
@@ -95,7 +98,7 @@ export default function Profile() {
                   <Stat value={p.worldRecords.sp + p.worldRecords.coop} label="Overall" />
                 </div>
               </Card>
-              <PeakPoints profileNumber={p.player.profileNumber} />
+              <PeakPoints peak={peak} />
             </div>
           </div>
 
@@ -125,9 +128,7 @@ function Ordinal({ n }) {
 }
 
 // Highest points the player has ever had per board, with the date (hover) it was reached.
-function PeakPoints({ profileNumber }) {
-  const version = useDataVersion();
-  const peak = useApi(() => fetchPointsPeak(profileNumber), [profileNumber, version]);
+function PeakPoints({ peak }) {
   const one = (key, label) => {
     const v = peak.data?.[key];
     return (
@@ -229,7 +230,7 @@ function ProfileHeader({ player, role }) {
     <section className="pf-header">
       <Avatar src={player.avatar} name={player.name} size={180} className="pf-avatar" />
       <div className="pf-identity">
-        <h1 className="pf-name" style={role ? { color: role.color } : undefined} title={role ? `${role.name} (from points)` : undefined}>
+        <h1 className="pf-name" style={role ? { color: role.color } : undefined} title={role ? (role.fromPeak ? `${role.name} (reached at peak points, kept for good)` : `${role.name} (from points)`) : undefined}>
           {player.name}
         </h1>
         {/* All badges together on one row under the name. */}

@@ -15,8 +15,14 @@ export const POINT_ROLES = [
 ];
 
 // The highest role a player's points qualify for: any one board meeting a role's threshold is
-// enough (each threshold is an alternative requirement). Null below Beginner.
-export function playerRole(points = {}) {
+// enough (each threshold is an alternative requirement). Null below Beginner. Legends can't be
+// lost: a peak (`{ sp: { points }, ... }`, from /profile/points_peak) that ever reached it keeps it.
+export function playerRole(points = {}, peak = null) {
+  const legends = POINT_ROLES[POINT_ROLES.length - 1];
+  if (peak && ["sp", "coop", "overall"].some((b) => legends[b] != null && (peak[b]?.points || 0) >= legends[b])) {
+    const now = ["sp", "coop", "overall"].some((b) => legends[b] != null && (points[b] || 0) >= legends[b]);
+    return now ? legends : { ...legends, fromPeak: true };
+  }
   for (let i = POINT_ROLES.length - 1; i >= 0; i--) {
     const role = POINT_ROLES[i];
     if (["sp", "coop", "overall"].some((b) => role[b] != null && (points[b] || 0) >= role[b])) return role;
