@@ -1,5 +1,14 @@
 # Getting Started with Create React App
 
+## Configuration
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `REACT_APP_API_URL` | `http://localhost:8080/api/v1` | Base URL of the Rust web server. |
+| `REACT_APP_USE_MOCK` | unset | Set to `true` to always use the built-in sample data. |
+
+If the API can't be reached, the pages fall back to deterministic sample data (`src/api/mock.js`) and show a "Sample data · API offline" badge.
+
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
 ## Available Scripts

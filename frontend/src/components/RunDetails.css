@@ -1,0 +1,254 @@
+/* Expanded run details (score updates, map boards, profiles) */
+.run-details {
+  container: run-details / inline-size;
+}
+
+.score-details {
+  display: grid;
+  grid-template-columns: minmax(240px, 345px) minmax(0, 1fr) minmax(260px, 380px);
+  gap: 20px;
+  padding: 20px;
+  background: var(--panel);
+  border-top: 2px solid var(--row);
+}
+
+.sd-segments table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 18px;
+}
+
+.sd-segments th {
+  height: 30px;
+  font-weight: 400;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  text-align: center;
+}
+
+.sd-segments th:first-child,
+.sd-segments td:first-child {
+  text-align: left;
+  padding-left: 24px;
+}
+
+.sd-segments td {
+  height: 30px;
+  text-align: center;
+  color: var(--text-2);
+}
+
+.sd-segments tbody tr:nth-child(odd) {
+  background: var(--row-sub);
+}
+
+.sd-segments tbody tr:nth-child(even) {
+  background: var(--row-sub-alt);
+}
+
+.sd-empty {
+  padding: 24px;
+  color: var(--text-muted);
+}
+
+.sd-info {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  font-size: 18px;
+}
+
+.sd-info dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 22px;
+  margin: 0;
+}
+
+.sd-info dt {
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+
+.sd-info dd {
+  margin: 0;
+  color: var(--text-2);
+}
+
+.sd-meta {
+  margin-top: auto !important;
+  padding-top: 24px;
+}
+
+.sd-meta dt {
+  text-transform: none;
+}
+
+.sd-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  margin-top: 14px;
+}
+
+.sd-buttons .outline-button {
+  height: 36px;
+  padding: 0 12px;
+  font-size: 18px;
+}
+
+.sd-buttons .sd-autorender {
+  grid-column: 1 / -1;
+}
+
+.outline-button.is-disabled {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+/* Sized by the space the panel gets (score updates are full width, map boards narrower). */
+@container run-details (max-width: 1150px) {
+  .score-details {
+    grid-template-columns: minmax(220px, 320px) minmax(0, 1fr);
+  }
+
+  .sd-info {
+    grid-column: 1 / -1;
+  }
+}
+
+@container run-details (max-width: 640px) {
+  .score-details {
+    grid-template-columns: 1fr;
+    padding: 12px;
+  }
+
+  .sd-segments table {
+    font-size: 14px;
+  }
+
+  .sd-segments th:first-child,
+  .sd-segments td:first-child {
+    padding-left: 8px;
+  }
+
+  .sd-buttons {
+    grid-template-columns: 1fr;
+  }
+}
+
+.sd-players {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+
+.sd-players .player-link:hover {
+  text-decoration: underline;
+}
+
+/* Rows that open run details */
+.is-expandable {
+  cursor: pointer;
+}
+
+/* Admin tools */
+.sd-admin {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 10px 12px 12px;
+  border: 1px dashed var(--border-strong);
+  border-radius: 4px;
+}
+
+.sd-admin-head {
+  font-size: 13px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.sd-admin-input {
+  height: 32px;
+  min-width: 0;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--control);
+  color: var(--text);
+  font: inherit;
+  font-size: 15px;
+}
+
+.sd-admin-actions,
+.sd-admin-partner {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sd-admin-partner .sd-admin-input {
+  flex: 1;
+}
+
+.sd-admin button {
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  background: var(--control);
+  color: var(--text-2);
+  font: inherit;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.sd-admin button:hover:not(:disabled) {
+  border-color: var(--text-muted);
+  color: var(--text);
+}
+
+.sd-admin button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.sd-admin button.is-danger {
+  border-color: var(--hl-red);
+  color: var(--hl-red-text);
+}
+
+.sd-admin-ok {
+  color: var(--green);
+  font-size: 14px;
+}
+
+/* Co-op roles */
+.sd-roles {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.sd-roles-label {
+  font-size: 16px;
+  color: var(--text-2);
+}
+
+.sd-roles-options {
+  height: 30px;
+}
+
+.sd-roles-options button {
+  min-width: 0;
+  padding: 0 12px;
+  font-size: 15px;
+}
+
+.sd-roles-error {
+  flex-basis: 100%;
+  color: var(--banned-text);
+  font-size: 14px;
+}

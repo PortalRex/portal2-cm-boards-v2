@@ -1,0 +1,212 @@
+.admin-body {
+  padding: 24px 32px 30px;
+}
+
+.admin-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+  margin-bottom: 18px;
+}
+
+.admin-tabs {
+  height: 34px;
+}
+
+.admin-tabs button {
+  min-width: 110px;
+  font-size: 17px;
+}
+
+.admin-filter {
+  height: 34px;
+}
+
+.audit-row {
+  display: grid;
+  align-items: center;
+  gap: 0 14px;
+  min-height: 48px;
+  padding: 4px 12px;
+  font-size: 16px;
+}
+
+.audit-row.is-run {
+  grid-template-columns: 140px minmax(0, 1.2fr) minmax(0, 1.3fr) 50px 80px 130px minmax(0, 1.4fr) 110px;
+}
+
+.audit-row.is-profile {
+  grid-template-columns: 140px 220px 160px minmax(0, 1fr) 110px;
+}
+
+.audit-entry:nth-child(even) > .audit-row {
+  background: var(--row);
+}
+
+.audit-head {
+  min-height: 32px;
+  color: var(--text-muted);
+  font-size: 14px;
+  text-transform: uppercase;
+}
+
+.audit-row a:hover {
+  text-decoration: underline;
+}
+
+.audit-action {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.audit-restore {
+  padding: 1px 10px;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  background: none;
+  color: var(--accent-light);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.audit-restore:hover:not(:disabled) {
+  background: var(--accent);
+  color: #fff;
+}
+
+.audit-restore:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.audit-restored {
+  font-size: 13px;
+  color: var(--green);
+}
+
+.audit-badge {
+  justify-self: start;
+  padding: 3px 10px;
+  border-radius: 4px;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.audit-badge.is-ok {
+  background: var(--hl-green);
+}
+
+.audit-badge.is-warn {
+  background: #5e4a24;
+  color: #f1d7a2;
+}
+
+:root[data-theme="light"] .audit-badge.is-warn {
+  background: #f4e4c4;
+  color: #6b4a10;
+}
+
+.audit-badge.is-bad {
+  background: var(--hl-red);
+  color: var(--hl-red-text);
+}
+
+.audit-badge.is-info {
+  background: var(--rank-new);
+}
+
+.audit-map,
+.audit-when {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.audit-map a,
+.audit-map-title {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.audit-map small,
+.audit-when small {
+  font-size: 13px;
+}
+
+.audit-when small {
+  color: var(--text-muted);
+}
+
+.audit-entry.is-gone .audit-map-title {
+  text-decoration: line-through;
+  color: var(--text-muted);
+}
+
+.audit-players {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.audit-reason {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.audit-details-toggle {
+  margin-left: auto;
+  border: 0;
+  background: none;
+  color: var(--accent-light);
+  font: inherit;
+  font-size: 14px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.audit-details {
+  max-height: 320px;
+  margin: 0 12px 8px;
+  padding: 10px 12px;
+  overflow: auto;
+  background: var(--row-sub-alt);
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.admin-more {
+  margin-top: 16px;
+}
+
+@media (max-width: 1100px) {
+  .audit-row.is-run {
+    grid-template-columns: 130px minmax(0, 1fr) minmax(0, 1fr) 70px;
+  }
+
+  .audit-row.is-run > :nth-child(4),
+  .audit-row.is-run > :nth-child(6),
+  .audit-row.is-run > :nth-child(8) {
+    display: none;
+  }
+
+  .audit-row.is-run > :nth-child(7) {
+    grid-column: 1 / -1;
+  }
+
+  .audit-row.is-profile {
+    grid-template-columns: 130px minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+.audit-role {
+  display: block;
+  font-size: 13px;
+}

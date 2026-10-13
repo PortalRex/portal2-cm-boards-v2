@@ -1,0 +1,522 @@
+/* Top row: Following + Daily Activity */
+.su-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2.2fr);
+  gap: 30px;
+  margin-bottom: 30px;
+}
+
+.su-following-body,
+.su-activity-body {
+  padding: 14px 20px 18px;
+}
+
+.following {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.following li {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.4fr) 34px 92px 78px;
+  align-items: center;
+  gap: 10px;
+  height: 28px;
+  font-size: 14px;
+}
+
+.following li:nth-child(odd) {
+  background: var(--row);
+}
+
+.following-map {
+  padding-left: 8px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.following-player {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.following-rank {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--rank-new);
+}
+
+.following-ago,
+.following-date {
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.following-date {
+  padding-right: 8px;
+}
+
+/* Score updates table */
+.su-body {
+  padding: 26px 26px 30px;
+}
+
+.su-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 22px;
+}
+
+.su-game {
+  min-width: 200px;
+  height: 32px;
+  margin-right: auto;
+}
+
+.su-game select {
+  font-size: 16px;
+}
+
+.su-toolbar-bottom {
+  justify-content: flex-end;
+  margin: 22px 0 0;
+}
+
+.score-table {
+  --su-cols: 83px 83px minmax(170px, 1.2fr) minmax(220px, 2.3fr) 110px 100px 90px 150px 100px 44px;
+}
+
+.score-head {
+  display: grid;
+  grid-template-columns: var(--su-cols);
+  align-items: center;
+  height: 30px;
+  color: var(--text-muted);
+  font-size: 16px;
+  text-transform: uppercase;
+}
+
+.score-head span {
+  padding: 0 10px;
+}
+
+.score-head span:nth-child(-n + 2) {
+  text-align: center;
+}
+
+.score-head .end {
+  text-align: right;
+}
+
+.score-row {
+  margin-top: 2px;
+  background: var(--row);
+}
+
+.score-row-main {
+  display: grid;
+  cursor: pointer;
+  grid-template-columns: var(--su-cols);
+  align-items: center;
+  min-height: 46px;
+}
+
+.sr-rank {
+  grid-column: 1 / 3;
+  align-self: stretch;
+}
+
+.sr-map {
+  position: relative;
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0 20px;
+  overflow: hidden;
+  background:
+    linear-gradient(90deg, rgb(var(--row-rgb) / 0.55), var(--row) 95%),
+    var(--map-image, none) center / cover no-repeat;
+}
+
+.sr-map:hover .sr-map-name {
+  text-decoration: underline;
+}
+
+.sr-map-name {
+  font-size: 18px;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sr-map-chapter {
+  font-size: 13px;
+  color: var(--text-2);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.sr-map-ago {
+  display: none;
+}
+
+.sr-players {
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+}
+
+.sr-player {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+  min-height: 46px;
+  min-width: 0;
+}
+
+.sr-player-name {
+  font-size: 18px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sr-player.tint-blue {
+  background: linear-gradient(90deg, transparent 46px, var(--portal-blue) 46px, transparent 70%);
+}
+
+.sr-player.tint-orange {
+  background: linear-gradient(90deg, transparent 46px, var(--portal-orange) 46px, transparent 70%);
+}
+
+.sr-player.tint-neutral {
+  background: linear-gradient(90deg, transparent 46px, var(--portal-neutral) 46px, transparent 70%);
+}
+
+.sr-time,
+.sr-delta,
+.sr-points {
+  padding: 0 10px;
+  text-align: right;
+  font-size: 18px;
+}
+
+.sr-time {
+  font-weight: 600;
+}
+
+.sr-time-delta {
+  display: none;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.sr-delta,
+.sr-points {
+  color: var(--text-2);
+}
+
+.sr-date {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  padding: 0 10px;
+  font-size: 18px;
+  line-height: 1.1;
+}
+
+.sr-date-day {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.sr-status {
+  display: flex;
+  justify-content: center;
+}
+
+.badge-pending {
+  padding: 4px 12px;
+  border-radius: 4px;
+  background: var(--pending);
+  color: var(--pending-text);
+  font-size: 15px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.sr-toggle {
+  justify-self: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s;
+}
+
+.score-row.is-open .sr-toggle {
+  transform: rotate(180deg);
+}
+
+@media (max-width: 1400px) {
+  .score-table {
+    --su-cols: 70px 70px minmax(150px, 1.2fr) minmax(180px, 2fr) 96px 86px 76px 132px 90px 40px;
+  }
+}
+
+@media (max-width: 1000px) {
+  .su-top {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Mobile layout ("Score Updates Mobile" frame) */
+@media (max-width: 900px) {
+  .su-body {
+    padding: 12px;
+  }
+
+  .following li {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 30px auto;
+  }
+
+  .following-date {
+    display: none;
+  }
+
+  .su-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .su-toolbar .pagination {
+    align-self: center;
+  }
+
+  .score-head {
+    display: none;
+  }
+
+  .score-row-main {
+    grid-template-columns: 40px minmax(0, 1fr) auto auto 28px;
+    grid-template-areas: "rank map players time toggle";
+    gap: 0 8px;
+    min-height: 40px;
+  }
+
+  .sr-rank {
+    grid-area: rank;
+  }
+
+  .sr-rank .rank-change {
+    grid-template-columns: 1fr;
+    min-height: 40px;
+    font-size: 15px;
+  }
+
+  .sr-rank .rank-change-prev,
+  .sr-rank .rank-change svg {
+    display: none;
+  }
+
+  .sr-map {
+    grid-area: map;
+    padding: 2px 0;
+    background: none;
+  }
+
+  .sr-map-name {
+    font-size: 15px;
+  }
+
+  .sr-map-chapter {
+    display: none;
+  }
+
+  .sr-map-ago {
+    display: block;
+    font-size: 12px;
+  }
+
+  .sr-players {
+    grid-area: players;
+    flex-direction: row;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .sr-player {
+    min-height: 0;
+    flex: none;
+    background: none !important;
+  }
+
+  .sr-player .avatar {
+    width: 26px !important;
+    height: 26px !important;
+  }
+
+  .sr-player-name {
+    display: none;
+  }
+
+  .sr-time {
+    grid-area: time;
+    font-size: 15px;
+    padding: 0;
+  }
+
+  .sr-time-delta {
+    display: inline;
+  }
+
+  .sr-delta,
+  .sr-points,
+  .sr-date,
+  .sr-status {
+    display: none;
+  }
+
+  .sr-toggle {
+    grid-area: toggle;
+  }
+}
+
+/* Filter bar */
+.su-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 12px;
+  margin: -6px 0 22px;
+}
+
+.su-modes {
+  height: 32px;
+}
+
+.su-modes button {
+  min-width: 0;
+  padding: 0 14px;
+  font-size: 16px;
+}
+
+.su-filter-select {
+  min-width: 150px;
+  height: 32px;
+}
+
+.su-filter-select select {
+  font-size: 15px;
+}
+
+.su-chamber {
+  min-width: 220px;
+}
+
+.su-chip {
+  height: 32px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--control);
+  color: var(--text-2);
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.su-chip:hover {
+  border-color: var(--border-strong);
+}
+
+.su-chip.is-active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+.su-clear {
+  margin-left: auto;
+  border: 0;
+  background: none;
+  color: var(--accent-light);
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.su-clear:hover {
+  text-decoration: underline;
+}
+
+.badge-banned {
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--banned);
+  color: var(--banned-text);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.score-row.is-banned .score-row-main {
+  opacity: 0.6;
+}
+
+/* Activity chart paging */
+.su-activity-controls {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  text-transform: none;
+}
+
+.su-activity-views {
+  height: 28px;
+}
+
+.su-activity-views button {
+  min-width: 0;
+  padding: 0 12px;
+  font-size: 15px;
+}
+
+.su-activity-pager {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 15px;
+}
+
+.su-activity-pager span {
+  min-width: 118px;
+  text-align: center;
+}
+
+.su-activity-pager button {
+  display: inline-flex;
+  padding: 4px;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.su-activity-pager button:disabled {
+  opacity: 0.3;
+  cursor: default;
+}

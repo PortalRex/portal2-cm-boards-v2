@@ -1,0 +1,40 @@
+.settings {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.settings-section h2 {
+  margin: 0 0 10px;
+  font-size: 22px;
+  font-weight: 400;
+  text-transform: uppercase;
+}
+
+.settings-section p {
+  margin: 0 0 12px;
+  max-width: 640px;
+  font-size: 16px;
+}
+
+.settings-theme {
+  height: 36px;
+}
+
+.settings-theme button {
+  min-width: 110px;
+  font-size: 17px;
+}
+
+.settings-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+
+.settings-row .outline-button {
+  height: 36px;
+  padding: 0 16px;
+}
