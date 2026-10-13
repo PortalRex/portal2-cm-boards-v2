@@ -3,7 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import Layout from "../../components/Layout";
 import { Card, Avatar, Flag, Loading, EmptyState } from "../../components/ui";
-import { GlobeIcon, SparkleIcon, TrophyIcon, SteamIcon, TwitchIcon, YouTubeIcon, StarIcon, StarOutlineIcon } from "../../components/Icons";
+import { GlobeIcon, HistoryIcon, SparkleIcon, TrophyIcon, SteamIcon, TwitchIcon, YouTubeIcon, StarIcon, StarOutlineIcon } from "../../components/Icons";
 import { fetchPointsHistory, fetchProfile } from "../../api/client";
 import { countryName } from "../../data/countries";
 import useApi from "../../hooks/useApi";
@@ -15,6 +15,7 @@ import { bumpDataVersion } from "../../lib/dataVersion";
 import { formatDate, formatScore, ordinalSuffix, timeAgo, formatPoints } from "../../lib/format";
 import { youtubeChannelUrl } from "../../lib/youtube";
 import ProfileTabs from "./ProfileTabs";
+import ActivityHeatmap from "./ActivityHeatmap";
 import "./Profile.css";
 
 // Theoretical maximum points (200 per map) used to scale the progress bars.
@@ -98,6 +99,12 @@ export default function Profile() {
               </Card>
             </div>
           </div>
+
+          {p.history?.length > 0 && (
+            <Card icon={HistoryIcon} title="Activity" className="pf-activity-card">
+              <ActivityHeatmap history={p.history} />
+            </Card>
+          )}
 
           <ProfileTabs profile={p} />
         </div>
