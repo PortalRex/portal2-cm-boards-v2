@@ -196,6 +196,9 @@ All under `/api/v1`. Auth: **public**, **signed in**, **staff** (any tier or ser
   the co-op map page (which already numbered runs, now with ties shared). Both halves of a run are recognised by their
   shared `coop_id`. `RANKS.COOP=player` restores the old ranking everywhere; the rank cache file is rebuilt when the
   setting changes. Ranks stored on past runs (`pre_rank` / `post_rank`) aren't rewritten.
+- **Half-verified co-op runs**: a co-op run only counts for points, profile ranks, the points chart and submission ranks
+  once both halves are verified and neither half nor either player is banned, the rule the co-op map page already used.
+  Before, a pending partner half still let the verified half count.
 
 ## 7. Caching and performance
 

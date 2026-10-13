@@ -73,6 +73,14 @@ async fn timeline(pool: &PgPool, game_id: i32) -> Result<Arc<Timeline>, sqlx::Er
                 JOIN chapters AS c ON c.id = m.chapter_id
             WHERE c.game_id = $1 AND cl.verified AND NOT cl.banned AND NOT u.banned
               AND cl.category_id = m.default_cat_id AND cl.profile_number <> 'N/A'
+              -- A co-op run counts once both halves are verified and neither half nor player is banned
+              -- (as on the co-op map page).
+              AND NOT EXISTS (
+                  SELECT 1 FROM coop_bundled AS cb
+                      JOIN changelog AS o ON o.id IN (cb.cl_id1, cb.cl_id2) AND o.id <> cl.id
+                      JOIN users AS ou ON ou.profile_number = o.profile_number
+                  WHERE cb.id = cl.coop_id AND (NOT o.verified OR o.banned OR ou.banned)
+              )
             ORDER BY 5, cl.id
         "#,
     )

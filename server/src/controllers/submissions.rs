@@ -125,6 +125,14 @@ const FASTER_PLAYERS: &str = r#"
     WHERE cl.map_id = $1 AND cl.category_id = $2 AND cl.score < $3
       AND cl.verified AND NOT cl.banned AND NOT u.banned
       AND cl.profile_number <> $4 AND cl.profile_number <> $5
+      -- A co-op run counts once both halves are verified and neither half nor player is banned
+      -- (as on the co-op map page).
+      AND NOT EXISTS (
+          SELECT 1 FROM coop_bundled AS cb
+              JOIN changelog AS o ON o.id IN (cb.cl_id1, cb.cl_id2) AND o.id <> cl.id
+              JOIN users AS ou ON ou.profile_number = o.profile_number
+          WHERE cb.id = cl.coop_id AND (NOT o.verified OR o.banned OR ou.banned)
+      )
 "#;
 
 /// Like [FASTER_PLAYERS], counting runs instead: faster players' bests, with both halves of a
@@ -137,6 +145,14 @@ const FASTER_RUNS: &str = r#"
         WHERE cl.map_id = $1 AND cl.category_id = $2 AND cl.score < $3
           AND cl.verified AND NOT cl.banned AND NOT u.banned
           AND cl.profile_number <> $4 AND cl.profile_number <> $5
+          -- A co-op run counts once both halves are verified and neither half nor player is banned
+          -- (as on the co-op map page).
+          AND NOT EXISTS (
+              SELECT 1 FROM coop_bundled AS cb
+                  JOIN changelog AS o ON o.id IN (cb.cl_id1, cb.cl_id2) AND o.id <> cl.id
+                  JOIN users AS ou ON ou.profile_number = o.profile_number
+              WHERE cb.id = cl.coop_id AND (NOT o.verified OR o.banned OR ou.banned)
+          )
         ORDER BY cl.profile_number, cl.score, cl.timestamp
     ) AS pb
 "#;
