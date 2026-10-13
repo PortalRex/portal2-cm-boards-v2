@@ -600,10 +600,6 @@
   text-overflow: ellipsis;
 }
 
-.pf-note {
-  font-style: italic;
-}
-
 .pf-cmap-link {
   align-self: flex-start;
   max-width: 100%;

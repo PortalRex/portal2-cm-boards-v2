@@ -13,7 +13,6 @@ import { rankVars } from "../../lib/ranks";
 import { formatScore, formatDelta, formatDate, timeAgo } from "../../lib/format";
 import { youtubeChannelLabel, youtubeChannelUrl } from "../../lib/youtube";
 import { ROLE_LABELS } from "../../hooks/useCurrentUser";
-import { shownNote } from "../../lib/notes";
 import { TimeButton } from "../../components/RunHistory";
 
 // Portal 2's boards, then a tab per other game (Mel, seasons, ...), then Legacy and Info.
@@ -220,7 +219,6 @@ function ChapterTable({ chapter, scores, coop, game, rendered, selectedMap, onSe
         const s = scores[m.id];
         const selected = selectedMap?.id === m.id;
         const open = openId === m.id;
-        const note = shownNote(s?.note, [s?.partner]);
         // Opening a run also narrows History to its map; closing it shows all history again.
         const toggle = () => {
           setOpenId(open ? null : m.id);
@@ -242,10 +240,9 @@ function ChapterTable({ chapter, scores, coop, game, rendered, selectedMap, onSe
                 <Link to={mapPath(m)} className="pf-cmap-link">
                   {m.title}
                 </Link>
-                <small title={note || undefined}>
+                <small>
                   {chapter.sorted ? `${m.chapter} · ` : ""}
                   {s?.timestamp ? timeAgo(s.timestamp) : s ? "" : "No score"}
-                  {note && <span className="pf-note"> · {note}</span>}
                 </small>
               </span>
               <span className="end num">{s?.score != null ? <TimeButton score={s.score} players={[player, s.partner]} map={m} /> : ""}</span>

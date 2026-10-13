@@ -69,14 +69,13 @@ export function YouTubeLink({ id, size }) {
   );
 }
 
-// A run's comment icon: hovering it, or clicking it (which doesn't open the row), shows just the
-// comment in a small bubble above it. Greyed out without a comment.
+// A run's comment icon: clicking it (which doesn't open the row) shows just the comment in a small
+// bubble above it; clicking again or anywhere else closes it. Greyed out without a comment.
 export function CommentButton({ note, className = "" }) {
   const ref = useRef(null);
   const [pinned, setPinned] = useState(false);
-  const [hover, setHover] = useState(false);
   const [pos, setPos] = useState(null);
-  const open = Boolean(note) && (pinned || hover);
+  const open = Boolean(note) && pinned;
   const place = () => {
     const r = ref.current?.getBoundingClientRect();
     // Centred over the icon, but kept inside the window (the bubble is up to 320px wide).
@@ -103,11 +102,6 @@ export function CommentButton({ note, className = "" }) {
         className="run-link"
         aria-label="Show comment"
         aria-expanded={open}
-        onMouseEnter={() => {
-          place();
-          setHover(true);
-        }}
-        onMouseLeave={() => setHover(false)}
         onClick={(e) => {
           e.stopPropagation();
           place();
