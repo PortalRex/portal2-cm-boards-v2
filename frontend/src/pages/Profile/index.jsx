@@ -16,7 +16,7 @@ import { bumpDataVersion } from "../../lib/dataVersion";
 import { formatDate, formatScore, ordinalSuffix, timeAgo, formatPoints } from "../../lib/format";
 import { youtubeChannelUrl } from "../../lib/youtube";
 import ProfileTabs from "./ProfileTabs";
-import { roleProgress } from "../../data/roles";
+import { playerRole, roleProgress } from "../../data/roles";
 import ActivityHeatmap from "./ActivityHeatmap";
 import "./Profile.css";
 
@@ -36,7 +36,7 @@ export default function Profile() {
       ) : (
         <div className="profile">
           <div className="pf-row pf-row-1">
-            <ProfileHeader player={p.player} />
+            <ProfileHeader player={p.player} role={playerRole(p.points)} />
             <Card icon={SparkleIcon} title="Challenge Mode Points" collapseId="profile.points" className="pf-points">
               <div className="stat-row">
                 {[
@@ -160,8 +160,9 @@ function RoleBar({ board, points }) {
   };
   return (
     <span className="pf-bar-wrap" tabIndex={0} aria-label={text} onMouseEnter={show} onMouseLeave={() => setPos(null)} onFocus={show} onBlur={() => setPos(null)}>
-      <span className={`pf-bar ${board === "overall" ? "is-red" : ""}`}>
-        <span style={{ width: `${Math.min(100, prog.percent)}%` }} />
+      {/* Filled in the colour of the role already reached on this board (grey before the first). */}
+      <span className="pf-bar">
+        <span style={{ width: `${Math.min(100, prog.percent)}%`, background: prog.current?.color || "var(--text-muted)" }} />
       </span>
       {pos &&
         createPortal(
@@ -218,7 +219,7 @@ function PlaceStat({ label, entry }) {
   );
 }
 
-function ProfileHeader({ player }) {
+function ProfileHeader({ player, role }) {
   const links = [
     { href: `https://steamcommunity.com/profiles/${player.steam}`, icon: SteamIcon, label: "Steam", className: "is-steam" },
     player.twitch && { href: `https://twitch.tv/${player.twitch}`, icon: TwitchIcon, label: "Twitch", className: "is-twitch" },
@@ -228,7 +229,9 @@ function ProfileHeader({ player }) {
     <section className="pf-header">
       <Avatar src={player.avatar} name={player.name} size={180} className="pf-avatar" />
       <div className="pf-identity">
-        <h1 className="pf-name">{player.name}</h1>
+        <h1 className="pf-name" style={role ? { color: role.color } : undefined} title={role ? `${role.name} (from points)` : undefined}>
+          {player.name}
+        </h1>
         {/* All badges together on one row under the name. */}
         <div className="pf-badges">
           {(player.badges || []).map((b) => (
