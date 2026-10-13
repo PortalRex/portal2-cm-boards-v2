@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Avatar, PlayerLink, RankChange } from "../../components/ui";
-import { TriangleDown } from "../../components/Icons";
+import { TriangleDown, ThumbUpIcon, ThumbUpOutlineIcon, ThumbDownIcon, ThumbDownOutlineIcon } from "../../components/Icons";
+import { setReaction } from "../../api/client";
+import useCurrentUser from "../../hooks/useCurrentUser";
 import RunDetails from "../../components/RunDetails";
 import { toggleOnRowClick } from "../../lib/rows";
 import { mapPath } from "../../data/maps";
@@ -9,7 +11,7 @@ import { coopRoles, tintFor, useRoleOverrides } from "../../lib/coopRoles";
 import { formatScore, formatDelta, timeAgo, formatDate } from "../../lib/format";
 
 
-export default function ScoreRow({ entry, rendered }) {
+export default function ScoreRow({ entry, rendered, myReaction }) {
   const [open, setOpen] = useState(false);
   const { players, rolesKnown } = coopRoles(entry, useRoleOverrides());
   const coop = players.length > 1;
@@ -48,6 +50,7 @@ export default function ScoreRow({ entry, rendered }) {
           <span className="sr-date-day num">{formatDate(entry.timestamp)}</span>
         </div>
         <div className="sr-status">
+          <RowReactions entry={entry} myReaction={myReaction} />
           {entry.banned ? <span className="badge-banned">Banned</span> : pending && <span className="badge-pending">Pending</span>}
         </div>
         <button type="button" className="sr-toggle" onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-label={open ? "Hide details" : "Show details"}>
@@ -55,7 +58,41 @@ export default function ScoreRow({ entry, rendered }) {
         </button>
       </div>
 
-      {open && <RunDetails run={entry} map={entry.map} game={entry.game || "portal2"} rendered={rendered} />}
+      {open && <RunDetails run={entry} map={entry.map} game={entry.game || "portal2"} rendered={rendered} showReactions={false} />}
     </div>
+  );
+}
+
+// Thumbs up / down counts in the row; signed-in players can react (click again to clear).
+function RowReactions({ entry, myReaction }) {
+  const user = useCurrentUser();
+  const signedIn = Boolean(user) && !user.sample;
+  const [state, setState] = useState(null); // { up, down, mine } after reacting here
+  const [busy, setBusy] = useState(false);
+  const r = state || { up: entry.reactionsUp ?? 0, down: entry.reactionsDown ?? 0, mine: myReaction ?? null };
+  const react = async (value) => {
+    if (!signedIn || busy) return;
+    setBusy(true);
+    try {
+      const mine = value === "up" ? 1 : -1;
+      setState(await setReaction(entry.id, r.mine === mine ? null : value));
+    } catch {
+      // Leave the counts as they were.
+    } finally {
+      setBusy(false);
+    }
+  };
+  const hint = signedIn ? undefined : "Sign in to react";
+  return (
+    <span className="sr-reactions">
+      <button type="button" className={r.mine === 1 ? "is-mine" : ""} disabled={!signedIn || busy} onClick={() => react("up")} title={hint || "Thumbs up"} aria-pressed={r.mine === 1}>
+        {r.mine === 1 ? <ThumbUpIcon /> : <ThumbUpOutlineIcon />}
+        <span className="num">{r.up}</span>
+      </button>
+      <button type="button" className={r.mine === -1 ? "is-mine is-down" : ""} disabled={!signedIn || busy} onClick={() => react("down")} title={hint || "Thumbs down"} aria-pressed={r.mine === -1}>
+        {r.mine === -1 ? <ThumbDownIcon /> : <ThumbDownOutlineIcon />}
+        <span className="num">{r.down}</span>
+      </button>
+    </span>
   );
 }

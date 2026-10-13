@@ -1,11 +1,11 @@
 use crate::tools::auth::AdminOrService;
 use crate::{
-    controllers::game_boards::{pb_ranks, totals},
     models::{
         points::{Points, PointsProfileWrapper, ProfilePage},
         users::{AvatarInsert, ProfileScore, Users},
     },
     tools::cache::CacheState,
+    tools::points_cache::{PointsCache, Scope},
     tools::error::Result,
 };
 use actix_web::{get, post, put, web, Responder};
@@ -315,16 +315,14 @@ async fn profile(
     pool: web::Data<PgPool>,
     profile_number: web::Path<String>,
     cache: web::Data<CacheState>,
+    points_cache: web::Data<PointsCache>,
 ) -> Result<impl Responder> {
     // TODO : Scores on drop down are queried individually by the frontend
     let profile_number = profile_number.into_inner();
     let data = Users::get_profile(pool.get_ref(), &profile_number).await?;
-    let (mut points, ranks) = profile_from_cache(cache, &profile_number).await?;
-    // The points cache is filled by the separate points service; until it has run,
-    // compute the player's sp / coop / overall totals and placements from the changelog.
-    if points.is_empty() {
-        points = profile_points_live(pool.get_ref(), &profile_number).await?;
-    }
+    let (_, ranks) = profile_from_cache(cache, &profile_number).await?;
+    // Points and placements from the server's points cache (the same boards the leaderboards show).
+    let points = profile_points(pool.get_ref(), &points_cache, &profile_number).await?;
     let profile_page = ProfilePage {
         points,
         ranks,
@@ -360,14 +358,14 @@ async fn profile_scores(
     Ok(web::Json(scores))
 }
 
-/// Live sp (-1), coop (-2) and overall (-3) points for one player, with placements.
-async fn profile_points_live(pool: &PgPool, profile_number: &str) -> anyhow::Result<Vec<PointsProfileWrapper>> {
-    let pbs = pb_ranks(pool, 1, None, None).await?;
+/// A player's sp (-1), coop (-2) and overall (-3) points with placements, from the points cache.
+async fn profile_points(pool: &PgPool, cache: &PointsCache, profile_number: &str) -> anyhow::Result<Vec<PointsProfileWrapper>> {
     let mut out = Vec::new();
-    for (id, mode) in [(-1, Some("sp")), (-2, Some("coop")), (-3, None)] {
-        let board = totals(pbs.iter().filter(|pb| mode.is_none() || pb.game_mode.as_deref() == mode));
-        if let Some(x) = board.get(profile_number) {
-            let (place, score_place) = placement(&board, x);
+    for (id, key, scope) in [(-1, "sp", Scope::Modes(&["sp"])), (-2, "coop", Scope::Modes(&["coop"])), (-3, "overall", Scope::All)] {
+        let board = cache.board(pool, 1, key, scope).await?;
+        let board_map: HashMap<String, Points> = board.points.iter().cloned().collect();
+        if let Some(x) = board_map.get(profile_number) {
+            let (place, score_place) = placement(&board_map, x);
             out.push(PointsProfileWrapper { id, points: x.clone(), place, score_place });
         }
     }

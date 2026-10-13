@@ -22,8 +22,12 @@ pub mod maps;
 pub mod moderation;
 /// Point-based endpoints.
 pub mod points;
+/// Per-run endpoints (co-op halves, reactions).
+pub mod runs;
 /// Singleplayer-specific endpoints.
 pub mod sp;
+/// Run submissions.
+pub mod submissions;
 /// Endpoints for usefull statistics
 pub mod stats;
 /// User-related endpoints.

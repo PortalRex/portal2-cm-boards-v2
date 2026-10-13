@@ -148,6 +148,7 @@ pub async fn changelog_new(
     cache
         .update_current_states(&[SP_PREVIEWS, COOP_PREVIEWS], &[false, false])
         .await;
+    crate::tools::points_cache::invalidate_points().await;
     Ok(HttpResponse::Ok().json(id))
 }
 

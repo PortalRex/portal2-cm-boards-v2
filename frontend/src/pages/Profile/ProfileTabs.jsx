@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Select, Avatar, PlayerLink, EmptyState, Loading, RankNumber } from "../../components/ui";
-import { DownloadIcon, ChevronRightIcon, TriangleRight } from "../../components/Icons";
+import { DownloadIcon, ChevronDownIcon, TriangleRight } from "../../components/Icons";
 import { AutorenderLink, YouTubeLink, useRenderedSet } from "../../components/RunMedia";
 import RunDetails from "../../components/RunDetails";
 import { toggleOnRowClick } from "../../lib/rows";
@@ -12,6 +12,7 @@ import { chaptersFor, mapPath, MODE_LABELS } from "../../data/maps";
 import { rankColor } from "../../lib/ranks";
 import { formatScore, formatDelta, formatDate, timeAgo } from "../../lib/format";
 import { youtubeChannelLabel, youtubeChannelUrl } from "../../lib/youtube";
+import { ROLE_LABELS } from "../../hooks/useCurrentUser";
 
 const TABS = [
   { key: "sp", label: "Singleplayer" },
@@ -191,13 +192,18 @@ function ChapterTable({ chapter, scores, coop, game, rendered, selectedMap, onSe
         const s = scores[m.id];
         const selected = selectedMap?.id === m.id;
         const open = openId === m.id;
+        // Opening a run also narrows History to its map; closing it shows all history again.
+        const toggle = () => {
+          setOpenId(open ? null : m.id);
+          onSelectMap(open ? null : m);
+        };
         return (
           <div key={m.id} className={`pf-centry${open ? " is-open" : ""}`}>
             <div
               className={`pf-crow${coop ? " is-coop" : ""}${selected ? " is-selected" : ""}${s ? " is-expandable" : ""}`}
               style={{ "--rank-accent": s ? rankColor(s.rank) : "transparent" }}
               aria-expanded={s ? open : undefined}
-              onClick={s ? toggleOnRowClick(() => setOpenId(open ? null : m.id)) : undefined}
+              onClick={s ? toggleOnRowClick(toggle) : undefined}
             >
               <span className="pf-crank num">
                 <RankNumber rank={s?.rank} inherit />
@@ -227,9 +233,13 @@ function ChapterTable({ chapter, scores, coop, game, rendered, selectedMap, onSe
                 {s ? <AutorenderLink run={s} game={game} rendered={rendered} /> : <span className="pf-icon-gap" />}
                 <YouTubeLink id={s?.youtubeId} />
                 <DownloadIcon className={s?.demoId ? "" : "is-off"} />
-                <button type="button" className="pf-cselect" onClick={() => onSelectMap(selected ? null : m)} aria-pressed={selected} aria-label={`Show history for ${m.title}`}>
-                  <ChevronRightIcon />
-                </button>
+                {s ? (
+                  <button type="button" className={`pf-cselect${open ? " is-open" : ""}`} onClick={toggle} aria-expanded={open} aria-label={`${open ? "Hide" : "Show"} run details for ${m.title}`}>
+                    <ChevronDownIcon />
+                  </button>
+                ) : (
+                  <span className="pf-icon-gap" />
+                )}
               </span>
             </div>
             {open && <RunDetails run={s} map={m} game={game} rendered={rendered} />}
@@ -361,16 +371,32 @@ function InfoTab({ player }) {
     <dl className="pf-info">
       <dt>Steam ID</dt>
       <dd className="num">{player.steam}</dd>
-      {player.badges?.length > 0 && (
+      {(player.titles || []).length > 0 && (
         <>
           <dt>Titles</dt>
-          <dd>{player.badges.map((b) => b.label).join(", ")}</dd>
+          <dd className="pf-info-titles">
+            {player.titles.map((t) => (
+              <span key={t} className="pf-info-title">
+                {t}
+              </span>
+            ))}
+          </dd>
+        </>
+      )}
+      {player.role && (
+        <>
+          <dt>Staff</dt>
+          <dd>{ROLE_LABELS[player.role]}</dd>
         </>
       )}
       {player.twitch && (
         <>
           <dt>Twitch</dt>
-          <dd>{player.twitch}</dd>
+          <dd>
+            <a href={`https://twitch.tv/${player.twitch}`} target="_blank" rel="noreferrer">
+              {player.twitch}
+            </a>
+          </dd>
         </>
       )}
       {player.youtube && (

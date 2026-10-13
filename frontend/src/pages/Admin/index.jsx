@@ -20,6 +20,8 @@ const ACTIONS = {
   "coop.set_host": "Set colors",
   "run.hide_wr": "Removed from WR history",
   "run.show_wr": "Back in WR history",
+  "profile.ban": "Banned profile",
+  "profile.unban": "Unbanned profile",
   "profile.freeze": "Froze profile",
   "profile.unfreeze": "Unfroze profile",
   "profile.set_role": "Changed role",
@@ -33,13 +35,15 @@ const TONES = {
   "coop.set_host": "info",
   "run.hide_wr": "warn",
   "run.show_wr": "ok",
+  "profile.ban": "bad",
+  "profile.unban": "ok",
   "profile.freeze": "bad",
   "profile.unfreeze": "ok",
   "profile.set_role": "info",
 };
 const TABS = [
   { value: "runs", label: "Runs", actions: ["run.ban", "run.unban", "run.delete", "demo.remove", "run.hide_wr", "run.show_wr", "coop.set_partner", "coop.set_host"] },
-  { value: "profiles", label: "Profiles", actions: ["profile.freeze", "profile.unfreeze", "profile.set_role"] },
+  { value: "profiles", label: "Profiles", actions: ["profile.ban", "profile.unban", "profile.freeze", "profile.unfreeze", "profile.set_role"] },
 ];
 const PAGE = 50;
 

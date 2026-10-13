@@ -414,6 +414,7 @@ async fn sp_post_score(
     }
     let id = Changelog::insert_changelog(pool.get_ref(), params.0).await?;
     cache.update_current_state(SP_PREVIEWS, false).await;
+    crate::tools::points_cache::invalidate_points().await;
     Ok(actix_web::HttpResponse::Ok().json(id))
 }
 
@@ -479,5 +480,6 @@ async fn sp_update(
     // TODO: Handle demo uploads.
     let changelog_entry = Changelog::update_changelog(pool.get_ref(), params.0).await?;
     cache.update_current_state(SP_PREVIEWS, false).await;
+    crate::tools::points_cache::invalidate_points().await;
     Ok(web::Json(changelog_entry))
 }

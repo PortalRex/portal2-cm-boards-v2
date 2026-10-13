@@ -296,6 +296,7 @@ async fn coop_add(
 ) -> Result<impl Responder> {
     let id = CoopBundled::insert_coop_bundled(pool.get_ref(), params.0).await?;
     cache.update_current_state(COOP_PREVIEWS, false).await;
+    crate::tools::points_cache::invalidate_points().await;
     Ok(web::Json(id))
 }
 
@@ -347,6 +348,7 @@ async fn coop_update_changelog(
 ) -> Result<impl Responder> {
     let id = CoopBundled::update_changelog_with_coop_id(pool.get_ref(), path.0, path.1).await?;
     cache.update_current_state(COOP_PREVIEWS, false).await;
+    crate::tools::points_cache::invalidate_points().await;
     Ok(web::Json(id))
 }
 

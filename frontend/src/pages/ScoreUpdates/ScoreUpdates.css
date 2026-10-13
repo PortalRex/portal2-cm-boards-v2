@@ -93,7 +93,7 @@
 }
 
 .score-table {
-  --su-cols: 83px 83px minmax(170px, 1.2fr) minmax(220px, 2.3fr) 110px 100px 90px 150px 100px 44px;
+  --su-cols: 83px 83px minmax(170px, 1.2fr) minmax(220px, 2.3fr) 110px 100px 90px 150px 140px 44px;
 }
 
 .score-head {
@@ -245,7 +245,52 @@
 
 .sr-status {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.sr-reactions {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.sr-reactions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 17px;
+  background: rgb(var(--panel-rgb) / 0.6);
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.sr-reactions button svg {
+  font-size: 22px;
+}
+
+.sr-reactions button:hover:not(:disabled) {
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+.sr-reactions button.is-mine {
+  border-color: var(--accent);
+  color: var(--accent-light);
+}
+
+.sr-reactions button.is-mine.is-down {
+  border-color: var(--hl-red);
+  color: var(--hl-red-text);
+}
+
+.sr-reactions button:disabled {
+  cursor: default;
 }
 
 .badge-pending {

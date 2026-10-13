@@ -82,9 +82,13 @@ pub mod game_boards;
 pub mod maps;
 /// Admin actions with an audit log
 pub mod moderation;
+/// Co-op halves and reactions on runs
+pub mod runs;
 /// Controllers for sp
 pub mod sp;
 /// Controllers for stats
 pub mod stats;
+/// Run submissions from demos
+pub mod submissions;
 /// Controllers for users
 pub mod users;

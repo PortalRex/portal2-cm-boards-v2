@@ -203,7 +203,9 @@ pub async fn build_filtered_changelog(pool: &PgPool, params: ChangelogQueryParam
             COALESCE(p2.board_name, p2.steam_name, p2.profile_number) AS orange_name,
             p1.avatar AS blue_avatar, p2.avatar AS orange_avatar,
             p1.profile_number AS blue_profile_number, p2.profile_number AS orange_profile_number,
-            coop.p1_is_host IS NOT NULL AS coop_roles_known
+            coop.p1_is_host IS NOT NULL AS coop_roles_known,
+            (SELECT COUNT(*) FROM run_reactions AS rr WHERE rr.changelog_id = COALESCE(coop.cl_id1, cl.id) AND rr.reaction = 1) AS reactions_up,
+            (SELECT COUNT(*) FROM run_reactions AS rr WHERE rr.changelog_id = COALESCE(coop.cl_id1, cl.id) AND rr.reaction = -1) AS reactions_down
                 FROM changelog AS cl
                     LEFT JOIN users AS u ON (u.profile_number = cl.profile_number)
                     INNER JOIN maps AS map ON (map.steam_id = cl.map_id)

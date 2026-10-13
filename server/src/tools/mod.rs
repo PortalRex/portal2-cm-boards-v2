@@ -6,5 +6,7 @@ pub mod cache;
 pub mod config;
 /// Helper functions used accross different modules
 pub mod helpers;
+/// Server-computed aggregated points boards
+pub mod points_cache;
 
 pub mod error;

@@ -1,5 +1,5 @@
-//! Aggregates computed directly from the changelog for a single game, used for
-//! games without the offline points/rank cache that Portal 2 has (e.g. Mel).
+//! Aggregates computed directly from the changelog for a game: each player's personal bests
+//! and ranks, and their point totals. Served through [crate::tools::points_cache].
 use crate::models::points::Points;
 use crate::tools::helpers::score;
 use sqlx::{FromRow, PgPool};
@@ -14,13 +14,7 @@ pub struct PbRank {
     pub rank: i32,
     /// Chapter `game_mode` of the map (sp / coop / story / advanced).
     pub game_mode: Option<String>,
-}
-
-#[derive(Debug, FromRow)]
-struct UserLabel {
-    profile_number: String,
-    user_name: Option<String>,
-    avatar: Option<String>,
+    pub chapter_id: Option<i32>,
 }
 
 /// Personal bests (default category, verified, neither run nor player banned) ranked
@@ -32,7 +26,7 @@ pub async fn pb_ranks(pool: &PgPool, game_id: i32, modes: Option<&[&str]>, chapt
         r#"
             WITH pbs AS (
                 SELECT DISTINCT ON (cl.profile_number, cl.map_id)
-                    cl.profile_number, cl.map_id, cl.score, c.game_mode
+                    cl.profile_number, cl.map_id, cl.score, c.game_mode, c.id AS chapter_id
                 FROM changelog AS cl
                     INNER JOIN users AS u ON (u.profile_number = cl.profile_number)
                     INNER JOIN maps AS m ON (m.steam_id = cl.map_id)
@@ -47,7 +41,7 @@ pub async fn pb_ranks(pool: &PgPool, game_id: i32, modes: Option<&[&str]>, chapt
                     AND cl.profile_number <> 'N/A'
                 ORDER BY cl.profile_number, cl.map_id, cl.score ASC, cl.timestamp ASC
             )
-            SELECT profile_number, map_id, score, game_mode,
+            SELECT profile_number, map_id, score, game_mode, chapter_id,
                 (RANK() OVER (PARTITION BY map_id ORDER BY score ASC))::int AS rank
             FROM pbs
         "#,
@@ -57,16 +51,6 @@ pub async fn pb_ranks(pool: &PgPool, game_id: i32, modes: Option<&[&str]>, chapt
     .bind(chapter)
     .fetch_all(pool)
     .await
-}
-
-/// Current rank on every map of `game_id` for one player (`{ map_id: rank }`).
-pub async fn profile_ranks(pool: &PgPool, profile_number: &str, game_id: i32) -> Result<HashMap<String, i32>, sqlx::Error> {
-    Ok(pb_ranks(pool, game_id, None, None)
-        .await?
-        .into_iter()
-        .filter(|pb| pb.profile_number == profile_number)
-        .map(|pb| (pb.map_id, pb.rank))
-        .collect())
 }
 
 /// Sums personal bests into per-player [Points] (without names / avatars).
@@ -95,28 +79,4 @@ pub fn totals<'a>(pbs: impl Iterator<Item = &'a PbRank>) -> HashMap<String, Poin
         }
     }
     totals
-}
-
-/// Aggregated points for `game_id` over `modes`, ordered by points, in the same shape the
-/// cached Portal 2 points endpoints return.
-pub async fn aggregated_points(pool: &PgPool, game_id: i32, modes: Option<&[&str]>, chapter: Option<i32>) -> Result<Vec<(String, Points)>, sqlx::Error> {
-    let mut totals = totals(pb_ranks(pool, game_id, modes, chapter).await?.iter());
-    let profile_numbers: Vec<String> = totals.keys().cloned().collect();
-    let labels = sqlx::query_as::<_, UserLabel>(
-        r#"SELECT profile_number, COALESCE(board_name, steam_name) AS user_name, avatar
-            FROM users WHERE profile_number = ANY($1)"#,
-    )
-    .bind(&profile_numbers)
-    .fetch_all(pool)
-    .await?;
-    for label in labels {
-        if let Some(entry) = totals.get_mut(&label.profile_number) {
-            entry.user_name = label.user_name;
-            entry.avatar = label.avatar;
-        }
-    }
-
-    let mut ordered: Vec<(String, Points)> = totals.into_iter().collect();
-    ordered.sort_by(|a, b| b.1.points.partial_cmp(&a.1.points).unwrap_or(std::cmp::Ordering::Equal));
-    Ok(ordered)
 }

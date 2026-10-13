@@ -101,6 +101,20 @@ async fn log_action(
     Ok(())
 }
 
+/// Records an action by a signed-in user (not through [AdminOrService]), e.g. a run an admin
+/// entered by hand.
+pub async fn log_by_user(pool: &PgPool, profile_number: &str, action: &str, target_type: &str, target_id: &str, details: Value) -> Result<(), sqlx::Error> {
+    sqlx::query("INSERT INTO admin_actions (admin_profile, action, target_type, target_id, details) VALUES ($1, $2, $3, $4, $5::jsonb)")
+        .bind(profile_number)
+        .bind(action)
+        .bind(target_type)
+        .bind(target_id)
+        .bind(details.to_string())
+        .execute(pool)
+        .await?;
+    Ok(())
+}
+
 pub async fn list_actions(pool: &PgPool, q: &AuditQuery) -> Result<Vec<AdminAction>, sqlx::Error> {
     sqlx::query_as::<_, AdminAction>(
         r#"
@@ -325,6 +339,53 @@ pub async fn set_frozen(pool: &PgPool, actor: &AdminOrService, profile_number: &
     Ok(Ok(()))
 }
 
+/// Bans or unbans a profile: a banned player's runs are hidden from every board and the player
+/// is listed on the Wall of Shame. Staff must lose their role before they can be banned.
+/// Returns the maps the player has runs on (map id, co-op), whose ranks need rebuilding.
+pub async fn set_profile_banned(pool: &PgPool, actor: &AdminOrService, profile_number: &str, banned: bool, reason: Option<&str>) -> ActionResult<Vec<(String, bool)>> {
+    let mut tx = pool.begin().await?;
+    let target: Option<(bool, Option<String>)> = sqlx::query_as("SELECT banned, role FROM users WHERE profile_number = $1 AND profile_number <> $2 FOR UPDATE")
+        .bind(profile_number)
+        .bind(FILLER)
+        .fetch_optional(&mut *tx)
+        .await?;
+    let Some((was_banned, role)) = target else {
+        return Ok(Err(Refused::NotFound("No such player.")));
+    };
+    if banned {
+        if let AdminOrService::Admin(user) = actor {
+            if user.profile_number == profile_number {
+                return Ok(Err(Refused::Invalid("You can't ban yourself.".into())));
+            }
+        }
+        if role.is_some() {
+            return Ok(Err(Refused::Invalid("Remove this player's staff role before banning them.".into())));
+        }
+    }
+    if was_banned == banned {
+        return Ok(Err(Refused::Invalid(if banned { "This player is already banned.".into() } else { "This player isn't banned.".into() })));
+    }
+    sqlx::query("UPDATE users SET banned = $2 WHERE profile_number = $1").bind(profile_number).bind(banned).execute(&mut *tx).await?;
+    // Sessions end on ban, so a banned player is signed out everywhere.
+    if banned {
+        sqlx::query("DELETE FROM sessions WHERE profile_number = $1").bind(profile_number).execute(&mut *tx).await?;
+    }
+    let maps: Vec<(String, bool)> = sqlx::query_as(
+        r#"
+            SELECT DISTINCT cl.map_id, c.is_multiplayer FROM changelog AS cl
+            JOIN maps AS m ON m.steam_id = cl.map_id JOIN chapters AS c ON c.id = m.chapter_id
+            WHERE cl.profile_number = $1
+        "#,
+    )
+    .bind(profile_number)
+    .fetch_all(&mut *tx)
+    .await?;
+    let action = if banned { "profile.ban" } else { "profile.unban" };
+    log_action(&mut tx, actor, action, "profile", profile_number, reason, json!({ "maps": maps.len() })).await?;
+    tx.commit().await?;
+    Ok(Ok(maps))
+}
+
 /// Whether a profile is frozen (and so can't get new times).
 pub async fn is_frozen(pool: &PgPool, profile_number: &str) -> Result<bool, sqlx::Error> {
     Ok(sqlx::query_scalar::<_, bool>("SELECT frozen FROM users WHERE profile_number = $1")
@@ -377,7 +438,7 @@ async fn bundle(tx: &mut Transaction<'_, Postgres>, id: i64) -> Result<Option<Bu
 }
 
 /// Gives a run that's losing its partner a solo pairing (partner unknown), so it stays on the board.
-async fn pair_with_filler(tx: &mut Transaction<'_, Postgres>, cl_id: i64, profile_number: &str, filler_id: i64) -> Result<(), sqlx::Error> {
+pub async fn pair_with_filler(tx: &mut Transaction<'_, Postgres>, cl_id: i64, profile_number: &str, filler_id: i64) -> Result<(), sqlx::Error> {
     let id: i64 = sqlx::query_scalar("INSERT INTO coop_bundled (p_id1, p_id2, cl_id1, cl_id2) VALUES ($1, $2, $3, $4) RETURNING id")
         .bind(profile_number)
         .bind(FILLER)
@@ -396,7 +457,19 @@ async fn pair_with_filler(tx: &mut Transaction<'_, Postgres>, cl_id: i64, profil
 /// The partner must already exist as a user (see [crate::models::users::Users]).
 pub async fn set_partner(pool: &PgPool, actor: &AdminOrService, cl_id: i64, partner: &str, reason: Option<&str>) -> ActionResult<Touched> {
     let mut tx = pool.begin().await?;
-    let run = match target_run(&mut tx, cl_id).await? {
+    let (touched, details) = match pair_partner(&mut tx, cl_id, partner).await? {
+        Ok(done) => done,
+        Err(refused) => return Ok(Err(refused)),
+    };
+    log_action(&mut tx, actor, "coop.set_partner", "run", &cl_id.to_string(), reason, details).await?;
+    tx.commit().await?;
+    Ok(Ok(touched))
+}
+
+/// The pairing behind [set_partner], inside the caller's transaction and without an audit
+/// entry (also used for new co-op submissions). Returns what changed, for the audit log.
+pub async fn pair_partner(tx: &mut Transaction<'_, Postgres>, cl_id: i64, partner: &str) -> Result<Result<(Touched, Value), Refused>, sqlx::Error> {
+    let run = match target_run(tx, cl_id).await? {
         Ok(run) => run,
         Err(refused) => return Ok(Err(refused)),
     };
@@ -409,7 +482,7 @@ pub async fn set_partner(pool: &PgPool, actor: &AdminOrService, cl_id: i64, part
     let filler_id: Option<i64> = sqlx::query_scalar("SELECT id FROM changelog WHERE profile_number = $1 AND map_id = $2 ORDER BY id LIMIT 1")
         .bind(FILLER)
         .bind(&run.map_id)
-        .fetch_optional(&mut *tx)
+        .fetch_optional(&mut **tx)
         .await?;
     let Some(filler_id) = filler_id else {
         return Ok(Err(Refused::Invalid("This map has no co-op placeholder entry.".into())));
@@ -436,19 +509,19 @@ pub async fn set_partner(pool: &PgPool, actor: &AdminOrService, cl_id: i64, part
     .bind(run.coop_id.unwrap_or(-1))
     .bind(FILLER)
     .bind(run.timestamp)
-    .fetch_optional(&mut *tx)
+    .fetch_optional(&mut **tx)
     .await?;
 
     let before = match run.coop_id {
-        Some(id) => bundle(&mut tx, id).await?,
+        Some(id) => bundle(tx, id).await?,
         None => None,
     };
     let partner_cl = partner_run.map(|(id, _)| id);
     // Free the partner's run from its current (solo) pairing.
     if let Some((pid, Some(pcoop))) = partner_run {
         if Some(pcoop) != run.coop_id {
-            sqlx::query("UPDATE changelog SET coop_id = NULL WHERE coop_id = $1").bind(pcoop).execute(&mut *tx).await?;
-            sqlx::query("DELETE FROM coop_bundled WHERE id = $1").bind(pcoop).execute(&mut *tx).await?;
+            sqlx::query("UPDATE changelog SET coop_id = NULL WHERE coop_id = $1").bind(pcoop).execute(&mut **tx).await?;
+            sqlx::query("DELETE FROM coop_bundled WHERE id = $1").bind(pcoop).execute(&mut **tx).await?;
             let _ = pid;
         }
     }
@@ -460,15 +533,15 @@ pub async fn set_partner(pool: &PgPool, actor: &AdminOrService, cl_id: i64, part
             let (old_partner, old_partner_cl) = if ours_first { (b.p_id2.clone(), b.cl_id2) } else { (Some(b.p_id1.clone()), Some(b.cl_id1)) };
             let new_cl = partner_cl.unwrap_or(filler_id);
             if ours_first {
-                sqlx::query("UPDATE coop_bundled SET p_id2 = $2, cl_id2 = $3, p1_is_host = NULL WHERE id = $1").bind(b.id).bind(partner).bind(new_cl).execute(&mut *tx).await?;
+                sqlx::query("UPDATE coop_bundled SET p_id2 = $2, cl_id2 = $3, p1_is_host = NULL WHERE id = $1").bind(b.id).bind(partner).bind(new_cl).execute(&mut **tx).await?;
             } else {
-                sqlx::query("UPDATE coop_bundled SET p_id1 = $2, cl_id1 = $3, p1_is_host = NULL WHERE id = $1").bind(b.id).bind(partner).bind(new_cl).execute(&mut *tx).await?;
+                sqlx::query("UPDATE coop_bundled SET p_id1 = $2, cl_id1 = $3, p1_is_host = NULL WHERE id = $1").bind(b.id).bind(partner).bind(new_cl).execute(&mut **tx).await?;
             }
             // The previous partner's own run (if any, and not the new one) keeps a place on the board.
             if let (Some(op), Some(ocl)) = (old_partner, old_partner_cl) {
                 if op != FILLER && Some(ocl) != partner_cl && ocl != filler_id {
-                    sqlx::query("UPDATE changelog SET coop_id = NULL WHERE id = $1").bind(ocl).execute(&mut *tx).await?;
-                    pair_with_filler(&mut tx, ocl, &op, filler_id).await?;
+                    sqlx::query("UPDATE changelog SET coop_id = NULL WHERE id = $1").bind(ocl).execute(&mut **tx).await?;
+                    pair_with_filler(tx, ocl, &op, filler_id).await?;
                 }
             }
             b.id
@@ -479,28 +552,18 @@ pub async fn set_partner(pool: &PgPool, actor: &AdminOrService, cl_id: i64, part
                 .bind(partner)
                 .bind(run.id)
                 .bind(partner_cl.unwrap_or(filler_id))
-                .fetch_one(&mut *tx)
+                .fetch_one(&mut **tx)
                 .await?;
-            sqlx::query("UPDATE changelog SET coop_id = $2 WHERE id = $1").bind(run.id).bind(id).execute(&mut *tx).await?;
+            sqlx::query("UPDATE changelog SET coop_id = $2 WHERE id = $1").bind(run.id).bind(id).execute(&mut **tx).await?;
             id
         }
     };
     if let Some(pcl) = partner_cl {
-        sqlx::query("UPDATE changelog SET coop_id = $2 WHERE id = $1").bind(pcl).bind(coop_id).execute(&mut *tx).await?;
+        sqlx::query("UPDATE changelog SET coop_id = $2 WHERE id = $1").bind(pcl).bind(coop_id).execute(&mut **tx).await?;
     }
     let before = before.map(|b| json!({ "id": b.id, "p_id1": b.p_id1, "p_id2": b.p_id2, "cl_id1": b.cl_id1, "cl_id2": b.cl_id2 }));
-    log_action(
-        &mut tx,
-        actor,
-        "coop.set_partner",
-        "run",
-        &cl_id.to_string(),
-        reason,
-        json!({ "partner": partner, "partner_run": partner_cl, "coop_id": coop_id, "before": before }),
-    )
-    .await?;
-    tx.commit().await?;
-    Ok(Ok(Touched { map_id: run.map_id, is_coop: true, ids: vec![run.id] }))
+    let details = json!({ "partner": partner, "partner_run": partner_cl, "coop_id": coop_id, "before": before });
+    Ok(Ok((Touched { map_id: run.map_id, is_coop: true, ids: vec![run.id] }, details)))
 }
 
 /// Removes a run from its map's world-record history, or puts it back. The run itself (and

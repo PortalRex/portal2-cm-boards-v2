@@ -59,6 +59,8 @@ function adaptChangelog(row, game) {
     verified: row.verified !== false,
     banned: !!row.banned,
     coopId: isCoop ? row.coop_id : null,
+    reactionsUp: row.reactions_up ?? 0,
+    reactionsDown: row.reactions_down ?? 0,
     rolesKnown: isCoop ? row.coop_roles_known !== false : null,
     sarVersion: null,
     segments: null,
@@ -211,6 +213,7 @@ export const setRunBanned = (changelogId, banned, reason) => send("PUT", `/admin
 export const deleteRun = (changelogId, reason) => send("DELETE", `/admin/runs/${changelogId}`, { reason });
 export const removeRunDemo = (changelogId, reason) => send("DELETE", `/admin/runs/${changelogId}/demo`, { reason });
 export const setRunPartner = (changelogId, steamId, reason) => send("PUT", `/admin/runs/${changelogId}/partner`, { steam_id: steamId, reason });
+export const setProfileBanned = (profileNumber, banned, reason) => send("PUT", `/admin/users/${profileNumber}/banned`, { banned, reason });
 export const setProfileFrozen = (profileNumber, frozen, reason) => send("PUT", `/admin/users/${profileNumber}/freeze`, { frozen, reason });
 export const setProfileRole = (profileNumber, role, reason) => send("PUT", `/admin/users/${profileNumber}/role`, { role, reason });
 export const setRunWrHidden = (changelogId, hidden, reason) => send("PUT", `/admin/runs/${changelogId}/wr_history`, { hidden, reason });
@@ -223,6 +226,45 @@ export async function fetchWrHistoryForStaff(map) {
 
 // The audit log, newest first: [{ id, admin_name, via_service, action, target_type, target_id, reason, details, created_at }].
 export const fetchAudit = (params) => getJson("/admin/audit", params);
+
+// Both players' halves of a co-op run, blue (host) first when known. A half without a run
+// of its own has changelogId null.
+export async function fetchCoopHalves(coopId) {
+  const halves = await getJson(`/coop/${coopId}/halves`);
+  return halves.map((h) => ({
+    player: h.profile_number ? player(h.profile_number, h.user_name, h.avatar) : null,
+    isHost: h.is_host,
+    changelogId: h.changelog_id,
+    score: h.score,
+    timestamp: h.timestamp,
+    note: h.note,
+    youtubeId: h.youtube_id,
+    autorenderId: h.autorender_id,
+    demoId: h.demo_id,
+    hasSegments: h.has_segments,
+  }));
+}
+
+// Staff: who reacted to a run now ({ current }) and the latest changes ({ history }); each
+// entry { profile_number, user_name, avatar, reaction (1, -1, null = cleared), created_at }.
+export const fetchReactionRecord = (changelogId) => getJson(`/admin/runs/${changelogId}/reactions`);
+
+// The signed-in viewer's reactions on several runs: { [changelogId]: 1 | -1 }.
+export const fetchMyReactions = (ids) => (ids.length ? getJson("/runs/reactions/mine", { ids: ids.join(",") }) : Promise.resolve({}));
+
+// Thumbs up / down on a run: { up, down, mine } with mine 1, -1 or null.
+export const fetchReactions = (changelogId) => getJson(`/runs/${changelogId}/reactions`);
+
+export async function setReaction(changelogId, reaction) {
+  const res = await fetch(apiUrl(`/runs/${changelogId}/reaction`), {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ reaction }),
+  });
+  if (res.status === 401) throw new Error("Sign in to react.");
+  if (!res.ok) throw new Error((await res.text()) || `Request failed (${res.status})`);
+  return res.json();
+}
 
 // A run's mtrigger segments, formatted for display (null when it has none). A co-op run
 // has a changelog entry per player; autorender rendered one of them.
@@ -287,9 +329,7 @@ export function fetchWrHistory(map) {
   );
 }
 
-// kind: overall | sp | coop (Portal 2), story | advanced | mel-overall (Mel).
-// Portal 2 points come from the backend's cache (/points/{board}); every game can
-// also be computed live from the changelog (/points/game/{id}/{board}).
+// kind: overall | sp | coop (Portal 2), story | advanced | mel-overall (Mel), chapter-<id>.
 const POINTS = {
   overall: ["portal2", "overall", 108],
   sp: ["portal2", "sp", 60],
@@ -303,23 +343,14 @@ const POINTS = {
 function pointsBoard(kind) {
   const chapterId = /^chapter-(\d+)$/.exec(kind)?.[1];
   if (!chapterId) return POINTS[kind];
-  return ["portal2", `chapter-${chapterId}`, p2ChapterByDbId(chapterId)?.maps.length ?? 0, `/points/chapter/${chapterId}`];
+  return ["portal2", `chapter-${chapterId}`, p2ChapterByDbId(chapterId)?.maps.length ?? 0];
 }
 
+// Boards come from the server's points cache (computed from the changelog, refreshed when runs change).
 export function fetchAggregated(kind) {
-  const [game, board, mapCount, cached = `/points/${board}`] = pointsBoard(kind);
-  const live = () => getJson(`/points/game/${GAME_IDS[game]}/${board}`);
+  const [game, board, mapCount] = pointsBoard(kind);
   return sample(
-    async () => {
-      let data;
-      if (game === "portal2") {
-        // The cache is empty until the backend has calculated points.
-        data = await getJson(cached).catch(live);
-      } else {
-        data = await live();
-      }
-      return adaptPoints(data, mapCount);
-    },
+    async () => adaptPoints(await getJson(`/points/game/${GAME_IDS[game]}/${board}`), mapCount),
     () => mock.mockAggregated(kind),
   );
 }
@@ -431,6 +462,13 @@ function mergePbs(scores, pbs, history) {
 
 const ROLE_BADGES = { verifier: "Verifier", moderator: "Moderator", admin: "Admin" };
 
+// The old boards kept a player's titles in one field ("Original Developer, Donator").
+const splitTitles = (title) =>
+  (title || "")
+    .split(/[,;]/)
+    .map((t) => t.trim())
+    .filter(Boolean);
+
 // ProfilePage.points holds one entry per points id: -1 sp, -2 coop, -3 overall, chapter ids otherwise.
 function adaptProfile(profileNumber, page, user, history, pbs) {
   const byId = Object.fromEntries((page.points || []).map((p) => [p.id, p.points]));
@@ -452,10 +490,15 @@ function adaptProfile(profileNumber, page, user, history, pbs) {
       name: user.board_name || user.steam_name,
       avatar: user.avatar,
       country: country?.code,
-      badges: [user.title && { label: user.title, tone: "teal" }, user.role && { label: ROLE_BADGES[user.role], tone: user.role === "admin" ? "red" : "staff" }].filter(Boolean),
+      badges: [
+        ...splitTitles(user.title).map((label) => ({ label, tone: "teal" })),
+        user.role && { label: ROLE_BADGES[user.role], tone: user.role === "admin" ? "red" : "staff" },
+      ].filter(Boolean),
+      titles: splitTitles(user.title),
       role: user.role || null,
       twitch: user.twitch,
       youtube: user.youtube,
+      banned: !!user.banned,
       frozen: !!user.frozen,
       frozenReason: user.frozen_reason || null,
       steam: profileNumber,
@@ -474,4 +517,31 @@ function adaptProfile(profileNumber, page, user, history, pbs) {
     scores,
     history,
   };
+}
+
+// --- run submissions ---------------------------------------------------------
+
+async function postForm(path, form) {
+  const res = await fetch(apiUrl(path), { method: "POST", body: form });
+  if (res.status === 401) throw new Error("Sign in required.");
+  if (!res.ok) throw new Error((await res.text()) || `Request failed (${res.status})`);
+  return res.json();
+}
+
+// What a demo contains (map, scoreboard time, players), read by the server.
+export function previewDemo(file) {
+  const form = new FormData();
+  form.append("demo", file);
+  return postForm("/submissions/preview", form);
+}
+
+// Submits a run. `fields` holds youtube, comment, mel_mode and the admin-only map_id, time,
+// profile_number and partner; empty values are left out.
+export function submitRun(file, fields) {
+  const form = new FormData();
+  if (file) form.append("demo", file);
+  Object.entries(fields).forEach(([k, v]) => {
+    if (v != null && String(v).trim() !== "") form.append(k, String(v).trim());
+  });
+  return postForm("/submissions", form);
 }

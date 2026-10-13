@@ -6,6 +6,7 @@ use crate::{
     tools::{
         auth::AdminOrService,
         cache::{CacheState, COOP_PREVIEWS, SP_PREVIEWS},
+        points_cache::invalidate_points,
         config::Config,
         error::Result,
     },
@@ -59,6 +60,7 @@ async fn respond(result: moderation::ActionResult<Touched>, cache: &CacheState, 
     Ok(match result? {
         Ok(touched) => {
             refresh(cache, pool, config, &touched).await;
+            invalidate_points().await;
             HttpResponse::Ok().json(serde_json::json!({ "changelog_ids": touched.ids }))
         }
         Err(r) => refused(r),
@@ -150,6 +152,37 @@ async fn admin_run_partner(
 async fn admin_user_freeze(auth: AdminOrService, pool: web::Data<PgPool>, profile_number: web::Path<String>, body: web::Json<FreezeBody>) -> Result<impl Responder> {
     Ok(match moderation::set_frozen(pool.get_ref(), &auth, &profile_number, body.frozen, reason(&body.reason)).await? {
         Ok(()) => HttpResponse::NoContent().finish(),
+        Err(r) => refused(r),
+    })
+}
+
+/// **PUT** Ban a profile (`{"banned": true, "reason": ...}`): all of the player's runs leave the
+/// boards and they're signed out. `{"banned": false}` unbans. Moderators and admins only.
+#[put("/admin/users/{profile_number}/banned")]
+async fn admin_user_banned(
+    auth: AdminOrService,
+    pool: web::Data<PgPool>,
+    config: web::Data<Config>,
+    cache: web::Data<CacheState>,
+    profile_number: web::Path<String>,
+    body: web::Json<BanBody>,
+) -> Result<impl Responder> {
+    if let AdminOrService::Admin(user) = &auth {
+        if !matches!(user.role.as_deref(), Some("moderator" | "admin")) {
+            return Ok(HttpResponse::Forbidden().body("Only moderators and admins can ban players."));
+        }
+    }
+    Ok(match moderation::set_profile_banned(pool.get_ref(), &auth, &profile_number, body.banned, reason(&body.reason)).await? {
+        Ok(maps) => {
+            cache.update_current_states(&[SP_PREVIEWS, COOP_PREVIEWS], &[false, false]).await;
+            for (map_id, is_coop) in &maps {
+                if cache.default_cat_ids.contains_key(map_id) {
+                    cache.reload_rank(pool.get_ref(), map_id, &config, *is_coop).await;
+                }
+            }
+            invalidate_points().await;
+            HttpResponse::NoContent().finish()
+        }
         Err(r) => refused(r),
     })
 }

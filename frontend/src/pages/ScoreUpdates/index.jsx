@@ -5,7 +5,8 @@ import Layout from "../../components/Layout";
 import { Panel, Pagination, SearchBox, Select, Avatar, PlayerLink, Loading, EmptyState, RankNumber } from "../../components/ui";
 import { HistoryIcon, TriangleLeft, TriangleRight } from "../../components/Icons";
 import { useRenderedSet } from "../../components/RunMedia";
-import { fetchActivity } from "../../api/client";
+import { fetchActivity, fetchMyReactions } from "../../api/client";
+import useCurrentUser from "../../hooks/useCurrentUser";
 import { fetchChangelogFor, fetchFollowingFeed } from "../../api/boards";
 import { GAMES, MODE_LABELS, mapPath, mapsForMode } from "../../data/maps";
 import useApi from "../../hooks/useApi";
@@ -82,6 +83,11 @@ export default function ScoreUpdates() {
   const pageCount = Math.ceil(entries.length / PAGE_SIZE);
   const visible = entries.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
   const rendered = useRenderedSet(visible, game);
+  // Which of the visible runs the signed-in player reacted to (one request per page).
+  const me = useCurrentUser();
+  const signedIn = Boolean(me) && !me.sample;
+  const visibleIds = visible.map((e) => e.id).join(",");
+  const mine = useApi(() => (signedIn && visibleIds ? fetchMyReactions(visible.map((e) => e.id)).catch(() => ({})) : Promise.resolve({})), [visibleIds, signedIn, version]);
   const setPage = (p) => set({ page: String(p) });
   const filtered = Boolean(filters.mapId || mode || filters.wr || filters.video || filters.demo || filters.banned !== "hide" || query);
 
@@ -144,7 +150,7 @@ export default function ScoreUpdates() {
           {changelog.loading && !entries.length ? (
             <Loading />
           ) : visible.length ? (
-            visible.map((entry) => <ScoreRow key={`${entry.game}-${entry.id}`} entry={entry} rendered={rendered} />)
+            visible.map((entry) => <ScoreRow key={`${entry.game}-${entry.id}`} entry={entry} rendered={rendered} myReaction={mine.data?.[entry.id]} />)
           ) : (
             <EmptyState>{filtered ? "No score updates match these filters." : "No score updates yet."}</EmptyState>
           )}

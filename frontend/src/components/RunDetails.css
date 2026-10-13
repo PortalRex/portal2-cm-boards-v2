@@ -252,3 +252,136 @@
   color: var(--banned-text);
   font-size: 14px;
 }
+
+/* Co-op player toggle (under the video) */
+.sd-coop-toggle {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.sd-coop-toggle button {
+  flex: 1;
+  min-width: 0;
+  height: 34px;
+  padding: 0 10px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--control);
+  color: var(--text-2);
+  font: inherit;
+  font-size: 15px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.sd-coop-toggle button.is-blue.is-active {
+  border-color: rgb(40, 140, 255);
+  background: var(--portal-blue);
+  color: var(--text);
+}
+
+.sd-coop-toggle button.is-orange.is-active {
+  border-color: rgb(255, 140, 30);
+  background: var(--portal-orange);
+  color: var(--text);
+}
+
+.sd-coop-toggle button.is-neutral.is-active {
+  border-color: var(--text-muted);
+  background: var(--portal-neutral);
+  color: var(--text);
+}
+
+.sd-coop-toggle button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* Reactions (run details on map boards and profiles) */
+.sd-reactions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.sd-reactions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--control);
+  color: var(--text-2);
+  font: inherit;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.sd-reactions button svg {
+  font-size: 24px;
+}
+
+.sd-reactions button:hover:not(:disabled) {
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+.sd-reactions button.is-mine {
+  border-color: var(--accent);
+  color: var(--accent-light);
+}
+
+.sd-reactions button.is-mine.is-down {
+  border-color: var(--hl-red);
+  color: var(--hl-red-text);
+}
+
+.sd-reactions button:disabled {
+  cursor: default;
+}
+
+/* Staff: who reacted */
+.sd-who {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 15px;
+}
+
+.sd-admin .sd-who-toggle {
+  align-self: flex-start;
+}
+
+.sd-who-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 180px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.sd-who-list li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.sd-who-list a:hover {
+  text-decoration: underline;
+}
+
+.sd-who-history summary {
+  color: var(--accent-light);
+  cursor: pointer;
+}

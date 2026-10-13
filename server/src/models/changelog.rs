@@ -98,6 +98,9 @@ pub struct ChangelogPage {
     pub coop_roles_known: Option<bool>,
     /// Removed from the map's WR history by staff.
     pub wr_hidden: bool,
+    /// Thumbs up / down counts (a co-op run's halves share them).
+    pub reactions_up: i64,
+    pub reactions_down: i64,
 }
 
 /// Indlues additional information from joins that includes details like map name, username and profile image.

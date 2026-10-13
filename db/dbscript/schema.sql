@@ -344,7 +344,10 @@ CREATE TABLE maps (
     name character varying(50) NOT NULL,
     chapter_id integer,
     default_cat_id integer,
-    is_public boolean DEFAULT false NOT NULL
+    is_public boolean DEFAULT false NOT NULL,
+    -- Map file name (e.g. sp_a1_intro3), to match submitted demos; Mel's Story and Advanced
+    -- maps share theirs. Filled by import_boards.py.
+    bsp_name character varying(64)
 );
 
 
@@ -942,6 +945,32 @@ ALTER TABLE ONLY mtrigger_entries
     ADD CONSTRAINT fk_mtrigger_entries_changelog FOREIGN KEY (changelog_id) REFERENCES changelog(id);
 
 
+
+--
+-- Thumbs up / down on runs (a co-op run's are stored against the first entry of its pair).
+--
+
+CREATE TABLE run_reactions (
+    changelog_id bigint NOT NULL REFERENCES changelog(id) ON DELETE CASCADE,
+    profile_number character varying(50) NOT NULL REFERENCES users(profile_number) ON DELETE CASCADE,
+    reaction smallint NOT NULL CHECK (reaction IN (-1, 1)),
+    created_at timestamp without time zone NOT NULL DEFAULT now(),
+    PRIMARY KEY (changelog_id, profile_number)
+);
+
+--
+-- Every reaction change (up, down, cleared), kept for staff.
+--
+
+CREATE TABLE run_reaction_events (
+    id bigserial PRIMARY KEY,
+    changelog_id bigint NOT NULL REFERENCES changelog(id) ON DELETE CASCADE,
+    profile_number character varying(50) NOT NULL REFERENCES users(profile_number) ON DELETE CASCADE,
+    -- 1 up, -1 down, NULL cleared.
+    reaction smallint CHECK (reaction IN (-1, 1)),
+    created_at timestamp without time zone NOT NULL DEFAULT now()
+);
+CREATE INDEX run_reaction_events_run ON run_reaction_events (changelog_id, created_at DESC);
 
 --
 -- Admin audit log.

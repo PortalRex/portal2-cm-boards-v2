@@ -411,6 +411,12 @@ class Importer:
         others = [sid for sid in players if sid != run["profile_number"]]
         return others[0] if len(others) == 1 else None
 
+    def map_bsp_names(self):
+        """Map file names for matching submitted demos (see migrations/20261020000000_map_bsp_names.sql)."""
+        path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "migrations", "20261020000000_map_bsp_names.sql")
+        with open(path, encoding="utf-8") as f:
+            self.cur.execute(f.read())
+
     def reset_sequences(self):
         for table in ["changelog", "demos", "categories", "category_rules", "chapters", "maps", "coop_bundled", "games", "countries", "evidence_requirements"]:
             self.cur.execute("SELECT pg_get_serial_sequence(%s, 'id')", (table,))
@@ -423,6 +429,7 @@ class Importer:
         self.p2_structure()
         self.mel_structure()
         self.default_categories()
+        self.map_bsp_names()
         self.changelogs()
         self.coop()
         self.reset_sequences()

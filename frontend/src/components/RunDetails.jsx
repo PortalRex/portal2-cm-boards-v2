@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { OutlineButton, PlayerLink } from "./ui";
-import { DownloadIcon, YouTubeIcon, PlayIcon, VideocamIcon } from "./Icons";
+import { DownloadIcon, YouTubeIcon, PlayIcon, VideocamIcon, ThumbUpIcon, ThumbUpOutlineIcon, ThumbDownIcon, ThumbDownOutlineIcon } from "./Icons";
 import { RunVideo, runVideo } from "./RunMedia";
-import { deleteRun, fetchSegments, removeRunDemo, setCoopHost, setRunBanned, setRunPartner } from "../api/client";
-import { bumpDataVersion } from "../lib/dataVersion";
+import { deleteRun, fetchCoopHalves, fetchReactionRecord, fetchReactions, fetchSegments, removeRunDemo, setCoopHost, setReaction, setRunBanned, setRunPartner } from "../api/client";
+import { bumpDataVersion, useDataVersion } from "../lib/dataVersion";
 import useApi from "../hooks/useApi";
 import useCurrentUser, { isStaff } from "../hooks/useCurrentUser";
 import { coopRoles, setRoleOverride, useRoleOverrides } from "../lib/coopRoles";
@@ -17,17 +17,41 @@ function useSegments(run) {
 }
 
 // Expanded view of one run: video, mtrigger segments, and run info / links. `run` is a
-// score-update entry, map board entry or profile score (all share these fields).
-export default function RunDetails({ run, map, game = "portal2", rendered }) {
-  const segments = useSegments({ ...run, map });
-  const video = runVideo(run, game, rendered);
+// score-update entry, map board entry or profile score (all share these fields). Co-op runs
+// get a toggle between the two players' halves (each has its own demo, video and comment).
+export default function RunDetails({ run, map, game = "portal2", rendered, showReactions = true }) {
+  const version = useDataVersion();
+  const halves = useApi(() => (run.coopId != null ? fetchCoopHalves(run.coopId).catch(() => null) : Promise.resolve(null)), [run.coopId, version]);
+  const [picked, setPicked] = useState(null);
+  const own = run.changelogId ?? run.id;
+  const list = halves.data?.length === 2 ? halves.data : null;
+  const index = picked ?? (list ? Math.max(0, list.findIndex((h) => h.changelogId === own)) : 0);
+  const half = list?.[index];
+  // What the media and comment show: the selected player's own entry.
+  const view =
+    half?.changelogId != null
+      ? {
+          ...run,
+          id: half.changelogId,
+          changelogId: half.changelogId,
+          changelogIds: [half.changelogId],
+          youtubeId: half.youtubeId,
+          autorenderId: half.autorenderId,
+          demoId: half.demoId,
+          note: half.note,
+          timestamp: half.timestamp ?? run.timestamp,
+        }
+      : run;
+  const segments = useSegments({ ...view, map });
+  const video = runVideo(view, game, rendered);
   const rank = run.postRank ?? run.rank;
 
   return (
     <div className="run-details">
       <div className="score-details">
         <div className="sd-video">
-          <RunVideo run={run} game={game} rendered={rendered} title={`${map.title} run`} />
+          <RunVideo key={view.changelogId ?? view.id} run={view} game={game} rendered={rendered} title={`${map.title} run`} />
+          {list && <CoopToggle halves={list} index={index} onPick={setPicked} />}
         </div>
 
         <div className="sd-segments">
@@ -66,7 +90,7 @@ export default function RunDetails({ run, map, game = "portal2", rendered }) {
         <div className="sd-info">
           <dl>
             <dt>Comment:</dt>
-            <dd>{run.note || "No comment"}</dd>
+            <dd>{view.note || "No comment"}</dd>
           </dl>
           <dl className="sd-meta">
             {run.players?.length > 0 && (
@@ -88,10 +112,10 @@ export default function RunDetails({ run, map, game = "portal2", rendered }) {
                 </dd>
               </>
             )}
-            {run.timestamp && (
+            {view.timestamp && (
               <>
                 <dt>Date:</dt>
-                <dd className="num">{formatDate(run.timestamp)}</dd>
+                <dd className="num">{formatDate(view.timestamp)}</dd>
               </>
             )}
             <dt>SAR Version:</dt>
@@ -99,19 +123,20 @@ export default function RunDetails({ run, map, game = "portal2", rendered }) {
             <dt>Status:</dt>
             <dd>{run.banned ? "Banned" : run.verified === false ? "Pending" : "Verified"}</dd>
           </dl>
+          {showReactions && <ReactionsBar changelogId={own} />}
           <AdminTools run={run} game={game} />
-        <div className="sd-buttons">
+          <div className="sd-buttons">
             {/* Demo downloads aren't exposed to this frontend yet. */}
-            <OutlineButton disabled title={run.demoId ? "Demo downloads are not available yet" : "No demo for this run"}>
+            <OutlineButton disabled title={view.demoId ? "Demo downloads are not available yet" : "No demo for this run"}>
               Download Demo <DownloadIcon />
             </OutlineButton>
             <OutlineButton
               as="a"
-              href={run.youtubeId ? `https://www.youtube.com/watch?v=${run.youtubeId.split("?")[0]}` : undefined}
+              href={view.youtubeId ? `https://www.youtube.com/watch?v=${view.youtubeId.split("?")[0]}` : undefined}
               target="_blank"
               rel="noreferrer"
-              aria-disabled={!run.youtubeId}
-              className={run.youtubeId ? "" : "is-disabled"}
+              aria-disabled={!view.youtubeId}
+              className={view.youtubeId ? "" : "is-disabled"}
             >
               YouTube <YouTubeIcon />
             </OutlineButton>
@@ -122,11 +147,11 @@ export default function RunDetails({ run, map, game = "portal2", rendered }) {
             ) : (
               <OutlineButton
                 as="a"
-                href={run.demoId && video?.render ? video.render : undefined}
+                href={view.demoId && video?.render ? video.render : undefined}
                 target="_blank"
                 rel="noreferrer"
-                aria-disabled={!run.demoId || !video?.render}
-                className={`sd-autorender${run.demoId && video?.render ? "" : " is-disabled"}`}
+                aria-disabled={!view.demoId || !video?.render}
+                className={`sd-autorender${view.demoId && video?.render ? "" : " is-disabled"}`}
               >
                 Request render <VideocamIcon />
               </OutlineButton>
@@ -134,6 +159,63 @@ export default function RunDetails({ run, map, game = "portal2", rendered }) {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+// Switch the panel between the two players' halves of a co-op run (blue first when known).
+function CoopToggle({ halves, index, onPick }) {
+  const rolesKnown = halves[0].isHost != null;
+  return (
+    <div className="sd-coop-toggle" role="tablist" aria-label="Player">
+      {halves.map((h, i) => (
+        <button
+          key={i}
+          type="button"
+          role="tab"
+          aria-selected={i === index}
+          className={`${i === index ? "is-active" : ""} ${rolesKnown ? (i === 0 ? "is-blue" : "is-orange") : "is-neutral"}`}
+          disabled={h.changelogId == null}
+          title={h.changelogId == null ? `${h.player?.name || "Partner"} has no run of their own recorded` : `Show ${h.player?.name || "this player"}'s demo, video and comment`}
+          onClick={() => onPick(i)}
+        >
+          {h.player?.name || "Unknown partner"}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// Thumbs up / down. Anyone sees the counts; signed-in players can react (click again to clear).
+function ReactionsBar({ changelogId }) {
+  const user = useCurrentUser();
+  const signedIn = Boolean(user) && !user.sample;
+  const loaded = useApi(() => (changelogId != null ? fetchReactions(changelogId).catch(() => null) : Promise.resolve(null)), [changelogId, user?.profileNumber]);
+  const [counts, setCounts] = useState(null);
+  const [error, setError] = useState(null);
+  const r = counts || loaded.data;
+  if (!r) return null;
+  const react = async (value) => {
+    setError(null);
+    try {
+      const mine = value === "up" ? 1 : -1;
+      setCounts(await setReaction(changelogId, r.mine === mine ? null : value));
+    } catch (e) {
+      setError(e.message);
+    }
+  };
+  const hint = signedIn ? undefined : "Sign in to react";
+  return (
+    <div className="sd-reactions">
+      <button type="button" className={r.mine === 1 ? "is-mine" : ""} onClick={() => react("up")} disabled={!signedIn} title={hint || "Thumbs up"} aria-pressed={r.mine === 1}>
+        {r.mine === 1 ? <ThumbUpIcon /> : <ThumbUpOutlineIcon />}
+        <span className="num">{r.up}</span>
+      </button>
+      <button type="button" className={r.mine === -1 ? "is-mine is-down" : ""} onClick={() => react("down")} disabled={!signedIn} title={hint || "Thumbs down"} aria-pressed={r.mine === -1}>
+        {r.mine === -1 ? <ThumbDownIcon /> : <ThumbDownOutlineIcon />}
+        <span className="num">{r.down}</span>
+      </button>
+      {error && <span className="sd-roles-error">{error}</span>}
     </div>
   );
 }
@@ -207,8 +289,59 @@ function AdminTools({ run, game }) {
           </button>
         </form>
       )}
+      <WhoReacted changelogId={changelogId} />
       {state.message && <span className="sd-admin-ok">{state.message}</span>}
       {state.error && <span className="sd-roles-error">{state.error}</span>}
+    </div>
+  );
+}
+
+// Staff: who reacted to the run, and every change (including changed and cleared reactions).
+function WhoReacted({ changelogId }) {
+  const [open, setOpen] = useState(false);
+  const record = useApi(() => (open ? fetchReactionRecord(changelogId).catch(() => null) : Promise.resolve(null)), [open, changelogId]);
+  const label = (r) => (r === 1 ? "👍" : r === -1 ? "👎" : "cleared");
+  return (
+    <div className="sd-who">
+      <button type="button" className="sd-who-toggle" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
+        {open ? "Hide reactions" : "Who reacted"}
+      </button>
+      {open &&
+        (record.loading ? (
+          <span className="muted">Loading…</span>
+        ) : !record.data ? (
+          <span className="sd-roles-error">Couldn’t load reactions.</span>
+        ) : (
+          <>
+            {record.data.current.length ? (
+              <ul className="sd-who-list">
+                {record.data.current.map((e) => (
+                  <li key={e.profile_number}>
+                    <span>{label(e.reaction)}</span>
+                    <PlayerLink player={{ profileNumber: e.profile_number, name: e.user_name }} />
+                    <span className="muted num">{formatDate(e.created_at)}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <span className="muted">No reactions yet.</span>
+            )}
+            {record.data.history.length > 0 && (
+              <details className="sd-who-history">
+                <summary>History ({record.data.history.length})</summary>
+                <ul className="sd-who-list">
+                  {record.data.history.map((e, i) => (
+                    <li key={i}>
+                      <span className="muted num">{formatDate(e.created_at)}</span>
+                      <PlayerLink player={{ profileNumber: e.profile_number, name: e.user_name }} />
+                      <span>{label(e.reaction)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            )}
+          </>
+        ))}
     </div>
   );
 }

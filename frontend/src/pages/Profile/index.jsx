@@ -10,7 +10,7 @@ import useApi from "../../hooks/useApi";
 import { useDataVersion } from "../../lib/dataVersion";
 import useFollows from "../../hooks/useFollows";
 import useCurrentUser, { isRoleAdmin, isStaff, ROLE_LABELS } from "../../hooks/useCurrentUser";
-import { setProfileFrozen, setProfileRole } from "../../api/client";
+import { setProfileBanned, setProfileFrozen, setProfileRole } from "../../api/client";
 import { bumpDataVersion } from "../../lib/dataVersion";
 import { formatDate, formatScore, ordinalSuffix, timeAgo, formatPoints } from "../../lib/format";
 import { youtubeChannelUrl } from "../../lib/youtube";
@@ -179,6 +179,11 @@ function ProfileHeader({ player }) {
               {b.label}
             </span>
           ))}
+          {player.banned && (
+            <span className="pf-badge is-red" title="Banned: this player's runs are hidden from the boards">
+              Banned
+            </span>
+          )}
           {player.frozen && (
             <span className="pf-badge is-frozen" title={player.frozenReason ? `Frozen: ${player.frozenReason}` : "Frozen: existing times stay, new ones aren't accepted"}>
               Frozen
@@ -191,9 +196,12 @@ function ProfileHeader({ player }) {
             {countryName(player.country)}
           </div>
         )}
+        <div className="pf-staff-tools">
+          <RoleControl player={player} />
+          <FreezeControl player={player} />
+          <BanControl player={player} />
+        </div>
       </div>
-      <RoleControl player={player} />
-      <FreezeControl player={player} />
       <FollowButton player={player} />
       <div className="pf-links">
         {links.map(({ href, icon: Icon, label, className }) => (
@@ -233,6 +241,58 @@ function RoleControl({ player }) {
         ))}
       </select>
     </label>
+  );
+}
+
+// Moderators and admins: ban a profile (all its runs leave the boards and the player is signed
+// out) or unban it. Staff have to lose their role before they can be banned.
+function BanControl({ player }) {
+  const user = useCurrentUser();
+  const [open, setOpen] = useState(false);
+  const [reason, setReason] = useState("");
+  const [state, setState] = useState({ busy: false, error: null });
+  const canBan = isStaff(user) && (user.role === "moderator" || user.role === "admin");
+  if (!canBan || user.profileNumber === player.profileNumber || (player.role && !player.banned)) return null;
+  const save = async (banned) => {
+    setState({ busy: true, error: null });
+    try {
+      await setProfileBanned(player.profileNumber, banned, reason.trim() || undefined);
+      setOpen(false);
+      setReason("");
+      setState({ busy: false, error: null });
+      bumpDataVersion();
+    } catch (e) {
+      setState({ busy: false, error: e.message });
+    }
+  };
+  if (player.banned) {
+    return (
+      <button type="button" className="pf-admin-button" disabled={state.busy} onClick={() => save(false)} title={state.error || "Put this player's runs back on the boards"}>
+        Unban
+      </button>
+    );
+  }
+  return open ? (
+    <form
+      className="pf-freeze-form"
+      onSubmit={(e) => {
+        e.preventDefault();
+        save(true);
+      }}
+    >
+      <input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Reason (audit log)" maxLength={500} autoFocus />
+      <button type="submit" className="pf-admin-button is-danger" disabled={state.busy}>
+        Ban
+      </button>
+      <button type="button" className="pf-admin-button" onClick={() => setOpen(false)}>
+        Cancel
+      </button>
+      {state.error && <span className="pf-freeze-error">{state.error}</span>}
+    </form>
+  ) : (
+    <button type="button" className="pf-admin-button is-danger" onClick={() => setOpen(true)} title="Hide all of this player's runs and list them on the Wall of Shame">
+      Ban profile
+    </button>
   );
 }
 
@@ -304,8 +364,8 @@ function FollowButton({ player }) {
 }
 
 const SERIES = [
-  { key: "coop", label: "Cooperative", color: "var(--series-coop)" },
   { key: "sp", label: "Singleplayer", color: "var(--series-sp)" },
+  { key: "coop", label: "Cooperative", color: "var(--series-coop)" },
   { key: "overall", label: "Overall", color: "var(--series-overall)" },
 ];
 

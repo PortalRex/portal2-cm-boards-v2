@@ -2,12 +2,13 @@ import { useEffect, useState } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import logo from "../scenes/global/img/portal2logo.png";
 import {
-  HistoryIcon, PinIcon, BarsIcon, MoreIcon, TrophyIcon, PersonIcon, PeopleIcon, MenuIcon, CloseIcon, LightModeIcon, DarkModeIcon, SteamIcon,
+  HistoryIcon, PinIcon, BarsIcon, MoreIcon, TrophyIcon, PersonIcon, PeopleIcon, MenuIcon, CloseIcon, LightModeIcon, DarkModeIcon, SteamIcon, UploadIcon,
 } from "./Icons";
 import { Avatar, Flag } from "./ui";
 import useCurrentUser, { clearCurrentUser, isStaff } from "../hooks/useCurrentUser";
 import { logout, steamLoginUrl } from "../api/client";
 import useTheme from "../hooks/useTheme";
+import SubmitRun from "./SubmitRun";
 import "./TopBar.css";
 
 const LEADERBOARD_MENU = [
@@ -110,6 +111,7 @@ export default function TopBar() {
   const signinFailed = new URLSearchParams(search).get("signin") === "failed";
   const { theme, toggleTheme } = useTheme();
   const [open, setOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     setOpen(false);
@@ -132,6 +134,12 @@ export default function TopBar() {
         </nav>
 
         <div className="topbar-user">
+          {user && !user.sample && (
+            <button type="button" className="submit-run-button" onClick={() => setSubmitting(true)} title="Submit a run">
+              <UploadIcon />
+              <span>SUBMIT RUN</span>
+            </button>
+          )}
           <button
             type="button"
             className="theme-toggle"
@@ -153,6 +161,7 @@ export default function TopBar() {
           Steam sign-in didn’t complete. Please try again.
         </div>
       )}
+      {submitting && user && <SubmitRun user={user} onClose={() => setSubmitting(false)} />}
     </header>
   );
 }

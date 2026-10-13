@@ -47,6 +47,18 @@ pub struct ServiceConfig {
     pub token: Option<String>,
 }
 
+/// Submitted demos: the Node parser that reads them (`server/demo-parser`) and where uploads are
+/// kept. Submissions by players are refused while `parser` or `storage` is unset.
+#[derive(Deserialize, Debug, Clone, Default)]
+pub struct DemoConfig {
+    /// Path to `parse_demo.mjs` (with its `node_modules` installed).
+    pub parser: Option<String>,
+    /// Node executable (default `node`).
+    pub node: Option<String>,
+    /// Directory submitted demos are saved to.
+    pub storage: Option<String>,
+}
+
 /// Wrapper for all other config variables.
 #[derive(Deserialize, Debug, Clone)]
 pub struct Config {
@@ -57,6 +69,8 @@ pub struct Config {
     pub backblaze: BackBlazeConfig,
     #[serde(default)]
     pub service: ServiceConfig,
+    #[serde(default)]
+    pub demo: DemoConfig,
 }
 // Extracts the environment variables from the .env file at the src level.
 impl Config {

@@ -41,7 +41,10 @@
 #[macro_use]
 extern crate serde_derive;
 use actix_cors::Cors;
-use actix_web::{middleware::Logger, web, App, HttpServer};
+use actix_web::{
+    middleware::{Compress, Logger},
+    web, App, HttpServer,
+};
 use anyhow::{Error, Result};
 use dotenv::dotenv;
 use env_logger::Env;
@@ -80,6 +83,10 @@ async fn main() -> Result<(), Error> {
     let default_cat_ids = crate::tools::helpers::get_default_cat_ids(&pool).await;
     // Construct the cache.
     let init_data = crate::tools::cache::CacheState::new(&pool, &config, default_cat_ids).await;
+    // Aggregated points, computed by the server and kept in memory (built in the background now).
+    let points_cache = web::Data::new(crate::tools::points_cache::PointsCache::default());
+    let _ = crate::tools::points_cache::POINTS.set(points_cache.clone().into_inner());
+    points_cache.clone().into_inner().start(pool.clone());
     println!(
         "Server starting at http://{}:{}/",
         config.server.host, config.server.port
@@ -94,10 +101,12 @@ async fn main() -> Result<(), Error> {
             .max_age(3600);
         App::new()
             .wrap(cors)
+            .wrap(Compress::default())
             .wrap(Logger::default())
             .app_data(web::Data::new(pool.clone()))
             .app_data(web::Data::new(config.clone()))
             .app_data(web::Data::new(init_data.clone()))
+            .app_data(points_cache.clone())
             .configure(api::v1::handlers::init::init)
     })
     .bind(format!("{}:{}", host, port))?
