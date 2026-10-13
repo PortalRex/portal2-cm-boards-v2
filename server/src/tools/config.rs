@@ -1,4 +1,7 @@
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    OnceLock,
+};
 use config::ConfigError;
 use serde::Deserialize;
 
@@ -66,12 +69,23 @@ pub struct DemoConfig {
 /// How co-op runs are ranked (`RANKS.COOP`). `run` (the default): a run takes one rank, so the
 /// next team down is rank 2. `player`: each player takes a rank, so a run fills two (1, 1, 3),
 /// as the old boards ranked them.
+///
+/// `RANKS.COOP_PROOF_SINCE` (UTC, e.g. `2026-11-01 00:00:00`, set to when the site goes fully
+/// online): co-op runs from then on that rank in the top 200 stay pending for both players until
+/// each has added a demo. Unset, the rule is off and one demo verifies both halves.
 #[derive(Deserialize, Debug, Clone, Default)]
 pub struct RanksConfig {
     pub coop: Option<String>,
+    pub coop_proof_since: Option<String>,
 }
 
 static COOP_BY_RUN: AtomicBool = AtomicBool::new(true);
+static COOP_PROOF_SINCE: OnceLock<Option<String>> = OnceLock::new();
+
+/// When co-op runs started needing both players' demos (see [RanksConfig]), if set.
+pub fn coop_proof_since() -> Option<&'static str> {
+    COOP_PROOF_SINCE.get().and_then(|s| s.as_deref())
+}
 
 /// Whether co-op runs take one rank each (see [RanksConfig]).
 pub fn coop_by_run() -> bool {
@@ -83,6 +97,13 @@ impl RanksConfig {
     pub fn apply(&self) {
         let by_player = self.coop.as_deref().map(str::trim).is_some_and(|m| m.eq_ignore_ascii_case("player"));
         COOP_BY_RUN.store(!by_player, Ordering::Relaxed);
+        let since = self.coop_proof_since.as_deref().map(str::trim).filter(|s| !s.is_empty());
+        if let Some(s) = since {
+            if chrono::NaiveDateTime::parse_from_str(s, "%Y-%m-%d %H:%M:%S").is_err() {
+                panic!("RANKS.COOP_PROOF_SINCE must look like 2026-11-01 00:00:00 (UTC), got {s:?}");
+            }
+        }
+        let _ = COOP_PROOF_SINCE.set(since.map(str::to_string));
     }
 }
 

@@ -118,6 +118,41 @@ pub struct NewRun<'a> {
 /// points, not on the boards) until a demo is added or staff verify them.
 pub const PROOF_RANK: i32 = 200;
 
+/// Applies the co-op proof rule to a run's halves after a demo or partner change: co-op runs from
+/// `RANKS.COOP_PROOF_SINCE` on that rank in the top [PROOF_RANK] need a demo from each player,
+/// and until both halves have one (and the partner is known) both stay pending. Returns whether
+/// the run is now verified, or None when the rule doesn't apply (it's off, an older run, or one
+/// outside the top [PROOF_RANK]), leaving its halves as they were.
+pub async fn settle_coop_proof(tx: &mut sqlx::Transaction<'_, sqlx::Postgres>, coop_id: i64) -> Result<Option<bool>, sqlx::Error> {
+    let Some(since) = crate::tools::config::coop_proof_since() else {
+        return Ok(None);
+    };
+    // (id, is the placeholder, has a demo, rank when submitted, submitted since the cutoff)
+    let halves: Vec<(i64, bool, bool, Option<i32>, bool)> = sqlx::query_as(
+        r#"
+            SELECT cl.id, cl.profile_number = $2, cl.demo_id IS NOT NULL, cl.post_rank,
+                COALESCE(cl.timestamp >= $3::timestamp, false)
+            FROM coop_bundled AS cb JOIN changelog AS cl ON cl.id IN (cb.cl_id1, cb.cl_id2)
+            WHERE cb.id = $1
+        "#,
+    )
+    .bind(coop_id)
+    .bind(FILLER)
+    .bind(since)
+    .fetch_all(&mut **tx)
+    .await?;
+    let real: Vec<_> = halves.iter().filter(|h| !h.1).collect();
+    let is_new = !real.is_empty() && real.iter().all(|h| h.4);
+    let needs_proof = real.iter().any(|h| h.3.is_some_and(|r| r <= PROOF_RANK));
+    if !is_new || !needs_proof {
+        return Ok(None);
+    }
+    let verified = real.len() == 2 && real.iter().all(|h| h.2);
+    let ids: Vec<i64> = real.iter().map(|h| h.0).collect();
+    sqlx::query("UPDATE changelog SET verified = $2 WHERE id = ANY($1)").bind(&ids).bind(verified).execute(&mut **tx).await?;
+    Ok(Some(verified))
+}
+
 /// Players whose best (verified, unbanned, in the category) is faster than a time.
 const FASTER_PLAYERS: &str = r#"
     SELECT COUNT(DISTINCT cl.profile_number) FROM changelog AS cl
@@ -223,8 +258,10 @@ pub async fn proof_target(pool: &PgPool, cl_id: i64) -> Result<Option<ProofTarge
     .await
 }
 
-/// Attaches a demo to a pending run and verifies it (both halves of a co-op run).
-pub async fn attach_proof(pool: &PgPool, run: &ProofTarget, demo_file: &str, partner_name: Option<&str>, portals: Option<i32>) -> Result<(), sqlx::Error> {
+/// Attaches a demo to a pending run and verifies it (both halves of a co-op run). A new co-op run
+/// in the top [PROOF_RANK] is only verified once both players have added a demo (see
+/// [settle_coop_proof]); returns whether the run is verified now.
+pub async fn attach_proof(pool: &PgPool, run: &ProofTarget, demo_file: &str, partner_name: Option<&str>, portals: Option<i32>) -> Result<bool, sqlx::Error> {
     let mut tx = pool.begin().await?;
     let demo_id: i64 = sqlx::query_scalar("INSERT INTO demos (file_id, partner_name, parsed_successfully, cl_id) VALUES ($1, $2, true, $3) RETURNING id")
         .bind(demo_file)
@@ -233,14 +270,21 @@ pub async fn attach_proof(pool: &PgPool, run: &ProofTarget, demo_file: &str, par
         .fetch_one(&mut *tx)
         .await?;
     sqlx::query("UPDATE changelog SET demo_id = $2, verified = true, portals = $3 WHERE id = $1").bind(run.id).bind(demo_id).bind(portals).execute(&mut *tx).await?;
+    let mut verified = true;
     if let Some(coop_id) = run.coop_id {
-        sqlx::query("UPDATE changelog SET verified = true WHERE id IN (SELECT unnest(ARRAY[cl_id1, cl_id2]) FROM coop_bundled WHERE id = $1) AND profile_number <> $2")
-            .bind(coop_id)
-            .bind(FILLER)
-            .execute(&mut *tx)
-            .await?;
+        match settle_coop_proof(&mut tx, coop_id).await? {
+            Some(v) => verified = v,
+            None => {
+                sqlx::query("UPDATE changelog SET verified = true WHERE id IN (SELECT unnest(ARRAY[cl_id1, cl_id2]) FROM coop_bundled WHERE id = $1) AND profile_number <> $2")
+                    .bind(coop_id)
+                    .bind(FILLER)
+                    .execute(&mut *tx)
+                    .await?;
+            }
+        }
     }
-    tx.commit().await
+    tx.commit().await?;
+    Ok(verified)
 }
 
 /// Where a submitted run was recorded.
@@ -252,6 +296,8 @@ pub struct Recorded {
     pub map: BoardMap,
     /// Every board it counts on: "Game · Map".
     pub boards: Vec<String>,
+    /// A co-op run waiting for a demo from the other player (or for its partner to be known).
+    pub waiting_for_partner: bool,
 }
 
 async fn personal_best(tx: &mut sqlx::Transaction<'_, sqlx::Postgres>, map: &BoardMap, profile_number: &str) -> Result<Option<(i64, i32)>, sqlx::Error> {
@@ -364,6 +410,13 @@ pub async fn insert_run(pool: &PgPool, run: NewRun<'_>) -> Result<Result<Recorde
             }
         }
     }
+    let mut waiting_for_partner = false;
+    if run.map.is_coop {
+        let coop_id: Option<i64> = sqlx::query_scalar("SELECT coop_id FROM changelog WHERE id = $1").bind(id).fetch_one(&mut *tx).await?;
+        if let Some(coop_id) = coop_id {
+            waiting_for_partner = settle_coop_proof(&mut tx, coop_id).await? == Some(false);
+        }
+    }
     let boards: Vec<String> = sqlx::query_scalar(
         r#"
             SELECT g.game_name || ' · ' || m.name FROM changelog AS x
@@ -376,7 +429,7 @@ pub async fn insert_run(pool: &PgPool, run: NewRun<'_>) -> Result<Result<Recorde
     .fetch_all(&mut *tx)
     .await?;
     tx.commit().await?;
-    Ok(Ok(Recorded { changelog_id: id, map: board, boards }))
+    Ok(Ok(Recorded { changelog_id: id, map: board, boards, waiting_for_partner }))
 }
 
 /// Board time format: 1:23.45 / 23.45.

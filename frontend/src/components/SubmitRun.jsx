@@ -228,8 +228,15 @@ export default function SubmitRun({ user, onClose }) {
         {done ? (
           <div className="sr-done">
             <p>
-              <strong>{formatScore(done.score)}</strong> on {doneMap ? <Link to={mapPath(doneMap)} onClick={onClose}>{done.map_name}</Link> : done.map_name} is on the boards.
+              <strong>{formatScore(done.score)}</strong> on {doneMap ? <Link to={mapPath(doneMap)} onClick={onClose}>{done.map_name}</Link> : done.map_name}{" "}
+              {done.waiting_for_partner ? "has been recorded." : "is on the boards."}
             </p>
+            {done.waiting_for_partner && (
+              <p className="sr-muted">
+                It's pending until your partner adds their demo too: they can submit it here, or add it from the run's
+                details.
+              </p>
+            )}
             {done.boards?.length > 1 && (
               <p className="sr-muted">
                 Counted on: {done.boards.join(", ")}

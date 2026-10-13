@@ -382,27 +382,36 @@ function AdminTools({ run, game }) {
 }
 
 // A pending run without a demo: its player (or co-op partner), or staff, can add the demo.
-// The server checks the map, the exact time and the player, then verifies the run.
+// The server checks the map, the exact time and the player, then verifies the run. A co-op run
+// needs a demo from each player, so it keeps the button while one is missing.
 function PendingProof({ run }) {
   const user = useCurrentUser();
-  const [state, setState] = useState({ busy: false, done: false, error: null });
+  const [state, setState] = useState({ busy: false, done: false, verified: false, error: null });
   const changelogId = run.changelogId ?? run.id;
-  if (!user || user.sample || run.verified !== false || run.banned || run.demoId || changelogId == null) return null;
+  const coop = (run.players || []).length > 1;
+  if (!user || user.sample || run.verified !== false || run.banned || (run.demoId && !coop) || changelogId == null) return null;
   const mine = (run.players || []).some((p) => p.profileNumber === user.profileNumber);
   if (!mine && !isStaff(user)) return null;
   const upload = async (file) => {
-    setState({ busy: true, done: false, error: null });
+    setState({ busy: true, done: false, verified: false, error: null });
     try {
-      await addRunDemo(changelogId, file);
-      setState({ busy: false, done: true, error: null });
+      const verified = await addRunDemo(changelogId, file);
+      setState({ busy: false, done: true, verified, error: null });
       bumpDataVersion();
     } catch (e) {
-      setState({ busy: false, done: false, error: e.message });
+      setState({ busy: false, done: false, verified: false, error: e.message });
     }
   };
+  const message = state.done
+    ? state.verified
+      ? "Demo added. The run is verified."
+      : "Demo added. The run stays pending until your partner adds theirs."
+    : coop
+      ? "This run is pending until both players have added their demo."
+      : "This run is pending until its demo is added.";
   return (
     <div className="sd-pending">
-      <span>{state.done ? "Demo added. The run is verified." : "This run is pending until its demo is added."}</span>
+      <span>{message}</span>
       {!state.done && (
         <label className={`sd-pending-upload${state.busy ? " is-busy" : ""}`}>
           {state.busy ? "Checking demo…" : "Add demo"}

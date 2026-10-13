@@ -623,13 +623,16 @@ export function previewDemo(file) {
   return postForm("/submissions/preview", form);
 }
 
-// Adds the demo for a pending run; the server checks it matches and verifies the run.
+// Adds the demo for a pending run; the server checks it matches and verifies the run. Resolves
+// to whether the run is verified now (a new co-op run waits for both players' demos).
 export async function addRunDemo(changelogId, file) {
   const form = new FormData();
   form.append("demo", file);
   const res = await fetch(apiUrl(`/runs/${changelogId}/demo`), { method: "POST", body: form });
   if (res.status === 401) throw new Error("Sign in required.");
   if (!res.ok) throw new Error((await res.text()) || `Request failed (${res.status})`);
+  const body = res.headers.get("content-type")?.includes("application/json") ? await res.json() : null;
+  return body?.verified ?? true;
 }
 
 // Submits a run. `fields` holds youtube, comment, mel_mode and the admin-only map_id, time,

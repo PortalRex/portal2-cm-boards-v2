@@ -309,12 +309,15 @@ async fn submission_create(
         "score": score,
         "partner": partner.map(|p| p.0),
         "boards": recorded.boards,
+        "waiting_for_partner": recorded.waiting_for_partner,
     })))
 }
 
 /// **POST** Add the demo for a pending run (form field `demo`). The demo must be of the run's
 /// map, with the run's exact time, and have the uploader in it; the run is then verified.
-/// The run's player (or co-op partner) can do this, and staff for anyone's run.
+/// The run's player (or co-op partner) can do this, and staff for anyone's run. A partner's demo
+/// goes on their own half; a new co-op run in the top 200 is verified once both halves have one.
+/// Responds `{ "verified": bool }`.
 #[post("/runs/{id}/demo")]
 async fn run_add_demo(
     user: SignedIn,
@@ -328,14 +331,45 @@ async fn run_add_demo(
     let Some(run) = submissions::proof_target(pool.get_ref(), id.into_inner()).await? else {
         return Ok(HttpResponse::NotFound().body("No such run."));
     };
-    let players: Vec<&str> = [Some(run.profile_number.as_str()), run.p_id1.as_deref(), run.p_id2.as_deref()]
+    let players: Vec<String> = [Some(run.profile_number.as_str()), run.p_id1.as_deref(), run.p_id2.as_deref()]
         .into_iter()
         .flatten()
         .filter(|p| *p != moderation::FILLER)
+        .map(str::to_string)
         .collect();
     let staff = user.is_admin();
-    if !staff && !players.contains(&user.profile_number.as_str()) {
+    if !staff && !players.contains(&user.profile_number) {
         return Ok(HttpResponse::Forbidden().body("You can only add demos to your own runs."));
+    }
+    // A co-op partner's demo goes on their own half of the run.
+    let mut run = run;
+    if let Some(coop_id) = run.coop_id.filter(|_| user.profile_number != run.profile_number && players.contains(&user.profile_number)) {
+        let own: Option<i64> = sqlx::query_scalar(
+            "SELECT cl.id FROM coop_bundled AS cb JOIN changelog AS cl ON cl.id IN (cb.cl_id1, cb.cl_id2) WHERE cb.id = $1 AND cl.profile_number = $2",
+        )
+        .bind(coop_id)
+        .bind(&user.profile_number)
+        .fetch_optional(pool.get_ref())
+        .await?;
+        match own {
+            Some(own_id) => match submissions::proof_target(pool.get_ref(), own_id).await? {
+                Some(half) => run = half,
+                None => return Ok(HttpResponse::NotFound().body("No such run.")),
+            },
+            None => {
+                let is_new: bool = match crate::tools::config::coop_proof_since() {
+                    Some(since) => sqlx::query_scalar("SELECT COALESCE(timestamp >= $2::timestamp, false) FROM changelog WHERE id = $1")
+                        .bind(run.id)
+                        .bind(since)
+                        .fetch_one(pool.get_ref())
+                        .await?,
+                    None => false,
+                };
+                if is_new {
+                    return Ok(bad("Submit this demo with Submit Run to add your half of the run."));
+                }
+            }
+        }
     }
     if run.banned {
         return Ok(bad("This run is hidden from the boards."));
@@ -367,7 +401,7 @@ async fn run_add_demo(
             None => "This demo doesn't contain a finished challenge mode run.".to_string(),
         }));
     }
-    if !info.players.iter().any(|p| players.contains(&p.steam_id.as_str())) {
+    if !info.players.iter().any(|p| players.contains(&p.steam_id)) {
         return Ok(bad("This run's player isn't in this demo."));
     }
     let name = format!("{}_{}_{}_{}.dem", run.map_id, run.score, run.profile_number, &crate::tools::auth::random_token()[..10]);
@@ -375,14 +409,15 @@ async fn run_add_demo(
         return Ok(bad(e));
     }
     let partner_name = info.players.iter().find(|p| p.steam_id != run.profile_number).map(|p| p.name.clone());
-    submissions::attach_proof(pool.get_ref(), &run, &name, if run.is_coop { partner_name.as_deref() } else { None }, info.portal_score).await?;
+    let verified = submissions::attach_proof(pool.get_ref(), &run, &name, if run.is_coop { partner_name.as_deref() } else { None }, info.portal_score).await?;
 
     cache.update_current_state(if run.is_coop { COOP_PREVIEWS } else { SP_PREVIEWS }, false).await;
     if cache.default_cat_ids.contains_key(&run.map_id) {
         cache.reload_rank(pool.get_ref(), &run.map_id, &config, run.is_coop).await;
     }
     invalidate_points().await;
-    Ok(HttpResponse::NoContent().finish())
+    // `verified` false: a co-op run still waiting for the other player's demo.
+    Ok(HttpResponse::Ok().json(json!({ "verified": verified })))
 }
 
 /// **GET** Download a demo by its id (as runs list it in `demo_id`).

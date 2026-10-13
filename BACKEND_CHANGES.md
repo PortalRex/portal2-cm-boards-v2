@@ -59,6 +59,7 @@ New environment variables for the server (dotted names, as in `server/.env.examp
 | `DEMO.STORAGE` | For submissions | Directory submitted demos are saved in. |
 | `DEMO.NODE` | No | Node executable if `node` isn't on the PATH (Node 18+). |
 | `RANKS.COOP` | No | How co-op runs are ranked: `run` (default) gives each run one rank, so the next team down is rank 2; `player` gives each player a rank, so a run fills two (1, 1, 3) as the old boards did. See [§6](#6-changed-behaviour-of-existing-endpoints). |
+| `RANKS.COOP_PROOF_SINCE` | At launch | UTC time (`2026-11-01 00:00:00`) from which new co-op runs in the top 200 need a demo from each player; set it to when the site goes fully online. Unset = off (one demo verifies both halves). See [§8](#8-run-submissions-and-demos). |
 | `DEMO.ARCHIVE` | For old demos | Folders holding the old boards' demo files (several separated by `;`, searched recursively). Needed for downloading imported runs' demos. |
 
 `STEAM.API_KEY` (existing) is now also used to fill in names and avatars at sign-in, to create accounts for new co-op
@@ -227,6 +228,12 @@ All under `/api/v1`. Auth: **public**, **signed in**, **staff** (any tier or ser
   - The response lists every board it counted on.
 - **Pending proof**: `POST /runs/{id}/demo` checks the demo's map, exact time and that the run's player is in it, then
   attaches it and verifies the run (both co-op halves).
+- **Co-op proof from both players** (from `RANKS.COOP_PROOF_SINCE`; off while unset): a co-op run that ranks in the
+  top 200 stays pending for both players until each has added their own demo, then both halves are verified together.
+  A run whose partner isn't known stays pending (staff can set the partner or verify it). The partner adds their demo
+  by submitting it (it pairs with the run) or with **Add demo** on their own half; `POST /runs/{id}/demo` puts a
+  partner's demo on their half and answers `{ "verified": bool }`, and `POST /submissions` returns
+  `waiting_for_partner`. Runs from before the cutoff keep the old rule. Staff can still verify by hand.
 - **Downloads** (`GET /demos/{id}/file`): submitted demos are read from `DEMO.STORAGE` by `demos.file_id`. Imported demos
   come from the `DEMO.ARCHIVE` folders, indexed by file name once at startup (`server/src/tools/demo_files.rs`; ~185k
   files). The old boards named those files `Map_score_steamid_N.dem` with their own id as N: for Portal 2 that's the
