@@ -6,9 +6,9 @@ import { AutorenderLink, YouTubeLink, DemoLink } from "../../components/RunMedia
 import { fetchPreviews } from "../../api/boards";
 import { GAMES, MODE_LABELS, chaptersFor, isMultiplayerMode, mapPath } from "../../data/maps";
 import useApi from "../../hooks/useApi";
-import { formatScore } from "../../lib/format";
 import background from "../../scenes/global/img/Background.png";
 import "./MapList.css";
+import { TimeButton } from "../../components/RunHistory";
 
 // Built when rendering: the game list comes from the server's catalog at startup.
 const gameOptions = () => Object.values(GAMES).map((g) => ({ value: g.id, label: g.label }));
@@ -111,7 +111,7 @@ function MapCard({ map, scores }) {
               ))}
             </div>
             <ScoreIcons entry={wr} game={map.game} size={22} slots={slots} />
-            <span className="mc-wr-time num">{formatScore(wr.score)}</span>
+            <TimeButton score={wr.score} players={wr.players} map={map} className="mc-wr-time" />
           </>
         ) : (
           <span className="muted">{scores ? "No scores yet" : ""}</span>
@@ -129,7 +129,7 @@ function MapCard({ map, scores }) {
               ))}
             </span>
             <ScoreIcons entry={entry} game={map.game} size={18} slots={slots} />
-            <span className="mc-time num">{formatScore(entry.score)}</span>
+            <TimeButton score={entry.score} players={entry.players} map={map} className="mc-time" />
           </li>
         ))}
       </ol>

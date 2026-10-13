@@ -3,8 +3,8 @@ import { Navigate, useParams } from "react-router-dom";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import Layout from "../../components/Layout";
 import { Panel, Select, Pagination, SearchBox, Avatar, PlayerLink, OutlineButton, Loading, EmptyState, RankNumber } from "../../components/ui";
-import { PinIcon, TrophyIcon, CommentIcon, HistoryIcon, WikiIcon } from "../../components/Icons";
-import { AutorenderLink, YouTubeLink, RunVideo, useRenderedSet, DemoLink } from "../../components/RunMedia";
+import { PinIcon, TrophyIcon, HistoryIcon, WikiIcon } from "../../components/Icons";
+import { AutorenderLink, YouTubeLink, RunVideo, useRenderedSet, DemoLink, CommentButton } from "../../components/RunMedia";
 import RunDetails from "../../components/RunDetails";
 import { toggleOnRowClick } from "../../lib/rows";
 import { coopRoles, tintFor, useRoleOverrides } from "../../lib/coopRoles";
@@ -17,6 +17,7 @@ import useApi from "../../hooks/useApi";
 import { useDataVersion } from "../../lib/dataVersion";
 import { formatScore, timeAgo, formatDate, parseTimestamp } from "../../lib/format";
 import { shownNote } from "../../lib/notes";
+import { TimeButton } from "../../components/RunHistory";
 import { BANNED_OPTIONS, RANK_OPTIONS, RUN_LIMITS, RUN_TOGGLES, TIME_OPTIONS } from "../../lib/runFilters";
 import "./MapPage.css";
 
@@ -316,9 +317,11 @@ function Leaderboard({ map, board }) {
                     ),
                   )}
                   <span className="mp-ago muted">{timeAgo(e.timestamp)}</span>
-                  <span className="mp-time num end">{formatScore(e.score)}</span>
+                  <span className="mp-time num end">
+                    <TimeButton score={e.score} players={players} map={map} />
+                  </span>
                   <span className="mp-icons">
-                    <CommentIcon className={e.note ? "" : "is-off"} titleAccess={e.note || "No comment"} />
+                    <CommentButton note={e.note} />
                     <AutorenderLink run={e} game={map.game} rendered={rendered} />
                     <YouTubeLink id={e.youtubeId} />
                     <DemoLink demoId={e.demoId} />

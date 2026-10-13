@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { fetchShareIds, renderRequestUrl, videoLinks } from "../api/autorender";
 import { demoUrl } from "../api/client";
-import { DownloadIcon, PlayIcon, YouTubeIcon, VideocamIcon } from "./Icons";
+import { CommentIcon, DownloadIcon, PlayIcon, YouTubeIcon, VideocamIcon } from "./Icons";
 import { YouTubeEmbed } from "./ui";
 import "./RunMedia.css";
 
@@ -65,6 +66,66 @@ export function YouTubeLink({ id, size }) {
     <a href={youtubeUrl(id)} target="_blank" rel="noreferrer" className="run-link" title="Watch on YouTube">
       <YouTubeIcon style={style} />
     </a>
+  );
+}
+
+// A run's comment icon: hovering it, or clicking it (which doesn't open the row), shows just the
+// comment in a small bubble above it. Greyed out without a comment.
+export function CommentButton({ note, className = "" }) {
+  const ref = useRef(null);
+  const [pinned, setPinned] = useState(false);
+  const [hover, setHover] = useState(false);
+  const [pos, setPos] = useState(null);
+  const open = Boolean(note) && (pinned || hover);
+  const place = () => {
+    const r = ref.current?.getBoundingClientRect();
+    // Centred over the icon, but kept inside the window (the bubble is up to 320px wide).
+    const half = Math.min(160, window.innerWidth * 0.4);
+    if (r) setPos({ x: Math.min(Math.max(r.left + r.width / 2, half + 8), window.innerWidth - half - 8), y: r.top });
+  };
+  // A pinned bubble closes on a click elsewhere or when the page scrolls (it's fixed in place).
+  useEffect(() => {
+    if (!pinned) return undefined;
+    const close = (e) => !ref.current?.contains(e.target) && setPinned(false);
+    const scroll = () => setPinned(false);
+    document.addEventListener("pointerdown", close);
+    window.addEventListener("scroll", scroll, true);
+    return () => {
+      document.removeEventListener("pointerdown", close);
+      window.removeEventListener("scroll", scroll, true);
+    };
+  }, [pinned]);
+  if (!note) return <CommentIcon className={`is-off ${className}`} titleAccess="No comment" />;
+  return (
+    <span className={`comment-btn ${className}`} ref={ref}>
+      <button
+        type="button"
+        className="run-link"
+        aria-label="Show comment"
+        aria-expanded={open}
+        onMouseEnter={() => {
+          place();
+          setHover(true);
+        }}
+        onMouseLeave={() => setHover(false)}
+        onClick={(e) => {
+          e.stopPropagation();
+          place();
+          setPinned((p) => !p);
+        }}
+      >
+        <CommentIcon />
+      </button>
+      {/* On the page body: a row's hover filter would otherwise pin a fixed bubble to the row. */}
+      {open &&
+        pos &&
+        createPortal(
+          <span className="comment-bubble" role="tooltip" style={{ left: pos.x, top: pos.y }}>
+            {note}
+          </span>,
+          document.body,
+        )}
+    </span>
   );
 }
 

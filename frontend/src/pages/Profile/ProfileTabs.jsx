@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Select, Avatar, PlayerLink, EmptyState, Loading, RankNumber } from "../../components/ui";
-import { ChevronDownIcon, CommentIcon, TriangleRight } from "../../components/Icons";
-import { AutorenderLink, YouTubeLink, useRenderedSet, DemoLink } from "../../components/RunMedia";
+import { ChevronDownIcon, TriangleRight } from "../../components/Icons";
+import { AutorenderLink, YouTubeLink, useRenderedSet, DemoLink, CommentButton } from "../../components/RunMedia";
 import RunDetails from "../../components/RunDetails";
 import { toggleOnRowClick } from "../../lib/rows";
 import { fetchGameProfile, fetchProfileStats } from "../../api/client";
@@ -14,6 +14,7 @@ import { formatScore, formatDelta, formatDate, timeAgo } from "../../lib/format"
 import { youtubeChannelLabel, youtubeChannelUrl } from "../../lib/youtube";
 import { ROLE_LABELS } from "../../hooks/useCurrentUser";
 import { shownNote } from "../../lib/notes";
+import { TimeButton } from "../../components/RunHistory";
 
 // Portal 2's boards, then a tab per other game (Mel, seasons, ...), then Legacy and Info.
 const profileTabs = () => [
@@ -84,6 +85,7 @@ export default function ProfileTabs({ profile }) {
             key={tab}
             game={tab.slice(5)}
             profileNumber={profile.player.profileNumber}
+            player={profile.player}
             selectedMap={selectedMap}
             onSelectMap={setSelectedMap}
             sort={sort}
@@ -114,7 +116,7 @@ function ModeTab({ mode, profile, selectedMap, onSelectMap, sort, onSort }) {
       <Summary chapters={chapters} scores={profile.scores} />
 
       {orderedChapters(chapters, profile.scores, sort).map((chapter) => (
-        <ChapterTable key={chapter.dbId ?? `${chapter.mode}-${chapter.name}`} chapter={chapter} scores={profile.scores} coop={mode === "coop"} game="portal2" rendered={rendered} selectedMap={selectedMap} onSelectMap={onSelectMap} />
+        <ChapterTable key={chapter.dbId ?? `${chapter.mode}-${chapter.name}`} chapter={chapter} scores={profile.scores} coop={mode === "coop"} game="portal2" rendered={rendered} selectedMap={selectedMap} onSelectMap={onSelectMap} player={profile.player} />
       ))}
 
       <div className="pf-bottom">
@@ -126,7 +128,7 @@ function ModeTab({ mode, profile, selectedMap, onSelectMap, sort, onSort }) {
 }
 
 // Results in another game (Portal Stories: Mel, a season, ...), board by board.
-function GameTab({ game, profileNumber, selectedMap, onSelectMap, sort, onSort }) {
+function GameTab({ game, profileNumber, player, selectedMap, onSelectMap, sort, onSort }) {
   const modes = GAMES[game]?.modes || [];
   const [mode, setMode] = useState(modes[0]);
   const version = useDataVersion();
@@ -159,6 +161,7 @@ function GameTab({ game, profileNumber, selectedMap, onSelectMap, sort, onSort }
           game={game}
           selectedMap={selectedMap}
           onSelectMap={onSelectMap}
+          player={player}
         />
       ))}
       <div className="pf-bottom">
@@ -200,7 +203,7 @@ function Summary({ chapters, scores }) {
   );
 }
 
-function ChapterTable({ chapter, scores, coop, game, rendered, selectedMap, onSelectMap }) {
+function ChapterTable({ chapter, scores, coop, game, rendered, selectedMap, onSelectMap, player }) {
   const [openId, setOpenId] = useState(null);
   return (
     <section className="pf-chapter">
@@ -245,7 +248,7 @@ function ChapterTable({ chapter, scores, coop, game, rendered, selectedMap, onSe
                   {note && <span className="pf-note"> · {note}</span>}
                 </small>
               </span>
-              <span className="end num">{s?.score != null ? formatScore(s.score) : ""}</span>
+              <span className="end num">{s?.score != null ? <TimeButton score={s.score} players={[player, s.partner]} map={m} /> : ""}</span>
               <span className="end num">{s?.deltaNext != null ? formatDelta(s.deltaNext) : ""}</span>
               <span className="end num">{s?.deltaWr != null ? formatDelta(s.deltaWr) : ""}</span>
               <span className="end num">{s?.points != null ? s.points.toFixed(1) : ""}</span>
@@ -260,7 +263,7 @@ function ChapterTable({ chapter, scores, coop, game, rendered, selectedMap, onSe
                 </span>
               )}
               <span className="pf-cicons">
-                {s ? <CommentIcon className={s.note ? "pf-comment" : "is-off"} titleAccess={s.note || "No comment"} /> : <span className="pf-icon-gap" />}
+                {s ? <CommentButton note={s.note} /> : <span className="pf-icon-gap" />}
                 {s ? <AutorenderLink run={s} game={game} rendered={rendered} /> : <span className="pf-icon-gap" />}
                 <YouTubeLink id={s?.youtubeId} />
                 <DemoLink demoId={s?.demoId} />
