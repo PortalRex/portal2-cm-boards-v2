@@ -3,8 +3,8 @@ import { Link, useParams } from "react-router-dom";
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import Layout from "../../components/Layout";
 import { Card, Avatar, Flag, Loading, EmptyState } from "../../components/ui";
-import { GlobeIcon, HistoryIcon, SparkleIcon, TrophyIcon, SteamIcon, TwitchIcon, YouTubeIcon, StarIcon, StarOutlineIcon } from "../../components/Icons";
-import { fetchPointsHistory, fetchProfile } from "../../api/client";
+import { GlobeIcon, HistoryIcon, PeakIcon, SparkleIcon, TrophyIcon, SteamIcon, TwitchIcon, YouTubeIcon, StarIcon, StarOutlineIcon } from "../../components/Icons";
+import { fetchPointsHistory, fetchPointsPeak, fetchProfile } from "../../api/client";
 import { countryName } from "../../data/countries";
 import useApi from "../../hooks/useApi";
 import { useDataVersion } from "../../lib/dataVersion";
@@ -83,20 +83,21 @@ export default function Profile() {
             </Card>
 
             <div className="pf-side">
-              <Card icon={SparkleIcon} title="Average Place">
+              <Card icon={SparkleIcon} title="Average Place" className="pf-side-card">
                 <div className="stat-row">
                   <Stat value={fmtAvg(p.averagePlace.sp)} label="Single Player" />
                   <Stat value={fmtAvg(p.averagePlace.coop)} label="Cooperative" />
                   <Stat value={fmtAvg(p.averagePlace.overall)} label="Overall" />
                 </div>
               </Card>
-              <Card icon={TrophyIcon} title="World Records">
+              <Card icon={TrophyIcon} title="World Records" className="pf-side-card">
                 <div className="stat-row">
                   <Stat value={p.worldRecords.sp} label="Single Player" />
                   <Stat value={p.worldRecords.coop} label="Cooperative" />
                   <Stat value={p.worldRecords.sp + p.worldRecords.coop} label="Overall" />
                 </div>
               </Card>
+              <PeakPoints profileNumber={p.player.profileNumber} />
             </div>
           </div>
 
@@ -122,6 +123,29 @@ function Ordinal({ n }) {
       {n}
       <small>{ordinalSuffix(n)}</small>
     </>
+  );
+}
+
+// Highest points the player has ever had per board, with the date (hover) it was reached.
+function PeakPoints({ profileNumber }) {
+  const version = useDataVersion();
+  const peak = useApi(() => fetchPointsPeak(profileNumber), [profileNumber, version]);
+  const one = (key, label) => {
+    const v = peak.data?.[key];
+    return (
+      <Stat value={v ? Math.round(v.points) : "–"} label={label}>
+        {v && <span className="pf-peak-date num">{formatDate(v.date)}</span>}
+      </Stat>
+    );
+  };
+  return (
+    <Card icon={PeakIcon} title="Peak Points" className="pf-side-card">
+      <div className="stat-row">
+        {one("sp", "Single Player")}
+        {one("coop", "Cooperative")}
+        {one("overall", "Overall")}
+      </div>
+    </Card>
   );
 }
 

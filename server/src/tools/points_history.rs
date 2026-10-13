@@ -113,42 +113,10 @@ async fn timeline(pool: &PgPool, game_id: i32) -> Result<Arc<Timeline>, sqlx::Er
     Ok(t)
 }
 
-/// One chart point: the date and the player's points per board key (`sp`, `coop`, ...), with
-/// `overall` their sum.
-#[derive(Debug, Serialize)]
-pub struct HistoryPoint {
-    pub date: NaiveDate,
-    #[serde(flatten)]
-    pub points: BTreeMap<String, f64>,
-}
-
-/// A player's points over time in a game, from their first run to today.
-pub async fn points_history(pool: &PgPool, game_id: i32, profile_number: &str) -> Result<Vec<HistoryPoint>, sqlx::Error> {
-    let t = timeline(pool, game_id).await?;
-    let Some(&me) = t.players.get(profile_number) else {
-        return Ok(Vec::new());
-    };
-    // Undated runs count from release (so today's total matches the boards), but the chart
-    // starts at the player's first dated run, not at release with points they likely got later.
-    let release = NaiveDate::from_ymd_opt(2011, 4, 19).unwrap().and_hms_opt(0, 0, 0).unwrap();
-    let mine = || t.maps.iter().flat_map(|m| m.runs.iter().filter(|r| r.1 == me).map(|r| r.0));
-    let Some(any) = mine().min() else {
-        return Ok(Vec::new());
-    };
-    let first = mine().filter(|ts| *ts != release).min().unwrap_or(any);
-    // Sample dates: from the first run to today, at least weekly, at most MAX_SAMPLES of them.
-    let start = first.date();
-    let today = Utc::now().date_naive();
-    let span = (today - start).num_days().max(1);
-    let step = (span / MAX_SAMPLES).max(7);
-    let mut dates: Vec<NaiveDate> = (0..=span / step).map(|i| start + ChronoDuration::days(i * step)).collect();
-    if dates.last() != Some(&today) {
-        dates.push(today);
-    }
-    let ends: Vec<NaiveDateTime> = dates.iter().map(|d| d.and_hms_opt(23, 59, 59).unwrap()).collect();
-
+/// The player's points per mode (in `t.modes` order) at each instant of `ends` (oldest first).
+fn totals_at(t: &Timeline, me: u32, ends: &[NaiveDateTime]) -> Vec<Vec<f64>> {
     let by_run = crate::tools::config::coop_by_run();
-    let mut totals = vec![vec![0.0f64; t.modes.len()]; dates.len()];
+    let mut totals = vec![vec![0.0f64; t.modes.len()]; ends.len()];
     for map in &t.maps {
         if !map.runs.iter().any(|r| r.1 == me) {
             continue;
@@ -205,6 +173,85 @@ pub async fn points_history(pool: &PgPool, game_id: i32, profile_number: &str) -
             }
         }
     }
+    totals
+}
+
+/// A player's highest points total, with when it was reached.
+#[derive(Debug, Serialize)]
+pub struct Peak {
+    pub points: f64,
+    pub date: NaiveDate,
+}
+
+/// A player's peak points per board key (`sp`, `coop`, ... and `overall`). Points only go up when
+/// the player sets a run (others can only pass them), so the peak is at one of their own runs:
+/// each is checked exactly. Undated runs count from release, as on the chart, but release itself
+/// isn't a candidate (the chart doesn't start there either).
+pub async fn points_peak(pool: &PgPool, game_id: i32, profile_number: &str) -> Result<BTreeMap<String, Peak>, sqlx::Error> {
+    let t = timeline(pool, game_id).await?;
+    let Some(&me) = t.players.get(profile_number) else {
+        return Ok(BTreeMap::new());
+    };
+    let release = NaiveDate::from_ymd_opt(2011, 4, 19).unwrap().and_hms_opt(0, 0, 0).unwrap();
+    let mut ends: Vec<NaiveDateTime> = t.maps.iter().flat_map(|m| m.runs.iter().filter(|r| r.1 == me && r.0 != release).map(|r| r.0)).collect();
+    ends.sort();
+    ends.dedup();
+    if ends.is_empty() {
+        ends.push(Utc::now().naive_utc());
+    }
+    let totals = totals_at(&t, me, &ends);
+    let mut peaks: BTreeMap<String, Peak> = BTreeMap::new();
+    let mut consider = |key: &str, value: f64, at: NaiveDateTime| {
+        let value = (value * 10.0).round() / 10.0;
+        let better = peaks.get(key).map_or(true, |p| value > p.points);
+        if better && value > 0.0 {
+            peaks.insert(key.to_string(), Peak { points: value, date: at.date() });
+        }
+    };
+    for (at, per_mode) in ends.iter().zip(&totals) {
+        for (mode, value) in t.modes.iter().zip(per_mode) {
+            consider(mode, *value, *at);
+        }
+        consider("overall", per_mode.iter().sum(), *at);
+    }
+    Ok(peaks)
+}
+
+/// One chart point: the date and the player's points per board key (`sp`, `coop`, ...), with
+/// `overall` their sum.
+#[derive(Debug, Serialize)]
+pub struct HistoryPoint {
+    pub date: NaiveDate,
+    #[serde(flatten)]
+    pub points: BTreeMap<String, f64>,
+}
+
+/// A player's points over time in a game, from their first run to today.
+pub async fn points_history(pool: &PgPool, game_id: i32, profile_number: &str) -> Result<Vec<HistoryPoint>, sqlx::Error> {
+    let t = timeline(pool, game_id).await?;
+    let Some(&me) = t.players.get(profile_number) else {
+        return Ok(Vec::new());
+    };
+    // Undated runs count from release (so today's total matches the boards), but the chart
+    // starts at the player's first dated run, not at release with points they likely got later.
+    let release = NaiveDate::from_ymd_opt(2011, 4, 19).unwrap().and_hms_opt(0, 0, 0).unwrap();
+    let mine = || t.maps.iter().flat_map(|m| m.runs.iter().filter(|r| r.1 == me).map(|r| r.0));
+    let Some(any) = mine().min() else {
+        return Ok(Vec::new());
+    };
+    let first = mine().filter(|ts| *ts != release).min().unwrap_or(any);
+    // Sample dates: from the first run to today, at least weekly, at most MAX_SAMPLES of them.
+    let start = first.date();
+    let today = Utc::now().date_naive();
+    let span = (today - start).num_days().max(1);
+    let step = (span / MAX_SAMPLES).max(7);
+    let mut dates: Vec<NaiveDate> = (0..=span / step).map(|i| start + ChronoDuration::days(i * step)).collect();
+    if dates.last() != Some(&today) {
+        dates.push(today);
+    }
+    let ends: Vec<NaiveDateTime> = dates.iter().map(|d| d.and_hms_opt(23, 59, 59).unwrap()).collect();
+
+    let totals = totals_at(&t, me, &ends);
     Ok(dates
         .into_iter()
         .zip(totals)

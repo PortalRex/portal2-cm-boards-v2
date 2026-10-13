@@ -20,7 +20,34 @@
 .pf-side {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 12px;
+}
+
+/* Compact cards so three fit beside Global Rank and Statistics. */
+.pf-side-card .card-head {
+  height: 40px;
+}
+
+.pf-side-card .card-head h3 {
+  font-size: 16px;
+}
+
+.pf-side-card .card-body {
+  padding: 10px 16px 12px;
+}
+
+.pf-side-card .stat-value {
+  font-size: 28px;
+}
+
+.pf-side-card .stat-label {
+  font-size: 13px;
+}
+
+.pf-peak-date {
+  margin-top: 2px;
+  color: var(--text-muted);
+  font-size: 11px;
 }
 
 /* Header card */

@@ -383,6 +383,13 @@ async fn profile_points_history(pool: web::Data<PgPool>, profile_number: web::Pa
     Ok(web::Json(crate::tools::points_history::points_history(pool.get_ref(), query.game_id.unwrap_or(1), &profile_number).await?))
 }
 
+/// **GET** A player's peak points per board in a game (default Portal 2), each with the date it
+/// was reached: `{ "sp": { "points": 10450.2, "date": "2024-05-01" }, "coop": ..., "overall": ... }`.
+#[get("/profile/points_peak/{profile_number}")]
+async fn profile_points_peak(pool: web::Data<PgPool>, profile_number: web::Path<String>, query: web::Query<StatsQuery>) -> Result<impl Responder> {
+    Ok(web::Json(crate::tools::points_history::points_peak(pool.get_ref(), query.game_id.unwrap_or(1), &profile_number).await?))
+}
+
 #[derive(Deserialize)]
 pub struct StatsQuery {
     pub game_id: Option<i32>,

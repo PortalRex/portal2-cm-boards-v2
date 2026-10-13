@@ -8,6 +8,7 @@ export { default as PinIcon } from "@mui/icons-material/LocationOnOutlined";
 export { default as BarsIcon } from "@mui/icons-material/BarChartRounded";
 export { default as MoreIcon } from "@mui/icons-material/MoreHoriz";
 export { default as TrophyIcon } from "@mui/icons-material/EmojiEvents";
+export { default as PeakIcon } from "@mui/icons-material/Landscape";
 export { default as DownloadIcon } from "@mui/icons-material/Download";
 export { default as FlagIcon } from "@mui/icons-material/OutlinedFlag";
 export { default as UploadIcon } from "@mui/icons-material/FileUploadOutlined";

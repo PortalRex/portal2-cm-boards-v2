@@ -404,6 +404,9 @@ export async function fetchProfile(profileNumber) {
   return profile;
 }
 
+// A player's peak points per board ({ sp, coop, overall: { points, date } }), or {} when unknown.
+export const fetchPointsPeak = (profileNumber) => getJson(`/profile/points_peak/${profileNumber}`).catch(() => ({}));
+
 // A player's real points over time (ranks recomputed against everyone's bests at each date),
 // from the server; falls back to the rough client-side rebuild below on sample data.
 export function fetchPointsHistory(profileNumber, fallbackHistory) {
