@@ -8,5 +8,7 @@ pub mod config;
 pub mod helpers;
 /// Server-computed aggregated points boards
 pub mod points_cache;
+/// Players' points over time
+pub mod points_history;
 
 pub mod error;

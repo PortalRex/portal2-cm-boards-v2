@@ -34,6 +34,7 @@ pub async fn invalidate_points() {
     if let Some(cache) = POINTS.get() {
         cache.invalidate().await;
     }
+    crate::tools::points_history::clear().await;
 }
 
 /// Games kept warm, and the boards built ahead of requests.

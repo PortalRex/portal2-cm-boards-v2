@@ -1,10 +1,10 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import Layout from "../../components/Layout";
 import { Card, Avatar, Flag, Loading, EmptyState } from "../../components/ui";
 import { GlobeIcon, SparkleIcon, TrophyIcon, SteamIcon, TwitchIcon, YouTubeIcon, StarIcon, StarOutlineIcon } from "../../components/Icons";
-import { fetchProfile } from "../../api/client";
+import { fetchPointsHistory, fetchProfile } from "../../api/client";
 import { countryName } from "../../data/countries";
 import useApi from "../../hooks/useApi";
 import { useDataVersion } from "../../lib/dataVersion";
@@ -69,7 +69,7 @@ export default function Profile() {
                   label={`In ${countryName(p.player.country) || "country"}`}
                 />
               </div>
-              <PointsChart history={p.pointsHistory} />
+              <PointsChart profileNumber={p.player.profileNumber} fallback={p.history} />
             </Card>
 
             <Card icon={SparkleIcon} title="Statistics" className="pf-stats">
@@ -449,10 +449,14 @@ const SERIES = [
   { key: "overall", label: "Overall", color: "var(--series-overall)" },
 ];
 
-// Points over time, rebuilt from the player's submissions (see pointsHistory in api/client).
-function PointsChart({ history }) {
+// Points over time as they really were: ranks are recomputed against everyone's best times at
+// each date, so being passed shows as a drop (see fetchPointsHistory in api/client).
+function PointsChart({ profileNumber, fallback }) {
   const [hidden, setHidden] = useState({});
-  const data = useMemo(() => history || [], [history]);
+  const version = useDataVersion();
+  const history = useApi(() => fetchPointsHistory(profileNumber, fallback), [profileNumber, version]);
+  const data = history.data || [];
+  if (history.loading && !history.data) return <div className="pf-chart-empty muted">Loading points history…</div>;
   if (data.length < 2) return <div className="pf-chart-empty muted">Not enough submissions for a points history yet.</div>;
   return (
     <div className="pf-chart">
@@ -467,7 +471,7 @@ function PointsChart({ history }) {
             formatter={(v, name) => [`${v} pts`, name]}
           />
           {SERIES.filter((s) => !hidden[s.key]).map((s) => (
-            <Line key={s.key} type="stepAfter" dataKey={s.key} name={s.label} stroke={s.color} strokeWidth={3} dot={false} isAnimationActive={false} />
+            <Line key={s.key} type="linear" dataKey={s.key} name={s.label} stroke={s.color} strokeWidth={3} dot={false} isAnimationActive={false} />
           ))}
         </LineChart>
       </ResponsiveContainer>

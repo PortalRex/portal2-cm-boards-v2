@@ -376,6 +376,13 @@ async fn users_search(pool: web::Data<PgPool>, query: web::Query<SearchQuery>) -
     Ok(web::Json(found))
 }
 
+/// **GET** A player's points over time in a game (default Portal 2), ranks recomputed against
+/// everyone's best times at each date: `[{ "date": "2024-01-07", "sp": 1234.5, "coop": 980.0, "overall": 2214.5 }, ...]`.
+#[get("/profile/points_history/{profile_number}")]
+async fn profile_points_history(pool: web::Data<PgPool>, profile_number: web::Path<String>, query: web::Query<StatsQuery>) -> Result<impl Responder> {
+    Ok(web::Json(crate::tools::points_history::points_history(pool.get_ref(), query.game_id.unwrap_or(1), &profile_number).await?))
+}
+
 #[derive(Deserialize)]
 pub struct StatsQuery {
     pub game_id: Option<i32>,

@@ -386,7 +386,22 @@ export async function fetchProfile(profileNumber) {
     },
     () => mock.mockProfile(profileNumber),
   );
-  return { ...profile, pointsHistory: pointsHistory(profile.history) };
+  return profile;
+}
+
+// A player's real points over time (ranks recomputed against everyone's bests at each date),
+// from the server; falls back to the rough client-side rebuild below on sample data.
+export function fetchPointsHistory(profileNumber, fallbackHistory) {
+  return sample(
+    async () =>
+      (await getJson(`/profile/points_history/${profileNumber}`)).map((p) => ({
+        date: p.date,
+        sp: Math.round(p.sp ?? 0),
+        coop: Math.round(p.coop ?? 0),
+        overall: Math.round(p.overall ?? 0),
+      })),
+    () => pointsHistory(fallbackHistory),
+  );
 }
 
 // Points over time rebuilt from the player's own submissions: each run sets the
