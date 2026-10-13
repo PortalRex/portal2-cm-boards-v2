@@ -89,7 +89,8 @@ async fn default_category(
 /// ```
 #[get("/map_ids")]
 async fn map_ids(pool: web::Data<PgPool>, query: web::Query<IsCoop>) -> Result<impl Responder> {
+    let query = query.into_inner();
     Ok(web::Json(
-        Maps::get_steam_ids(pool.get_ref(), query.into_inner().is_coop).await?,
+        Maps::get_steam_ids(pool.get_ref(), query.is_coop, query.game_id.unwrap_or(1)).await?,
     ))
 }

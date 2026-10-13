@@ -64,6 +64,8 @@
 //! 
 /// Controllers for admin-specific functions
 pub mod admin;
+/// Steam sign-in: users, sessions, replay guard
+pub mod auth;
 /// Controllers for changelog
 pub mod changelog;
 /// Controllers for chapters
@@ -72,8 +74,14 @@ pub mod chapters;
 pub mod coop;
 /// Controllers for demos
 pub mod demos;
+/// Controllers for the full-game boards
+pub mod fullgame;
+/// Per-game aggregates computed from the changelog (points, ranks)
+pub mod game_boards;
 /// Controllers for maps
 pub mod maps;
+/// Admin actions with an audit log
+pub mod moderation;
 /// Controllers for sp
 pub mod sp;
 /// Controllers for stats

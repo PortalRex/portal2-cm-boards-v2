@@ -22,14 +22,19 @@ impl Maps {
     ///     - Returns multiplayer `map_ids`.
     /// - If `false`
     ///     - Returns all singleplayer `map_ids`.
-    pub async fn get_steam_ids(pool: &PgPool, is_mp: bool) -> Result<Vec<String>, sqlx::Error> {
+    ///
+    /// Only maps of `game_id` (`games.id`, 1 = Portal 2) are returned.
+    pub async fn get_steam_ids(pool: &PgPool, is_mp: bool, game_id: i32) -> Result<Vec<String>, sqlx::Error> {
         sqlx::query_scalar(
             r#"
                 SELECT maps.steam_id FROM maps
                     INNER JOIN chapters ON (maps.chapter_id = chapters.id)
-                    WHERE chapters.is_multiplayer = $1"#,
+                    WHERE chapters.is_multiplayer = $1
+                    AND chapters.game_id = $2
+                    ORDER BY maps.id"#,
         )
         .bind(is_mp)
+        .bind(game_id)
         .fetch_all(pool)
         .await
     }

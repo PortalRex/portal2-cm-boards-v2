@@ -16,7 +16,6 @@ impl Users {
             .await?
             .json::<GetPlayerSummariesWrapper>()
             .await?;
-        println!("{user:#?}");
         if user.response.players.is_empty() {
             return Err(ServerError {
                 error_message: format!("User not found"),
@@ -87,7 +86,7 @@ impl Users {
     pub async fn get_banned_display(pool: &PgPool) -> Result<Vec<UsersDisplay>, sqlx::Error> {
         sqlx::query_as::<_, UsersDisplay>(
             r#" SELECT users.profile_number,
-            COALESCE(users.board_name, users.steam_name) as user_name, 
+            COALESCE(users.board_name, users.steam_name, users.profile_number) as user_name, 
             users.avatar
                 FROM users WHERE users.banned = 'true'"#,
         )
@@ -145,7 +144,7 @@ impl Users {
             sqlx::query_as::<_, UsersDisplay>(
                 r#"
                 SELECT users.profile_number, 
-                    COALESCE(users.board_name, users.steam_name) AS user_name,
+                    COALESCE(users.board_name, users.steam_name, users.profile_number) AS user_name,
                     users.avatar
                 FROM users
                 WHERE users.admin = $1
@@ -166,7 +165,7 @@ impl Users {
         .fetch_all(pool)
         .await
     }
-    /// Returns a [ProfileData] for the given `profile_number`.
+    /// Returns a [ProfileData] (Portal 2 maps) for the given `profile_number`.
     pub async fn get_profile(pool: &PgPool, profile_number: &String) -> Result<ProfileData, sqlx::Error> {
         let s1 = r#"SELECT old.steam_id AS map, old.name AS map_name, old.score, old.timestamp FROM 
             (SELECT maps.steam_id, maps.name, changelog.score, changelog.timestamp FROM maps 
@@ -184,6 +183,7 @@ impl Users {
                 ON (m1.chapter_id = c1.id)
             WHERE cl1.profile_number = $1
             AND c1.is_multiplayer = $2
+            AND c1.game_id = 1
             AND cl1.banned = 'false'
             AND cl1.verified = 'true'
             AND cl1.category_id = m1.default_cat_id
@@ -192,23 +192,27 @@ impl Users {
         let oldest_sp = sqlx::query_as::<_, MapScoreDate>(&format!("{}{}{}", s1, "MIN", s2))
             .bind(profile_number)
             .bind(false)
-            .fetch_one(pool)
-            .await?;
+            .fetch_optional(pool)
+            .await?
+            .unwrap_or_default();
         let newest_sp = sqlx::query_as::<_, MapScoreDate>(&format!("{}{}{}", s1, "MAX", s2))
             .bind(profile_number)
             .bind(false)
-            .fetch_one(pool)
-            .await?;
+            .fetch_optional(pool)
+            .await?
+            .unwrap_or_default();
         let oldest_coop = sqlx::query_as::<_, MapScoreDate>(&format!("{}{}{}", s1, "MIN", s2))
             .bind(profile_number)
             .bind(true)
-            .fetch_one(pool)
-            .await?;
+            .fetch_optional(pool)
+            .await?
+            .unwrap_or_default();
         let newest_coop = sqlx::query_as::<_, MapScoreDate>(&format!("{}{}{}", s1, "MAX", s2))
             .bind(profile_number)
             .bind(true)
-            .fetch_one(pool)
-            .await?;
+            .fetch_optional(pool)
+            .await?
+            .unwrap_or_default();
         Ok(ProfileData {
             oldest_sp,
             newest_sp,
@@ -299,6 +303,29 @@ impl Users {
         )
         .bind(profile_number)
         .fetch_one(pool)
+        .await
+    }
+}
+
+impl ProfileScore {
+    /// The player's best verified, unbanned time on each Portal 2 map (default category).
+    pub async fn get_profile_scores(pool: &PgPool, profile_number: &str) -> Result<Vec<ProfileScore>, sqlx::Error> {
+        sqlx::query_as::<_, ProfileScore>(
+            r#"
+            SELECT DISTINCT ON (cl.map_id) cl.map_id, cl.score, cl.timestamp, cl.id AS changelog_id, c.is_multiplayer
+                FROM changelog AS cl
+                INNER JOIN maps AS m ON (m.steam_id = cl.map_id)
+                INNER JOIN chapters AS c ON (c.id = m.chapter_id)
+                WHERE cl.profile_number = $1
+                AND c.game_id = 1
+                AND cl.banned = 'false'
+                AND cl.verified = 'true'
+                AND cl.category_id = m.default_cat_id
+                ORDER BY cl.map_id, cl.score ASC, cl.timestamp ASC
+            "#,
+        )
+        .bind(profile_number)
+        .fetch_all(pool)
         .await
     }
 }

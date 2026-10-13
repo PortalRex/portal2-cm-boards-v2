@@ -89,6 +89,8 @@ async fn main() -> Result<(), Error> {
         let cors = Cors::default()
             .allowed_origin("http://localhost:3000")
             .allowed_methods(vec!["GET", "POST", "PUT", "DELETE"])
+            .allowed_headers(vec![actix_web::http::header::CONTENT_TYPE])
+            .allowed_header("X-Admin-Token")
             .max_age(3600);
         App::new()
             .wrap(cors)

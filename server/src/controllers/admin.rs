@@ -30,7 +30,7 @@ impl Admin {
             FROM users
             FULL OUTER JOIN (
               SELECT users1.profile_number, 
-              COALESCE(users1.board_name, users1.steam_name) AS user_name,
+              COALESCE(users1.board_name, users1.steam_name, users1.profile_number) AS user_name,
               users1.avatar, a.banned_runs, b.total_runs, c.non_verified_runs
                   FROM users AS users1
                   FULL OUTER JOIN ( 

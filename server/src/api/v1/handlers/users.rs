@@ -1,7 +1,9 @@
+use crate::tools::auth::AdminOrService;
 use crate::{
+    controllers::game_boards::{pb_ranks, totals},
     models::{
-        points::{PointsProfileWrapper, ProfilePage},
-        users::{AvatarInsert, Users},
+        points::{Points, PointsProfileWrapper, ProfilePage},
+        users::{AvatarInsert, ProfileScore, Users},
     },
     tools::cache::CacheState,
     tools::error::Result,
@@ -151,7 +153,7 @@ async fn banned_user(
 /// ```
 // TODO: Just return whole user, not boolean.
 #[post("/user")]
-async fn user_add(pool: web::Data<PgPool>, new_user: web::Json<Users>) -> Result<impl Responder> {
+async fn user_add(_auth: AdminOrService, pool: web::Data<PgPool>, new_user: web::Json<Users>) -> Result<impl Responder> {
     Ok(web::Json(
         Users::insert_new_users(pool.get_ref(), new_user.0.clone()).await?,
     ))
@@ -182,6 +184,7 @@ async fn user_add(pool: web::Data<PgPool>, new_user: web::Json<Users>) -> Result
 /// ```
 #[put("/user/avatar/{profile_number}")]
 async fn avatar_update(
+    _auth: AdminOrService,
     pool: web::Data<PgPool>,
     profile_number: web::Path<String>,
     data: web::Json<AvatarInsert>,
@@ -316,13 +319,71 @@ async fn profile(
     // TODO : Scores on drop down are queried individually by the frontend
     let profile_number = profile_number.into_inner();
     let data = Users::get_profile(pool.get_ref(), &profile_number).await?;
-    let (points, ranks) = profile_from_cache(cache, &profile_number).await?;
+    let (mut points, ranks) = profile_from_cache(cache, &profile_number).await?;
+    // The points cache is filled by the separate points service; until it has run,
+    // compute the player's sp / coop / overall totals and placements from the changelog.
+    if points.is_empty() {
+        points = profile_points_live(pool.get_ref(), &profile_number).await?;
+    }
     let profile_page = ProfilePage {
         points,
         ranks,
         data,
     };
     Ok(web::Json(profile_page))
+}
+
+/// **GET** a player's Portal 2 personal bests with their rank and deltas to the
+/// world record and to the next better time, from the rank cache.
+///
+/// ## Example endpoints:
+///  - `/api/v1/profile/scores/76561198040982247`
+#[get("/profile/scores/{profile_number}")]
+async fn profile_scores(
+    pool: web::Data<PgPool>,
+    profile_number: web::Path<String>,
+    cache: web::Data<CacheState>,
+) -> Result<impl Responder> {
+    let profile_number = profile_number.into_inner();
+    let mut scores = ProfileScore::get_profile_scores(pool.get_ref(), &profile_number).await?;
+    let r = &*cache.ranks.lock().await;
+    let ranks = r.current_ranks.get(&profile_number);
+    for pb in scores.iter_mut() {
+        pb.rank = ranks.and_then(|m| m.get(&pb.map_id)).copied();
+        if let Some(board) = r.map_scores.get(&pb.map_id).filter(|b| !b.is_empty()) {
+            pb.delta_to_wr = Some(pb.score - board[0]);
+            // Distinct scores are ascending; the next better time is the last one below ours.
+            let better = board.partition_point(|&s| s < pb.score);
+            pb.delta_to_next = better.checked_sub(1).map(|i| pb.score - board[i]);
+        }
+    }
+    Ok(web::Json(scores))
+}
+
+/// Live sp (-1), coop (-2) and overall (-3) points for one player, with placements.
+async fn profile_points_live(pool: &PgPool, profile_number: &str) -> anyhow::Result<Vec<PointsProfileWrapper>> {
+    let pbs = pb_ranks(pool, 1, None, None).await?;
+    let mut out = Vec::new();
+    for (id, mode) in [(-1, Some("sp")), (-2, Some("coop")), (-3, None)] {
+        let board = totals(pbs.iter().filter(|pb| mode.is_none() || pb.game_mode.as_deref() == mode));
+        if let Some(x) = board.get(profile_number) {
+            let (place, score_place) = placement(&board, x);
+            out.push(PointsProfileWrapper { id, points: x.clone(), place, score_place });
+        }
+    }
+    Ok(out)
+}
+
+/// Placement of `player` on a points board: by points, and by total time among
+/// players with the same number of scores (time totals are only comparable then).
+fn placement(board: &HashMap<String, Points>, player: &Points) -> (i32, i32) {
+    let place = board.values().filter(|p| p.points > player.points).count() as i32 + 1;
+    let score_place = board
+        .values()
+        .filter(|p| p.num_scores == player.num_scores && p.score < player.score)
+        .count() as i32
+        + 1;
+    (place, score_place)
 }
 
 /// Pulls & clones the data from the ranks cache to be used for the profile endpoint.
@@ -335,38 +396,51 @@ pub async fn profile_from_cache(
     for i in 1..16 {
         if let Some(points_cache) = points_hm.get(&*format!("points{}", i)) {
             if let Some(x) = points_cache.get(profile_number) {
+                let (place, score_place) = placement(points_cache, x);
                 points.push(PointsProfileWrapper {
                     id: i,
                     points: x.clone(),
+                    place,
+                    score_place,
                 });
             }
         }
     }
     if let Some(points_cache) = points_hm.get("points_sp") {
         if let Some(x) = points_cache.get(profile_number) {
+            let (place, score_place) = placement(points_cache, x);
             points.push(PointsProfileWrapper {
                 id: -1,
                 points: x.clone(),
+                place,
+                score_place,
             });
         }
     }
     if let Some(points_cache) = points_hm.get("points_coop") {
         if let Some(x) = points_cache.get(profile_number) {
+            let (place, score_place) = placement(points_cache, x);
             points.push(PointsProfileWrapper {
                 id: -2,
                 points: x.clone(),
+                place,
+                score_place,
             });
         }
     }
     if let Some(points_cache) = points_hm.get("points_overall") {
         if let Some(x) = points_cache.get(profile_number) {
+            let (place, score_place) = placement(points_cache, x);
             points.push(PointsProfileWrapper {
                 id: -3,
                 points: x.clone(),
+                place,
+                score_place,
             });
         }
     }
     let r = &*cache.ranks.lock().await;
-    let ranks = r.current_ranks.get(profile_number).unwrap().clone();
+    // Players with no ranked runs have no entry in the rank cache.
+    let ranks = r.current_ranks.get(profile_number).cloned().unwrap_or_default();
     Ok((points, ranks))
 }

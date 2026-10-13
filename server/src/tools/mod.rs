@@ -1,4 +1,6 @@
 /// Caching for endpoints
+/// Steam sign-in sessions and request authorization
+pub mod auth;
 pub mod cache;
 /// Configuration module that handles extracting information from the environment for setup.
 pub mod config;

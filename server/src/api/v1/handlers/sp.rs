@@ -1,10 +1,11 @@
+use crate::tools::auth::AdminOrService;
 use crate::{
     models::{
         changelog::{
             Changelog, ChangelogInsert, HistoryParams, ScoreLookup, ScoreParams,
             SubmissionChangelog,
         },
-        chapters::OptIDs,
+        chapters::{GameID, OptIDs},
         sp::*,
         users::{Users, UsersPage},
     },
@@ -48,10 +49,15 @@ use sqlx::PgPool;
 ///             },...]}]
 /// ```
 #[get("/sp")]
-async fn sp(pool: web::Data<PgPool>, cache: web::Data<CacheState>) -> Result<impl Responder> {
+async fn sp(pool: web::Data<PgPool>, cache: web::Data<CacheState>, game: web::Query<GameID>) -> Result<impl Responder> {
+    // Only the Portal 2 previews are cached; other games are small enough to query directly.
+    let game_id = game.into_inner().game_id.unwrap_or(1);
+    if game_id != 1 {
+        return Ok(web::Json(SpPreview::get_sp_previews(pool.get_ref(), game_id).await?));
+    }
     // See if we can utilize the cache
     if !cache.get_current_state(SP_PREVIEWS).await {
-        let sp_previews = SpPreview::get_sp_previews(pool.get_ref()).await?;
+        let sp_previews = SpPreview::get_sp_previews(pool.get_ref(), 1).await?;
         if write_to_file("sp_previews", &sp_previews).await.is_ok() {
             cache.update_current_state(SP_PREVIEWS, true).await;
         } else {
@@ -397,13 +403,18 @@ pub async fn sp_validate(
 /// Receives a new score to add to the DB.
 #[post("/sp/post_score")]
 async fn sp_post_score(
+    _auth: AdminOrService,
     params: web::Json<ChangelogInsert>,
     pool: web::Data<PgPool>,
     cache: web::Data<CacheState>,
 ) -> Result<impl Responder> {
+    // Frozen profiles keep their times but can't get new ones.
+    if crate::controllers::moderation::is_frozen(pool.get_ref(), &params.profile_number).await? {
+        return Ok(actix_web::HttpResponse::Conflict().body("This profile is frozen."));
+    }
     let id = Changelog::insert_changelog(pool.get_ref(), params.0).await?;
     cache.update_current_state(SP_PREVIEWS, false).await;
-    Ok(web::Json(id))
+    Ok(actix_web::HttpResponse::Ok().json(id))
 }
 
 // TODO: Make this more ergonomic? Don't require all values.
@@ -460,6 +471,7 @@ async fn sp_post_score(
 /// ```
 #[put("/sp/update")]
 async fn sp_update(
+    _auth: AdminOrService,
     params: web::Json<Changelog>,
     pool: web::Data<PgPool>,
     cache: web::Data<CacheState>,

@@ -6,6 +6,14 @@ use crate::models::users::Users;
 
 // Implementations of associated functions for Changelog
 impl Changelog {
+    /// The run's mtrigger segments as JSON text: `None` for an unknown run, `Some(None)` when
+    /// the run has no segment data.
+    pub async fn get_segments(pool: &PgPool, cl_id: i64) -> Result<Option<Option<String>>, sqlx::Error> {
+        sqlx::query_scalar::<_, Option<String>>("SELECT segments::text FROM changelog WHERE id = $1")
+            .bind(cl_id)
+            .fetch_optional(pool)
+            .await
+    }
     /// Search for a [Changelog] by ID, return the entire [Changelog].
     pub async fn get_changelog(pool: &PgPool, cl_id: i64) -> Result<Option<Changelog>, sqlx::Error> {
         sqlx::query_as::<_, Changelog>(r#"SELECT * FROM changelog WHERE id = $1"#)
@@ -189,21 +197,25 @@ pub async fn build_filtered_changelog(pool: &PgPool, params: ChangelogQueryParam
         r#" 
         SELECT cl.id, cl.timestamp, cl.profile_number, cl.score, cl.map_id, cl.demo_id, cl.banned,
             cl.youtube_id, cl.previous_id, cl.coop_id, cl.post_rank, cl.pre_rank, cl.submission, cl.note,
-            cl.category_id, cl.score_delta, cl.verified, cl.admin_note, map.name AS map_name,
-            COALESCE(u.board_name, u.steam_name) AS user_name, u.avatar,
-            COALESCE(p1.board_name, p1.steam_name) AS blue_name,
-            COALESCE(p2.board_name, p2.steam_name) AS orange_name,
-            p1.avatar AS blue_avatar, p2.avatar AS orange_avatar
+            cl.category_id, cl.score_delta, cl.verified, cl.admin_note, cl.autorender_id, cl.wr_hidden, map.name AS map_name,
+            COALESCE(u.board_name, u.steam_name, cl.profile_number) AS user_name, COALESCE(u.avatar, '') AS avatar,
+            COALESCE(p1.board_name, p1.steam_name, p1.profile_number) AS blue_name,
+            COALESCE(p2.board_name, p2.steam_name, p2.profile_number) AS orange_name,
+            p1.avatar AS blue_avatar, p2.avatar AS orange_avatar,
+            p1.profile_number AS blue_profile_number, p2.profile_number AS orange_profile_number,
+            coop.p1_is_host IS NOT NULL AS coop_roles_known
                 FROM changelog AS cl
-                    INNER JOIN users AS u ON (u.profile_number = cl.profile_number)
+                    LEFT JOIN users AS u ON (u.profile_number = cl.profile_number)
                     INNER JOIN maps AS map ON (map.steam_id = cl.map_id)
                     INNER JOIN chapters AS chapter on (map.chapter_id = chapter.id)
                     LEFT JOIN coop_bundled AS coop on (cl.coop_id = coop.id)
-                    LEFT JOIN users AS p1 ON coop.p_id1 = p1.profile_number
-                    LEFT JOIN users AS p2 ON coop.p_id2 = p2.profile_number
+                    -- Blue is the host; p1_is_host is false when the second player hosted.
+                    LEFT JOIN users AS p1 ON p1.profile_number = (CASE WHEN coop.p1_is_host IS FALSE THEN coop.p_id2 ELSE coop.p_id1 END)
+                    LEFT JOIN users AS p2 ON p2.profile_number = (CASE WHEN coop.p1_is_host IS FALSE THEN coop.p_id1 ELSE coop.p_id2 END)
     "#,
     );
-    let mut filters: Vec<String> = Vec::new();
+    let mut filters: Vec<String> = vec![format!("chapter.game_id = {}
+", params.game_id.unwrap_or(1))];
     if let Some(coop) = params.coop {
         if !coop {
             filters.push("chapter.is_multiplayer = False\n".to_string());
@@ -230,13 +242,33 @@ pub async fn build_filtered_changelog(pool: &PgPool, params: ChangelogQueryParam
     if let Some(wr_gain) = params.wr_gain {
         if wr_gain {
             filters.push("cl.post_rank = 1\n".to_string());
+            // Runs staff removed from the WR history stay out of it unless asked for.
+            if params.include_hidden_wr != Some(true) {
+                filters.push("cl.wr_hidden = false\n".to_string());
+            }
+            // Banned runs never held a world record, so hide them unless asked for explicitly.
+            if params.banned.is_none() {
+                filters.push("cl.banned = 'false'\n".to_string());
+            }
         }
     }
+    if let Some(banned) = params.banned {
+        filters.push(format!("cl.banned = '{}'\n", banned));
+    }
+    // These values are interpolated into the SQL string, so only accept digits
+    // (map IDs and Steam profile numbers are always numeric).
+    let is_numeric = |s: &str| !s.is_empty() && s.chars().all(|c| c.is_ascii_digit());
     if let Some(chamber) = params.chamber {
+        if !is_numeric(&chamber) {
+            return Err(sqlx::Error::RowNotFound);
+        }
         filters.push(format!("cl.map_id = '{}'\n", &chamber));
     }
     if let Some(profile_number) = params.profile_number {
-        filters.push(format!("cl.profile_number = {}\n", &profile_number));
+        if !is_numeric(&profile_number) {
+            return Err(sqlx::Error::RowNotFound);
+        }
+        filters.push(format!("cl.profile_number = '{}'\n", &profile_number));
     } else if let Some(nick_name) = params.nick_name {
         let mut profile_numbers = Users::check_board_name(pool, &nick_name).await?;
         if !profile_numbers.is_empty()
@@ -259,7 +291,8 @@ pub async fn build_filtered_changelog(pool: &PgPool, params: ChangelogQueryParam
                 filters.push(profile_str);
             }
         } else {
-            return Err(sqlx::Error::RowNotFound);
+            // An unknown name matches nothing rather than erroring.
+            filters.push("1 = 0\n".to_string());
         }
     }
     if let Some(first) = params.first {
@@ -300,9 +333,12 @@ impl Default for ChangelogQueryParams {
             coop: Some(true),
             wr_gain: None,
             has_demo: None,
+            banned: None,
+            include_hidden_wr: None,
             yt: None,
             first: None,
             last: None,
+            game_id: None,
         }
     }
 }

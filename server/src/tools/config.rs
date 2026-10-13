@@ -6,6 +6,16 @@ use serde::Deserialize;
 pub struct ServerConfig {
     pub host: String,
     pub port: i32,
+    /// Public address of the site, which serves the API under /api (e.g.
+    /// `https://board.portal2.sr`). Steam sign-in returns here, and session cookies are
+    /// marked Secure when it's https. Defaults to http://localhost:3000 (the dev frontend).
+    pub public_url: Option<String>,
+}
+
+impl ServerConfig {
+    pub fn public_url(&self) -> &str {
+        self.public_url.as_deref().filter(|u| !u.is_empty()).unwrap_or("http://localhost:3000").trim_end_matches('/')
+    }
 }
 /// The proof standards, update based on the mod tools desired.
 #[derive(Deserialize, Debug, Clone)]
@@ -29,6 +39,14 @@ pub struct SteamConfig {
     pub api_key: String,
 }
 
+/// Shared secret for the board's own services (the Steam leaderboard fetcher and points
+/// calculator in /backend), sent in an `X-Service-Token` header. People use Steam sign-in.
+/// Service access is disabled when it's unset.
+#[derive(Deserialize, Debug, Clone, Default)]
+pub struct ServiceConfig {
+    pub token: Option<String>,
+}
+
 /// Wrapper for all other config variables.
 #[derive(Deserialize, Debug, Clone)]
 pub struct Config {
@@ -37,6 +55,8 @@ pub struct Config {
     pub proof: ProofConfig,
     pub steam: SteamConfig,
     pub backblaze: BackBlazeConfig,
+    #[serde(default)]
+    pub service: ServiceConfig,
 }
 // Extracts the environment variables from the .env file at the src level.
 impl Config {

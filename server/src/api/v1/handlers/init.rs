@@ -1,7 +1,7 @@
 use actix_web::web;
 
 use crate::api::v1::handlers::{
-    admin::*, changelog::*, chapters::*, coop::*, maps::*, points::*, sp::*, stats::*,
+    admin::*, auth::*, changelog::*, chapters::*, coop::*, fullgame::*, game_boards::*, maps::*, moderation::*, points::*, sp::*, stats::*,
     users::*,
 };
 
@@ -9,8 +9,21 @@ use crate::api::v1::handlers::{
 pub fn init(cfg: &mut web::ServiceConfig) {
     cfg.service(
         web::scope("/api/v1")
+            .service(admin_audit)
+            .service(admin_run_banned)
+            .service(admin_run_demo_delete)
+            .service(admin_run_delete)
+            .service(admin_run_partner)
+            .service(admin_user_freeze)
+            .service(admin_user_role)
+            .service(admin_run_wr_history)
+            .service(steam_login)
+            .service(steam_callback)
+            .service(auth_me)
+            .service(auth_logout)
             .service(changelog)
             .service(changelog_new)
+            .service(changelog_segments)
             .service(graph)
             .service(changelog_demo_update)
             .service(default_categories_all)
@@ -29,6 +42,7 @@ pub fn init(cfg: &mut web::ServiceConfig) {
             .service(coop_add)
             .service(coop_temp)
             .service(coop_update_changelog)
+            .service(coop_set_host)
             .service(maps)
             .service(default_category)
             .service(map_ids)
@@ -43,6 +57,7 @@ pub fn init(cfg: &mut web::ServiceConfig) {
             .service(donators)
             .service(wall_of_shame)
             .service(profile)
+            .service(profile_scores)
             .service(points_sp)
             .service(points_sp_add)
             .service(points_coop)
@@ -58,6 +73,14 @@ pub fn init(cfg: &mut web::ServiceConfig) {
             .service(count_scores_by_map)
             .service(recap)
             .service(badges)
-            .service(users_badges),
+            .service(users_badges)
+            .service(points_game)
+            .service(ranks_game)
+            .service(fullgame_games)
+            .service(fullgame_game)
+            .service(fullgame_board)
+            .service(fullgame_board_level)
+            .service(fullgame_run)
+            .service(fullgame_runner),
     );
 }

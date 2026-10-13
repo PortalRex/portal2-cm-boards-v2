@@ -24,7 +24,8 @@ impl SpMap {
     ) -> Result<Vec<SpMap>, sqlx::Error> {
         sqlx::query_as::<_, SpMap>(
             r#" 
-                SELECT t.timestamp,
+                SELECT t.cl_id,
+                    t.timestamp,
                     t.CL_profile_number,
                     t.score,
                     t.demo_id,
@@ -32,10 +33,12 @@ impl SpMap {
                     t.submission,
                     t.note,
                     t.category_id,
-                    COALESCE(t.board_name, t.steam_name) AS user_name,
-                    t.avatar
+                    COALESCE(t.board_name, t.steam_name, t.CL_profile_number) AS user_name,
+                    t.avatar,
+                    t.autorender_id
                 FROM (
-                    SELECT DISTINCT ON (changelog.profile_number) 
+                    SELECT DISTINCT ON (changelog.profile_number)
+                        changelog.id as cl_id,
                         changelog.profile_number as CL_profile_number,
                         users.profile_number as U_profile_number, *
                     FROM changelog
@@ -68,7 +71,7 @@ impl SpPreview {
         sqlx::query_as::<_, SpPreview>(
             r#"
                 SELECT t.CL_profile_number, t.score, t.youtube_id, t.category_id,
-                COALESCE(t.board_name, t.steam_name) AS user_name, t.map_id
+                COALESCE(t.board_name, t.steam_name, t.CL_profile_number) AS user_name, t.map_id, t.autorender_id
                 FROM (
                     SELECT DISTINCT ON (changelog.profile_number) 
                         changelog.profile_number as CL_profile_number,
@@ -87,9 +90,9 @@ impl SpPreview {
         .fetch_all(pool)
         .await
     }
-    /// Collects the top 7 preview data for all SP maps.
-    pub async fn get_sp_previews(pool: &PgPool) -> Result<Vec<Vec<SpPreview>>, sqlx::Error> {
-        let map_id_vec = Maps::get_steam_ids(pool, false).await?;
+    /// Collects the top 7 preview data for all SP maps of a game (`games.id`).
+    pub async fn get_sp_previews(pool: &PgPool, game_id: i32) -> Result<Vec<Vec<SpPreview>>, sqlx::Error> {
+        let map_id_vec = Maps::get_steam_ids(pool, false, game_id).await?;
         let futures: Vec<_> = map_id_vec
             .iter()
             .map(|map_id| SpPreview::get_sp_preview(pool, map_id))

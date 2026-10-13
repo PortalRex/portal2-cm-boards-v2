@@ -1,3 +1,4 @@
+use crate::tools::auth::AdminOrService;
 use crate::{
     models::{changelog::*, demos::DemoOptions},
     tools::{
@@ -7,7 +8,7 @@ use crate::{
         helpers::get_valid_changelog_insert,
     },
 };
-use actix_web::{get, post, put, web, Responder};
+use actix_web::{get, post, put, web, HttpResponse, Responder};
 use sqlx::PgPool;
 
 /// **GET** method for changelog entiries. Utilizes [ChangelogQueryParams] as an optional addition to the query
@@ -125,11 +126,16 @@ async fn changelog(
 /// ```
 #[post("/changelog")]
 pub async fn changelog_new(
+    _auth: AdminOrService,
     pool: web::Data<PgPool>,
     cl: web::Json<SubmissionChangelog>,
     cache: web::Data<CacheState>,
     config: web::Data<Config>,
 ) -> Result<impl Responder> {
+    // Frozen profiles keep their times but can't get new ones.
+    if crate::controllers::moderation::is_frozen(pool.get_ref(), &cl.profile_number).await? {
+        return Ok(HttpResponse::Conflict().body("This profile is frozen."));
+    }
     let cache = cache.into_inner();
     let cl_i = get_valid_changelog_insert(
         pool.get_ref(),
@@ -142,7 +148,30 @@ pub async fn changelog_new(
     cache
         .update_current_states(&[SP_PREVIEWS, COOP_PREVIEWS], &[false, false])
         .await;
-    Ok(web::Json(id))
+    Ok(HttpResponse::Ok().json(id))
+}
+
+/// **GET** the SAR mtrigger segments of a run's demo, as read by autorender.
+///
+/// Returns `null` when the run has no segment data (its demo has no mtriggers, or
+/// autorender hasn't processed it), and 404 for an unknown changelog id.
+///
+/// ## Example endpoint
+/// - `/api/v1/changelog/150000/segments`
+///
+/// ## Example JSON output
+/// ```json
+/// [{ "name": "Portal Gun - Door", "ticks": 141, "splits": [{ "name": "Portal Gun - Door", "ticks": 141 }] }, ...]
+/// ```
+#[get("/changelog/{id}/segments")]
+async fn changelog_segments(pool: web::Data<PgPool>, id: web::Path<i64>) -> Result<impl Responder> {
+    let segments = Changelog::get_segments(pool.get_ref(), id.into_inner()).await?;
+    Ok(match segments {
+        None => HttpResponse::NotFound().body("Unknown changelog id."),
+        Some(json) => HttpResponse::Ok()
+            .content_type("application/json")
+            .body(json.unwrap_or_else(|| "null".to_string())),
+    })
 }
 
 #[get("/graph")]
@@ -197,6 +226,7 @@ pub async fn default_categories_all(pool: web::Data<PgPool>) -> impl Responder {
 /// ```
 #[put("/changelog/demo")]
 pub async fn changelog_demo_update(
+    _auth: AdminOrService,
     pool: web::Data<PgPool>,
     ids: web::Json<DemoOptions>,
     cache: web::Data<CacheState>,

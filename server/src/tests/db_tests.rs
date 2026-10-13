@@ -20,8 +20,8 @@ async fn get_config() -> Result<(Config, PgPool)> {
 async fn test_db_maps() {
     use crate::models::maps::*;
     let (_, pool) = get_config().await.expect("Error getting config and DB pool");
-    let sp = Maps::get_steam_ids(&pool, false).await.unwrap();
-    let coop = Maps::get_steam_ids(&pool, true).await.unwrap();
+    let sp = Maps::get_steam_ids(&pool, false, 1).await.unwrap();
+    let coop = Maps::get_steam_ids(&pool, true, 1).await.unwrap();
     assert_eq!(sp.len(), 60);
     assert_eq!(coop.len(), 48);
     let map_name = Maps::get_map_name(&pool, sp[0].clone()).await.unwrap().unwrap();
@@ -306,9 +306,12 @@ async fn test_db_changelog() {
         coop: None,
         wr_gain: None,
         has_demo: None,
+        banned: None,
+        include_hidden_wr: None,
         yt: None,
         first: None,
         last: None,
+        game_id: None,
     };
 
     // ChangelogPage
@@ -323,9 +326,12 @@ async fn test_db_changelog() {
         coop: Some(true),
         wr_gain: Some(true),
         has_demo: Some(true),
+        banned: None,
+        include_hidden_wr: None,
         yt: None,
         first: None,
         last: None,
+        game_id: None,
     };
     let filtered_cl_page = ChangelogPage::get_changelog_page(&pool, filter).await.unwrap();
     assert_eq!(filtered_cl_page.len(), 1);
@@ -360,7 +366,7 @@ async fn test_db_pages() {
         }
     }
 
-    let sppres = SpPreview::get_sp_previews(&pool).await.unwrap();
+    let sppres = SpPreview::get_sp_previews(&pool, 1).await.unwrap();
     assert_eq!(sppres.len(), 60);
     let cooppres = CoopPreview::get_coop_previews(&pool).await.unwrap();
     assert_eq!(cooppres.len(), 48);
@@ -383,9 +389,12 @@ async fn test_db_admins() {
         coop: None,
         wr_gain: None,
         has_demo: None,
+        banned: None,
+        include_hidden_wr: None,
         yt: None,
         first: None,
         last: None,
+        game_id: None,
     };
     let ban_page = Admin::get_admin_page(&pool, query_params).await.unwrap().unwrap();
     assert!(ban_page.len() == 5);

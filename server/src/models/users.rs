@@ -14,9 +14,21 @@ pub struct Users {
     pub title: Option<String>,
     pub admin: i32,
     pub donation_amount: Option<String>,
+    /// Private: never sent in API responses.
+    #[serde(skip_serializing)]
     pub discord_id: Option<String>,
+    /// Private (the old boards' per-user submission key): never sent in API responses.
+    #[serde(skip_serializing)]
     pub auth_hash: Option<String>,
     pub country_id: Option<i32>,
+    /// Frozen profiles keep their times but can't get new ones.
+    #[sqlx(default)]
+    pub frozen: bool,
+    #[sqlx(default)]
+    pub frozen_reason: Option<String>,
+    /// Staff tier: verifier, moderator or admin.
+    #[sqlx(default)]
+    pub role: Option<String>,
 }
 
 /// One-to-one struct for countries
@@ -100,4 +112,23 @@ pub struct GetPlayerSummaries {
     pub avatar: String,
     pub avatarmedium: String,
     pub avatarfull: String,
+}
+
+/// A player's personal best on a Portal 2 map, with deltas against the ranked board.
+#[derive(Serialize, Deserialize, FromRow, Debug, Clone)]
+pub struct ProfileScore {
+    pub map_id: String,
+    pub score: i32,
+    pub timestamp: Option<chrono::NaiveDateTime>,
+    pub changelog_id: i64,
+    pub is_multiplayer: bool,
+    /// Rank within the top results (`None` when outside them).
+    #[sqlx(skip)]
+    pub rank: Option<i32>,
+    /// Centiseconds behind the world record (0 for the record itself).
+    #[sqlx(skip)]
+    pub delta_to_wr: Option<i32>,
+    /// Centiseconds behind the next better distinct time (`None` for the record).
+    #[sqlx(skip)]
+    pub delta_to_next: Option<i32>,
 }

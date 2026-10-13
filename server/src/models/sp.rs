@@ -5,6 +5,8 @@ use sqlx::FromRow;
 /// The minimal data we want for SP map pages to lower bandwidth usage.
 #[derive(Serialize, FromRow, Debug)]
 pub struct SpMap {
+    /// Changelog ID of the run (used by the frontend to find autorender videos).
+    pub cl_id: i64,
     pub timestamp: Option<NaiveDateTime>,
     #[sqlx(rename = "cl_profile_number")]
     pub profile_number: String,
@@ -16,6 +18,8 @@ pub struct SpMap {
     pub category_id: i32,
     pub user_name: Option<String>,
     pub avatar: Option<String>,
+    /// Autorender share ID of the run's rendered video, if any.
+    pub autorender_id: Option<String>,
 }
 
 /// The data for the preview page for all SP Maps
@@ -28,6 +32,8 @@ pub struct SpPreview {
     pub category_id: i32,
     pub user_name: String,
     pub map_id: String,
+    /// Autorender share ID of the run's rendered video, if any.
+    pub autorender_id: Option<String>,
 }
 
 /// Wrapper for multiple SpPreviews, prevents repeat data (multiple map_name and map_id copies)

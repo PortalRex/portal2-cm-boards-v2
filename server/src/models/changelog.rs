@@ -83,6 +83,8 @@ pub struct ChangelogPage {
     pub score_delta: Option<i32>,
     pub verified: Option<bool>,
     pub admin_note: Option<String>,
+    /// Autorender share ID of the run's rendered video, if any.
+    pub autorender_id: Option<String>,
     pub map_name: String,
     pub user_name: String,
     pub avatar: String,
@@ -90,6 +92,12 @@ pub struct ChangelogPage {
     pub orange_name: Option<String>,
     pub blue_avatar: Option<String>,
     pub orange_avatar: Option<String>,
+    pub blue_profile_number: Option<String>,
+    pub orange_profile_number: Option<String>,
+    /// Whether it's known which co-op player was blue (the host); null for single player.
+    pub coop_roles_known: Option<bool>,
+    /// Removed from the map's WR history by staff.
+    pub wr_hidden: bool,
 }
 
 /// Indlues additional information from joins that includes details like map name, username and profile image.
@@ -152,8 +160,14 @@ pub struct ChangelogQueryParams {
     pub wr_gain: Option<bool>,
     pub has_demo: Option<bool>,
     pub yt: Option<bool>,
+    /// `true` shows only banned runs, `false` hides them; omitted shows both.
+    pub banned: Option<bool>,
+    /// With `wr_gain`: also include runs staff removed from the WR history.
+    pub include_hidden_wr: Option<bool>,
     pub first: Option<i64>,
     pub last: Option<i64>,
+    /// Game to show entries for (`games.id`). Defaults to 1 (Portal 2).
+    pub game_id: Option<i32>,
 }
 
 /// Query parameters for searching for a given
@@ -189,7 +203,7 @@ pub struct ScoreLookup {
 }
 
 /// Map ID & Name, score and timestamp for a given score.
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, FromRow)]
 pub struct MapScoreDate {
     pub map: String,
     pub map_name: String,

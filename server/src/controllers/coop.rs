@@ -65,15 +65,16 @@ impl CoopMap {
     ) -> Result<Vec<CoopMap>, sqlx::Error> {
         sqlx::query_as::<_, CoopMap>(
             r#"
-                SELECT c1.timestamp, 
+                SELECT cb.id AS coop_id, c1.id AS cl_id1, c2.id AS cl_id2, c1.timestamp,
                     c1.score, cb.p1_is_host, c1.note AS note1, c2.note AS note2,
-                    COALESCE(p1.board_name, p1.steam_name) AS user_name1,
-                    COALESCE(p2.board_name, p2.steam_name) AS user_name2,
-                    c1.profile_number AS profile_number1, c2.profile_number AS profile_number2, 
+                    COALESCE(p1.board_name, p1.steam_name, p1.profile_number) AS user_name1,
+                    COALESCE(p2.board_name, p2.steam_name, p2.profile_number) AS user_name2,
+                    cb.p_id1 AS profile_number1, cb.p_id2 AS profile_number2, 
                     c1.demo_id AS demo_id1, c2.demo_id AS demo_id2, 
                     c1.youtube_id AS youtube_id1, c2.youtube_id AS youtube_id2,
                     c1.submission AS submission1, c2.submission AS submission2, 
-                    c1.category_id, p1.avatar AS avatar1, p2.avatar AS avatar2
+                    c1.category_id, p1.avatar AS avatar1, p2.avatar AS avatar2,
+                    c1.autorender_id AS autorender_id1, c2.autorender_id AS autorender_id2
                 FROM (SELECT * FROM 
                 coop_bundled 
                 WHERE id IN 
@@ -114,11 +115,12 @@ impl CoopPreview {
         let res = sqlx::query_as::<_, CoopPreview>(
             r#"
                 SELECT
-                    c1.profile_number AS profile_number1, c2.profile_number AS profile_number2,
+                    cb.p_id1 AS profile_number1, cb.p_id2 AS profile_number2,
                     c1.score,
                     c1.youtube_id AS youtube_id1, c2.youtube_id AS youtube_id2, c1.category_id,
-                    COALESCE(p1.board_name, p1.steam_name) AS user_name1, 
-                    COALESCE(p2.board_name, p2.steam_name) AS user_name2, c1.map_id
+                    COALESCE(p1.board_name, p1.steam_name, p1.profile_number) AS user_name1, 
+                    COALESCE(p2.board_name, p2.steam_name, p2.profile_number) AS user_name2, c1.map_id,
+                    COALESCE(c1.autorender_id, c2.autorender_id) AS autorender_id
                 FROM (SELECT * FROM 
                 coop_bundled 
                 WHERE id IN 
@@ -164,7 +166,7 @@ impl CoopPreview {
     }
     /// Collects the top 7 preview data for all Coop maps.
     pub async fn get_coop_previews(pool: &PgPool) -> Result<Vec<Vec<CoopPreview>>, sqlx::Error> {
-        let map_id_vec = Maps::get_steam_ids(pool, true).await?;
+        let map_id_vec = Maps::get_steam_ids(pool, true, 1).await?;
         let futures: Vec<_> = map_id_vec
             .iter()
             .map(|map_id| CoopPreview::get_coop_preview(pool, map_id))
@@ -183,7 +185,7 @@ impl CoopBanned {
         // TODO: Handle verified and handle if one is banned/not verified but the other isn't.
         // TODO: How to handle one player in coop not-being banned/unverified but the other is.
         sqlx::query_as::<_, CoopBanned>(r#"
-                SELECT c1.score, c1.profile_number AS profile_number1, c2.profile_number AS profile_number2
+                SELECT c1.score, cb.p_id1 AS profile_number1, cb.p_id2 AS profile_number2
                 FROM (SELECT * FROM 
                     coop_bundled 
                     WHERE id IN 

@@ -1,3 +1,4 @@
+use crate::tools::auth::AdminOrService;
 use crate::{
     models::{
         changelog::{Changelog, ScoreLookup, ScoreParams},
@@ -12,6 +13,7 @@ use crate::{
     },
 };
 use actix_web::{get, post, put, web, HttpResponse, Responder};
+use serde::Deserialize;
 use sqlx::PgPool;
 
 // TODO: Should use default cat_id
@@ -287,6 +289,7 @@ async fn coop_temp(pool: web::Data<PgPool>, map_id: web::Path<String>) -> impl R
 /// ```
 #[post("/coop/post_score")]
 async fn coop_add(
+    _auth: AdminOrService,
     params: web::Json<CoopBundledInsert>,
     pool: web::Data<PgPool>,
     cache: web::Data<CacheState>,
@@ -337,6 +340,7 @@ async fn coop_add(
 /// ```
 #[put("/coop/update_changelog/{cl_id}/{coop_id}")]
 async fn coop_update_changelog(
+    _auth: AdminOrService,
     pool: web::Data<PgPool>,
     path: web::Path<(i64, i64)>,
     cache: web::Data<CacheState>,
@@ -344,4 +348,28 @@ async fn coop_update_changelog(
     let id = CoopBundled::update_changelog_with_coop_id(pool.get_ref(), path.0, path.1).await?;
     cache.update_current_state(COOP_PREVIEWS, false).await;
     Ok(web::Json(id))
+}
+
+/// Body for [coop_set_host]: the profile number of the player who hosted, or `null` if unknown.
+#[derive(Deserialize)]
+pub struct HostUpdate {
+    pub host: Option<String>,
+}
+
+/// **PUT** which player of a co-op run hosted (and so played blue). Admins only.
+///
+/// ## Example
+/// - `PUT /api/v1/coop/19041/host` with `{"host": "76561198057436685"}` (or `{"host": null}`)
+#[put("/coop/{coop_id}/host")]
+async fn coop_set_host(
+    auth: AdminOrService,
+    pool: web::Data<PgPool>,
+    coop_id: web::Path<i64>,
+    body: web::Json<HostUpdate>,
+) -> Result<impl Responder> {
+    Ok(match crate::controllers::moderation::set_host(pool.get_ref(), &auth, coop_id.into_inner(), body.host.as_deref()).await? {
+        Ok(()) => HttpResponse::NoContent().finish(),
+        Err(crate::controllers::moderation::Refused::NotFound(m)) => HttpResponse::NotFound().body(m),
+        Err(crate::controllers::moderation::Refused::Invalid(m)) => HttpResponse::BadRequest().body(m),
+    })
 }

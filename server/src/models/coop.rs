@@ -26,6 +26,11 @@ pub struct CoopBundledInsert {
 /// The minimal data we want for Coop map pages to lower bandwitch usage.
 #[derive(Serialize, FromRow, Clone)]
 pub struct CoopMap {
+    /// The coop_bundled row pairing the two runs.
+    pub coop_id: i64,
+    /// Changelog IDs of both players' runs (used by the frontend to find autorender videos).
+    pub cl_id1: i64,
+    pub cl_id2: i64,
     pub timestamp: Option<NaiveDateTime>,
     pub profile_number1: String,
     pub profile_number2: String,
@@ -44,6 +49,8 @@ pub struct CoopMap {
     pub user_name2: Option<String>,
     pub avatar1: Option<String>,
     pub avatar2: Option<String>,
+    pub autorender_id1: Option<String>,
+    pub autorender_id2: Option<String>,
 }
 
 /// The data for the preview page for all Coop Maps
@@ -58,6 +65,8 @@ pub struct CoopPreview {
     pub user_name1: String,
     pub user_name2: Option<String>,
     pub map_id: String,
+    /// Autorender share ID of the run's rendered video, if any.
+    pub autorender_id: Option<String>,
 }
 
 /// Wrapper for the coop map data and the rank/score.
