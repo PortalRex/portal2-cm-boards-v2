@@ -952,7 +952,7 @@
   .pf-legend {
     flex-wrap: wrap;
     justify-content: center;
-    gap: 6px 14px;
+    gap: 6px 10px;
     padding: 8px 0 0;
   }
 
@@ -963,8 +963,14 @@
   }
 
   .pf-legend button {
-    gap: 6px;
-    font-size: 14px;
+    gap: 5px;
+    padding: 0;
+    font-size: 13px;
+  }
+
+  .pf-legend button span {
+    width: 11px;
+    height: 11px;
   }
 
   .pf-legend button {
