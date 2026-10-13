@@ -284,9 +284,13 @@ function History({ history, game, map }) {
     <section className="pf-history">
       <h2 className="pf-section-title">History{map ? ` · ${map.title}` : ""}</h2>
       <div className="pf-hrow pf-hrow-head">
-        <span>Old rank</span>
+        <span>
+          Old<span className="pf-hlong"> rank</span>
+        </span>
         <span />
-        <span>New rank</span>
+        <span>
+          New<span className="pf-hlong"> rank</span>
+        </span>
         <span>{map ? "Time ago" : "Map"}</span>
         <span className="end">New time</span>
         <span className="end">ΔOld</span>
@@ -296,12 +300,12 @@ function History({ history, game, map }) {
       {rows.length ? (
         rows.map((h) => (
           <div className="pf-hrow" key={h.id}>
-            <span className="pf-hrank is-old num">
-              <RankNumber rank={h.preRank} />
+            <span className={`pf-hrank is-old num${h.preRank ? " rank-tint" : ""}`} style={rankVars(h.preRank)}>
+              <RankNumber rank={h.preRank} inherit />
             </span>
             <TriangleRight size={14} />
-            <span className="pf-hrank is-new num">
-              <RankNumber rank={h.postRank} />
+            <span className={`pf-hrank is-new num${h.postRank ? " rank-tint" : ""}`} style={rankVars(h.postRank)}>
+              <RankNumber rank={h.postRank} inherit />
             </span>
             <span className="muted pf-hwhen">{map ? timeAgo(h.timestamp) : `${h.map.title} · ${timeAgo(h.timestamp)}`}</span>
             <span className="end num">{formatScore(h.score)}</span>

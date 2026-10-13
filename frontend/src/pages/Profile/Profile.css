@@ -927,16 +927,29 @@
     width: 44px;
   }
 
+  /* Rank, map, time, ΔNext and the open arrow; ΔWR, points and the partner are desktop only.
+     The header's title spans two columns, so its labels are one child behind the rows'. */
   .pf-crow,
   .pf-crow.is-coop {
-    --pf-cols: 48px minmax(0, 1fr) 80px 40px;
+    --pf-cols: 44px minmax(0, 1fr) 68px 54px 30px;
   }
 
-  .pf-crow > :nth-child(4),
-  .pf-crow > :nth-child(5),
-  .pf-crow > :nth-child(6),
-  .pf-crow.is-coop > :nth-child(7) {
+  .pf-crow:not(.pf-crow-head) > :nth-child(5),
+  .pf-crow:not(.pf-crow-head) > :nth-child(6),
+  .pf-crow.is-coop:not(.pf-crow-head) > :nth-child(7),
+  .pf-crow-head > :nth-child(4),
+  .pf-crow-head > :nth-child(5),
+  .pf-crow-head.is-coop > :nth-child(6) {
     display: none;
+  }
+
+  .pf-crow:not(.pf-crow-head) > :nth-child(4) {
+    font-size: 15px;
+    color: var(--text-2);
+  }
+
+  .pf-crow-head {
+    font-size: 14px;
   }
 
   .pf-crow-head h3 {
@@ -957,6 +970,10 @@
   }
 
   .pf-hrow > :nth-child(n + 6) {
+    display: none;
+  }
+
+  .pf-hlong {
     display: none;
   }
 }
