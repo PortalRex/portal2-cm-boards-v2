@@ -83,6 +83,14 @@
   align-items: center;
   gap: 6px;
   min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Long names end in an ellipsis instead of running into the rank. */
+.recap-name > a {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -655,6 +663,7 @@
 
   .following.recap li {
     grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.3fr) 30px 58px;
+    column-gap: 10px;
     height: auto;
     min-height: 34px;
     padding: 3px 0;

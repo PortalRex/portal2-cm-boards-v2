@@ -446,7 +446,7 @@
 .pf-summary {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 10px;
 }
 
 .pf-summary-row {
@@ -914,8 +914,21 @@
     padding: 16px 10px 24px;
   }
 
+  /* Each chapter is a block: heading, then its tiles wrapping below, with room before the next. */
+  .pf-summary {
+    gap: 22px;
+  }
+
   .pf-summary-row {
     grid-template-columns: 48px minmax(0, 1fr);
+    row-gap: 10px;
+  }
+
+  /* Rank stats as a 2x2 grid so the labels don't run together. */
+  .pf-global .stat-row {
+    grid-auto-flow: row;
+    grid-template-columns: 1fr 1fr;
+    row-gap: 16px;
   }
 
   .pf-summary-tiles {
@@ -1275,19 +1288,4 @@
 
 .pf-activity-legend .pf-activity-cell {
   display: inline-block;
-}
-
-.pf-activity-years-list {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  width: max-content;
-  margin: 0 auto;
-}
-
-.pf-activity-year-label {
-  display: block;
-  margin: 0 0 4px 24px;
-  font-size: 14px;
-  font-weight: 600;
 }
