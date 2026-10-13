@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Select } from "../../components/ui";
-import { parseTimestamp } from "../../lib/format";
+import { formatDelta, formatScore, parseTimestamp } from "../../lib/format";
 
 const DAY = 24 * 3600 * 1000;
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -91,6 +91,24 @@ export default function ActivityHeatmap({ history }) {
     });
     return m;
   }, [history]);
+  // The runs behind each day, oldest first, for the hover card.
+  const runsByDay = useMemo(() => {
+    const m = new Map();
+    (history || []).forEach((h) => {
+      if (!h.timestamp || h.banned) return;
+      const k = dayKey(parseTimestamp(h.timestamp));
+      if (!m.has(k)) m.set(k, []);
+      m.get(k).push(h);
+    });
+    m.forEach((list) => list.sort((a, b) => parseTimestamp(a.timestamp) - parseTimestamp(b.timestamp)));
+    return m;
+  }, [history]);
+  const [tip, setTip] = useState(null);
+  const showTip = (d, el) => {
+    if (!d?.inRange) return setTip(null);
+    const box = el.getBoundingClientRect();
+    setTip({ d, x: box.left + box.width / 2, top: box.top, bottom: box.bottom });
+  };
   const years = useMemo(() => [...new Set([...counts.keys()].map((k) => Number(k.slice(0, 4))))].sort((a, b) => b - a), [counts]);
   const [range, setRange] = useState("past");
   const scroller = useRef(null);
@@ -112,7 +130,21 @@ export default function ActivityHeatmap({ history }) {
   // Phones: start scrolled to the latest weeks.
   useEffect(() => {
     if (scroller.current) scroller.current.scrollLeft = scroller.current.scrollWidth;
+    setTip(null);
   }, [grid]);
+
+  // The card is fixed-position, so drop it when the page scrolls or on a tap elsewhere.
+  useEffect(() => {
+    if (!tip) return undefined;
+    const hide = () => setTip(null);
+    const away = (e) => !e.target.closest?.(".pf-activity-cell") && setTip(null);
+    window.addEventListener("scroll", hide, true);
+    document.addEventListener("pointerdown", away);
+    return () => {
+      window.removeEventListener("scroll", hide, true);
+      document.removeEventListener("pointerdown", away);
+    };
+  }, [tip]);
 
   if (!counts.size) return null;
   const when = range === "past" ? "in the past year" : range === "all" ? `since ${years[years.length - 1]}` : `in ${range}`;
@@ -140,7 +172,11 @@ export default function ActivityHeatmap({ history }) {
         />
       </div>
       <div className="pf-activity-scroll" ref={scroller}>
-        <div className="pf-activity-grid" style={{ gridTemplateColumns: `24px repeat(${grid.weeks.length}, 13px)` }}>
+        <div
+          className="pf-activity-grid"
+          style={{ gridTemplateColumns: `24px repeat(${grid.weeks.length}, 13px)` }}
+          onMouseLeave={() => setTip(null)}
+        >
           <span />
           {grid.labels.map((l, i) => (
             <span key={i} className="pf-activity-month">
@@ -148,10 +184,11 @@ export default function ActivityHeatmap({ history }) {
             </span>
           ))}
           {[0, 1, 2, 3, 4, 5, 6].map((row) => (
-            <Row key={row} row={row} grid={grid} />
+            <Row key={row} row={row} grid={grid} onShow={showTip} />
           ))}
         </div>
       </div>
+      {tip && <TipCard tip={tip} span={grid.span} runsByDay={runsByDay} />}
       <div className="pf-activity-legend muted">
         Less
         {[0, 1, 2, 3, 4].map((l) => (
@@ -163,7 +200,43 @@ export default function ActivityHeatmap({ history }) {
   );
 }
 
-function Row({ row, grid }) {
+const TIP_RUNS = 8;
+
+// Hover / tap card: the date (or range) and the runs set then, newest last.
+function TipCard({ tip, span, runsByDay }) {
+  const { d } = tip;
+  const runs = [];
+  for (let k = 0; k < span; k++) {
+    const day = new Date(d.date.getTime() + k * DAY);
+    if (d.to && day > d.to) break;
+    runs.push(...(runsByDay.get(dayKey(day)) || []));
+  }
+  const width = 260;
+  const left = Math.min(Math.max(8, tip.x - width / 2), window.innerWidth - width - 8);
+  const above = tip.top > window.innerHeight / 2;
+  const style = above ? { left, width, bottom: window.innerHeight - tip.top + 8 } : { left, width, top: tip.bottom + 8 };
+  return (
+    <div className="pf-activity-tip" style={style} role="tooltip">
+      <div className="pf-activity-tip-head">
+        <strong>{span === 1 ? fmt(d.date) : `${fmt(d.date)} – ${fmt(d.to)}`}</strong>
+        <span className="muted">
+          {runs.length} run{runs.length === 1 ? "" : "s"}
+        </span>
+      </div>
+      {runs.slice(-TIP_RUNS).map((h) => (
+        <div key={h.id} className="pf-activity-tip-run">
+          <span className="pf-activity-tip-map">{h.map?.title ?? "Unknown map"}</span>
+          <span className="num">{formatScore(h.score)}</span>
+          <span className="num muted">{h.scoreDelta != null ? formatDelta(h.scoreDelta) : ""}</span>
+          <span className="num muted">{h.postRank ? `#${h.postRank}` : ""}</span>
+        </div>
+      ))}
+      {runs.length > TIP_RUNS && <div className="muted pf-activity-tip-more">and {runs.length - TIP_RUNS} earlier</div>}
+    </div>
+  );
+}
+
+function Row({ row, grid, onShow }) {
   const { weeks, span, busiest } = grid;
   return (
     <>
@@ -174,7 +247,15 @@ function Row({ row, grid }) {
         const runs = `${d.n} run${d.n === 1 ? "" : "s"}`;
         const label = span === 1 ? `${runs} on ${fmt(d.date)}` : `${runs}, ${fmt(d.date)} – ${fmt(d.to)}`;
         const l = span === 1 ? level(d.n) : scaledLevel(d.n, busiest);
-        return <span key={i} className={`pf-activity-cell is-l${l}`} title={label} aria-label={label} />;
+        return (
+          <span
+            key={i}
+            className={`pf-activity-cell is-l${l}`}
+            aria-label={label}
+            onMouseEnter={(e) => onShow(d, e.currentTarget)}
+            onClick={(e) => onShow(d, e.currentTarget)}
+          />
+        );
       })}
     </>
   );
