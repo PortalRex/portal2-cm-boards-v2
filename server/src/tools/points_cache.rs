@@ -46,7 +46,7 @@ const WARM: &[(i32, &[(&str, Scope<'static>)])] = &[
 const REBUILD_DELAY: Duration = Duration::from_secs(3);
 
 /// Rebuild a game's data when it's older than this, even without an invalidation.
-pub const MAX_AGE: Duration = Duration::from_secs(10 * 60);
+pub const MAX_AGE: Duration = Duration::from_secs(60 * 60);
 
 /// One aggregated board: players ordered by points, and the response body for it.
 pub struct Board {

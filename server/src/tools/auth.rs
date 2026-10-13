@@ -108,26 +108,48 @@ pub(crate) fn origin_ok(req: &HttpRequest, config: &Config) -> bool {
     }
 }
 
-/// Loads the user for the request's session cookie (and refreshes `last_seen`).
+/// How long a session's `last_seen` may lag before a request refreshes it.
+const LAST_SEEN_REFRESH_MINUTES: i32 = 10;
+
+/// Loads the user for the request's session cookie. `last_seen` is refreshed at most every
+/// ten minutes, so the usual request is one read rather than a write.
 pub async fn user_for_request(req: &HttpRequest, pool: &PgPool) -> Result<Option<AuthUser>, sqlx::Error> {
     let Some(cookie) = req.cookie(SESSION_COOKIE) else {
         return Ok(None);
     };
     let hash = hash_token(cookie.value());
-    let user = sqlx::query_as::<_, AuthUser>(
+    let row: Option<(AuthUser, bool)> = sqlx::query_as::<_, SessionRow>(
         r#"
-            UPDATE sessions SET last_seen = now()
-            FROM users AS u
-            WHERE sessions.token_hash = $1 AND sessions.expires_at > now()
-              AND u.profile_number = sessions.profile_number
-            RETURNING u.profile_number, COALESCE(u.board_name, u.steam_name, u.profile_number) AS user_name,
-                      u.avatar, u.admin, u.role, u.banned
+            SELECT u.profile_number, COALESCE(u.board_name, u.steam_name, u.profile_number) AS user_name,
+                   u.avatar, u.admin, u.role, u.banned,
+                   s.last_seen < now() - make_interval(mins => $2) AS stale
+            FROM sessions AS s JOIN users AS u ON u.profile_number = s.profile_number
+            WHERE s.token_hash = $1 AND s.expires_at > now()
         "#,
     )
-    .bind(hash)
+    .bind(&hash)
+    .bind(LAST_SEEN_REFRESH_MINUTES)
     .fetch_optional(pool)
-    .await?;
-    Ok(user)
+    .await?
+    .map(|r| (AuthUser { profile_number: r.profile_number, user_name: r.user_name, avatar: r.avatar, admin: r.admin, role: r.role, banned: r.banned }, r.stale));
+    let Some((user, stale)) = row else {
+        return Ok(None);
+    };
+    if stale {
+        sqlx::query("UPDATE sessions SET last_seen = now() WHERE token_hash = $1").bind(&hash).execute(pool).await?;
+    }
+    Ok(Some(user))
+}
+
+#[derive(FromRow)]
+struct SessionRow {
+    profile_number: String,
+    user_name: String,
+    avatar: Option<String>,
+    admin: i32,
+    role: Option<String>,
+    banned: bool,
+    stale: bool,
 }
 
 type Fut<T> = Pin<Box<dyn Future<Output = Result<T, actix_web::Error>>>>;

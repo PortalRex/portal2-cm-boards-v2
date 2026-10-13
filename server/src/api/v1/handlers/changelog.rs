@@ -283,23 +283,21 @@ pub async fn changelog_demo_update(
     cache: web::Data<CacheState>,
 ) -> Result<impl Responder> {
     let ids = ids.into_inner();
-    let return_changelog = Changelog::update_demo_id_in_changelog(
-        pool.get_ref(),
-        ids.cl_id.unwrap(),
-        ids.demo_id.unwrap(),
-    )
-    .await?;
+    let (Some(cl_id), Some(demo_id)) = (ids.cl_id, ids.demo_id) else {
+        return Ok(HttpResponse::BadRequest().body("cl_id and demo_id are required."));
+    };
+    let return_changelog = Changelog::update_demo_id_in_changelog(pool.get_ref(), cl_id, demo_id).await?;
     // A run that was pending for lack of a demo has one now (a new co-op run waits for both
     // players' demos).
     let mut tx = pool.begin().await?;
-    let coop_id: Option<i64> = sqlx::query_scalar("SELECT coop_id FROM changelog WHERE id = $1").bind(ids.cl_id.unwrap()).fetch_optional(&mut *tx).await?.flatten();
+    let coop_id: Option<i64> = sqlx::query_scalar("SELECT coop_id FROM changelog WHERE id = $1").bind(cl_id).fetch_optional(&mut *tx).await?.flatten();
     let settled = match coop_id {
         Some(coop_id) => crate::controllers::submissions::settle_coop_proof(&mut tx, coop_id).await?,
         None => None,
     };
     if settled.is_none() {
         sqlx::query("UPDATE changelog SET verified = true WHERE id = $1 AND verified IS NOT TRUE AND NOT banned")
-            .bind(ids.cl_id.unwrap())
+            .bind(cl_id)
             .execute(&mut *tx)
             .await?;
     }
@@ -308,5 +306,5 @@ pub async fn changelog_demo_update(
         .update_current_states(&[SP_PREVIEWS, COOP_PREVIEWS], &[false, false])
         .await;
     crate::tools::points_cache::invalidate_points().await;
-    Ok(web::Json(return_changelog))
+    Ok(HttpResponse::Ok().json(return_changelog))
 }

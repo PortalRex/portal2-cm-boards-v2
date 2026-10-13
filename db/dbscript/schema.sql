@@ -1406,3 +1406,9 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_locked boolean NOT NULL DEFAUL
 -- older schema.sql; the importer now skips them.
 DELETE FROM chapters AS c
 WHERE c.game_id = 2 AND NOT EXISTS (SELECT 1 FROM maps AS m WHERE m.chapter_id = c.id);
+
+-- Player search matches names with ILIKE '%text%'; a trigram index serves that directly instead
+-- of scanning every user.
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+CREATE INDEX IF NOT EXISTS idx_users_name_trgm
+    ON users USING gin (COALESCE(board_name, steam_name) gin_trgm_ops);

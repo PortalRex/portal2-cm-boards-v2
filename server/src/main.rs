@@ -42,7 +42,7 @@
 extern crate serde_derive;
 use actix_cors::Cors;
 use actix_web::{
-    middleware::{Compress, Logger},
+    middleware::{Compress, DefaultHeaders, Logger},
     web, App, HttpServer,
 };
 use anyhow::{Error, Result};
@@ -100,10 +100,15 @@ async fn main() -> Result<(), Error> {
             .allowed_origin("http://localhost:3000")
             .allowed_methods(vec!["GET", "POST", "PUT", "DELETE"])
             .allowed_headers(vec![actix_web::http::header::CONTENT_TYPE])
-            .allowed_header("X-Admin-Token")
             .max_age(3600);
+        // Browsers must not sniff JSON into something else or frame the API; HSTS once on https.
+        let mut headers = DefaultHeaders::new().add(("X-Content-Type-Options", "nosniff")).add(("X-Frame-Options", "DENY"));
+        if config.server.public_url().starts_with("https://") {
+            headers = headers.add(("Strict-Transport-Security", "max-age=31536000; includeSubDomains"));
+        }
         App::new()
             .wrap(cors)
+            .wrap(headers)
             .wrap(Compress::default())
             .wrap(Logger::default())
             .app_data(web::Data::new(pool.clone()))

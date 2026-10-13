@@ -8,7 +8,9 @@ use crate::{
     tools::points_cache::{PointsCache, Scope},
     tools::error::Result,
 };
-use actix_web::{get, post, put, web, Responder};
+use crate::tools::ratelimit;
+use actix_web::{get, post, put, web, HttpRequest, HttpResponse, Responder};
+use std::time::Duration;
 use sqlx::PgPool;
 use std::collections::HashMap;
 
@@ -351,43 +353,61 @@ pub struct FoundUser {
 
 /// **GET** Players matching a name or Steam ID (up to 10, most active first), for pickers.
 #[get("/users/search")]
-async fn users_search(pool: web::Data<PgPool>, query: web::Query<SearchQuery>) -> Result<impl Responder> {
+async fn users_search(req: HttpRequest, config: web::Data<crate::tools::config::Config>, pool: web::Data<PgPool>, query: web::Query<SearchQuery>) -> Result<impl Responder> {
+    if let Err(limited) = ratelimit::check(&req, &config, "search", 60, Duration::from_secs(60)) {
+        return Ok(limited);
+    }
     let q = query.q.trim();
     if q.chars().count() < 2 {
-        return Ok(web::Json(Vec::<FoundUser>::new()));
+        return Ok(HttpResponse::Ok().json(Vec::<FoundUser>::new()));
     }
     // LIKE wildcards in the name are matched literally.
     let like = format!("%{}%", q.replace('\\', "\\\\").replace('%', "\\%").replace('_', "\\_"));
+    // Name matches come from the trigram index (migration 20261027000000); run counts are only
+    // worked out for the candidates, not every match.
     let found = sqlx::query_as::<_, FoundUser>(
         r#"
-            SELECT u.profile_number, COALESCE(u.board_name, u.steam_name, u.profile_number) AS user_name, u.avatar,
-                (SELECT COUNT(*) FROM changelog AS cl WHERE cl.profile_number = u.profile_number AND NOT cl.banned) AS runs
-            FROM users AS u
-            WHERE u.profile_number <> 'N/A' AND NOT u.banned
-              AND (u.profile_number = $1 OR COALESCE(u.board_name, u.steam_name) ILIKE $2)
-            ORDER BY (u.profile_number = $1) DESC, runs DESC
+            SELECT c.profile_number, c.user_name, c.avatar,
+                (SELECT COUNT(*) FROM changelog AS cl WHERE cl.profile_number = c.profile_number AND NOT cl.banned) AS runs
+            FROM (
+                SELECT u.profile_number, COALESCE(u.board_name, u.steam_name, u.profile_number) AS user_name, u.avatar
+                FROM users AS u
+                WHERE u.profile_number <> 'N/A' AND NOT u.banned
+                  AND (u.profile_number = $1 OR COALESCE(u.board_name, u.steam_name) ILIKE $2)
+                ORDER BY (u.profile_number = $1) DESC, (COALESCE(u.board_name, u.steam_name) ILIKE $3) DESC
+                LIMIT 300
+            ) AS c
+            ORDER BY (c.profile_number = $1) DESC, runs DESC
             LIMIT 10
         "#,
     )
     .bind(q)
-    .bind(like)
+    .bind(&like)
+    // Names starting with the query rank first among the candidates.
+    .bind(like.trim_start_matches('%'))
     .fetch_all(pool.get_ref())
     .await?;
-    Ok(web::Json(found))
+    Ok(HttpResponse::Ok().json(found))
 }
 
 /// **GET** A player's points over time in a game (default Portal 2), ranks recomputed against
 /// everyone's best times at each date: `[{ "date": "2024-01-07", "sp": 1234.5, "coop": 980.0, "overall": 2214.5 }, ...]`.
 #[get("/profile/points_history/{profile_number}")]
-async fn profile_points_history(pool: web::Data<PgPool>, profile_number: web::Path<String>, query: web::Query<StatsQuery>) -> Result<impl Responder> {
-    Ok(web::Json(crate::tools::points_history::points_history(pool.get_ref(), query.game_id.unwrap_or(1), &profile_number).await?))
+async fn profile_points_history(req: HttpRequest, config: web::Data<crate::tools::config::Config>, pool: web::Data<PgPool>, profile_number: web::Path<String>, query: web::Query<StatsQuery>) -> Result<impl Responder> {
+    if let Err(limited) = ratelimit::check(&req, &config, "points", 60, Duration::from_secs(60)) {
+        return Ok(limited);
+    }
+    Ok(HttpResponse::Ok().json(crate::tools::points_history::points_history(pool.get_ref(), query.game_id.unwrap_or(1), &profile_number).await?))
 }
 
 /// **GET** A player's peak points per board in a game (default Portal 2), each with the date it
 /// was reached: `{ "sp": { "points": 10450.2, "date": "2024-05-01" }, "coop": ..., "overall": ... }`.
 #[get("/profile/points_peak/{profile_number}")]
-async fn profile_points_peak(pool: web::Data<PgPool>, profile_number: web::Path<String>, query: web::Query<StatsQuery>) -> Result<impl Responder> {
-    Ok(web::Json(crate::tools::points_history::points_peak(pool.get_ref(), query.game_id.unwrap_or(1), &profile_number).await?))
+async fn profile_points_peak(req: HttpRequest, config: web::Data<crate::tools::config::Config>, pool: web::Data<PgPool>, profile_number: web::Path<String>, query: web::Query<StatsQuery>) -> Result<impl Responder> {
+    if let Err(limited) = ratelimit::check(&req, &config, "points", 60, Duration::from_secs(60)) {
+        return Ok(limited);
+    }
+    Ok(HttpResponse::Ok().json(crate::tools::points_history::points_peak(pool.get_ref(), query.game_id.unwrap_or(1), &profile_number).await?))
 }
 
 #[derive(Deserialize)]

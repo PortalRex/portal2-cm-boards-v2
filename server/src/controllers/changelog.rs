@@ -420,8 +420,10 @@ pub async fn build_filtered_changelog(pool: &PgPool, params: ChangelogQueryParam
     }
     //TODO: Maybe allow for custom order params????
     query_string = format!("{} ORDER BY cl.timestamp DESC NULLS LAST\n", query_string);
+    // Capped: the site never needs more than a profile's full history, and an uncapped limit
+    // could pull the whole table.
     if let Some(limit) = params.limit {
-        query_string = format!("{} LIMIT {}\n", query_string, limit);
+        query_string = format!("{} LIMIT {}\n", query_string, limit.clamp(1, 5000));
     } else {
         // TODO: Update to use the correct
         query_string = format!("{} LIMIT 500\n", query_string);

@@ -20,16 +20,19 @@ use crate::{
         config::Config,
         error::Result,
         points_cache::invalidate_points,
+        ratelimit,
     },
 };
 use actix_multipart::Multipart;
-use actix_web::{get, post, web, HttpResponse, Responder};
+use actix_files::NamedFile;
+use actix_web::{get, http::header, post, web, HttpRequest, HttpResponse, Responder};
 use futures::StreamExt;
 use serde_json::json;
 use sqlx::PgPool;
 use std::{
     collections::HashMap,
     path::{Path, PathBuf},
+    time::Duration,
 };
 
 /// Largest demo accepted.
@@ -136,7 +139,10 @@ fn parse_time(input: &str) -> Option<i32> {
 /// { "mapName": "sp_a1_intro3", "timeScore": 2243, "players": [...], "maps": [{ "steam_id": "47458", "name": "Portal Gun", ... }] }
 /// ```
 #[post("/submissions/preview")]
-async fn submission_preview(_user: SignedIn, pool: web::Data<PgPool>, config: web::Data<Config>, payload: Multipart) -> Result<impl Responder> {
+async fn submission_preview(req: HttpRequest, _user: SignedIn, pool: web::Data<PgPool>, config: web::Data<Config>, payload: Multipart) -> Result<impl Responder> {
+    if let Err(limited) = ratelimit::check(&req, &config, "upload", 10, Duration::from_secs(60)) {
+        return Ok(limited);
+    }
     let form = match read_form(payload).await {
         Ok(f) => f,
         Err(e) => return Ok(bad(e)),
@@ -165,12 +171,16 @@ async fn submission_preview(_user: SignedIn, pool: web::Data<PgPool>, config: we
 /// **POST** Submit a run.
 #[post("/submissions")]
 async fn submission_create(
+    req: HttpRequest,
     user: SignedIn,
     pool: web::Data<PgPool>,
     config: web::Data<Config>,
     cache: web::Data<CacheState>,
     payload: Multipart,
 ) -> Result<impl Responder> {
+    if let Err(limited) = ratelimit::check(&req, &config, "upload", 10, Duration::from_secs(60)) {
+        return Ok(limited);
+    }
     let user = user.0;
     let is_admin = user.is_role_admin();
     let form = match read_form(payload).await {
@@ -320,6 +330,7 @@ async fn submission_create(
 /// Responds `{ "verified": bool }`.
 #[post("/runs/{id}/demo")]
 async fn run_add_demo(
+    req: HttpRequest,
     user: SignedIn,
     pool: web::Data<PgPool>,
     config: web::Data<Config>,
@@ -327,6 +338,9 @@ async fn run_add_demo(
     id: web::Path<i64>,
     payload: Multipart,
 ) -> Result<impl Responder> {
+    if let Err(limited) = ratelimit::check(&req, &config, "upload", 10, Duration::from_secs(60)) {
+        return Ok(limited);
+    }
     let user = user.0;
     let Some(run) = submissions::proof_target(pool.get_ref(), id.into_inner()).await? else {
         return Ok(HttpResponse::NotFound().body("No such run."));
@@ -422,7 +436,10 @@ async fn run_add_demo(
 
 /// **GET** Download a demo by its id (as runs list it in `demo_id`).
 #[get("/demos/{demo_id}/file")]
-async fn demo_download(pool: web::Data<PgPool>, config: web::Data<Config>, demo_id: web::Path<i64>) -> Result<impl Responder> {
+async fn demo_download(req: HttpRequest, pool: web::Data<PgPool>, config: web::Data<Config>, demo_id: web::Path<i64>) -> Result<impl Responder> {
+    if let Err(limited) = ratelimit::check(&req, &config, "download", 120, Duration::from_secs(60)) {
+        return Ok(limited);
+    }
     let row: Option<(String, Option<i64>)> = sqlx::query_as(
         "SELECT d.file_id, (SELECT MIN(cl.id)::bigint FROM changelog AS cl WHERE cl.demo_id = d.id) FROM demos AS d WHERE d.id = $1",
     )
@@ -435,18 +452,27 @@ async fn demo_download(pool: web::Data<PgPool>, config: web::Data<Config>, demo_
     let Some(path) = crate::tools::demo_files::locate(&config.demo, &file, changelog_id).await else {
         return Ok(HttpResponse::NotFound().body("This demo's file isn't available."));
     };
-    let bytes = match tokio::fs::read(&path).await {
-        Ok(b) => b,
+    // Streamed from disk (not read into memory), with ranges, ETag and Last-Modified so a
+    // browser that already has it gets a 304.
+    let named = match NamedFile::open_async(&path).await {
+        Ok(f) => f,
         Err(e) => {
             log::error!("demo download {}: {e}", path.display());
             return Ok(HttpResponse::NotFound().body("This demo's file isn't available."));
         }
     };
-    Ok(HttpResponse::Ok()
-        .content_type("application/octet-stream")
-        .insert_header(("Content-Disposition", format!("attachment; filename=\"{}\"", file.replace('"', ""))))
-        .insert_header(("Cache-Control", "public, max-age=86400"))
-        .body(bytes))
+    let disposition = header::ContentDisposition {
+        disposition: header::DispositionType::Attachment,
+        parameters: vec![header::DispositionParam::Filename(file.replace('"', ""))],
+    };
+    let mut res = named
+        .set_content_type(mime::APPLICATION_OCTET_STREAM)
+        .set_content_disposition(disposition)
+        .use_etag(true)
+        .use_last_modified(true)
+        .into_response(&req);
+    res.headers_mut().insert(header::CACHE_CONTROL, header::HeaderValue::from_static("public, max-age=86400"));
+    Ok(res)
 }
 
 #[cfg(test)]

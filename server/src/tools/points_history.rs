@@ -40,10 +40,17 @@ struct Timeline {
     maps: Vec<MapTimeline>,
 }
 
+/// Cached answers per (game, player, day): both only change with the timeline, which is
+/// cleared whenever runs change, or with the date.
 #[derive(Default)]
 struct HistoryCache {
     games: Mutex<HashMap<i32, Arc<Timeline>>>,
+    histories: Mutex<HashMap<(i32, String, NaiveDate), Arc<Vec<HistoryPoint>>>>,
+    peaks: Mutex<HashMap<(i32, String, NaiveDate), Arc<BTreeMap<String, Peak>>>>,
 }
+
+/// Results kept per table before it's emptied (a few hundred bytes to a few KB each).
+const MAX_CACHED_RESULTS: usize = 5000;
 
 static CACHE: OnceLock<HistoryCache> = OnceLock::new();
 
@@ -53,7 +60,10 @@ fn cache() -> &'static HistoryCache {
 
 /// Drops every game's timeline (called with [crate::tools::points_cache::invalidate_points]).
 pub async fn clear() {
-    cache().games.lock().await.clear();
+    let c = cache();
+    c.games.lock().await.clear();
+    c.histories.lock().await.clear();
+    c.peaks.lock().await.clear();
 }
 
 async fn timeline(pool: &PgPool, game_id: i32) -> Result<Arc<Timeline>, sqlx::Error> {
@@ -187,7 +197,21 @@ pub struct Peak {
 /// the player sets a run (others can only pass them), so the peak is at one of their own runs:
 /// each is checked exactly. Undated runs count from release, as on the chart, but release itself
 /// isn't a candidate (the chart doesn't start there either).
-pub async fn points_peak(pool: &PgPool, game_id: i32, profile_number: &str) -> Result<BTreeMap<String, Peak>, sqlx::Error> {
+pub async fn points_peak(pool: &PgPool, game_id: i32, profile_number: &str) -> Result<Arc<BTreeMap<String, Peak>>, sqlx::Error> {
+    let key = (game_id, profile_number.to_string(), Utc::now().date_naive());
+    if let Some(hit) = cache().peaks.lock().await.get(&key) {
+        return Ok(hit.clone());
+    }
+    let result = Arc::new(compute_peak(pool, game_id, profile_number).await?);
+    let mut peaks = cache().peaks.lock().await;
+    if peaks.len() >= MAX_CACHED_RESULTS {
+        peaks.clear();
+    }
+    peaks.insert(key, result.clone());
+    Ok(result)
+}
+
+async fn compute_peak(pool: &PgPool, game_id: i32, profile_number: &str) -> Result<BTreeMap<String, Peak>, sqlx::Error> {
     let t = timeline(pool, game_id).await?;
     let Some(&me) = t.players.get(profile_number) else {
         return Ok(BTreeMap::new());
@@ -227,7 +251,21 @@ pub struct HistoryPoint {
 }
 
 /// A player's points over time in a game, from their first run to today.
-pub async fn points_history(pool: &PgPool, game_id: i32, profile_number: &str) -> Result<Vec<HistoryPoint>, sqlx::Error> {
+pub async fn points_history(pool: &PgPool, game_id: i32, profile_number: &str) -> Result<Arc<Vec<HistoryPoint>>, sqlx::Error> {
+    let key = (game_id, profile_number.to_string(), Utc::now().date_naive());
+    if let Some(hit) = cache().histories.lock().await.get(&key) {
+        return Ok(hit.clone());
+    }
+    let result = Arc::new(compute_history(pool, game_id, profile_number).await?);
+    let mut histories = cache().histories.lock().await;
+    if histories.len() >= MAX_CACHED_RESULTS {
+        histories.clear();
+    }
+    histories.insert(key, result.clone());
+    Ok(result)
+}
+
+async fn compute_history(pool: &PgPool, game_id: i32, profile_number: &str) -> Result<Vec<HistoryPoint>, sqlx::Error> {
     let t = timeline(pool, game_id).await?;
     let Some(&me) = t.players.get(profile_number) else {
         return Ok(Vec::new());

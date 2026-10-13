@@ -15,6 +15,7 @@ use crate::{
         auth::{safe_return_path, steam_id_from_claimed_id, MaybeUser, LOGIN_STATE_COOKIE, SESSION_COOKIE, SESSION_DAYS, STEAM_OPENID},
         auth::random_token,
         config::Config,
+        ratelimit,
         error::Result,
     },
 };
@@ -79,6 +80,9 @@ fn public_host(config: &Config) -> String {
 /// **GET** Starts Steam sign-in. `return` is the site path to come back to.
 #[get("/auth/steam/login")]
 async fn steam_login(req: HttpRequest, config: web::Data<Config>, params: web::Query<LoginParams>) -> impl Responder {
+    if let Err(limited) = ratelimit::check(&req, &config, "login", 20, std::time::Duration::from_secs(60)) {
+        return limited;
+    }
     let back = safe_return_path(params.return_to.as_deref());
     // Sign-in must start on the public address: Steam returns there, and the state cookie has
     // to be set on the same host. (Only ever redirects to the configured URL.)

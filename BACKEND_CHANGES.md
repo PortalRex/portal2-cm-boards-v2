@@ -58,6 +58,7 @@ New environment variables for the server (dotted names, as in `server/.env.examp
 | `DEMO.PARSER` | For submissions | Path to `server/demo-parser/parse_demo.mjs` (run `npm install` in that folder). |
 | `DEMO.STORAGE` | For submissions | Directory submitted demos are saved in. |
 | `DEMO.NODE` | No | Node executable if `node` isn't on the PATH (Node 18+). |
+| `SERVER.BEHIND_PROXY` | Production | `true` when a reverse proxy is in front: client addresses (rate limits, anonymous report de-duplication) are read from `X-Forwarded-For`. Off by default, since that header can't be trusted without a proxy. Bind `SERVER.HOST` to `127.0.0.1` behind the proxy so clients can't reach the server directly. |
 | `RANKS.COOP` | No | How co-op runs are ranked: `run` (default) gives each run one rank, so the next team down is rank 2; `player` gives each player a rank, so a run fills two (1, 1, 3) as the old boards did. See [§6](#6-changed-behaviour-of-existing-endpoints). |
 | `RANKS.COOP_PROOF_SINCE` | At launch | UTC time (`2026-11-01 00:00:00`) from which new co-op runs in the top 200 need a demo from each player; set it to when the site goes fully online. Unset = off (one demo verifies both halves). See [§8](#8-run-submissions-and-demos). |
 | `DEMO.ARCHIVE` | For old demos | Folders holding the old boards' demo files (several separated by `;`, searched recursively). Needed for downloading imported runs' demos. |
@@ -209,7 +210,30 @@ All under `/api/v1`. Auth: **public**, **signed in**, **staff** (any tier or ser
   later, so a burst of changes means one rebuild. It's also rebuilt when older than 10 minutes, and warmed at startup for
   Portal 2 and Mel. The overall board went from ~1.8 s to ~5 ms.
 - **Compression** middleware on all responses.
-- The **changelog indexes** in [§4](#4-database-changes).
+- The **changelog indexes** in [§4](#4-database-changes), plus migration `20261027000000_perf_indexes.sql`: a
+  `pg_trgm` index on player names for search (`/users/search` went from a full scan of `users` to an index lookup; it
+  now also only counts runs for the candidates it ranks). A partial index on each player's qualifying runs was tried
+  for the points-cache query and made it slower (the planner used it for a nested loop instead of hash joins), so that
+  query is unchanged; `ANALYZE` after a big import keeps its plan sensible.
+- **Sessions**: a request only refreshes `sessions.last_seen` when it's more than ten minutes old, so the usual
+  signed-in request is one read, not a write.
+- **Points history and peak** results are cached per player and day alongside the run timeline (dropped with it when
+  runs change), so repeat profile views don't recompute them.
+- **Demo downloads** stream from disk through `actix-files` with ETag / Last-Modified (304s) and range requests, instead
+  of reading the whole file into memory.
+- The points cache's safety refresh is hourly (it was every 10 minutes; every run change already rebuilds it).
+
+### Hardening
+
+- **Rate limits** (`server/src/tools/ratelimit.rs`), per client address: Steam sign-in 20/min, demo uploads (preview,
+  submit, add demo) 10/min, run reports 10/hour, player search 60/min, points history/peak 60/min, demo downloads
+  120/min. Over the limit answers 429 with `Retry-After`.
+- **Errors**: clients get a short generic message (`Not found.`, `Something went wrong on the server.`); the real
+  error is logged. Before, raw database errors (table and column names) were returned.
+- **`GET /chapters`** binds its `chapter_name` filter as a parameter (it was pasted into the SQL).
+- **`GET /changelog`** caps `limit` at 5000.
+- Response headers `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, and `Strict-Transport-Security` when the
+  public URL is https.
 
 ## 8. Run submissions and demos
 

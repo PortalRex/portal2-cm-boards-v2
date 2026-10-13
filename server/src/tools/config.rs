@@ -14,9 +14,17 @@ pub struct ServerConfig {
     /// `https://board.portal2.sr`). Steam sign-in returns here, and session cookies are
     /// marked Secure when it's https. Defaults to http://localhost:3000 (the dev frontend).
     pub public_url: Option<String>,
+    /// Set when a reverse proxy sits in front: client addresses (for rate limits and report
+    /// de-duplication) are then read from the proxy's X-Forwarded-For header. Leave unset when
+    /// clients connect directly, as that header can't be trusted then.
+    pub behind_proxy: Option<bool>,
 }
 
 impl ServerConfig {
+    pub fn behind_proxy(&self) -> bool {
+        self.behind_proxy.unwrap_or(false)
+    }
+
     pub fn public_url(&self) -> &str {
         self.public_url.as_deref().filter(|u| !u.is_empty()).unwrap_or("http://localhost:3000").trim_end_matches('/')
     }

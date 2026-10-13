@@ -5,6 +5,7 @@ use crate::{
         auth::{origin_ok, AdminOrService, MaybeUser},
         config::Config,
         error::Result,
+        ratelimit,
     },
 };
 use actix_web::{get, post, put, web, HttpRequest, HttpResponse, Responder};
@@ -38,10 +39,14 @@ async fn run_report(
     if !origin_ok(&req, &config) {
         return Ok(HttpResponse::Forbidden().body("Cross-site request refused."));
     }
+    if let Err(limited) = ratelimit::check(&req, &config, "report", 10, std::time::Duration::from_secs(3600)) {
+        return Ok(limited);
+    }
     let who = match &user.0 {
         Some(u) if u.banned => return Ok(HttpResponse::Forbidden().body("This account is banned.")),
         Some(u) => format!("user:{}", u.profile_number),
-        None => format!("addr:{}", req.connection_info().realip_remote_addr().unwrap_or("unknown")),
+        // The forwarded address only when configured as behind a proxy (see ratelimit).
+        None => format!("addr:{}", ratelimit::client_ip(&req, &config)),
     };
     let salt = config.service.token.clone().filter(|t| !t.is_empty()).unwrap_or_else(|| config.steam.api_key.clone());
     let key = reports::reporter_key(&salt, &who);

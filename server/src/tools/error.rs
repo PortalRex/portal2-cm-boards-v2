@@ -1,9 +1,12 @@
+//! The error type handlers return. Whatever went wrong is logged in full on the server; the
+//! client only gets a short generic message, so database and internal details never leak.
 use actix_web::{http::StatusCode, HttpResponse, ResponseError};
 use std::{fmt, io};
 
 #[derive(Debug)]
 pub enum ErrorType {
     DbError,
+    NotFound,
     Reqwest,
     Internal,
     Unknown,
@@ -53,7 +56,10 @@ impl From<sqlx::Error> for ServerError {
     fn from(error: sqlx::Error) -> Self {
         ServerError {
             error_message: format!("{error}"),
-            error_type: ErrorType::DbError,
+            error_type: match error {
+                sqlx::Error::RowNotFound => ErrorType::NotFound,
+                _ => ErrorType::DbError,
+            },
         }
     }
 }
@@ -67,15 +73,20 @@ impl fmt::Display for ServerError {
 impl ResponseError for ServerError {
     fn status_code(&self) -> StatusCode {
         match self.error_type {
-            ErrorType::DbError => StatusCode::UNPROCESSABLE_ENTITY,
-            ErrorType::Internal => StatusCode::INTERNAL_SERVER_ERROR,
+            ErrorType::NotFound => StatusCode::NOT_FOUND,
             ErrorType::Reqwest => StatusCode::SERVICE_UNAVAILABLE,
-            ErrorType::Unknown => StatusCode::UNPROCESSABLE_ENTITY,
+            ErrorType::DbError | ErrorType::Internal | ErrorType::Unknown => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
     fn error_response(&self) -> HttpResponse {
-        HttpResponse::build(self.status_code()).json(ErrResponse {
-            error: self.error_message.clone(),
-        })
+        let message = match self.error_type {
+            ErrorType::NotFound => "Not found.",
+            ErrorType::Reqwest => "An outside service didn't answer; try again shortly.",
+            ErrorType::DbError | ErrorType::Internal | ErrorType::Unknown => "Something went wrong on the server.",
+        };
+        if !matches!(self.error_type, ErrorType::NotFound) {
+            log::error!("request failed ({:?}): {}", self.error_type, self.error_message);
+        }
+        HttpResponse::build(self.status_code()).json(ErrResponse { error: message.to_string() })
     }
 }

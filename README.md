@@ -28,6 +28,7 @@ BACKBLAZE.KEYID=
 BACKBLAZE.KEY=
 BACKBLAZE.BUCKET=
 SERVER.PUBLIC_URL=http://localhost:3000
+# SERVER.BEHIND_PROXY=true
 SERVICE.TOKEN=
 DEMO.PARSER=./demo-parser/parse_demo.mjs
 DEMO.STORAGE=./demos
@@ -38,7 +39,7 @@ RUST_LOG=1
 RUST_LOG="actix_web=info"
 ```
 
-- `SERVER.PUBLIC_URL` is the address people use to reach the site, which serves the API under `/api` (e.g. `https://board.portal2.sr`). Steam sign-in sends users back to it, and session cookies are marked Secure when it's https. Defaults to `http://localhost:3000`.
+- `SERVER.PUBLIC_URL` is the address people use to reach the site, which serves the API under `/api` (e.g. `https://board.portal2.sr`). Steam sign-in sends users back to it, and session cookies are marked Secure when it's https. Defaults to `http://localhost:3000`. Set `SERVER.BEHIND_PROXY=true` when a reverse proxy is in front (and bind `SERVER.HOST` to `127.0.0.1`), so rate limits and report de-duplication see the real client address from `X-Forwarded-For`.
 - `STEAM.API_KEY` is used to fill in a user's Steam name and avatar when they sign in (sign-in itself works without it).
 - `SERVICE.TOKEN` is a long random string shared with the board's own services in `/backend` (set the same value as `SERVICE_TOKEN` in `backend/.env`). They send it in an `X-Service-Token` header. Every endpoint that changes data requires either that token or a signed-in admin (`users.admin > 0`); when it's unset, only admins can make changes.
 - `DEMO.PARSER` and `DEMO.STORAGE` enable run submissions (the navbar's **Submit Run**). Submitted demos are read by `server/demo-parser/parse_demo.mjs` (Node 18+; run `npm install` in that folder) for the map, the scoreboard time and the players, and saved in `DEMO.STORAGE`. `DEMO.NODE` sets the node executable if it isn't on the PATH. `DEMO.ARCHIVE` lists the folders (separated by `;`) holding the old boards' demo files, so imported runs' demos can be downloaded. `RANKS.COOP` sets co-op ranking: `run` (default) gives each run one rank (1, 2, 3); `player` gives each player one (1, 1, 3), as the old boards did. `RANKS.COOP_PROOF_SINCE` (UTC, set it to the launch) makes new top-200 co-op runs wait for a demo from each player before they're verified. Players can only submit demos they are in; admins (`users.role = admin`) may also enter the map, time, player or partner by hand, which is recorded in the audit log.
