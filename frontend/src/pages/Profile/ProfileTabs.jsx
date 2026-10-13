@@ -232,13 +232,16 @@ function ChapterTable({ chapter, scores, coop, game, rendered, selectedMap, onSe
               <span className={`pf-crank num${s?.rank ? " rank-tint" : ""}`}>
                 <RankNumber rank={s?.rank} inherit />
               </span>
-              <Link to={mapPath(m)} className="pf-cmap">
-                {m.title}
+              {/* Only the name links to the map; the rest of the row opens the run. */}
+              <span className="pf-cmap">
+                <Link to={mapPath(m)} className="pf-cmap-link">
+                  {m.title}
+                </Link>
                 <small>
                   {chapter.sorted ? `${m.chapter} · ` : ""}
                   {s?.timestamp ? timeAgo(s.timestamp) : s ? "" : "No score"}
                 </small>
-              </Link>
+              </span>
               <span className="end num">{s?.score != null ? formatScore(s.score) : ""}</span>
               <span className="end num">{s?.deltaNext != null ? formatDelta(s.deltaNext) : ""}</span>
               <span className="end num">{s?.deltaWr != null ? formatDelta(s.deltaWr) : ""}</span>

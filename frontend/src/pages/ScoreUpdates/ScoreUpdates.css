@@ -240,11 +240,13 @@
     var(--map-image, none) center / cover no-repeat;
 }
 
-.sr-map:hover .sr-map-name {
+.sr-map-name:hover {
   text-decoration: underline;
 }
 
 .sr-map-name {
+  align-self: flex-start;
+  max-width: 100%;
   font-size: 18px;
   line-height: 1.1;
   white-space: nowrap;

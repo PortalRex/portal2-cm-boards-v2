@@ -597,7 +597,14 @@
   color: var(--text-muted);
 }
 
-.pf-cmap:hover {
+.pf-cmap-link {
+  align-self: flex-start;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pf-cmap-link:hover {
   text-decoration: underline;
 }
 

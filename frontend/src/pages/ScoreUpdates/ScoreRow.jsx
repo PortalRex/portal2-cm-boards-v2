@@ -24,11 +24,14 @@ export default function ScoreRow({ entry, rendered, myReaction }) {
           <RankChange pre={entry.preRank} post={entry.postRank} />
         </div>
 
-        <Link to={mapPath(entry.map)} className="sr-map" style={entry.map.image ? { "--map-image": `url("${entry.map.image}")` } : undefined}>
-          <span className="sr-map-name">{entry.map.title}</span>
+        {/* Only the name links to the map; the rest of the row opens the run. */}
+        <div className="sr-map" style={entry.map.image ? { "--map-image": `url("${entry.map.image}")` } : undefined}>
+          <Link to={mapPath(entry.map)} className="sr-map-name">
+            {entry.map.title}
+          </Link>
           <span className="sr-map-chapter">{entry.map.chapter}</span>
           <span className="sr-map-ago green">{timeAgo(entry.timestamp)}</span>
-        </Link>
+        </div>
 
         <div className="sr-players">
           {players.map((p, i) => (
