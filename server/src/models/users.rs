@@ -29,6 +29,12 @@ pub struct Users {
     /// Staff tier: verifier, moderator or admin.
     #[sqlx(default)]
     pub role: Option<String>,
+    #[sqlx(default)]
+    #[serde(default)]
+    pub name_locked: bool,
+    #[sqlx(default)]
+    #[serde(default)]
+    pub avatar_locked: bool,
 }
 
 /// One-to-one struct for countries

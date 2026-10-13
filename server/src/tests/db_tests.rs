@@ -94,6 +94,8 @@ async fn test_db_users() {
         frozen: false,
         frozen_reason: None,
         role: None,
+        name_locked: false,
+        avatar_locked: false,
     };
     let mut insert_user = user.clone();
     let test_user = Users::get_user(&pool, user.profile_number.clone()).await.unwrap().unwrap();

@@ -10,7 +10,7 @@ import useApi from "../../hooks/useApi";
 import { useDataVersion } from "../../lib/dataVersion";
 import useFollows from "../../hooks/useFollows";
 import useCurrentUser, { isRoleAdmin, isStaff, ROLE_LABELS } from "../../hooks/useCurrentUser";
-import { setProfileBanned, setProfileFrozen, setProfileRole } from "../../api/client";
+import { setProfileBanned, setProfileDisplay, setProfileFrozen, setProfileRole } from "../../api/client";
 import { bumpDataVersion } from "../../lib/dataVersion";
 import { formatDate, formatScore, ordinalSuffix, timeAgo, formatPoints } from "../../lib/format";
 import { youtubeChannelUrl } from "../../lib/youtube";
@@ -200,6 +200,7 @@ function ProfileHeader({ player }) {
           <RoleControl player={player} />
           <FreezeControl player={player} />
           <BanControl player={player} />
+          <DisplayControl player={player} />
         </div>
       </div>
       <FollowButton player={player} />
@@ -242,6 +243,72 @@ function RoleControl({ player }) {
         ))}
       </select>
     </label>
+  );
+}
+
+// Moderators and admins: replace a bad name or picture (locked against Steam sign-ins until
+// reset), or go back to the player's Steam name / picture.
+function DisplayControl({ player }) {
+  const user = useCurrentUser();
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState(player.name);
+  const [url, setUrl] = useState("");
+  const [reason, setReason] = useState("");
+  const [state, setState] = useState({ busy: false, error: null });
+  if (!isStaff(user) || !(user.role === "moderator" || user.role === "admin")) return null;
+  const save = async (changes) => {
+    setState({ busy: true, error: null });
+    try {
+      await setProfileDisplay(player.profileNumber, changes, reason.trim() || undefined);
+      setState({ busy: false, error: null });
+      setUrl("");
+      bumpDataVersion();
+    } catch (e) {
+      setState({ busy: false, error: e.message });
+    }
+  };
+  if (!open)
+    return (
+      <button type="button" className="pf-admin-button" onClick={() => setOpen(true)} title="Replace this player's name or picture">
+        Edit name & picture
+        {(player.nameLocked || player.avatarLocked) && <span className="pf-locked"> (set by staff)</span>}
+      </button>
+    );
+  return (
+    <div className="pf-display-form">
+      <div className="pf-freeze-form">
+        <input value={name} onChange={(e) => setName(e.target.value)} maxLength={32} aria-label="Name" placeholder="Name" />
+        <button type="button" className="pf-admin-button" disabled={state.busy || !name.trim()} onClick={() => save({ name: name.trim() })}>
+          Set name
+        </button>
+        {player.nameLocked && (
+          <button type="button" className="pf-admin-button" disabled={state.busy} onClick={() => save({ name: null })} title={player.steamName ? `Back to “${player.steamName}”` : undefined}>
+            Use Steam name
+          </button>
+        )}
+      </div>
+      <div className="pf-freeze-form">
+        <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="Picture address (https://…)" aria-label="Picture address" />
+        <button type="button" className="pf-admin-button" disabled={state.busy || !url.trim()} onClick={() => save({ avatar: url.trim() })}>
+          Set picture
+        </button>
+        <button type="button" className="pf-admin-button" disabled={state.busy} onClick={() => save({ avatar: "default" })}>
+          Default picture
+        </button>
+        {player.avatarLocked && (
+          <button type="button" className="pf-admin-button" disabled={state.busy} onClick={() => save({ avatar: "steam" })}>
+            Use Steam picture
+          </button>
+        )}
+      </div>
+      <div className="pf-freeze-form">
+        <input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Reason (audit log)" maxLength={500} />
+        <button type="button" className="pf-admin-button" onClick={() => setOpen(false)}>
+          Done
+        </button>
+      </div>
+      {state.error && <span className="pf-freeze-error">{state.error}</span>}
+    </div>
   );
 }
 

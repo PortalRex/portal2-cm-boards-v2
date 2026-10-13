@@ -32,6 +32,7 @@ const ACTIONS = {
   "profile.freeze": "Froze profile",
   "profile.unfreeze": "Unfroze profile",
   "profile.set_role": "Changed role",
+  "profile.display": "Changed name / picture",
   "season.create": "Created season",
   "game.create": "Created game",
   "game.update": "Edited game",
@@ -70,6 +71,7 @@ const TONES = {
   "profile.freeze": "bad",
   "profile.unfreeze": "ok",
   "profile.set_role": "info",
+  "profile.display": "warn",
   "season.create": "ok",
   "game.create": "ok",
   "game.update": "info",
@@ -91,7 +93,7 @@ const TONES = {
 };
 const TABS = [
   { value: "runs", label: "Runs", actions: ["run.ban", "run.unban", "run.verify", "run.unverify", "run.delete", "demo.remove", "run.hide_wr", "run.show_wr", "coop.set_partner", "coop.set_host", "report.resolved", "report.dismissed", "report.open"] },
-  { value: "profiles", label: "Profiles", actions: ["profile.ban", "profile.unban", "profile.freeze", "profile.unfreeze", "profile.set_role"] },
+  { value: "profiles", label: "Profiles", actions: ["profile.ban", "profile.unban", "profile.freeze", "profile.unfreeze", "profile.set_role", "profile.display"] },
   { value: "catalog", label: "Games", actions: ["season.create", "game.create", "game.update", "game.delete", "game.layout", "game.link", "game.unlink", "chapter.create", "chapter.update", "chapter.delete", "map.create", "map.update", "map.delete", "map.link", "map.unlink", "category.create", "category.update", "category.delete"] },
 ];
 const PAGE = 50;

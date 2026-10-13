@@ -208,6 +208,53 @@ async fn admin_user_banned(
 }
 
 #[derive(Deserialize)]
+pub struct DisplayBody {
+    /// A new name, or null to go back to the player's Steam name. Omit to leave it.
+    #[serde(default, deserialize_with = "nullable")]
+    pub name: Option<Option<String>>,
+    /// "default" (Steam's default picture), "steam" (the player's own again) or an https address.
+    pub avatar: Option<String>,
+    pub reason: Option<String>,
+}
+
+fn nullable<'de, D: serde::Deserializer<'de>>(d: D) -> std::result::Result<Option<Option<String>>, D::Error> {
+    serde::Deserialize::deserialize(d).map(Some)
+}
+
+/// **PUT** Set the name and/or picture shown for a profile (moderators and admins).
+#[put("/admin/users/{profile_number}/display")]
+async fn admin_user_display(
+    auth: AdminOrService,
+    pool: web::Data<PgPool>,
+    config: web::Data<Config>,
+    profile_number: web::Path<String>,
+    body: web::Json<DisplayBody>,
+) -> Result<impl Responder> {
+    if let AdminOrService::Admin(user) = &auth {
+        if !matches!(user.role.as_deref(), Some("moderator" | "admin")) {
+            return Ok(HttpResponse::Forbidden().body("Only moderators and admins can change profiles."));
+        }
+    }
+    let avatar = match body.avatar.as_deref().map(str::trim) {
+        None | Some("") => None,
+        Some("default") => Some(moderation::AvatarChange::Default),
+        Some("steam") => {
+            let fresh = Users::new_from_steam(&config.steam.api_key, &profile_number).await.ok().and_then(|u| u.avatar);
+            Some(moderation::AvatarChange::Steam(fresh))
+        }
+        Some(url) => Some(moderation::AvatarChange::Url(url.to_string())),
+    };
+    let name = body.name.as_ref().map(|n| n.as_deref());
+    Ok(match moderation::set_profile_display(pool.get_ref(), &auth, &profile_number, name, avatar, reason(&body.reason)).await? {
+        Ok(()) => {
+            invalidate_points().await;
+            HttpResponse::NoContent().finish()
+        }
+        Err(r) => refused(r),
+    })
+}
+
+#[derive(Deserialize)]
 pub struct WrHistoryBody {
     pub hidden: bool,
     pub reason: Option<String>,

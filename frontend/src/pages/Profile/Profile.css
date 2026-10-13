@@ -1118,3 +1118,15 @@
   color: var(--text);
   text-decoration: none;
 }
+
+.pf-display-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-basis: 100%;
+}
+
+.pf-locked {
+  color: var(--text-muted);
+  font-size: 13px;
+}

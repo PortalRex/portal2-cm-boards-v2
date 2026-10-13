@@ -402,6 +402,75 @@ pub async fn set_profile_banned(pool: &PgPool, actor: &AdminOrService, profile_n
     Ok(Ok(maps))
 }
 
+/// Steam's picture for profiles without one.
+pub const DEFAULT_AVATAR: &str = "https://avatars.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg";
+
+/// A change to a profile's picture.
+pub enum AvatarChange {
+    /// Steam's default picture.
+    Default,
+    /// A picture by address (https).
+    Url(String),
+    /// Back to the player's own Steam picture (given when it could be fetched).
+    Steam(Option<String>),
+}
+
+/// Sets the name and/or picture shown for a profile, overriding the player's own (a bad name or
+/// picture), or resets them to the player's Steam ones. Staff-set values are locked so sign-ins
+/// don't replace them.
+pub async fn set_profile_display(pool: &PgPool, actor: &AdminOrService, profile_number: &str, name: Option<Option<&str>>, avatar: Option<AvatarChange>, reason: Option<&str>) -> ActionResult<()> {
+    let mut tx = pool.begin().await?;
+    let before: Option<(Option<String>, Option<String>, Option<String>)> =
+        sqlx::query_as("SELECT board_name, steam_name, avatar FROM users WHERE profile_number = $1 AND profile_number <> $2 FOR UPDATE")
+            .bind(profile_number)
+            .bind(FILLER)
+            .fetch_optional(&mut *tx)
+            .await?;
+    let Some((old_board, steam_name, old_avatar)) = before else {
+        return Ok(Err(Refused::NotFound("No such player.")));
+    };
+    let mut details = serde_json::Map::new();
+    if let Some(name) = name {
+        let name = name.map(str::trim).filter(|n| !n.is_empty());
+        if name.is_some_and(|n| n.chars().count() > 32) {
+            return Ok(Err(Refused::Invalid("Names can be at most 32 characters.".into())));
+        }
+        sqlx::query("UPDATE users SET board_name = $2, name_locked = $3 WHERE profile_number = $1")
+            .bind(profile_number)
+            .bind(name)
+            .bind(name.is_some())
+            .execute(&mut *tx)
+            .await?;
+        details.insert("name".into(), json!({ "before": old_board.clone().or(steam_name.clone()), "after": name.map(str::to_string).or(steam_name.clone()) }));
+    }
+    if let Some(avatar) = avatar {
+        let (url, locked) = match avatar {
+            AvatarChange::Default => (Some(DEFAULT_AVATAR.to_string()), true),
+            AvatarChange::Url(u) => {
+                let u = u.trim().to_string();
+                if !u.starts_with("https://") || u.len() > 500 || u.contains(char::is_whitespace) {
+                    return Ok(Err(Refused::Invalid("The picture has to be an https:// address.".into())));
+                }
+                (Some(u), true)
+            }
+            AvatarChange::Steam(u) => (u.or(old_avatar.clone()), false),
+        };
+        sqlx::query("UPDATE users SET avatar = $2, avatar_locked = $3 WHERE profile_number = $1")
+            .bind(profile_number)
+            .bind(&url)
+            .bind(locked)
+            .execute(&mut *tx)
+            .await?;
+        details.insert("avatar".into(), json!({ "before": old_avatar, "after": url }));
+    }
+    if details.is_empty() {
+        return Ok(Err(Refused::Invalid("Nothing to change.".into())));
+    }
+    log_action(&mut tx, actor, "profile.display", "profile", profile_number, reason, serde_json::Value::Object(details)).await?;
+    tx.commit().await?;
+    Ok(Ok(()))
+}
+
 /// Whether a profile is frozen (and so can't get new times).
 pub async fn is_frozen(pool: &PgPool, profile_number: &str) -> Result<bool, sqlx::Error> {
     Ok(sqlx::query_scalar::<_, bool>("SELECT frozen FROM users WHERE profile_number = $1")

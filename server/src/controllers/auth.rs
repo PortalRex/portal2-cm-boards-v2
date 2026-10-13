@@ -24,7 +24,7 @@ pub async fn upsert_signed_in_user(pool: &PgPool, profile_number: &str, steam: O
             VALUES ($1, $2, $3, false, 1, 0)
             ON CONFLICT (profile_number) DO UPDATE
             SET steam_name = COALESCE(EXCLUDED.steam_name, users.steam_name),
-                avatar = COALESCE(EXCLUDED.avatar, users.avatar),
+                avatar = CASE WHEN users.avatar_locked THEN users.avatar ELSE COALESCE(EXCLUDED.avatar, users.avatar) END,
                 registered = 1
         "#,
     )

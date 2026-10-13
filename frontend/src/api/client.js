@@ -217,6 +217,9 @@ export const setRunBanned = (changelogId, banned, reason) => send("PUT", `/admin
 export const deleteRun = (changelogId, reason) => send("DELETE", `/admin/runs/${changelogId}`, { reason });
 export const removeRunDemo = (changelogId, reason) => send("DELETE", `/admin/runs/${changelogId}/demo`, { reason });
 export const setRunPartner = (changelogId, steamId, reason) => send("PUT", `/admin/runs/${changelogId}/partner`, { steam_id: steamId, reason });
+// Staff: override the name / picture shown for a profile. name: string, or null for the Steam
+// name (omit to leave it); avatar: "default", "steam" or an https address (omit to leave it).
+export const setProfileDisplay = (profileNumber, changes, reason) => send("PUT", `/admin/users/${profileNumber}/display`, { ...changes, reason });
 export const setProfileBanned = (profileNumber, banned, reason) => send("PUT", `/admin/users/${profileNumber}/banned`, { banned, reason });
 export const setProfileFrozen = (profileNumber, frozen, reason) => send("PUT", `/admin/users/${profileNumber}/freeze`, { frozen, reason });
 export const setProfileRole = (profileNumber, role, reason) => send("PUT", `/admin/users/${profileNumber}/role`, { role, reason });
@@ -516,6 +519,9 @@ function adaptProfile(profileNumber, page, user, history, pbs) {
       twitch: user.twitch,
       youtube: user.youtube,
       banned: !!user.banned,
+      steamName: user.steam_name || null,
+      nameLocked: !!user.name_locked,
+      avatarLocked: !!user.avatar_locked,
       frozen: !!user.frozen,
       frozenReason: user.frozen_reason || null,
       steam: profileNumber,

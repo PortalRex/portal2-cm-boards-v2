@@ -17,6 +17,7 @@ pub fn init(cfg: &mut web::ServiceConfig) {
             .service(admin_user_freeze)
             .service(admin_run_verified)
             .service(admin_user_banned)
+            .service(admin_user_display)
             .service(admin_user_role)
             .service(admin_run_wr_history)
             .service(coop_halves)

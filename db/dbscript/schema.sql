@@ -1533,3 +1533,14 @@ CREATE TABLE IF NOT EXISTS run_reports (
 CREATE INDEX IF NOT EXISTS idx_run_reports_status ON run_reports (status, id DESC);
 CREATE INDEX IF NOT EXISTS idx_run_reports_reporter ON run_reports (reporter_key, created_at);
 CREATE UNIQUE INDEX IF NOT EXISTS unq_run_reports_open ON run_reports (changelog_id, reporter_key) WHERE status = 'open';
+
+--
+-- Staff-set profile names and pictures (migrations/20261024000000_profile_overrides.sql).
+--
+
+-- Staff-set profile names and pictures. Apply to databases created from an older schema.sql.
+--
+-- Staff can replace a player's displayed name (users.board_name) and picture; the locks keep
+-- Steam sign-ins and avatar refreshes from undoing that until staff reset them.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS name_locked boolean NOT NULL DEFAULT false;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_locked boolean NOT NULL DEFAULT false;
