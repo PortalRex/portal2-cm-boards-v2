@@ -98,6 +98,8 @@ pub struct ChangelogPage {
     pub coop_roles_known: Option<bool>,
     /// Removed from the map's WR history by staff.
     pub wr_hidden: bool,
+    /// Portals placed, from the demo (when known).
+    pub portals: Option<i16>,
     /// Thumbs up / down counts (a co-op run's halves share them).
     pub reactions_up: i64,
     pub reactions_down: i64,

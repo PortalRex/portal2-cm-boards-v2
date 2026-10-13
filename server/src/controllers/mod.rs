@@ -92,5 +92,7 @@ pub mod stats;
 pub mod submissions;
 /// Games, seasons, chapters, maps and categories
 pub mod catalog;
+/// Player stats (activity, partners, demo stats)
+pub mod profile_stats;
 /// Controllers for users
 pub mod users;

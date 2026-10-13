@@ -110,6 +110,8 @@ pub struct NewRun<'a> {
     /// File name of the saved demo (in the demo storage directory), if any.
     pub demo_file: Option<String>,
     pub demo_partner_name: Option<String>,
+    /// Portals placed, from the demo's scoreboard.
+    pub portals: Option<i32>,
 }
 
 /// Runs that would rank this high or better need a demo; without one they're pending (no
@@ -188,7 +190,7 @@ pub async fn proof_target(pool: &PgPool, cl_id: i64) -> Result<Option<ProofTarge
 }
 
 /// Attaches a demo to a pending run and verifies it (both halves of a co-op run).
-pub async fn attach_proof(pool: &PgPool, run: &ProofTarget, demo_file: &str, partner_name: Option<&str>) -> Result<(), sqlx::Error> {
+pub async fn attach_proof(pool: &PgPool, run: &ProofTarget, demo_file: &str, partner_name: Option<&str>, portals: Option<i32>) -> Result<(), sqlx::Error> {
     let mut tx = pool.begin().await?;
     let demo_id: i64 = sqlx::query_scalar("INSERT INTO demos (file_id, partner_name, parsed_successfully, cl_id) VALUES ($1, $2, true, $3) RETURNING id")
         .bind(demo_file)
@@ -196,7 +198,7 @@ pub async fn attach_proof(pool: &PgPool, run: &ProofTarget, demo_file: &str, par
         .bind(run.id)
         .fetch_one(&mut *tx)
         .await?;
-    sqlx::query("UPDATE changelog SET demo_id = $2, verified = true WHERE id = $1").bind(run.id).bind(demo_id).execute(&mut *tx).await?;
+    sqlx::query("UPDATE changelog SET demo_id = $2, verified = true, portals = $3 WHERE id = $1").bind(run.id).bind(demo_id).bind(portals).execute(&mut *tx).await?;
     if let Some(coop_id) = run.coop_id {
         sqlx::query("UPDATE changelog SET verified = true WHERE id IN (SELECT unnest(ARRAY[cl_id1, cl_id2]) FROM coop_bundled WHERE id = $1) AND profile_number <> $2")
             .bind(coop_id)
@@ -307,7 +309,7 @@ pub async fn insert_run(pool: &PgPool, run: NewRun<'_>) -> Result<Result<Recorde
         .bind(id)
         .fetch_one(&mut *tx)
         .await?;
-        sqlx::query("UPDATE changelog SET demo_id = $2 WHERE id = $1").bind(id).bind(demo_id).execute(&mut *tx).await?;
+        sqlx::query("UPDATE changelog SET demo_id = $2, portals = $3 WHERE id = $1").bind(id).bind(demo_id).bind(run.portals).execute(&mut *tx).await?;
     }
     if run.map.is_coop {
         match run.partner {

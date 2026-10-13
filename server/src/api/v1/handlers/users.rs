@@ -336,6 +336,18 @@ async fn profile(
 ///
 /// ## Example endpoints:
 ///  - `/api/v1/profile/scores/76561198040982247`
+#[derive(Deserialize)]
+pub struct StatsQuery {
+    pub game_id: Option<i32>,
+}
+
+/// **GET** A player's stats in a game (default Portal 2): activity, co-op partners (maps and
+/// runs together) and portal counts from demos.
+#[get("/profile/stats/{profile_number}")]
+async fn profile_stats(pool: web::Data<PgPool>, profile_number: web::Path<String>, query: web::Query<StatsQuery>) -> Result<impl Responder> {
+    Ok(web::Json(crate::controllers::profile_stats::profile_stats(pool.get_ref(), &profile_number, query.game_id.unwrap_or(1)).await?))
+}
+
 #[get("/profile/scores/{profile_number}")]
 async fn profile_scores(
     pool: web::Data<PgPool>,

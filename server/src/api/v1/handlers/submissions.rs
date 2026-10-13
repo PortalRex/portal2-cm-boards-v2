@@ -275,6 +275,8 @@ async fn submission_create(
         partner: partner.as_ref().map(|(p, _)| p.as_str()),
         demo_file: demo_file.clone(),
         demo_partner_name: partner.as_ref().and_then(|(_, n)| n.clone()),
+        // Only when the time is the demo's own.
+        portals: info.as_ref().filter(|i| i.time_score == Some(score)).and_then(|i| i.portal_score),
     };
     let recorded = match submissions::insert_run(pool.get_ref(), run).await? {
         Ok(r) => r,
@@ -373,7 +375,7 @@ async fn run_add_demo(
         return Ok(bad(e));
     }
     let partner_name = info.players.iter().find(|p| p.steam_id != run.profile_number).map(|p| p.name.clone());
-    submissions::attach_proof(pool.get_ref(), &run, &name, if run.is_coop { partner_name.as_deref() } else { None }).await?;
+    submissions::attach_proof(pool.get_ref(), &run, &name, if run.is_coop { partner_name.as_deref() } else { None }, info.portal_score).await?;
 
     cache.update_current_state(if run.is_coop { COOP_PREVIEWS } else { SP_PREVIEWS }, false).await;
     if cache.default_cat_ids.contains_key(&run.map_id) {

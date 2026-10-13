@@ -121,6 +121,12 @@ export default function RunDetails({ run, map, game = "portal2", rendered, showR
             )}
             <dt>SAR Version:</dt>
             <dd>{run.sarVersion || "Unknown"}</dd>
+            {run.portals != null && (
+              <>
+                <dt>Portals:</dt>
+                <dd className="num">{run.portals}</dd>
+              </>
+            )}
             <dt>Status:</dt>
             <dd>{run.banned ? "Banned" : run.verified === false ? "Pending" : "Verified"}</dd>
           </dl>

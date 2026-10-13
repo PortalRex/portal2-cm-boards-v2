@@ -48,6 +48,10 @@ Admins manage games, chapters, maps and categories from the staff panel (**Staff
 - Maps can be **linked** (each season's maps are linked to the originals by default; a whole game can be linked to another, e.g. Season 1 to Season 0). A run set on one linked map is also recorded on the other if it beats the player's best there; times set before the link aren't copied, and links to a season only apply inside its dates. A submission that isn't an improvement on the submitted map is recorded on the first linked board where it is, and refused if it improves none.
 - This is done by database triggers (`migrations/20261021000000_games_seasons.sql`), which keep the linked copies in step with the original run (bans, verification, demos, deletion, co-op pairing).
 
+#### Demo stats
+
+Portal counts come from the challenge mode scoreboard in each demo: submitted demos store theirs, and for the archived board demos run `node server/demo-parser/demo_stats.mjs <demo dir> stats.csv` (one CSV per game) then `python db/dbscript/import_demo_stats.py --db <url> --p2 p2.csv --mel mel.csv`. Profiles show them on the Stats tab with activity and co-op partners (`GET /api/v1/profile/stats/{steam id}?game_id=`).
+
 #### Features
 
 * Endpoints interacting with the data on the boards. Documented [here](https://danielbatesj.github.io/Portal2-Boards-Rust-API-Docs/docs/target/doc/doc/server/index.html).

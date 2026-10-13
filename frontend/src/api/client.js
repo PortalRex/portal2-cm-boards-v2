@@ -55,6 +55,7 @@ function adaptChangelog(row, game) {
     youtubeId: row.youtube_id,
     autorenderId: row.autorender_id ?? null,
     demoId: row.demo_id,
+    portals: row.portals ?? null,
     note: row.note,
     verified: row.verified !== false,
     banned: !!row.banned,
@@ -532,6 +533,19 @@ function adaptProfile(profileNumber, page, user, history, pbs) {
     worst: sorted[sorted.length - 1] || null,
     scores,
     history,
+  };
+}
+
+// --- profile stats ----------------------------------------------------------------------
+
+// A player's stats in a game: activity, co-op partners and portal counts from demos.
+export async function fetchProfileStats(profileNumber, game = "portal2") {
+  const s = await getJson(`/profile/stats/${profileNumber}`, gameParam(game));
+  return {
+    summary: s.summary,
+    uniquePartners: s.unique_partners,
+    partners: s.partners.map((p) => ({ player: player(p.profile_number, p.user_name, p.avatar), maps: p.maps, runs: p.runs })),
+    fewestPortals: s.fewest_portals.map((f) => ({ map: lookupMap(f.map_id, game), mapName: f.map_name, score: f.score, portals: f.portals })),
   };
 }
 

@@ -5,7 +5,7 @@ import { DownloadIcon, ChevronDownIcon, TriangleRight } from "../../components/I
 import { AutorenderLink, YouTubeLink, useRenderedSet } from "../../components/RunMedia";
 import RunDetails from "../../components/RunDetails";
 import { toggleOnRowClick } from "../../lib/rows";
-import { fetchGameProfile } from "../../api/client";
+import { fetchGameProfile, fetchProfileStats } from "../../api/client";
 import useApi from "../../hooks/useApi";
 import { useDataVersion } from "../../lib/dataVersion";
 import { GAMES, chaptersFor, isMultiplayerMode, mapPath, MODE_LABELS } from "../../data/maps";
@@ -21,6 +21,7 @@ const profileTabs = () => [
   ...Object.values(GAMES)
     .filter((g) => g.id !== "portal2")
     .map((g) => ({ key: `game:${g.id}`, label: g.label })),
+  { key: "stats", label: "Stats" },
   { key: "legacy", label: "Legacy" },
   { key: "info", label: "Info" },
 ];
@@ -87,6 +88,8 @@ export default function ProfileTabs({ profile }) {
             sort={sort}
             onSort={setSort}
           />
+        ) : tab === "stats" ? (
+          <StatsTab profileNumber={profile.player.profileNumber} />
         ) : tab === "legacy" ? (
           <LegacyTab scores={profile.scores} />
         ) : (
@@ -383,6 +386,96 @@ function LegacyTab({ scores }) {
           ))}
         </section>
       ))}
+    </div>
+  );
+}
+
+const pct = (n, of) => (of ? `${Math.round((n / of) * 100)}%` : "–");
+
+// Activity, co-op partners and demo stats for one game.
+function StatsTab({ profileNumber }) {
+  const [game, setGame] = useState("portal2");
+  const version = useDataVersion();
+  const stats = useApi(() => fetchProfileStats(profileNumber, game), [profileNumber, game, version]);
+  const games = Object.values(GAMES).map((g) => ({ value: g.id, label: g.label }));
+  const s = stats.data?.summary;
+  return (
+    <div className="pf-stats">
+      {games.length > 1 && (
+        <div className="pf-controls">
+          <Select value={game} onChange={setGame} options={games} label="Game" className="pf-category" />
+        </div>
+      )}
+      {stats.loading && !stats.data ? (
+        <Loading label="Loading stats" />
+      ) : !s ? (
+        <EmptyState>No stats for this player.</EmptyState>
+      ) : (
+        <>
+          <div className="pf-stat-grid">
+            <Stat label="Runs" value={s.runs} note={`${s.verified_runs} verified`} />
+            <Stat label="Singleplayer maps" value={`${s.sp_maps} / ${s.sp_map_count}`} note={pct(s.sp_maps, s.sp_map_count)} hide={!s.sp_map_count} />
+            <Stat label="Co-op maps" value={`${s.coop_maps} / ${s.coop_map_count}`} note={pct(s.coop_maps, s.coop_map_count)} hide={!s.coop_map_count} />
+            <Stat label="Co-op partners" value={stats.data.uniquePartners} hide={!s.coop_map_count} />
+            <Stat label="Time saved" value={formatScore(s.time_saved)} note="through improvements" />
+            <Stat label="With demo" value={pct(s.runs_with_demo, s.runs)} note={`${s.runs_with_demo} runs`} />
+            <Stat label="With video" value={pct(s.runs_with_video, s.runs)} note={`${s.runs_with_video} runs`} />
+            <Stat
+              label="Portals per PB"
+              value={s.pbs_with_portals ? (s.pb_portals_total / s.pbs_with_portals).toFixed(1) : "–"}
+              note={s.pbs_with_portals ? `${s.pb_portals_total} over ${s.pbs_with_portals} maps` : "no demo data"}
+            />
+            <Stat label="Portals placed" value={s.portals_total.toLocaleString()} note={`in ${s.runs_with_portals} runs with demos`} hide={!s.runs_with_portals} />
+            <Stat label="Active" value={s.first_run ? formatDate(s.first_run).slice(0, 4) : "–"} note={s.latest_run ? `latest run ${timeAgo(s.latest_run)}` : ""} />
+          </div>
+          {stats.data.partners.length > 0 && (
+            <section className="pf-partners">
+              <h2 className="pf-section-title">Co-op partners</h2>
+              <div className="pf-partner-row pf-partner-head">
+                <span>Partner</span>
+                <span className="end">Maps together</span>
+                <span className="end">Runs</span>
+              </div>
+              {stats.data.partners.map((p) => (
+                <div key={p.player.profileNumber} className="pf-partner-row">
+                  <span className="pf-partner">
+                    <Avatar src={p.player.avatar} name={p.player.name} size={28} />
+                    <PlayerLink player={p.player} />
+                  </span>
+                  <span className="end num">{p.maps}</span>
+                  <span className="end num muted">{p.runs}</span>
+                </div>
+              ))}
+              {stats.data.uniquePartners > stats.data.partners.length && (
+                <p className="muted pf-more">and {stats.data.uniquePartners - stats.data.partners.length} more</p>
+              )}
+            </section>
+          )}
+          {stats.data.fewestPortals.length > 0 && (
+            <section className="pf-partners">
+              <h2 className="pf-section-title">Fewest portals (personal bests)</h2>
+              {stats.data.fewestPortals.map((f) => (
+                <div key={f.mapName} className="pf-partner-row">
+                  <span>{f.map ? <Link to={mapPath(f.map)}>{f.map.title}</Link> : f.mapName}</span>
+                  <span className="end num">{f.portals} portals</span>
+                  <span className="end num muted">{formatScore(f.score)}</span>
+                </div>
+              ))}
+            </section>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+function Stat({ label, value, note, hide }) {
+  if (hide) return null;
+  return (
+    <div className="pf-stat">
+      <span className="pf-stat-label">{label}</span>
+      <span className="pf-stat-value num">{value}</span>
+      {note && <span className="pf-stat-note">{note}</span>}
     </div>
   );
 }
