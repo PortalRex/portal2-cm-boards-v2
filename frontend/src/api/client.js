@@ -205,6 +205,17 @@ export function fetchWallOfShame() {
   );
 }
 
+// Everyone who has donated to the boards, biggest total first: { ...player, amount } (dollars).
+export function fetchDonators() {
+  return sample(
+    async () =>
+      (await getJson("/donators"))
+        .map((u) => ({ ...player(u.profile_number, u.board_name || u.steam_name, u.avatar), amount: Number.parseFloat(u.donation_amount) || 0 }))
+        .sort((a, b) => b.amount - a.amount || a.name.localeCompare(b.name, undefined, { sensitivity: "base" })),
+    () => mock.PLAYERS.slice(0, 5).map((p, i) => ({ ...p, amount: 50 - i * 10 })),
+  );
+}
+
 // A player's Portal 2 personal bests ({ map_id, score, rank, timestamp, ... }), or [] when
 // the server doesn't have the endpoint.
 export const fetchProfileScores = (profileNumber) => getJson(`/profile/scores/${profileNumber}`).catch(() => []);

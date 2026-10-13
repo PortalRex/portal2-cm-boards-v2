@@ -1,0 +1,63 @@
+.don-body {
+  padding: 24px 32px 32px;
+}
+
+.don-intro {
+  margin: 0 0 20px;
+  font-size: 16px;
+}
+
+.don-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 8px 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.don-row {
+  display: grid;
+  grid-template-columns: 28px 40px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 14px 8px 8px;
+  border-radius: var(--radius);
+  background: var(--row);
+}
+
+.don-row:hover {
+  background: var(--seg-hover);
+}
+
+.don-row .avatar {
+  border-radius: 6px;
+}
+
+.don-rank {
+  text-align: center;
+  font-size: 14px;
+}
+
+.don-name {
+  overflow: hidden;
+  font-size: 18px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.don-amount {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--green);
+}
+
+@media (max-width: 760px) {
+  .don-body {
+    padding: 16px 12px 20px;
+  }
+
+  .don-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

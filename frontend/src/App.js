@@ -9,6 +9,7 @@ import Placeholder from "./pages/Placeholder";
 import About from "./pages/About";
 import Settings from "./pages/Settings";
 import WallOfShame from "./pages/WallOfShame";
+import Donators from "./pages/Donators";
 import Admin from "./pages/Admin";
 import Compare from "./pages/Compare";
 
@@ -38,6 +39,7 @@ function App() {
         <Route path="/profile/:profileId" element={<Profile />} />
         <Route path="/more/settings" element={<Settings />} />
         <Route path="/more/wall-of-shame" element={<WallOfShame />} />
+        <Route path="/more/donators" element={<Donators />} />
         <Route path="/admin" element={<Admin />} />
         <Route path="/compare" element={<Compare />} />
         <Route path="/more/about" element={<About />} />
