@@ -514,7 +514,11 @@
   align-items: center;
   min-height: 37px;
   font-size: 18px;
-  box-shadow: inset -4px 0 0 var(--rank-accent, transparent);
+  box-shadow: inset -4px 0 0 var(--rank-color-dark, transparent);
+}
+
+:root[data-theme="light"] .pf-crow {
+  box-shadow: inset -4px 0 0 var(--rank-color, transparent);
 }
 
 .pf-crow.is-coop {
@@ -572,7 +576,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--hl-green);
+  background: var(--track);
   font-size: 18px;
 }
 
@@ -1151,4 +1155,17 @@
   .pf-side {
     grid-template-columns: 1fr;
   }
+}
+
+/* Rank tiles (summary, chapter averages, chapter tables, legacy): a dark tile tinted with
+   the rank's colour and the number in that colour, the same scale as score updates. */
+.rank-tint {
+  background: color-mix(in srgb, var(--rank-color-dark) 24%, var(--track)) !important;
+  color: var(--rank-color-dark) !important;
+  font-weight: 600;
+}
+
+:root[data-theme="light"] .rank-tint {
+  background: color-mix(in srgb, var(--rank-color) 16%, var(--track)) !important;
+  color: var(--rank-color) !important;
 }

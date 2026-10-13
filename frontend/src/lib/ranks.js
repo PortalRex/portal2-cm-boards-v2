@@ -1,19 +1,3 @@
-// Rank tile colours used on the profile summary grid and chapter tables.
-const RANK_SCALE = [
-  [1, "#b8912a"],
-  [5, "#8a3fd1"],
-  [10, "#5b4ec4"],
-  [20, "#49798f"],
-  [30, "#52754b"],
-  [50, "#4a5c39"],
-  [Infinity, "#3a4634"],
-];
-
-export function rankColor(rank) {
-  if (rank == null) return "transparent";
-  return RANK_SCALE.find(([max]) => rank <= max)[1];
-}
-
 // Rank number colours from the original board (Portal2Boards public/js/rank.js): a linear
 // RGB blend across rank stops, pink for world records, grey past rank 500. "dark" is its
 // dark-background scale, "light" the one for light backgrounds.
@@ -38,4 +22,12 @@ export function rankTextColor(rank, scale = "dark") {
   if (rank === 1) return WR_COLOR;
   if (rank > 500) return "#888888";
   return blend(rank, TEXT_SCALES[scale]);
+}
+
+// CSS variables carrying a rank's text colour for both themes; elements with the
+// .rank-tint class use them for a tinted tile with the number in the rank colour.
+export function rankVars(rank) {
+  if (rank == null) return undefined;
+  const r = Math.round(rank);
+  return { "--rank-color": rankTextColor(r, "light"), "--rank-color-dark": rankTextColor(r, "dark") };
 }

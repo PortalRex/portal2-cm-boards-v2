@@ -9,7 +9,7 @@ import { fetchGameProfile, fetchProfileStats } from "../../api/client";
 import useApi from "../../hooks/useApi";
 import { useDataVersion } from "../../lib/dataVersion";
 import { GAMES, chaptersFor, isMultiplayerMode, mapPath, MODE_LABELS } from "../../data/maps";
-import { rankColor } from "../../lib/ranks";
+import { rankVars } from "../../lib/ranks";
 import { formatScore, formatDelta, formatDate, timeAgo } from "../../lib/format";
 import { youtubeChannelLabel, youtubeChannelUrl } from "../../lib/youtube";
 import { ROLE_LABELS } from "../../hooks/useCurrentUser";
@@ -175,7 +175,7 @@ function Summary({ chapters, scores }) {
         const avg = ranks.length ? Math.round(ranks.reduce((a, b) => a + b, 0) / ranks.length) : null;
         return (
           <div className="pf-summary-row" key={chapter.name}>
-            <span className="pf-summary-avg num" style={{ background: rankColor(avg) }} title="Average rank">
+            <span className={`pf-summary-avg num${avg ? " rank-tint" : ""}`} style={rankVars(avg)} title="Average rank">
               {avg ?? "–"}
             </span>
             <span className="pf-summary-chapter">
@@ -186,7 +186,7 @@ function Summary({ chapters, scores }) {
               {chapter.maps.map((m) => {
                 const rank = scores[m.id]?.rank;
                 return (
-                  <Link key={m.id} to={mapPath(m)} className="pf-tile num" style={{ background: rank ? rankColor(rank) : undefined }} title={`${m.title}${rank ? ` — rank ${rank}` : ""}`}>
+                  <Link key={m.id} to={mapPath(m)} className={`pf-tile num${rank ? " rank-tint" : ""}`} style={rankVars(rank)} title={`${m.title}${rank ? ` — rank ${rank}` : ""}`}>
                     <RankNumber rank={rank} inherit />
                   </Link>
                 );
@@ -225,11 +225,11 @@ function ChapterTable({ chapter, scores, coop, game, rendered, selectedMap, onSe
           <div key={m.id} className={`pf-centry${open ? " is-open" : ""}`}>
             <div
               className={`pf-crow${coop ? " is-coop" : ""}${selected ? " is-selected" : ""}${s ? " is-expandable" : ""}`}
-              style={{ "--rank-accent": s ? rankColor(s.rank) : "transparent" }}
+              style={s ? rankVars(s.rank) : undefined}
               aria-expanded={s ? open : undefined}
               onClick={s ? toggleOnRowClick(toggle) : undefined}
             >
-              <span className="pf-crank num">
+              <span className={`pf-crank num${s?.rank ? " rank-tint" : ""}`}>
                 <RankNumber rank={s?.rank} inherit />
               </span>
               <Link to={mapPath(m)} className="pf-cmap">
@@ -371,7 +371,7 @@ function LegacyTab({ scores }) {
                 const s = scores[m.id];
                 return (
                   <div key={m.id} className={`pf-legacy-row${s?.rank === 1 ? " is-wr" : ""}`}>
-                    <span className="pf-legacy-rank num" style={{ background: s?.rank ? rankColor(s.rank) : undefined }}>
+                    <span className={`pf-legacy-rank num${s?.rank ? " rank-tint" : ""}`} style={rankVars(s?.rank)}>
                       <RankNumber rank={s?.rank} inherit />
                     </span>
                     <Link to={mapPath(m)} className="pf-legacy-map">
