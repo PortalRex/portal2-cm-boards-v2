@@ -58,6 +58,7 @@ New environment variables for the server (dotted names, as in `server/.env.examp
 | `DEMO.PARSER` | For submissions | Path to `server/demo-parser/parse_demo.mjs` (run `npm install` in that folder). |
 | `DEMO.STORAGE` | For submissions | Directory submitted demos are saved in. |
 | `DEMO.NODE` | No | Node executable if `node` isn't on the PATH (Node 18+). |
+| `DEMO.ARCHIVE` | For old demos | Folders holding the old boards' demo files (several separated by `;`, searched recursively). Needed for downloading imported runs' demos. |
 
 `STEAM.API_KEY` (existing) is now also used to fill in names and avatars at sign-in, to create accounts for new co-op
 partners, and to restore a player's Steam picture.
@@ -136,6 +137,7 @@ All under `/api/v1`. Auth: **public**, **signed in**, **staff** (any tier or ser
 | `POST /runs/{id}/report` | public | Report a run anonymously (reason + details). |
 | `POST /submissions/preview` | signed in | Read a demo (multipart `demo`): map, time, players, matching board maps. Saves nothing. |
 | `POST /submissions` | signed in | Submit a run from a demo; admins may also enter map/time/player/partner by hand. See [§8](#8-run-submissions-and-demos). |
+| `GET /demos/{id}/file` | public | Download a run's demo (as an attachment, cached a day). Looked up in `DEMO.STORAGE`, then `DEMO.ARCHIVE`. See [§8](#8-run-submissions-and-demos). |
 | `POST /runs/{id}/demo` | signed in | Add the demo for a pending run (its player, co-op partner or staff); checked against the run, then verified. |
 
 ### Staff
@@ -215,6 +217,12 @@ All under `/api/v1`. Auth: **public**, **signed in**, **staff** (any tier or ser
   - The response lists every board it counted on.
 - **Pending proof**: `POST /runs/{id}/demo` checks the demo's map, exact time and that the run's player is in it, then
   attaches it and verifies the run (both co-op halves).
+- **Downloads** (`GET /demos/{id}/file`): submitted demos are read from `DEMO.STORAGE` by `demos.file_id`. Imported demos
+  come from the `DEMO.ARCHIVE` folders, indexed by file name once at startup (`server/src/tools/demo_files.rs`; ~185k
+  files). The old boards named those files `Map_score_steamid_N.dem` with their own id as N: for Portal 2 that's the
+  changelog id, so `{prefix}_{changelog id}.dem` is tried; for Mel the id isn't kept, so the file is found by
+  `Map_score_steamid` when only one file has it. Against the local archive this finds 182,135 of 182,364 demos (57
+  Portal 2 and 172 Mel files are missing or ambiguous).
 
 ## 9. Games, seasons and linked leaderboards
 

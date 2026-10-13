@@ -593,6 +593,9 @@ export async function fetchDailyChambers(game, day) {
   };
 }
 
+// Download address of a run's demo (by demo id).
+export const demoUrl = (demoId) => apiUrl(`/demos/${demoId}/file`);
+
 // --- run submissions ---------------------------------------------------------
 
 async function postForm(path, form) {

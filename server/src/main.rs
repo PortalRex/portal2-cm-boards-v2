@@ -87,6 +87,8 @@ async fn main() -> Result<(), Error> {
     let points_cache = web::Data::new(crate::tools::points_cache::PointsCache::default());
     let _ = crate::tools::points_cache::POINTS.set(points_cache.clone().into_inner());
     points_cache.clone().into_inner().start(pool.clone());
+    // Index the old boards' demo archive in the background for downloads.
+    crate::tools::demo_files::warm(config.demo.clone());
     println!(
         "Server starting at http://{}:{}/",
         config.server.host, config.server.port

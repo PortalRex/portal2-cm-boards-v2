@@ -1,8 +1,8 @@
 import { Link, useSearchParams } from "react-router-dom";
 import Layout from "../../components/Layout";
 import { Panel, Select, PlayerLink, Loading } from "../../components/ui";
-import { PinIcon, TrophyIcon, DownloadIcon } from "../../components/Icons";
-import { AutorenderLink, YouTubeLink } from "../../components/RunMedia";
+import { PinIcon, TrophyIcon } from "../../components/Icons";
+import { AutorenderLink, YouTubeLink, DemoLink } from "../../components/RunMedia";
 import { fetchPreviews } from "../../api/boards";
 import { GAMES, MODE_LABELS, chaptersFor, isMultiplayerMode, mapPath } from "../../data/maps";
 import useApi from "../../hooks/useApi";
@@ -75,7 +75,7 @@ function ScoreIcons({ entry, game, size }) {
     <span className="mc-icons">
       {entry.autorenderId && <AutorenderLink run={entry} game={game} size={size + 2} />}
       {entry.youtubeId && <YouTubeLink id={entry.youtubeId} size={size + 4} />}
-      {entry.demoId && <DownloadIcon style={{ fontSize: size }} titleAccess="Demo available" />}
+      <DemoLink demoId={entry.demoId} size={size} hideMissing />
     </span>
   );
 }
@@ -91,13 +91,14 @@ function MapCard({ map, scores }) {
         <TrophyIcon className="mc-trophy" />
         {wr ? (
           <>
+            {/* Same order as the rows below: name, video / demo, time. */}
             <div className="mc-wr-text">
               {wr.players.map((p, i) => (
                 <PlayerLink key={i} player={p} className="mc-wr-name" />
               ))}
-              <span className="mc-wr-time num">{formatScore(wr.score)}</span>
             </div>
-            <ScoreIcons entry={wr} game={map.game} size={26} />
+            <ScoreIcons entry={wr} game={map.game} size={22} />
+            <span className="mc-wr-time num">{formatScore(wr.score)}</span>
           </>
         ) : (
           <span className="muted">{scores ? "No scores yet" : ""}</span>

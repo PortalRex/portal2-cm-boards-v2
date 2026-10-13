@@ -3,8 +3,8 @@ import { Navigate, useParams } from "react-router-dom";
 import { Brush, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import Layout from "../../components/Layout";
 import { Panel, Select, Pagination, SearchBox, Avatar, PlayerLink, OutlineButton, Loading, EmptyState, RankNumber } from "../../components/ui";
-import { PinIcon, TrophyIcon, CommentIcon, DownloadIcon, HistoryIcon, WikiIcon } from "../../components/Icons";
-import { AutorenderLink, YouTubeLink, RunVideo, useRenderedSet } from "../../components/RunMedia";
+import { PinIcon, TrophyIcon, CommentIcon, HistoryIcon, WikiIcon } from "../../components/Icons";
+import { AutorenderLink, YouTubeLink, RunVideo, useRenderedSet, DemoLink } from "../../components/RunMedia";
 import RunDetails from "../../components/RunDetails";
 import { toggleOnRowClick } from "../../lib/rows";
 import { coopRoles, tintFor, useRoleOverrides } from "../../lib/coopRoles";
@@ -260,7 +260,7 @@ function Leaderboard({ map, board }) {
                     <CommentIcon className={e.note ? "" : "is-off"} titleAccess={e.note || "No comment"} />
                     <AutorenderLink run={e} game={map.game} rendered={rendered} />
                     <YouTubeLink id={e.youtubeId} />
-                    <DownloadIcon className={e.demoId ? "" : "is-off"} titleAccess={e.demoId ? "Demo available" : "No demo"} />
+                    <DemoLink demoId={e.demoId} />
                   </span>
                 </div>
                 {open && <RunDetails run={e} map={map} game={map.game} rendered={rendered} />}

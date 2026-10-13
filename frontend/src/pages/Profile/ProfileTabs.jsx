@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Select, Avatar, PlayerLink, EmptyState, Loading, RankNumber } from "../../components/ui";
-import { DownloadIcon, ChevronDownIcon, TriangleRight } from "../../components/Icons";
-import { AutorenderLink, YouTubeLink, useRenderedSet } from "../../components/RunMedia";
+import { ChevronDownIcon, TriangleRight } from "../../components/Icons";
+import { AutorenderLink, YouTubeLink, useRenderedSet, DemoLink } from "../../components/RunMedia";
 import RunDetails from "../../components/RunDetails";
 import { toggleOnRowClick } from "../../lib/rows";
 import { fetchGameProfile, fetchProfileStats } from "../../api/client";
@@ -256,7 +256,7 @@ function ChapterTable({ chapter, scores, coop, game, rendered, selectedMap, onSe
               <span className="pf-cicons">
                 {s ? <AutorenderLink run={s} game={game} rendered={rendered} /> : <span className="pf-icon-gap" />}
                 <YouTubeLink id={s?.youtubeId} />
-                <DownloadIcon className={s?.demoId ? "" : "is-off"} />
+                <DemoLink demoId={s?.demoId} />
                 {s ? (
                   <button type="button" className={`pf-cselect${open ? " is-open" : ""}`} onClick={toggle} aria-expanded={open} aria-label={`${open ? "Hide" : "Show"} run details for ${m.title}`}>
                     <ChevronDownIcon />
@@ -313,7 +313,7 @@ function History({ history, game, map }) {
             <span className="pf-hicons">
               <AutorenderLink run={h} game={game} rendered={rendered} size={22} />
               {h.youtubeId && <YouTubeLink id={h.youtubeId} size={22} />}
-              {h.demoId && <DownloadIcon />}
+              <DemoLink demoId={h.demoId} hideMissing />
             </span>
             <span className="pf-hactions">
               <button type="button" disabled title="Requires moderator sign-in">Edit</button>

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { fetchShareIds, renderRequestUrl, videoLinks } from "../api/autorender";
-import { PlayIcon, YouTubeIcon, VideocamIcon } from "./Icons";
+import { demoUrl } from "../api/client";
+import { DownloadIcon, PlayIcon, YouTubeIcon, VideocamIcon } from "./Icons";
 import { YouTubeEmbed } from "./ui";
 import "./RunMedia.css";
 
@@ -63,6 +64,18 @@ export function YouTubeLink({ id, size }) {
   return (
     <a href={youtubeUrl(id)} target="_blank" rel="noreferrer" className="run-link" title="Watch on YouTube">
       <YouTubeIcon style={style} />
+    </a>
+  );
+}
+
+// Downloads the run's demo straight away (doesn't open the row). Greyed out without a demo,
+// or hidden with `hideMissing`.
+export function DemoLink({ demoId, size, hideMissing = false }) {
+  const style = size ? { fontSize: size } : undefined;
+  if (!demoId) return hideMissing ? null : <DownloadIcon className="is-off" style={style} titleAccess="No demo" />;
+  return (
+    <a href={demoUrl(demoId)} download className="run-link" title="Download demo" onClick={(e) => e.stopPropagation()}>
+      <DownloadIcon style={style} />
     </a>
   );
 }

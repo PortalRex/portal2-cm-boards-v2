@@ -131,8 +131,10 @@
 }
 
 .mc-wr-time {
-  font-size: 14px;
-  color: var(--text-2);
+  flex-shrink: 0;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text);
 }
 
 .mc-icons {

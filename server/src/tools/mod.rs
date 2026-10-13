@@ -10,5 +10,7 @@ pub mod helpers;
 pub mod points_cache;
 /// Players' points over time
 pub mod points_history;
+/// Locating demo files for download
+pub mod demo_files;
 
 pub mod error;

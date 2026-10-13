@@ -23,7 +23,7 @@ use crate::{
     },
 };
 use actix_multipart::Multipart;
-use actix_web::{post, web, HttpResponse, Responder};
+use actix_web::{get, post, web, HttpResponse, Responder};
 use futures::StreamExt;
 use serde_json::json;
 use sqlx::PgPool;
@@ -383,6 +383,35 @@ async fn run_add_demo(
     }
     invalidate_points().await;
     Ok(HttpResponse::NoContent().finish())
+}
+
+/// **GET** Download a demo by its id (as runs list it in `demo_id`).
+#[get("/demos/{demo_id}/file")]
+async fn demo_download(pool: web::Data<PgPool>, config: web::Data<Config>, demo_id: web::Path<i64>) -> Result<impl Responder> {
+    let row: Option<(String, Option<i64>)> = sqlx::query_as(
+        "SELECT d.file_id, (SELECT MIN(cl.id)::bigint FROM changelog AS cl WHERE cl.demo_id = d.id) FROM demos AS d WHERE d.id = $1",
+    )
+    .bind(demo_id.into_inner())
+    .fetch_optional(pool.get_ref())
+    .await?;
+    let Some((file, changelog_id)) = row else {
+        return Ok(HttpResponse::NotFound().body("No such demo."));
+    };
+    let Some(path) = crate::tools::demo_files::locate(&config.demo, &file, changelog_id).await else {
+        return Ok(HttpResponse::NotFound().body("This demo's file isn't available."));
+    };
+    let bytes = match tokio::fs::read(&path).await {
+        Ok(b) => b,
+        Err(e) => {
+            log::error!("demo download {}: {e}", path.display());
+            return Ok(HttpResponse::NotFound().body("This demo's file isn't available."));
+        }
+    };
+    Ok(HttpResponse::Ok()
+        .content_type("application/octet-stream")
+        .insert_header(("Content-Disposition", format!("attachment; filename=\"{}\"", file.replace('"', ""))))
+        .insert_header(("Cache-Control", "public, max-age=86400"))
+        .body(bytes))
 }
 
 #[cfg(test)]

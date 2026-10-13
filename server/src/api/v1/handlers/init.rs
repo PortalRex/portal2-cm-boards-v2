@@ -55,6 +55,7 @@ pub fn init(cfg: &mut web::ServiceConfig) {
             .service(admin_game_link)
             .service(admin_game_unlink)
             .service(run_add_demo)
+            .service(demo_download)
             .service(steam_login)
             .service(steam_callback)
             .service(auth_me)

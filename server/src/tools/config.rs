@@ -57,6 +57,9 @@ pub struct DemoConfig {
     pub node: Option<String>,
     /// Directory submitted demos are saved to.
     pub storage: Option<String>,
+    /// Folders holding the old boards' demos (searched recursively; several separated by `;`),
+    /// so their runs' demos can be downloaded.
+    pub archive: Option<String>,
 }
 
 /// Wrapper for all other config variables.

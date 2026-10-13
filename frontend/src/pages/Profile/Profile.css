@@ -1276,3 +1276,18 @@
 .pf-activity-legend .pf-activity-cell {
   display: inline-block;
 }
+
+.pf-activity-years-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: max-content;
+  margin: 0 auto;
+}
+
+.pf-activity-year-label {
+  display: block;
+  margin: 0 0 4px 24px;
+  font-size: 14px;
+  font-weight: 600;
+}

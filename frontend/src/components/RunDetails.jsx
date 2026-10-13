@@ -2,7 +2,7 @@ import { useState } from "react";
 import { OutlineButton, PlayerLink } from "./ui";
 import { DownloadIcon, FlagIcon, YouTubeIcon, PlayIcon, VideocamIcon, ThumbUpIcon, ThumbUpOutlineIcon, ThumbDownIcon, ThumbDownOutlineIcon } from "./Icons";
 import { RunVideo, runVideo } from "./RunMedia";
-import { REPORT_REASONS, addRunDemo, deleteRun, fetchCoopHalves, reportRun, fetchReactionRecord, fetchReactions, fetchSegments, removeRunDemo, setCoopHost, setReaction, setRunBanned, setRunPartner, setRunVerified } from "../api/client";
+import { REPORT_REASONS, addRunDemo, demoUrl, deleteRun, fetchCoopHalves, reportRun, fetchReactionRecord, fetchReactions, fetchSegments, removeRunDemo, setCoopHost, setReaction, setRunBanned, setRunPartner, setRunVerified } from "../api/client";
 import { bumpDataVersion, useDataVersion } from "../lib/dataVersion";
 import useApi from "../hooks/useApi";
 import useCurrentUser, { isRoleAdmin, isStaff } from "../hooks/useCurrentUser";
@@ -135,10 +135,15 @@ export default function RunDetails({ run, map, game = "portal2", rendered, showR
           <ReportRun changelogId={own} />
           <AdminTools run={run} game={game} />
           <div className="sd-buttons">
-            {/* Demo downloads aren't exposed to this frontend yet. */}
-            <OutlineButton disabled title={view.demoId ? "Demo downloads are not available yet" : "No demo for this run"}>
-              Download Demo <DownloadIcon />
-            </OutlineButton>
+            {view.demoId ? (
+              <OutlineButton as="a" href={demoUrl(view.demoId)} download title="Download the demo">
+                Download Demo <DownloadIcon />
+              </OutlineButton>
+            ) : (
+              <OutlineButton disabled title="No demo for this run">
+                Download Demo <DownloadIcon />
+              </OutlineButton>
+            )}
             <OutlineButton
               as="a"
               href={view.youtubeId ? `https://www.youtube.com/watch?v=${view.youtubeId.split("?")[0]}` : undefined}
