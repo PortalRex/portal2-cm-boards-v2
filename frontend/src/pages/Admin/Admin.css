@@ -220,3 +220,18 @@
   text-align: left;
   cursor: pointer;
 }
+
+.admin-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: var(--banned);
+  color: var(--banned-text);
+  font-size: 13px;
+  font-weight: 600;
+}

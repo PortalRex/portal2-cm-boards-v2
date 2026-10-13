@@ -30,6 +30,8 @@ pub mod sp;
 pub mod submissions;
 /// The game catalog and its admin editor.
 pub mod catalog;
+/// Anonymous run reports.
+pub mod reports;
 /// Endpoints for usefull statistics
 pub mod stats;
 /// User-related endpoints.

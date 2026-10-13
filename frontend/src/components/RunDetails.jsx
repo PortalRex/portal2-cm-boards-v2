@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { OutlineButton, PlayerLink } from "./ui";
-import { DownloadIcon, YouTubeIcon, PlayIcon, VideocamIcon, ThumbUpIcon, ThumbUpOutlineIcon, ThumbDownIcon, ThumbDownOutlineIcon } from "./Icons";
+import { DownloadIcon, FlagIcon, YouTubeIcon, PlayIcon, VideocamIcon, ThumbUpIcon, ThumbUpOutlineIcon, ThumbDownIcon, ThumbDownOutlineIcon } from "./Icons";
 import { RunVideo, runVideo } from "./RunMedia";
-import { addRunDemo, deleteRun, fetchCoopHalves, fetchReactionRecord, fetchReactions, fetchSegments, removeRunDemo, setCoopHost, setReaction, setRunBanned, setRunPartner, setRunVerified } from "../api/client";
+import { REPORT_REASONS, addRunDemo, deleteRun, fetchCoopHalves, reportRun, fetchReactionRecord, fetchReactions, fetchSegments, removeRunDemo, setCoopHost, setReaction, setRunBanned, setRunPartner, setRunVerified } from "../api/client";
 import { bumpDataVersion, useDataVersion } from "../lib/dataVersion";
 import useApi from "../hooks/useApi";
 import useCurrentUser, { isStaff } from "../hooks/useCurrentUser";
@@ -132,6 +132,7 @@ export default function RunDetails({ run, map, game = "portal2", rendered, showR
           </dl>
           <PendingProof run={run} />
           {showReactions && <ReactionsBar changelogId={own} />}
+          <ReportRun changelogId={own} />
           <AdminTools run={run} game={game} />
           <div className="sd-buttons">
             {/* Demo downloads aren't exposed to this frontend yet. */}
@@ -195,6 +196,64 @@ function CoopToggle({ halves, index, onPick }) {
 }
 
 // Thumbs up / down. Anyone sees the counts; signed-in players can react (click again to clear).
+// Anyone can report a run; staff see the report but not who sent it.
+function ReportRun({ changelogId }) {
+  const [open, setOpen] = useState(false);
+  const [reason, setReason] = useState("");
+  const [details, setDetails] = useState("");
+  const [state, setState] = useState({ busy: false, done: false, error: null });
+  if (changelogId == null) return null;
+  if (state.done) return <p className="sd-report-done">Thanks, staff will take a look. Reports are anonymous.</p>;
+  if (!open)
+    return (
+      <button type="button" className="sd-report-open" onClick={() => setOpen(true)}>
+        <FlagIcon /> Report run
+      </button>
+    );
+  const send = async (e) => {
+    e.preventDefault();
+    setState({ busy: true, done: false, error: null });
+    try {
+      await reportRun(changelogId, reason, details.trim());
+      setState({ busy: false, done: true, error: null });
+    } catch (err) {
+      setState({ busy: false, done: false, error: err.message });
+    }
+  };
+  return (
+    <form className="sd-report" onSubmit={send}>
+      <span className="sd-report-title">
+        Report this run <small>(anonymous)</small>
+      </span>
+      <select value={reason} onChange={(e) => setReason(e.target.value)} required aria-label="Reason">
+        <option value="">What's wrong?</option>
+        {REPORT_REASONS.map((r) => (
+          <option key={r.value} value={r.value}>
+            {r.label}
+          </option>
+        ))}
+      </select>
+      <textarea
+        value={details}
+        onChange={(e) => setDetails(e.target.value)}
+        placeholder={reason === "other" ? "Describe the problem" : "Details (optional): timestamps, links, what you noticed"}
+        maxLength={1000}
+        rows={2}
+        required={reason === "other"}
+      />
+      <div className="sd-report-actions">
+        <button type="button" onClick={() => setOpen(false)} disabled={state.busy}>
+          Cancel
+        </button>
+        <button type="submit" className="is-primary" disabled={state.busy || !reason}>
+          {state.busy ? "Sending…" : "Send report"}
+        </button>
+      </div>
+      {state.error && <span className="sd-roles-error">{state.error}</span>}
+    </form>
+  );
+}
+
 function ReactionsBar({ changelogId }) {
   const user = useCurrentUser();
   const signedIn = Boolean(user) && !user.sample;

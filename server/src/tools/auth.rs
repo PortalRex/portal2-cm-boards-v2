@@ -98,7 +98,7 @@ fn service_token_ok(req: &HttpRequest, config: &Config) -> bool {
 }
 
 /// Requests that change data must not come from another site's page.
-fn origin_ok(req: &HttpRequest, config: &Config) -> bool {
+pub(crate) fn origin_ok(req: &HttpRequest, config: &Config) -> bool {
     if matches!(*req.method(), Method::GET | Method::HEAD | Method::OPTIONS) {
         return true;
     }

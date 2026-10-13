@@ -420,3 +420,99 @@
   opacity: 0.6;
   cursor: default;
 }
+
+/* Report a run */
+.sd-report-open {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  margin-top: 10px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.sd-report-open:hover {
+  color: var(--text);
+}
+
+.sd-report-open svg {
+  font-size: 18px;
+}
+
+.sd-report {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 460px;
+  margin-top: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--row-alt);
+}
+
+.sd-report-title {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.sd-report-title small {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.sd-report select,
+.sd-report textarea {
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--control);
+  color: var(--text);
+  font: inherit;
+  font-size: 15px;
+}
+
+.sd-report textarea {
+  resize: vertical;
+}
+
+.sd-report-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.sd-report-actions button {
+  height: 32px;
+  padding: 0 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  background: var(--control);
+  color: var(--text);
+  font: inherit;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.sd-report-actions button.is-primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+.sd-report-actions button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.sd-report-done {
+  margin: 10px 0 0;
+  color: var(--green);
+  font-size: 14px;
+}

@@ -94,5 +94,7 @@ pub mod submissions;
 pub mod catalog;
 /// Player stats (activity, partners, demo stats)
 pub mod profile_stats;
+/// Anonymous run reports
+pub mod reports;
 /// Controllers for users
 pub mod users;

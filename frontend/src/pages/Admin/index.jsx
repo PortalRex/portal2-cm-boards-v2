@@ -3,10 +3,11 @@ import { Link } from "react-router-dom";
 import Layout from "../../components/Layout";
 import { Panel, Select, Loading, EmptyState, PlayerLink, RankNumber } from "../../components/ui";
 import { MoreIcon } from "../../components/Icons";
-import { fetchAudit, setRunBanned, setRunWrHidden } from "../../api/client";
+import { fetchAudit, fetchReportCount, setRunBanned, setRunWrHidden } from "../../api/client";
 import { bumpDataVersion } from "../../lib/dataVersion";
 import useCurrentUser, { isRoleAdmin, isStaff } from "../../hooks/useCurrentUser";
 import GamesEditor from "./GamesEditor";
+import Reports from "./Reports";
 import { formatDate, formatScore, timeAgo } from "../../lib/format";
 import { getMap, mapPath } from "../../data/maps";
 import background from "../../scenes/global/img/Background.png";
@@ -17,6 +18,9 @@ const ACTIONS = {
   "run.verify": "Verified run",
   "run.unverify": "Marked run pending",
   "run.unban": "Restored",
+  "report.resolved": "Resolved report",
+  "report.dismissed": "Dismissed report",
+  "report.open": "Reopened report",
   "run.delete": "Deleted",
   "demo.remove": "Removed demo",
   "coop.set_partner": "Set partner",
@@ -52,6 +56,9 @@ const TONES = {
   "run.verify": "ok",
   "run.unverify": "warn",
   "run.unban": "ok",
+  "report.resolved": "ok",
+  "report.dismissed": "info",
+  "report.open": "warn",
   "run.delete": "bad",
   "demo.remove": "warn",
   "coop.set_partner": "info",
@@ -83,7 +90,7 @@ const TONES = {
   "category.delete": "bad",
 };
 const TABS = [
-  { value: "runs", label: "Runs", actions: ["run.ban", "run.unban", "run.verify", "run.unverify", "run.delete", "demo.remove", "run.hide_wr", "run.show_wr", "coop.set_partner", "coop.set_host"] },
+  { value: "runs", label: "Runs", actions: ["run.ban", "run.unban", "run.verify", "run.unverify", "run.delete", "demo.remove", "run.hide_wr", "run.show_wr", "coop.set_partner", "coop.set_host", "report.resolved", "report.dismissed", "report.open"] },
   { value: "profiles", label: "Profiles", actions: ["profile.ban", "profile.unban", "profile.freeze", "profile.unfreeze", "profile.set_role"] },
   { value: "catalog", label: "Games", actions: ["season.create", "game.create", "game.update", "game.delete", "game.layout", "game.link", "game.unlink", "chapter.create", "chapter.update", "chapter.delete", "map.create", "map.update", "map.delete", "map.link", "map.unlink", "category.create", "category.update", "category.delete"] },
 ];
@@ -93,26 +100,40 @@ const PAGE = 50;
 export default function Admin() {
   const user = useCurrentUser();
   const [section, setSection] = useState("log");
+  const [openReports, setOpenReports] = useState(null);
+  const staff = isStaff(user);
+  const refreshCount = () => fetchReportCount().then(setOpenReports, () => {});
+  useEffect(() => {
+    if (staff) refreshCount();
+  }, [staff]);
   const games = section === "games" && isRoleAdmin(user);
-  const actions = isRoleAdmin(user) && (
+  const reports = section === "reports" && staff;
+  const actions = staff && (
     <div className="segmented">
       <button type="button" className={section === "log" ? "is-active" : ""} onClick={() => setSection("log")}>
         Changelog
       </button>
-      <button type="button" className={section === "games" ? "is-active" : ""} onClick={() => setSection("games")}>
-        Games
+      <button type="button" className={section === "reports" ? "is-active" : ""} onClick={() => setSection("reports")}>
+        Reports{openReports ? <span className="admin-count">{openReports}</span> : null}
       </button>
+      {isRoleAdmin(user) && (
+        <button type="button" className={section === "games" ? "is-active" : ""} onClick={() => setSection("games")}>
+          Games
+        </button>
+      )}
     </div>
   );
   return (
     <Layout background={background} tint="mono">
-      <Panel icon={MoreIcon} title={games ? "Games and maps" : "Admin changelog"} actions={actions} bodyClassName="admin-body">
+      <Panel icon={MoreIcon} title={games ? "Games and maps" : reports ? "Run reports" : "Admin changelog"} actions={actions} bodyClassName="admin-body">
         {!user ? (
           <EmptyState>Sign in with an admin account to see the admin changelog.</EmptyState>
         ) : !isStaff(user) ? (
           <EmptyState>Staff only.</EmptyState>
         ) : games ? (
           <GamesEditor />
+        ) : reports ? (
+          <Reports onCountChange={refreshCount} />
         ) : (
           <AuditLog />
         )}

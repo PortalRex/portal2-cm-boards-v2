@@ -656,3 +656,19 @@ export async function fetchCompareSide(profileNumber, game = "portal2") {
   ]);
   return { player: player(profileNumber, user?.board_name || user?.steam_name, user?.avatar), scores };
 }
+
+// --- run reports ------------------------------------------------------------------------
+
+export const REPORT_REASONS = [
+  { value: "cheating", label: "Cheating or an illegitimate run" },
+  { value: "wrong_time", label: "Wrong time" },
+  { value: "wrong_player", label: "Wrong player or partner" },
+  { value: "bad_proof", label: "Demo or video doesn't match" },
+  { value: "other", label: "Something else" },
+];
+
+// Reports a run anonymously.
+export const reportRun = (changelogId, reason, details) => sendJson("POST", `/runs/${changelogId}/report`, { reason, details: details || null });
+export const fetchReports = (status = "open", before) => getJson("/admin/reports", { status, before });
+export const fetchReportCount = () => getJson("/admin/reports/count").then((r) => r.open);
+export const setReportStatus = (id, status, note, allOnRun) => sendJson("PUT", `/admin/reports/${id}`, { status, note: note || null, all_on_run: Boolean(allOnRun) });
