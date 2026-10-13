@@ -301,18 +301,18 @@
 
 /* A pastel outline in the player's colour marks who set a PB with a co-op run. */
 .score-row.is-coop .sr-player.is-pb {
-  --pb-outline: #c3c6cc;
+  --pb-outline: rgb(195 198 204 / 50%);
   outline: 2px solid var(--pb-outline);
   outline-offset: -2px;
   border-radius: 4px;
 }
 
 .score-row.is-coop .sr-player.is-pb.tint-blue {
-  --pb-outline: #7fbcff;
+  --pb-outline: rgb(127 188 255 / 50%);
 }
 
 .score-row.is-coop .sr-player.is-pb.tint-orange {
-  --pb-outline: #ffb877;
+  --pb-outline: rgb(255 184 119 / 50%);
 }
 
 /* Wide screens: a co-op run's two players side by side on one line. */
@@ -471,13 +471,27 @@
     display: none;
   }
 
+  /* Phones: search, then game; the page buttons are at the bottom of the list. */
   .su-toolbar {
-    flex-direction: column;
-    align-items: stretch;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+    margin-bottom: 10px;
   }
 
-  .su-toolbar .pagination {
-    align-self: center;
+  .su-toolbar .su-game {
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+  }
+
+  .su-toolbar:not(.su-toolbar-bottom) .pagination {
+    display: none;
+  }
+
+  .su-toolbar-bottom {
+    display: flex;
+    justify-content: center;
   }
 
   .score-head {
@@ -620,6 +634,15 @@
   border-color: var(--accent);
   background: var(--accent);
   color: #fff;
+}
+
+/* Desktop: the folded filters sit inline with the rest. */
+.su-more {
+  display: contents;
+}
+
+.su-more-toggle {
+  display: none;
 }
 
 .su-clear {
@@ -790,5 +813,84 @@
     font-size: 13px;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+}
+
+/* Phones: the filter bar (after the base filter styles so it wins). */
+@media (max-width: 900px) {
+  /* Mode tabs full width, chamber below, then "More filters" opening the chips and selects. */
+  .su-filters {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+    margin: 0 0 16px;
+  }
+
+  .su-modes {
+    display: flex;
+    width: 100%;
+  }
+
+  .su-modes button {
+    flex: 1;
+    padding: 0 6px;
+    font-size: 15px;
+  }
+
+  .su-filters .su-filter-select,
+  .su-filters .su-chamber {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .su-more-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 32px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--control);
+    color: var(--text);
+    font-size: 15px;
+    cursor: pointer;
+  }
+
+  .su-more-toggle svg {
+    transition: transform 0.15s;
+  }
+
+  .su-more-toggle.is-open svg {
+    transform: rotate(180deg);
+  }
+
+  .su-more-count {
+    min-width: 20px;
+    padding: 0 6px;
+    border-radius: 10px;
+    background: var(--accent);
+    color: #fff;
+    font-size: 13px;
+    line-height: 20px;
+  }
+
+  .su-more {
+    display: none;
+  }
+
+  .su-more.is-open {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .su-more .su-chip {
+    padding: 0 8px;
+  }
+
+  .su-clear {
+    margin: 0;
+    justify-self: center;
   }
 }

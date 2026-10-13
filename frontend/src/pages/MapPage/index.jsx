@@ -137,6 +137,7 @@ function WrHistoryChart({ points, loading }) {
             width={52}
           />
           <Tooltip
+            isAnimationActive={false}
             contentStyle={{
               background: "var(--menu)",
               border: "1px solid var(--border)",

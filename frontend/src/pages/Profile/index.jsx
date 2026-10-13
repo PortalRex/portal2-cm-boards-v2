@@ -472,6 +472,7 @@ function PointsChart({ profileNumber, fallback }) {
           <XAxis dataKey="date" hide />
           <YAxis hide domain={[0, "dataMax"]} />
           <Tooltip
+            isAnimationActive={false}
             contentStyle={{ background: "var(--menu)", border: "1px solid var(--border)", borderRadius: 4 }}
             labelStyle={{ color: "var(--text-2)" }}
             labelFormatter={(d) => formatDate(d)}

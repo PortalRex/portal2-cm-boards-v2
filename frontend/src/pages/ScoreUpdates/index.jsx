@@ -3,7 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import Layout from "../../components/Layout";
 import { Panel, Pagination, SearchBox, Select, Avatar, PlayerLink, Loading, EmptyState, RankNumber } from "../../components/ui";
-import { HistoryIcon, TriangleLeft, TriangleRight } from "../../components/Icons";
+import { HistoryIcon, TriangleDown, TriangleLeft, TriangleRight } from "../../components/Icons";
 import { useRenderedSet } from "../../components/RunMedia";
 import { fetchActivity, fetchDailyChambers, fetchMyReactions, fetchWeeklyRecap } from "../../api/client";
 import useCurrentUser from "../../hooks/useCurrentUser";
@@ -92,6 +92,9 @@ export default function ScoreUpdates() {
   const visibleIds = visible.map((e) => e.id).join(",");
   const mine = useApi(() => (signedIn && visibleIds ? fetchMyReactions(visible.map((e) => e.id)).catch(() => ({})) : Promise.resolve({})), [visibleIds, signedIn, version]);
   const setPage = (p) => set({ page: String(p) });
+  const [moreOpen, setMoreOpen] = useState(false);
+  // Filters folded behind "More filters" on phones that are set to something other than the default.
+  const extraCount = TOGGLES.filter(([k]) => filters[k]).length + (filters.banned !== DEFAULTS.banned) + (filters.limit !== DEFAULTS.limit);
   const filtered = Boolean(filters.mapId || mode || filters.wr || filters.video || filters.demo || filters.pending || filters.banned !== "hide" || query);
 
   return (
@@ -117,19 +120,26 @@ export default function ScoreUpdates() {
             ))}
           </div>
           <Select value={filters.mapId || ""} onChange={(v) => set({ map: v })} options={mapOptions} label="Chamber" className="su-filter-select su-chamber" />
-          {TOGGLES.map(([k, label]) => (
-            <button key={k} type="button" className={`su-chip${filters[k] ? " is-active" : ""}`} aria-pressed={filters[k]} onClick={() => set({ [k]: !filters[k] })}>
-              {label}
-            </button>
-          ))}
-          <Select value={filters.banned} onChange={(v) => set({ banned: v })} options={BANNED_OPTIONS} label="Banned runs" className="su-filter-select" />
-          <Select
-            value={filters.limit}
-            onChange={(v) => set({ limit: v })}
-            options={LIMITS.map((l) => ({ value: l, label: `Latest ${l}` }))}
-            label="Number of runs"
-            className="su-filter-select su-limit"
-          />
+          {/* Phones: the rest folds behind this button (desktop shows it all inline). */}
+          <button type="button" className={`su-more-toggle${moreOpen ? " is-open" : ""}`} aria-expanded={moreOpen} onClick={() => setMoreOpen((o) => !o)}>
+            More filters{extraCount > 0 && <span className="su-more-count num">{extraCount}</span>}
+            <TriangleDown size={12} />
+          </button>
+          <div className={`su-more${moreOpen ? " is-open" : ""}`}>
+            {TOGGLES.map(([k, label]) => (
+              <button key={k} type="button" className={`su-chip${filters[k] ? " is-active" : ""}`} aria-pressed={filters[k]} onClick={() => set({ [k]: !filters[k] })}>
+                {label}
+              </button>
+            ))}
+            <Select value={filters.banned} onChange={(v) => set({ banned: v })} options={BANNED_OPTIONS} label="Banned runs" className="su-filter-select su-banned" />
+            <Select
+              value={filters.limit}
+              onChange={(v) => set({ limit: v })}
+              options={LIMITS.map((l) => ({ value: l, label: `Latest ${l}` }))}
+              label="Number of runs"
+              className="su-filter-select su-limit"
+            />
+          </div>
           {filtered && (
             <button type="button" className="su-clear" onClick={() => set({ mode: "", map: "", q: "", wr: false, video: false, demo: false, pending: false, banned: "hide" })}>
               Clear filters
@@ -393,6 +403,7 @@ function ActivityChart({ points, loading }) {
         <XAxis dataKey="label" tick={{ fill: "var(--text-muted)", fontSize: 12 }} axisLine={false} tickLine={false} interval="preserveStartEnd" minTickGap={24} />
         <YAxis tick={{ fill: "var(--text-muted)", fontSize: 12 }} axisLine={false} tickLine={false} allowDecimals={false} />
         <Tooltip
+          isAnimationActive={false}
           contentStyle={{ background: "var(--menu)", border: "1px solid var(--border)", borderRadius: 4, fontFamily: "inherit" }}
           labelStyle={{ color: "var(--text-2)" }}
           formatter={(v) => [v, "Scores"]}
