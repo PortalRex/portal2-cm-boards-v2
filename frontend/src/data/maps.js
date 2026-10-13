@@ -1,4 +1,5 @@
 import chamberImages from "../scenes/global/ChamberImages";
+import melImages from "../scenes/global/MelImages";
 import BSP_NAMES from "./bspNames";
 
 // Chapters and maps in game order. Single player chapters come first, then the
@@ -303,8 +304,8 @@ const toChapters = (chapters, mode) =>
         bsp: bsp || BSP_NAMES[id],
         chapter: chapter.name,
         chapterNumber: chapter.number,
-        // No Mel chamber images are bundled yet (melboard's are GPL/CC BY-NC).
-        image: game === "mel" ? null : chamberImages[id],
+        // Mel images come from melboard and keep its license (scenes/global/img/mel/NOTICE.md).
+        image: game === "mel" ? melImages[id] ?? null : chamberImages[id],
       })),
     };
   });
