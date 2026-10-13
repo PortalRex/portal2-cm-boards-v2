@@ -403,17 +403,17 @@
 
 .pf-legend {
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
   justify-content: flex-end;
-  gap: 4px 24px;
-  padding: 8px 40px 0;
+  gap: 4px 18px;
+  padding: 8px 20px 0;
 }
 
 .pf-legend-title {
   margin-right: auto;
-  font-size: 15px;
+  font-size: 14px;
   text-transform: uppercase;
-  align-self: center;
+  white-space: nowrap;
 }
 
 .pf-legend button {
@@ -422,9 +422,10 @@
   gap: 8px;
   border: 0;
   background: none;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 300;
   text-transform: uppercase;
+  white-space: nowrap;
   cursor: pointer;
 }
 
@@ -947,10 +948,23 @@
     width: 100%;
   }
 
+  /* Phones: the caption on its own line, the three series together under it. */
   .pf-legend {
     flex-wrap: wrap;
     justify-content: center;
+    gap: 6px 14px;
     padding: 8px 0 0;
+  }
+
+  .pf-legend-title {
+    flex-basis: 100%;
+    margin-right: 0;
+    text-align: center;
+  }
+
+  .pf-legend button {
+    gap: 6px;
+    font-size: 14px;
   }
 
   .pf-legend button {
