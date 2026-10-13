@@ -72,20 +72,26 @@
   min-width: 0;
 }
 
-.pf-name-row {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 12px 24px;
-}
-
-.pf-name-row h1 {
+.pf-name {
   min-width: 0;
   max-width: 100%;
   margin: 0;
   font-size: 40px;
   font-weight: 700;
+  line-height: 1.1;
   overflow-wrap: break-word;
+}
+
+.pf-badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.pf-badges:empty {
+  display: none;
 }
 
 /* Admin controls sit on their own line under the name, so they never crowd it. */
@@ -104,10 +110,10 @@
 .pf-badge {
   display: inline-flex;
   align-items: center;
-  height: 30px;
-  padding: 0 22px;
+  height: 26px;
+  padding: 0 12px;
   border-radius: 4px;
-  font-size: 18px;
+  font-size: 15px;
   font-weight: 500;
 }
 
@@ -913,12 +919,12 @@
     flex: 1 1 calc(100% - 112px);
   }
 
-  .pf-name-row h1 {
+  .pf-name {
     font-size: 30px;
   }
 
-  .pf-name-row {
-    gap: 8px 10px;
+  .pf-badges {
+    margin-top: 6px;
   }
 
   .pf-links {
@@ -1210,7 +1216,7 @@
 
 /* Phones: long names shrink and break; stat cards spread across the width. */
 @media (max-width: 800px) {
-  .pf-name-row h1 {
+  .pf-name {
     font-size: clamp(22px, 7vw, 30px);
     word-break: break-word;
   }

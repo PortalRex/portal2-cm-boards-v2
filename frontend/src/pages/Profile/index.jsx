@@ -203,8 +203,9 @@ function ProfileHeader({ player }) {
     <section className="pf-header">
       <Avatar src={player.avatar} name={player.name} size={180} className="pf-avatar" />
       <div className="pf-identity">
-        <div className="pf-name-row">
-          <h1>{player.name}</h1>
+        <h1 className="pf-name">{player.name}</h1>
+        {/* All badges together on one row under the name. */}
+        <div className="pf-badges">
           {(player.badges || []).map((b) => (
             <span key={b.label} className={`pf-badge is-${b.tone}`}>
               {b.label}
