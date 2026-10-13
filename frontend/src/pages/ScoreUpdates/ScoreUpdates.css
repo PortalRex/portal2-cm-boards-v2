@@ -697,3 +697,41 @@
     padding-right: 6px;
   }
 }
+
+/* Phones: player names on a second line under the map. */
+@media (max-width: 900px) {
+  .score-row-main {
+    grid-template-columns: 40px minmax(0, 1fr) auto 28px;
+    grid-template-areas:
+      "rank map time toggle"
+      "rank players players toggle";
+    padding-bottom: 4px;
+  }
+
+  .sr-players {
+    flex-wrap: wrap;
+    gap: 2px 10px;
+    min-width: 0;
+  }
+
+  .sr-player {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .sr-player .avatar {
+    width: 18px !important;
+    height: 18px !important;
+  }
+
+  .sr-player-name {
+    display: inline;
+    overflow: hidden;
+    font-size: 13px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}

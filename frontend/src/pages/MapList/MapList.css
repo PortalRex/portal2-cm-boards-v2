@@ -198,3 +198,57 @@
     padding: 0 12px;
   }
 }
+
+/* Phones: two compact cards per row, with the WR and the next two times. */
+@media (max-width: 700px) {
+  .ml-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px 10px;
+  }
+
+  .ml-chapter-head {
+    margin-bottom: 12px;
+  }
+
+  .mc-head {
+    height: 58px;
+    padding: 0 6px;
+  }
+
+  .mc-head h3 {
+    font-size: 16px;
+  }
+
+  .mc-wr {
+    gap: 6px;
+    min-height: 36px;
+    padding: 2px 6px;
+  }
+
+  .mc-trophy {
+    font-size: 18px !important;
+  }
+
+  .mc-wr-name {
+    font-size: 14px;
+  }
+
+  .mc-wr-time {
+    font-size: 13px;
+  }
+
+  .mc-wr .mc-icons,
+  .mc-rows .mc-icons {
+    display: none;
+  }
+
+  .mc-rows li {
+    height: 22px;
+    padding: 0 6px;
+    font-size: 13px;
+  }
+
+  .mc-rows li:nth-child(n + 3) {
+    display: none;
+  }
+}
