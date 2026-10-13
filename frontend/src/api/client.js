@@ -635,3 +635,24 @@ export const adminLinkMap = (steamId, other) => sendJson("POST", `/admin/maps/${
 export const adminUnlinkMap = (steamId, other) => sendJson("DELETE", `/admin/maps/${encodeURIComponent(steamId)}/links/${encodeURIComponent(other)}`);
 export const adminLinkGames = (id, other) => sendJson("POST", `/admin/games/${id}/links`, { game_id: other });
 export const adminUnlinkGames = (id, other) => sendJson("DELETE", `/admin/games/${id}/links/${other}`);
+
+// --- profile comparison -----------------------------------------------------------------
+
+export async function searchUsers(q) {
+  if (q.trim().length < 2) return [];
+  const rows = await getJson("/users/search", { q: q.trim() });
+  return rows.map((u) => ({ ...player(u.profile_number, u.user_name, u.avatar), runs: u.runs }));
+}
+
+// One side of a comparison: the player and their best time and rank per map in a game.
+export async function fetchCompareSide(profileNumber, game = "portal2") {
+  const [user, scores] = await Promise.all([
+    getJson(`/user/${profileNumber}`),
+    game === "portal2"
+      ? getJson(`/profile/scores/${profileNumber}`).then((rows) => Object.fromEntries(rows.map((r) => [r.map_id, { score: r.score, rank: r.rank }])))
+      : fetchGameProfile(profileNumber, game).then((p) =>
+          Object.fromEntries(Object.entries(p.scores).filter(([, s]) => s.score != null).map(([id, s]) => [id, { score: s.score, rank: s.rank }])),
+        ),
+  ]);
+  return { player: player(profileNumber, user?.board_name || user?.steam_name, user?.avatar), scores };
+}

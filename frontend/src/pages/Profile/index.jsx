@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import Layout from "../../components/Layout";
 import { Card, Avatar, Flag, Loading, EmptyState } from "../../components/ui";
@@ -203,6 +203,7 @@ function ProfileHeader({ player }) {
         </div>
       </div>
       <FollowButton player={player} />
+      <CompareLink player={player} />
       <div className="pf-links">
         {links.map(({ href, icon: Icon, label, className }) => (
           <a key={label} href={href} target="_blank" rel="noreferrer" className={`pf-link ${className}`} aria-label={label} title={label}>
@@ -343,6 +344,18 @@ function FreezeControl({ player }) {
     <button type="button" className="pf-admin-button" onClick={() => setOpen(true)} title="Keep this player's times but refuse new ones">
       Freeze profile
     </button>
+  );
+}
+
+// Compare this player with yourself (signed in), or pick someone to compare with.
+function CompareLink({ player }) {
+  const user = useCurrentUser();
+  const me = user && !user.sample && user.profileNumber !== player.profileNumber ? user.profileNumber : null;
+  const to = me ? `/compare?a=${me}&b=${player.profileNumber}` : `/compare?a=${player.profileNumber}`;
+  return (
+    <Link to={to} className="pf-follow pf-compare" title={me ? "Compare your times with this player" : "Compare this player with someone"}>
+      Compare
+    </Link>
   );
 }
 

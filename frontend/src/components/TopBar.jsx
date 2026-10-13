@@ -35,6 +35,7 @@ const MORE_MENU = [
   { to: "/more/discord", label: "Discord" },
   { href: "https://github.com/p2sr/portal2-cm-boards-v2", label: "GitHub" },
   { to: "/more/donators", label: "Donators" },
+  { to: "/compare", label: "Compare Players" },
   { to: "/more/wall-of-shame", label: "Wall Of Shame" },
   { to: "/more/about", label: "About" },
 ];

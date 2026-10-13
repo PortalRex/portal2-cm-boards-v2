@@ -9,6 +9,7 @@ import Placeholder from "./pages/Placeholder";
 import Settings from "./pages/Settings";
 import WallOfShame from "./pages/WallOfShame";
 import Admin from "./pages/Admin";
+import Compare from "./pages/Compare";
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -40,6 +41,7 @@ function App() {
         <Route path="/more/settings" element={<Settings />} />
         <Route path="/more/wall-of-shame" element={<WallOfShame />} />
         <Route path="/admin" element={<Admin />} />
+        <Route path="/compare" element={<Compare />} />
         <Route path="/more/:page" element={<Placeholder />} />
         <Route path="*" element={<Placeholder />} />
       </Routes>

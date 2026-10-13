@@ -1111,3 +1111,10 @@
 .pf-partners {
   max-width: 820px;
 }
+
+.pf-compare {
+  display: inline-flex;
+  align-items: center;
+  color: var(--text);
+  text-decoration: none;
+}

@@ -337,6 +337,46 @@ async fn profile(
 /// ## Example endpoints:
 ///  - `/api/v1/profile/scores/76561198040982247`
 #[derive(Deserialize)]
+pub struct SearchQuery {
+    pub q: String,
+}
+
+#[derive(Serialize, sqlx::FromRow)]
+pub struct FoundUser {
+    pub profile_number: String,
+    pub user_name: String,
+    pub avatar: Option<String>,
+    pub runs: i64,
+}
+
+/// **GET** Players matching a name or Steam ID (up to 10, most active first), for pickers.
+#[get("/users/search")]
+async fn users_search(pool: web::Data<PgPool>, query: web::Query<SearchQuery>) -> Result<impl Responder> {
+    let q = query.q.trim();
+    if q.chars().count() < 2 {
+        return Ok(web::Json(Vec::<FoundUser>::new()));
+    }
+    // LIKE wildcards in the name are matched literally.
+    let like = format!("%{}%", q.replace('\\', "\\\\").replace('%', "\\%").replace('_', "\\_"));
+    let found = sqlx::query_as::<_, FoundUser>(
+        r#"
+            SELECT u.profile_number, COALESCE(u.board_name, u.steam_name, u.profile_number) AS user_name, u.avatar,
+                (SELECT COUNT(*) FROM changelog AS cl WHERE cl.profile_number = u.profile_number AND NOT cl.banned) AS runs
+            FROM users AS u
+            WHERE u.profile_number <> 'N/A' AND NOT u.banned
+              AND (u.profile_number = $1 OR COALESCE(u.board_name, u.steam_name) ILIKE $2)
+            ORDER BY (u.profile_number = $1) DESC, runs DESC
+            LIMIT 10
+        "#,
+    )
+    .bind(q)
+    .bind(like)
+    .fetch_all(pool.get_ref())
+    .await?;
+    Ok(web::Json(found))
+}
+
+#[derive(Deserialize)]
 pub struct StatsQuery {
     pub game_id: Option<i32>,
 }

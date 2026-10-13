@@ -30,6 +30,7 @@ pub fn init(cfg: &mut web::ServiceConfig) {
             .service(daily_chambers)
             .service(catalog_get)
             .service(profile_stats)
+            .service(users_search)
             .service(admin_game_create)
             .service(admin_game_update)
             .service(admin_game_delete)
