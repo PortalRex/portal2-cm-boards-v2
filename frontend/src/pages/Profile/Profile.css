@@ -310,11 +310,12 @@
   overflow: hidden;
 }
 
+/* The fill ends square; the rounded track clips its start (a rounded fill end left a sliver of
+   track showing around it). */
 .pf-bar span {
   display: block;
   height: 100%;
   background: #287d6a;
-  border-radius: 5px;
 }
 
 .pf-bar.is-red span {

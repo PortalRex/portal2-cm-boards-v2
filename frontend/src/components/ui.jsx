@@ -75,7 +75,7 @@ export function Select({ value, onChange, options, className = "", label }) {
     <div className={`select ${className}`}>
       <select value={value} onChange={(e) => onChange(e.target.value)} aria-label={label}>
         {options.map((o) => (
-          <option key={o.value} value={o.value}>
+          <option key={o.value} value={o.value} disabled={o.disabled}>
             {o.label}
           </option>
         ))}

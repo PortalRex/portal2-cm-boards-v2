@@ -134,8 +134,14 @@ function Comparison({ mode, left, right }) {
           if (l.score < r.score) out.left++;
           else if (r.score < l.score) out.right++;
           else out.ties++;
-        } else if (l) out.onlyLeft++;
-        else if (r) out.onlyRight++;
+        } else if (l) {
+          // A time beats no time.
+          out.onlyLeft++;
+          out.left++;
+        } else if (r) {
+          out.onlyRight++;
+          out.right++;
+        }
       }),
     );
     return out;
@@ -157,7 +163,7 @@ function Comparison({ mode, left, right }) {
           )}
           {(summary.onlyLeft > 0 || summary.onlyRight > 0) && (
             <span className="muted">
-              Only {left.player.name}: {summary.onlyLeft} · only {right.player.name}: {summary.onlyRight}
+              Including maps only one has a time on: {left.player.name} {summary.onlyLeft} · {right.player.name} {summary.onlyRight}
             </span>
           )}
         </div>
@@ -177,12 +183,12 @@ function Comparison({ mode, left, right }) {
             const diff = l && r ? l.score - r.score : null;
             return (
               <div key={m.id} className="cmp-row">
-                <Side score={l} win={diff != null && diff < 0} />
+                <Side score={l} win={diff != null ? diff < 0 : Boolean(l)} />
                 <span className="cmp-map">
                   <Link to={mapPath(m)}>{m.title}</Link>
                   {diff != null && diff !== 0 && <small className="num">{formatDelta(Math.abs(diff))}</small>}
                 </span>
-                <Side score={r} win={diff != null && diff > 0} right />
+                <Side score={r} win={diff != null ? diff > 0 : Boolean(r)} right />
               </div>
             );
           })}

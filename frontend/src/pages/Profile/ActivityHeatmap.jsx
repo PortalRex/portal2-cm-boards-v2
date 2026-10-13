@@ -109,7 +109,14 @@ export default function ActivityHeatmap({ history }) {
     const box = el.getBoundingClientRect();
     setTip({ d, x: box.left + box.width / 2, top: box.top, bottom: box.bottom });
   };
+  // Years with runs, and every year from the first to the latest (empty ones greyed out in the list).
   const years = useMemo(() => [...new Set([...counts.keys()].map((k) => Number(k.slice(0, 4))))].sort((a, b) => b - a), [counts]);
+  const yearOptions = useMemo(() => {
+    if (!years.length) return [];
+    const out = [];
+    for (let y = years[0]; y >= years[years.length - 1]; y--) out.push({ value: String(y), label: String(y), disabled: !years.includes(y) });
+    return out;
+  }, [years]);
   const [range, setRange] = useState("past");
   const scroller = useRef(null);
 
@@ -165,7 +172,7 @@ export default function ActivityHeatmap({ history }) {
           options={[
             { value: "past", label: "Past year" },
             { value: "all", label: "All time" },
-            ...years.map((y) => ({ value: String(y), label: String(y) })),
+            ...yearOptions,
           ]}
           label="Year"
           className="pf-activity-years"
