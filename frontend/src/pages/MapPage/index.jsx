@@ -94,8 +94,6 @@ const WR_RANGES = [
   { value: "1y", label: "1Y", years: 1 },
 ];
 const YEAR_MS = 365.25 * 24 * 3600 * 1000;
-// Records are drawn as dots only when there are few enough to tell apart.
-const WR_DOTS_MAX = 25;
 const MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 // Axis ticks for [from, to]: the start of each year (or each quarter for short ranges), thinned
@@ -162,7 +160,6 @@ function WrHistoryChart({ points, loading }) {
   const max = Math.max(...scores);
   const pad = Math.max(1, Math.round((max - min) * 0.08));
   const { ticks, short } = timeTicks(from, now);
-  const dots = inRange.length <= WR_DOTS_MAX;
 
   return (
     <div className="mp-chart">
@@ -219,16 +216,7 @@ function WrHistoryChart({ points, loading }) {
             stroke="#b17ee0"
             strokeWidth={2}
             fill="url(#wrFill)"
-            dot={
-              dots
-                ? (props) =>
-                    props.payload.now || props.payload.carried ? (
-                      <g key={props.index} />
-                    ) : (
-                      <circle key={props.index} cx={props.cx} cy={props.cy} r={3.5} fill="var(--panel)" stroke="#c48ef0" strokeWidth={2} />
-                    )
-                : false
-            }
+            dot={false}
             activeDot={{ r: 5, fill: "#c48ef0", stroke: "var(--panel)", strokeWidth: 2 }}
             isAnimationActive={false}
           />

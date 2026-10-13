@@ -37,7 +37,7 @@ export default function Profile() {
         <div className="profile">
           <div className="pf-row pf-row-1">
             <ProfileHeader player={p.player} />
-            <Card icon={SparkleIcon} title="Challenge Mode Points" className="pf-points">
+            <Card icon={SparkleIcon} title="Challenge Mode Points" collapseId="profile.points" className="pf-points">
               <div className="stat-row">
                 {[
                   ["sp", "Singleplayer"],
@@ -53,7 +53,7 @@ export default function Profile() {
           </div>
 
           <div className="pf-row pf-row-2">
-            <Card icon={GlobeIcon} title="Global Rank" className="pf-global">
+            <Card icon={GlobeIcon} title="Global Rank" collapseId="profile.rank" className="pf-global">
               <div className="stat-row">
                 <Stat value={<Ordinal n={p.globalRank?.sp} />} label="Singleplayer" />
                 <Stat value={<Ordinal n={p.globalRank?.coop} />} label="Cooperative" />
@@ -71,7 +71,7 @@ export default function Profile() {
               <PointsChart profileNumber={p.player.profileNumber} fallback={p.history} />
             </Card>
 
-            <Card icon={SparkleIcon} title="Statistics" className="pf-stats">
+            <Card icon={SparkleIcon} title="Statistics" collapseId="profile.stats" className="pf-stats">
               <div className="pf-stat-grid">
                 <ScoreStat label="Newest score" entry={p.newest} green />
                 <ScoreStat label="Oldest score" entry={p.oldest} />
@@ -81,14 +81,14 @@ export default function Profile() {
             </Card>
 
             <div className="pf-side">
-              <Card icon={SparkleIcon} title="Average Place" className="pf-side-card">
+              <Card icon={SparkleIcon} title="Average Place" collapseId="profile.average" className="pf-side-card">
                 <div className="stat-row">
                   <Stat value={fmtAvg(p.averagePlace.sp)} label="Single Player" />
                   <Stat value={fmtAvg(p.averagePlace.coop)} label="Cooperative" />
                   <Stat value={fmtAvg(p.averagePlace.overall)} label="Overall" />
                 </div>
               </Card>
-              <Card icon={TrophyIcon} title="World Records" className="pf-side-card">
+              <Card icon={TrophyIcon} title="World Records" collapseId="profile.wrs" className="pf-side-card">
                 <div className="stat-row">
                   <Stat value={p.worldRecords.sp} label="Single Player" />
                   <Stat value={p.worldRecords.coop} label="Cooperative" />
@@ -100,7 +100,7 @@ export default function Profile() {
           </div>
 
           {p.history?.length > 0 && (
-            <Card icon={HistoryIcon} title="Activity" className="pf-activity-card">
+            <Card icon={HistoryIcon} title="Activity" collapseId="profile.activity" className="pf-activity-card">
               <ActivityHeatmap history={p.history} />
             </Card>
           )}
@@ -137,7 +137,7 @@ function PeakPoints({ profileNumber }) {
     );
   };
   return (
-    <Card icon={PeakIcon} title="Peak Points" className="pf-side-card">
+    <Card icon={PeakIcon} title="Peak Points" collapseId="profile.peak" className="pf-side-card">
       <div className="stat-row">
         {one("sp", "Single Player")}
         {one("coop", "Cooperative")}

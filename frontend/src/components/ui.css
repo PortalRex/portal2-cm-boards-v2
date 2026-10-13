@@ -67,6 +67,36 @@
   font-size: 24px !important;
 }
 
+/* Collapsible cards: the whole header toggles; collapsed cards shrink to it. */
+.card-head-toggle {
+  width: 100%;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.card-head-toggle:hover {
+  filter: brightness(1.12);
+}
+
+.card-chevron {
+  margin-left: auto;
+  color: var(--text-muted);
+  transition: transform 0.15s;
+}
+
+/* Shrinks to its header's height (not its width) whether it sits in a grid row or a column. */
+.card.is-collapsed {
+  align-self: start;
+  width: 100%;
+}
+
+.card.is-collapsed .card-chevron {
+  transform: rotate(-90deg);
+}
+
 .card-body {
   flex: 1;
   padding: 20px;

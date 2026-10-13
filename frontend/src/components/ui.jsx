@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { SearchIcon, FilterIcon, TriangleLeft, TriangleRight, TriangleDown, TrophyIcon } from "./Icons";
 import { countryName } from "../data/countries";
 import { rankTextColor, WR_COLOR } from "../lib/ranks";
+import useCollapsed from "../hooks/useCollapsed";
 import "./ui.css";
 
 export function Panel({ icon: Icon, title, actions, className = "", bodyClassName = "", children }) {
@@ -19,14 +20,24 @@ export function Panel({ icon: Icon, title, actions, className = "", bodyClassNam
   );
 }
 
-export function Card({ icon: Icon, title, className = "", children }) {
+// `collapseId` makes the card collapsible from its header, remembered per browser (useCollapsed).
+export function Card({ icon: Icon, title, className = "", collapseId, children }) {
+  const [collapsed, toggle] = useCollapsed(collapseId);
   return (
-    <section className={`card ${className}`}>
-      <header className="card-head">
-        {Icon && <Icon className="card-head-icon" />}
-        <h3>{title}</h3>
-      </header>
-      <div className="card-body">{children}</div>
+    <section className={`card ${className}${collapsed ? " is-collapsed" : ""}`}>
+      {collapseId ? (
+        <button type="button" className="card-head card-head-toggle" onClick={toggle} aria-expanded={!collapsed}>
+          {Icon && <Icon className="card-head-icon" />}
+          <h3>{title}</h3>
+          <TriangleDown size={12} className="card-chevron" />
+        </button>
+      ) : (
+        <header className="card-head">
+          {Icon && <Icon className="card-head-icon" />}
+          <h3>{title}</h3>
+        </header>
+      )}
+      {!collapsed && <div className="card-body">{children}</div>}
     </section>
   );
 }

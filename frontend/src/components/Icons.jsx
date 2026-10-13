@@ -50,8 +50,8 @@ export const TriangleLeft = ({ size = 14 }) => (
 export const TriangleRight = ({ size = 14 }) => (
   <svg {...svgProps(size)}><path d="M6 3v18l14-9z" /></svg>
 );
-export const TriangleDown = ({ size = 14 }) => (
-  <svg {...svgProps(size)}><path d="M3 6h18l-9 14z" /></svg>
+export const TriangleDown = ({ size = 14, className }) => (
+  <svg {...svgProps(size)} className={className}><path d="M3 6h18l-9 14z" /></svg>
 );
 
 export const SteamIcon = ({ size = 24 }) => (
