@@ -16,6 +16,7 @@ import { findMap, getMap, gameForMode, isMultiplayerMode, mapPath } from "../../
 import useApi from "../../hooks/useApi";
 import { useDataVersion } from "../../lib/dataVersion";
 import { formatScore, timeAgo, formatDate, parseTimestamp } from "../../lib/format";
+import { shownNote } from "../../lib/notes";
 import "./MapPage.css";
 
 const PAGE_SIZE = 25;
@@ -290,6 +291,7 @@ function Leaderboard({ map, board }) {
             const { players, rolesKnown } = coopRoles(e, roleOverrides);
             // Unpaired co-op runs have no partner on record; keep the cell so columns line up.
             const cells = coop && players.length < 2 ? [...players, null] : players;
+            const note = shownNote(e.note, players);
             return (
               <div className={`mp-entry${open ? " is-open" : ""}`} key={key}>
                 <div className="mp-row is-expandable" role="row" aria-expanded={open} onClick={toggleOnRowClick(() => setOpenKey(open ? null : key))}>
@@ -320,6 +322,12 @@ function Leaderboard({ map, board }) {
                     <YouTubeLink id={e.youtubeId} />
                     <DemoLink demoId={e.demoId} />
                   </span>
+                  {/* The run's comment, readable without opening the run. */}
+                  {note && (
+                    <span className="mp-note" title={note}>
+                      {note}
+                    </span>
+                  )}
                 </div>
                 {open && <RunDetails run={e} map={map} game={map.game} rendered={rendered} />}
               </div>

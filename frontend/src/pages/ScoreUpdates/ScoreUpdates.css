@@ -254,6 +254,16 @@
   text-overflow: ellipsis;
 }
 
+.sr-note {
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-style: italic;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
 .sr-map-chapter {
   font-size: 13px;
   color: var(--text-2);

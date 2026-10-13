@@ -593,9 +593,15 @@
 }
 
 .pf-cmap small {
+  overflow: hidden;
   font-size: 13px;
   font-weight: 300;
   color: var(--text-muted);
+  text-overflow: ellipsis;
+}
+
+.pf-note {
+  font-style: italic;
 }
 
 .pf-cmap-link {

@@ -221,6 +221,19 @@
   background: linear-gradient(90deg, transparent 30px, var(--portal-neutral) 30px, transparent 85%);
 }
 
+/* Lined up with the player's name (after the 30px avatar and its gap). */
+.mp-note {
+  grid-column: 2 / -3;
+  margin: -4px 0 6px;
+  padding-left: 42px;
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: 14px;
+  font-style: italic;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
 .mp-ago {
   font-size: 16px;
   font-weight: 300;
@@ -458,5 +471,14 @@ button.mp-yourbest:hover {
   .mp-table.is-coop .mp-player .avatar {
     width: 24px !important;
     height: 24px !important;
+  }
+}
+
+/* Phones: the comment spans the player column (the board has three columns there). */
+@media (max-width: 900px) {
+  .mp-note {
+    grid-column: 2 / -2;
+    margin-top: -4px;
+    font-size: 13px;
   }
 }
