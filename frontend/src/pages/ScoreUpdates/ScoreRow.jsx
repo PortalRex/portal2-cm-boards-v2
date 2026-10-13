@@ -5,11 +5,11 @@ import { TriangleDown, ThumbUpIcon, ThumbUpOutlineIcon, ThumbDownIcon, ThumbDown
 import { setReaction } from "../../api/client";
 import useCurrentUser from "../../hooks/useCurrentUser";
 import RunDetails from "../../components/RunDetails";
+import { CommentButton } from "../../components/RunMedia";
 import { toggleOnRowClick } from "../../lib/rows";
 import { mapPath } from "../../data/maps";
 import { coopRoles, tintFor, useRoleOverrides } from "../../lib/coopRoles";
 import { formatScore, formatDelta, timeAgo, formatDate } from "../../lib/format";
-import { shownNote } from "../../lib/notes";
 
 
 export default function ScoreRow({ entry, rendered, myReaction }) {
@@ -17,7 +17,6 @@ export default function ScoreRow({ entry, rendered, myReaction }) {
   const { players, rolesKnown } = coopRoles(entry, useRoleOverrides());
   const coop = players.length > 1;
   const pending = !entry.verified;
-  const note = shownNote(entry.note, players);
 
   return (
     <div className={`score-row${open ? " is-open" : ""}${coop ? " is-coop" : ""}${entry.banned ? " is-banned" : ""}`}>
@@ -32,11 +31,6 @@ export default function ScoreRow({ entry, rendered, myReaction }) {
             {entry.map.title}
           </Link>
           <span className="sr-map-chapter">{entry.map.chapter}</span>
-          {note && (
-            <span className="sr-note" title={note}>
-              {note}
-            </span>
-          )}
           <span className="sr-map-ago green">{timeAgo(entry.timestamp)}</span>
         </div>
 
@@ -68,6 +62,8 @@ export default function ScoreRow({ entry, rendered, myReaction }) {
           <span className="sr-date-day num">{formatDate(entry.timestamp)}</span>
         </div>
         <div className="sr-status">
+          {/* Runs with a comment get the bubble icon (click to read it). */}
+          {entry.note && <CommentButton note={entry.note} className="sr-comment" />}
           <RowReactions entry={entry} myReaction={myReaction} />
           {entry.banned ? <span className="badge-banned">Banned</span> : pending && <span className="badge-pending">Pending</span>}
         </div>

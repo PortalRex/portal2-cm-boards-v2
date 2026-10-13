@@ -76,7 +76,7 @@
 
 .comment-bubble {
   position: fixed;
-  z-index: 60;
+  z-index: 1100; /* above dialogs (history popup) */
   width: max-content;
   max-width: min(320px, 80vw);
   padding: 7px 11px;

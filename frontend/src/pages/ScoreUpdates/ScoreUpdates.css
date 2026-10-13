@@ -254,16 +254,6 @@
   text-overflow: ellipsis;
 }
 
-.sr-note {
-  max-width: 100%;
-  overflow: hidden;
-  color: var(--text-muted);
-  font-size: 13px;
-  font-style: italic;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
 .sr-map-chapter {
   font-size: 13px;
   color: var(--text-2);
@@ -380,9 +370,15 @@
 
 .sr-status {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 4px;
+  justify-content: center;
+  gap: 4px 6px;
+}
+
+.sr-comment svg {
+  display: block;
+  font-size: 20px;
 }
 
 .sr-reactions {
