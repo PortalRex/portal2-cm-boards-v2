@@ -15,11 +15,10 @@ import { bumpDataVersion } from "../../lib/dataVersion";
 import { formatDate, formatScore, ordinalSuffix, timeAgo, formatPoints } from "../../lib/format";
 import { youtubeChannelUrl } from "../../lib/youtube";
 import ProfileTabs from "./ProfileTabs";
+import { roleProgress } from "../../data/roles";
 import ActivityHeatmap from "./ActivityHeatmap";
 import "./Profile.css";
 
-// Theoretical maximum points (200 per map) used to scale the progress bars.
-const MAX_POINTS = { sp: 60 * 200, coop: 48 * 200, overall: 108 * 200 };
 
 export default function Profile() {
   const { profileId } = useParams();
@@ -45,9 +44,7 @@ export default function Profile() {
                   ["overall", "Overall"],
                 ].map(([key, label]) => (
                   <Stat key={key} value={formatPoints(p.points[key])} label={label}>
-                    <span className={`pf-bar ${key === "overall" ? "is-red" : ""}`}>
-                      <span style={{ width: `${Math.min(100, (p.points[key] / MAX_POINTS[key]) * 100)}%` }} />
-                    </span>
+                    <RoleBar board={key} points={p.points[key] || 0} />
                   </Stat>
                 ))}
               </div>
@@ -146,6 +143,22 @@ function PeakPoints({ profileNumber }) {
         {one("overall", "Overall")}
       </div>
     </Card>
+  );
+}
+
+// Progress toward the next community role on a board; hover (or focus) shows how far off it is.
+function RoleBar({ board, points }) {
+  const prog = roleProgress(board, points);
+  const text = prog.reached ? `${prog.reached} threshold reached` : `${prog.missing.toLocaleString()} points to ${prog.next} | ${prog.percent}%`;
+  return (
+    <span className="pf-bar-wrap" tabIndex={0} aria-label={text}>
+      <span className={`pf-bar ${board === "overall" ? "is-red" : ""}`}>
+        <span style={{ width: `${Math.min(100, prog.percent)}%` }} />
+      </span>
+      <span className="pf-bar-tip" role="tooltip">
+        {text}
+      </span>
+    </span>
   );
 }
 
