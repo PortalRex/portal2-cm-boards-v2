@@ -7,7 +7,7 @@ export const fetchBoard = (map) => api.fetchMapBoard(map);
 
 export const fetchWrHistory = (map) => api.fetchWrHistory(map);
 
-export const fetchMapChangelog = (map) => api.fetchChangelog({ mapId: map.id, game: map.game });
+export const fetchMapChangelog = (map, filters = {}) => api.fetchChangelog({ ...filters, mapId: map.id, game: map.game });
 
 // kind: overall | sp | coop for Portal 2; story | advanced | mel-overall for Mel.
 export const fetchAggregatedBoard = (_game, kind) => api.fetchAggregated(kind);

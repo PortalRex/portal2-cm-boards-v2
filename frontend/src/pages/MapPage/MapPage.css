@@ -482,3 +482,92 @@ button.mp-yourbest:hover {
     font-size: 13px;
   }
 }
+
+/* Chamber History filters */
+.mp-hfilters {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.mp-hfilters-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+}
+
+.mp-hfilters-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 32px;
+}
+
+.mp-chip {
+  height: 32px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--control);
+  color: var(--text-2);
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.mp-chip:hover {
+  border-color: var(--border-strong);
+}
+
+.mp-chip.is-active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+.mp-hselect {
+  min-width: 132px;
+  height: 32px;
+}
+
+.mp-hselect select {
+  font-size: 15px;
+}
+
+.mp-hclear {
+  border: 0;
+  background: none;
+  color: var(--accent-light);
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.mp-hclear:hover {
+  text-decoration: underline;
+}
+
+.mp-history.is-stale {
+  opacity: 0.5;
+}
+
+@media (max-width: 900px) {
+  .mp-hfilters-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .mp-chip {
+    padding: 0 8px;
+  }
+
+  .mp-hselect {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .mp-hclear {
+    grid-column: 1 / -1;
+  }
+}

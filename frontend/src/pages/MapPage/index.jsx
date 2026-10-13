@@ -17,6 +17,7 @@ import useApi from "../../hooks/useApi";
 import { useDataVersion } from "../../lib/dataVersion";
 import { formatScore, timeAgo, formatDate, parseTimestamp } from "../../lib/format";
 import { shownNote } from "../../lib/notes";
+import { BANNED_OPTIONS, RANK_OPTIONS, RUN_LIMITS, RUN_TOGGLES, TIME_OPTIONS } from "../../lib/runFilters";
 import "./MapPage.css";
 
 const PAGE_SIZE = 25;
@@ -437,14 +438,63 @@ function WrHistoryEditor({ map }) {
   );
 }
 
+const HISTORY_DEFAULTS = { q: "", wr: false, video: false, demo: false, pending: false, rank: "", days: "", banned: "hide", limit: "200" };
+
 function ChamberHistory({ map }) {
   const version = useDataVersion();
-  const history = useApi(() => fetchMapChangelog(map), [map.id, version]);
-  if (history.loading && !history.data) return <Loading />;
+  const [f, setF] = useState(HISTORY_DEFAULTS);
+  const [page, setPage] = useState(0);
+  const query = useDebounced(f.q, 250);
+  const set = (changes) => {
+    setF((old) => ({ ...old, ...changes }));
+    setPage(0);
+  };
+  const key = JSON.stringify({ ...f, q: query });
+  const history = useApi(() => fetchMapChangelog(map, { ...f, search: query || undefined }), [map.id, version, key]);
   const rows = history.data || [];
-  if (!rows.length) return <EmptyState>No submissions recorded for {map.title}.</EmptyState>;
+  const pageCount = Math.ceil(rows.length / PAGE_SIZE);
+  const visible = rows.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+  const filtered = JSON.stringify(f) !== JSON.stringify(HISTORY_DEFAULTS);
+
   return (
-    <div className="mp-table mp-history" role="table">
+    <>
+      <div className="mp-hfilters" role="group" aria-label="Filters">
+        <SearchBox value={f.q} onChange={(v) => set({ q: v })} placeholder="Search players" showFilter={false} />
+        <div className="mp-hfilters-row">
+          {RUN_TOGGLES.map(([k, label]) => (
+            <button key={k} type="button" className={`mp-chip${f[k] ? " is-active" : ""}`} aria-pressed={f[k]} onClick={() => set({ [k]: !f[k] })}>
+              {label}
+            </button>
+          ))}
+          <Select value={f.rank} onChange={(v) => set({ rank: v })} options={RANK_OPTIONS} label="Rank" className="mp-hselect" />
+          <Select value={f.days} onChange={(v) => set({ days: v })} options={TIME_OPTIONS} label="Time" className="mp-hselect" />
+          <Select value={f.banned} onChange={(v) => set({ banned: v })} options={BANNED_OPTIONS} label="Banned runs" className="mp-hselect" />
+          <Select value={f.limit} onChange={(v) => set({ limit: v })} options={RUN_LIMITS.map((l) => ({ value: l, label: `Latest ${l}` }))} label="Number of runs" className="mp-hselect" />
+          {filtered && (
+            <button type="button" className="mp-hclear" onClick={() => set(HISTORY_DEFAULTS)}>
+              Clear filters
+            </button>
+          )}
+        </div>
+        <div className="mp-hfilters-foot">
+          <span className="muted">{history.loading && !history.data ? "" : `${rows.length} run${rows.length === 1 ? "" : "s"}`}</span>
+          {pageCount > 1 && <Pagination page={page} pageCount={pageCount} onChange={setPage} />}
+        </div>
+      </div>
+      {history.loading && !history.data ? (
+        <Loading />
+      ) : !rows.length ? (
+        <EmptyState>{filtered ? "No runs match these filters." : `No submissions recorded for ${map.title}.`}</EmptyState>
+      ) : (
+        <ChamberHistoryTable rows={visible} stale={history.loading} />
+      )}
+    </>
+  );
+}
+
+function ChamberHistoryTable({ rows, stale }) {
+  return (
+    <div className={`mp-table mp-history${stale ? " is-stale" : ""}`} role="table">
       <div className="mp-row mp-row-head" role="row">
         <span>Date</span>
         <span>Player(s)</span>
@@ -471,4 +521,14 @@ function ChamberHistory({ map }) {
       ))}
     </div>
   );
+}
+
+// A value that only changes once it has stopped changing for `ms` (for search-as-you-type).
+function useDebounced(value, ms) {
+  const [v, setV] = useState(value);
+  useEffect(() => {
+    const t = setTimeout(() => setV(value), ms);
+    return () => clearTimeout(t);
+  }, [value, ms]);
+  return v;
 }

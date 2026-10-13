@@ -17,36 +17,15 @@ import { timeAgo, formatDate, formatDelta, formatScore } from "../../lib/format"
 import { ACTIVITY_VIEWS, activityWindow } from "../../lib/activity";
 import background from "../../scenes/global/img/Background.png";
 import ScoreRow from "./ScoreRow";
+import { BANNED_OPTIONS, RANK_OPTIONS, RUN_LIMITS, RUN_TOGGLES, TIME_OPTIONS } from "../../lib/runFilters";
 import "./ScoreUpdates.css";
 
 const PAGE_SIZE = 20;
 // Built when rendering: the game list comes from the server's catalog at startup.
 const gameOptions = () => Object.values(GAMES).map((g) => ({ value: g.id, label: g.label }));
-const LIMITS = ["100", "200", "500"];
+const LIMITS = RUN_LIMITS;
+const TOGGLES = RUN_TOGGLES;
 const DEFAULTS = { game: "portal2", mode: "", map: "", q: "", limit: "200", banned: "hide", page: "0" };
-const TOGGLES = [
-  ["wr", "World records"],
-  ["video", "Has video"],
-  ["demo", "Has demo"],
-  ["pending", "Pending"],
-];
-// Rank the run reached when it was set, and how recent it is.
-const RANK_OPTIONS = [
-  { value: "", label: "Any rank" },
-  ...["10", "25", "50", "100", "200"].map((n) => ({ value: n, label: `Top ${n}` })),
-];
-const TIME_OPTIONS = [
-  { value: "", label: "Any time" },
-  { value: "1", label: "Last 24 hours" },
-  { value: "7", label: "Last 7 days" },
-  { value: "30", label: "Last 30 days" },
-  { value: "365", label: "Last year" },
-];
-const BANNED_OPTIONS = [
-  { value: "hide", label: "Hide banned" },
-  { value: "show", label: "Include banned" },
-  { value: "only", label: "Only banned" },
-];
 
 // Filters live in the URL so a filtered feed can be shared or bookmarked.
 function useFilters() {
