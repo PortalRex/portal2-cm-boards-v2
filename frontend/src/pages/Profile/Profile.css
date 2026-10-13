@@ -509,7 +509,7 @@
 }
 
 .pf-crow {
-  --pf-cols: 82px minmax(0, 1.6fr) 110px 100px 100px 100px 190px;
+  --pf-cols: 82px minmax(0, 1.6fr) 110px 100px 100px 100px 228px;
   display: grid;
   grid-template-columns: var(--pf-cols);
   align-items: center;
@@ -523,7 +523,7 @@
 }
 
 .pf-crow.is-coop {
-  --pf-cols: 82px minmax(0, 1.4fr) 100px 90px 90px 90px minmax(0, 1fr) 190px;
+  --pf-cols: 82px minmax(0, 1.4fr) 100px 90px 90px 90px minmax(0, 1fr) 228px;
 }
 
 .pf-crow:not(.pf-crow-head):nth-child(even),

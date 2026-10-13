@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Select, Avatar, PlayerLink, EmptyState, Loading, RankNumber } from "../../components/ui";
-import { ChevronDownIcon, TriangleRight } from "../../components/Icons";
+import { ChevronDownIcon, CommentIcon, TriangleRight } from "../../components/Icons";
 import { AutorenderLink, YouTubeLink, useRenderedSet, DemoLink } from "../../components/RunMedia";
 import RunDetails from "../../components/RunDetails";
 import { toggleOnRowClick } from "../../lib/rows";
@@ -257,6 +257,7 @@ function ChapterTable({ chapter, scores, coop, game, rendered, selectedMap, onSe
                 </span>
               )}
               <span className="pf-cicons">
+                {s ? <CommentIcon className={s.note ? "pf-comment" : "is-off"} titleAccess={s.note || "No comment"} /> : <span className="pf-icon-gap" />}
                 {s ? <AutorenderLink run={s} game={game} rendered={rendered} /> : <span className="pf-icon-gap" />}
                 <YouTubeLink id={s?.youtubeId} />
                 <DemoLink demoId={s?.demoId} />

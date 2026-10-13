@@ -481,6 +481,7 @@ function scoresFromRanks(profileNumber, ranks, history, game) {
       changelogId: h?.id ?? null,
       autorenderId: h?.autorenderId ?? null,
       demoId: h?.demoId ?? null,
+      note: h?.note ?? null,
       partner: h?.players.find((p) => p.profileNumber !== profileNumber) || null,
     };
   });
@@ -503,6 +504,7 @@ function mergePbs(scores, pbs, history) {
       changelogId: pb.changelog_id,
       autorenderId: h?.autorenderId ?? null,
       demoId: h?.demoId ?? null,
+      note: h?.note ?? null,
       partner: null,
     };
     scores[pb.map_id] = { ...s, score: pb.score, timestamp: pb.timestamp, deltaWr: pb.delta_to_wr ?? null, deltaNext: pb.delta_to_next ?? null };
