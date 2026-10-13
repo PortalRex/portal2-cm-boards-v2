@@ -350,6 +350,12 @@ pub async fn build_filtered_changelog(pool: &PgPool, params: ChangelogQueryParam
             }
         }
     }
+    if let Some(max_rank) = params.max_rank.filter(|r| *r > 0) {
+        filters.push(format!("cl.post_rank BETWEEN 1 AND {}\n", max_rank));
+    }
+    if let Some(days) = params.since_days.filter(|d| *d > 0) {
+        filters.push(format!("cl.timestamp >= (now() AT TIME ZONE 'utc') - interval '{} days'\n", days));
+    }
     if let Some(verified) = params.verified {
         filters.push(if verified { "cl.verified IS TRUE\n" } else { "cl.verified IS NOT TRUE\n" }.to_string());
     }
@@ -441,6 +447,8 @@ impl Default for ChangelogQueryParams {
             first: None,
             last: None,
             game_id: None,
+            max_rank: None,
+            since_days: None,
         }
     }
 }

@@ -127,7 +127,7 @@ All under `/api/v1`. Auth: **public**, **signed in**, **staff** (any tier or ser
 | `GET /ranks/game/{game_id}/{steam_id}` | public | A player's rank per map in a game. |
 | `GET /profile/scores/{steam_id}` | public | A player's PB per Portal 2 map with rank, delta to next and to WR. |
 | `GET /profile/stats/{steam_id}?game_id=` | public | Stats: runs, maps completed, time saved, demo/video coverage, co-op partners (maps and runs together), portal counts. |
-| `GET /profile/points_history/{steam_id}?game_id=` | public | A player's real points over time: at each date (weekly or wider, up to ~160 points) every map's rank is recomputed against everyone's best times then, so being passed shows as a drop. The last point equals the current boards. Undated imported runs count from Portal 2's release. |
+| `GET /profile/points_history/{steam_id}?game_id=` | public | A player's real points over time: at each date (weekly or wider, up to ~160 points) every map's rank is recomputed against everyone's best times then, so being passed shows as a drop. The last point equals the current boards. Undated imported runs count from Portal 2's release, but the chart starts at the player's first dated run. |
 | `GET /users/search?q=` | public | Up to 10 players by name or Steam ID, most active first. |
 | `GET /recap/weekly?week=&game_id=` | public | The week's top 5 runs (best rank, then biggest improvement; one per player per map). |
 | `GET /daily?date=&game_id=` | public | That day's daily chambers (one map per board, picked from a hash of the date) and the times set on them. |
@@ -179,7 +179,7 @@ All under `/api/v1`. Auth: **public**, **signed in**, **staff** (any tier or ser
 
 ## 6. Changed behaviour of existing endpoints
 
-- **`GET /changelog`** gains `game_id`, `verified` (`false` = only pending), `include_hidden_wr`, and returns per row:
+- **`GET /changelog`** gains `game_id`, `verified` (`false` = only pending), `include_hidden_wr`, `max_rank` (runs that ranked that high or better when set, e.g. 100) and `since_days` (runs from the last N days), and returns per row:
   co-op blue/orange players (host first), whether the colours are known, reaction counts, `wr_hidden`, `portals`.
   With `wr_gain=true` it now leaves out runs removed from WR history, banned runs, runs by banned players and pending runs.
 - **`POST /sp/post_score`** (the backend's insert): when `verified` isn't given, a run without a demo that would rank in

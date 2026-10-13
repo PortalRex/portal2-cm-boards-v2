@@ -30,6 +30,18 @@ const TOGGLES = [
   ["demo", "Has demo"],
   ["pending", "Pending"],
 ];
+// Rank the run reached when it was set, and how recent it is.
+const RANK_OPTIONS = [
+  { value: "", label: "Any rank" },
+  ...["10", "25", "50", "100", "200"].map((n) => ({ value: n, label: `Top ${n}` })),
+];
+const TIME_OPTIONS = [
+  { value: "", label: "Any time" },
+  { value: "1", label: "Last 24 hours" },
+  { value: "7", label: "Last 7 days" },
+  { value: "30", label: "Last 30 days" },
+  { value: "365", label: "Last year" },
+];
 const BANNED_OPTIONS = [
   { value: "hide", label: "Hide banned" },
   { value: "show", label: "Include banned" },
@@ -69,6 +81,8 @@ export default function ScoreUpdates() {
     demo: get("demo") === "1",
     pending: get("pending") === "1",
     banned: BANNED_OPTIONS.some((o) => o.value === get("banned")) ? get("banned") : DEFAULTS.banned,
+    rank: RANK_OPTIONS.some((o) => o.value === get("rank")) ? get("rank") : "",
+    days: TIME_OPTIONS.some((o) => o.value === get("days")) ? get("days") : "",
   };
   const page = Math.max(0, Number(get("page")) || 0);
   const query = useDebounced(get("q"), 250);
@@ -94,8 +108,9 @@ export default function ScoreUpdates() {
   const setPage = (p) => set({ page: String(p) });
   const [moreOpen, setMoreOpen] = useState(false);
   // Filters folded behind "More filters" on phones that are set to something other than the default.
-  const extraCount = TOGGLES.filter(([k]) => filters[k]).length + (filters.banned !== DEFAULTS.banned) + (filters.limit !== DEFAULTS.limit);
-  const filtered = Boolean(filters.mapId || mode || filters.wr || filters.video || filters.demo || filters.pending || filters.banned !== "hide" || query);
+  const extraCount =
+    TOGGLES.filter(([k]) => filters[k]).length + Boolean(filters.rank) + Boolean(filters.days) + (filters.banned !== DEFAULTS.banned) + (filters.limit !== DEFAULTS.limit);
+  const filtered = Boolean(filters.mapId || mode || filters.rank || filters.days || filters.wr || filters.video || filters.demo || filters.pending || filters.banned !== "hide" || query);
 
   return (
     <Layout background={background} tint="mono">
@@ -131,6 +146,8 @@ export default function ScoreUpdates() {
                 {label}
               </button>
             ))}
+            <Select value={filters.rank} onChange={(v) => set({ rank: v })} options={RANK_OPTIONS} label="Rank" className="su-filter-select su-rank" />
+            <Select value={filters.days} onChange={(v) => set({ days: v })} options={TIME_OPTIONS} label="Time" className="su-filter-select su-days" />
             <Select value={filters.banned} onChange={(v) => set({ banned: v })} options={BANNED_OPTIONS} label="Banned runs" className="su-filter-select su-banned" />
             <Select
               value={filters.limit}
@@ -141,7 +158,7 @@ export default function ScoreUpdates() {
             />
           </div>
           {filtered && (
-            <button type="button" className="su-clear" onClick={() => set({ mode: "", map: "", q: "", wr: false, video: false, demo: false, pending: false, banned: "hide" })}>
+            <button type="button" className="su-clear" onClick={() => set({ mode: "", map: "", q: "", wr: false, video: false, demo: false, pending: false, banned: "hide", rank: "", days: "" })}>
               Clear filters
             </button>
           )}

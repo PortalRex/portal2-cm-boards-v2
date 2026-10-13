@@ -615,6 +615,12 @@
   min-width: 220px;
 }
 
+.su-rank,
+.su-days,
+.su-limit {
+  min-width: 124px;
+}
+
 .su-chip {
   height: 32px;
   padding: 0 14px;

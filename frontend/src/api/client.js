@@ -144,7 +144,7 @@ function adaptPoints(wrapper, mapCount) {
 //   banned  "hide" (default) | "show" | "only"
 const toggle = (on) => (on ? true : undefined);
 
-export function fetchChangelog({ search, profileNumber, mapId, limit = 200, game = "portal2", mode, wr, video, demo, pending, banned = "hide" } = {}) {
+export function fetchChangelog({ search, profileNumber, mapId, limit = 200, game = "portal2", mode, wr, video, demo, pending, banned = "hide", rank, days } = {}) {
   const filters = { mode, wr, video, demo, pending, banned };
   const multiplayer = mode ? isMultiplayerMode(mode) : undefined;
   const byMode = (entries) => (mode && mode !== "sp" && mode !== "coop" ? entries.filter((e) => e.map.mode === mode) : entries);
@@ -162,6 +162,8 @@ export function fetchChangelog({ search, profileNumber, mapId, limit = 200, game
         has_demo: toggle(demo),
         verified: pending ? false : undefined,
         banned: banned === "only" ? true : banned === "show" ? undefined : false,
+        max_rank: rank || undefined,
+        since_days: days || undefined,
         ...gameParam(game),
       });
       return byMode(rows.map((r) => adaptChangelog(r, game)));

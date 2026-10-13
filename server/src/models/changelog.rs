@@ -175,6 +175,10 @@ pub struct ChangelogQueryParams {
     pub last: Option<i64>,
     /// Game to show entries for (`games.id`). Defaults to 1 (Portal 2).
     pub game_id: Option<i32>,
+    /// Only runs that ranked this high or better when they were set (e.g. 100 = top 100).
+    pub max_rank: Option<i32>,
+    /// Only runs from the last this many days.
+    pub since_days: Option<i32>,
 }
 
 /// Query parameters for searching for a given

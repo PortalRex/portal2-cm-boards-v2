@@ -128,10 +128,14 @@ pub async fn points_history(pool: &PgPool, game_id: i32, profile_number: &str) -
     let Some(&me) = t.players.get(profile_number) else {
         return Ok(Vec::new());
     };
-    let first = t.maps.iter().filter_map(|m| m.runs.iter().find(|r| r.1 == me).map(|r| r.0)).min();
-    let Some(first) = first else {
+    // Undated runs count from release (so today's total matches the boards), but the chart
+    // starts at the player's first dated run, not at release with points they likely got later.
+    let release = NaiveDate::from_ymd_opt(2011, 4, 19).unwrap().and_hms_opt(0, 0, 0).unwrap();
+    let mine = || t.maps.iter().flat_map(|m| m.runs.iter().filter(|r| r.1 == me).map(|r| r.0));
+    let Some(any) = mine().min() else {
         return Ok(Vec::new());
     };
+    let first = mine().filter(|ts| *ts != release).min().unwrap_or(any);
     // Sample dates: from the first run to today, at least weekly, at most MAX_SAMPLES of them.
     let start = first.date();
     let today = Utc::now().date_naive();
