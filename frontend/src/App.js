@@ -6,6 +6,7 @@ import MapPage from "./pages/MapPage";
 import Aggregated from "./pages/Aggregated";
 import Profile from "./pages/Profile";
 import Placeholder from "./pages/Placeholder";
+import About from "./pages/About";
 import Settings from "./pages/Settings";
 import WallOfShame from "./pages/WallOfShame";
 import Admin from "./pages/Admin";
@@ -39,6 +40,7 @@ function App() {
         <Route path="/more/wall-of-shame" element={<WallOfShame />} />
         <Route path="/admin" element={<Admin />} />
         <Route path="/compare" element={<Compare />} />
+        <Route path="/more/about" element={<About />} />
         <Route path="/more/:page" element={<Placeholder />} />
         <Route path="*" element={<Placeholder />} />
       </Routes>

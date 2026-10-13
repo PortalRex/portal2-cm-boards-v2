@@ -1,0 +1,125 @@
+.about-body {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 28px 32px 34px;
+}
+
+.about-hero h1 {
+  margin: 0 0 8px;
+  font-size: 40px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.about-hero p {
+  max-width: 760px;
+  margin: 0;
+  color: var(--text-2);
+  font-size: 19px;
+}
+
+.about-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.about-card {
+  padding: 18px 20px;
+  border-radius: 6px;
+  background: var(--row);
+  font-size: 17px;
+  line-height: 1.45;
+}
+
+.about-card h2 {
+  margin: 0 0 10px;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.about-card p {
+  margin: 0;
+  color: var(--text-2);
+}
+
+.about-card ul {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--text-2);
+}
+
+.about-card li + li {
+  margin-top: 6px;
+}
+
+.about-card a {
+  color: var(--accent-light);
+}
+
+.about-card code {
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: var(--control);
+  font-size: 15px;
+}
+
+.about-points {
+  display: grid;
+  grid-template-columns: repeat(9, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.about-point {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 4px;
+  border-radius: 4px;
+  background: var(--control);
+}
+
+.about-point-rank {
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.about-point-value {
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.about-team {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 8px;
+  color: var(--text-2);
+}
+
+.about-team-role {
+  color: var(--text-muted);
+  font-size: 14px;
+  text-transform: uppercase;
+}
+
+@media (max-width: 800px) {
+  .about-body {
+    padding: 18px 14px 24px;
+  }
+
+  .about-hero h1 {
+    font-size: 30px;
+  }
+
+  .about-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .about-points {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}

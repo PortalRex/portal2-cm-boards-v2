@@ -32,7 +32,7 @@ const leaderboardMenu = () => [
 ];
 
 const MORE_MENU = [
-  { to: "/more/discord", label: "Discord", icon: DiscordIcon },
+  { href: "https://discord.gg/hRwE4Zr", label: "Discord", icon: DiscordIcon },
   { href: "https://github.com/p2sr/portal2-cm-boards-v2", label: "GitHub", icon: GitHubIcon },
   { to: "/more/donators", label: "Donators", icon: DonateIcon },
   { to: "/compare", label: "Compare Players", icon: CompareIcon },
