@@ -26,7 +26,7 @@ export default function PrivateGate({ children }) {
     <div className="pg-page">
       <div className="pg-panel">
         <h1 className="pg-title">P2CM</h1>
-        <p className="pg-text">The new boards are private while staff test them.</p>
+        <p className="pg-text">Coming soon!</p>
         {state.user ? (
           <>
             <p className="pg-text pg-muted">
