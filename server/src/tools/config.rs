@@ -18,9 +18,15 @@ pub struct ServerConfig {
     /// de-duplication) are then read from the proxy's X-Forwarded-For header. Leave unset when
     /// clients connect directly, as that header can't be trusted then.
     pub behind_proxy: Option<bool>,
+    /// Staff-only mode ([crate::tools::private_site]): the data needs a signed-in staff account.
+    pub private: Option<bool>,
 }
 
 impl ServerConfig {
+    pub fn private(&self) -> bool {
+        self.private.unwrap_or(false)
+    }
+
     pub fn behind_proxy(&self) -> bool {
         self.behind_proxy.unwrap_or(false)
     }

@@ -15,6 +15,7 @@ pub mod demo_files;
 pub mod demo_parse;
 pub mod ratelimit;
 pub mod old_boards_sync;
+pub mod private_site;
 pub mod steam_sync;
 
 pub mod error;

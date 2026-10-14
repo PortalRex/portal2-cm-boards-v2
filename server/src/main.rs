@@ -42,7 +42,7 @@
 extern crate serde_derive;
 use actix_cors::Cors;
 use actix_web::{
-    middleware::{Compress, DefaultHeaders, Logger},
+    middleware::{from_fn, Compress, DefaultHeaders, Logger},
     web, App, HttpServer,
 };
 use anyhow::{Error, Result};
@@ -111,6 +111,7 @@ async fn main() -> Result<(), Error> {
             headers = headers.add(("Strict-Transport-Security", "max-age=31536000; includeSubDomains"));
         }
         App::new()
+            .wrap(from_fn(crate::tools::private_site::gate))
             .wrap(cors)
             .wrap(headers)
             .wrap(Compress::default())

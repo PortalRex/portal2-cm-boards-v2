@@ -12,6 +12,7 @@ import WallOfShame from "./pages/WallOfShame";
 import Donators from "./pages/Donators";
 import Admin from "./pages/Admin";
 import Compare from "./pages/Compare";
+import PrivateGate from "./components/PrivateGate";
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -23,6 +24,7 @@ function ScrollToTop() {
 
 function App() {
   return (
+    <PrivateGate>
     <Router>
       <ScrollToTop />
       <Routes>
@@ -47,6 +49,7 @@ function App() {
         <Route path="*" element={<Placeholder />} />
       </Routes>
     </Router>
+    </PrivateGate>
   );
 }
 

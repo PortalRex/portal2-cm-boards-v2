@@ -186,6 +186,9 @@ const apiUrl = (path) => new URL(API_BASE + path, window.location.origin).toStri
 // Where the Sign in button goes; Steam sends the browser back to `returnTo` afterwards.
 export const steamLoginUrl = (returnTo) => `${apiUrl("/auth/steam/login")}?return=${encodeURIComponent(returnTo)}`;
 
+// About the site: { private } (staff-only mode).
+export const fetchSite = () => getJson("/site");
+
 // The signed-in user, or null.
 export async function fetchMe() {
   const me = await getJson("/auth/me");

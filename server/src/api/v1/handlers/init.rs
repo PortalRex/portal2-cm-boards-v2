@@ -29,6 +29,7 @@ pub fn init(cfg: &mut web::ServiceConfig) {
             .service(admin_run_note_add)
             .service(admin_run_note_delete)
             .service(admin_steam_sync)
+            .service(site_info)
             .service(admin_old_boards_sync)
             .service(admin_demo_parse)
             .service(submission_preview)

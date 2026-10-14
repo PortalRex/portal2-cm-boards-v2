@@ -87,7 +87,7 @@ pub fn safe_return_path(path: Option<&str>) -> String {
     }
 }
 
-fn service_token_ok(req: &HttpRequest, config: &Config) -> bool {
+pub(crate) fn service_token_ok(req: &HttpRequest, config: &Config) -> bool {
     match (
         config.service.token.as_deref().filter(|t| !t.is_empty()),
         req.headers().get("X-Service-Token").and_then(|v| v.to_str().ok()),

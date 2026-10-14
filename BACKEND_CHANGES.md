@@ -334,6 +334,13 @@ for that player. Rules:
 - Portal Stories: Mel has no public Steam leaderboards, so Mel times come from submissions (and, until it's retired,
   the old Mel board, below). The old `backend/` fetcher service is no longer needed for this.
 
+### Staff-only mode
+
+`SERVER.PRIVATE=true` (`server/src/tools/private_site.rs`) makes the site private while staff test it: every API
+request needs a signed-in staff account (verifier, moderator or admin) or the service token, else 401/403. Steam
+sign-in (`/auth/...`) and `GET /site` (`{ "private": bool }`) stay open, and the frontend shows non-staff a sign-in
+page instead of the site (`components/PrivateGate.jsx`).
+
 ### Demo parsing
 
 `server/src/tools/demo_parse.rs` reads every demo the boards have with `server/demo-parser/parse_batch.mjs` (many at
