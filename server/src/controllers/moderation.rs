@@ -74,6 +74,13 @@ fn actor_profile(actor: &AdminOrService) -> Option<&str> {
     }
 }
 
+/// [log_action] in its own transaction, for actions that don't otherwise need one.
+pub async fn log_admin(pool: &PgPool, actor: &AdminOrService, action: &str, target_type: &str, target_id: &str, details: Value) -> Result<(), sqlx::Error> {
+    let mut tx = pool.begin().await?;
+    log_action(&mut tx, actor, action, target_type, target_id, None, details).await?;
+    tx.commit().await
+}
+
 pub(crate) async fn log_action(
     tx: &mut Transaction<'_, Postgres>,
     actor: &AdminOrService,

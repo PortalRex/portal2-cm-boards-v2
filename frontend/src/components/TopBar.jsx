@@ -3,33 +3,105 @@ import { Link, NavLink, useLocation } from "react-router-dom";
 import logo from "../scenes/global/img/portal2logo.png";
 import {
   HistoryIcon, PinIcon, BarsIcon, MoreIcon, TrophyIcon, PersonIcon, PeopleIcon, MenuIcon, CloseIcon, LightModeIcon, DarkModeIcon, SteamIcon, UploadIcon,
-  DiscordIcon, GitHubIcon, DonateIcon, CompareIcon, GavelIcon, InfoIcon,
+  DiscordIcon, GitHubIcon, DonateIcon, CompareIcon, GavelIcon, InfoIcon, StarIcon, TriangleRight,
 } from "./Icons";
 import { Avatar, Flag } from "./ui";
-import { GAMES } from "../data/maps";
+import { GAMES, MODE_LABELS, chapterDbId, coopChapters, spChapters } from "../data/maps";
 import useCurrentUser, { clearCurrentUser, isStaff } from "../hooks/useCurrentUser";
 import { logout, steamLoginUrl } from "../api/client";
 import useTheme from "../hooks/useTheme";
 import SubmitRun from "./SubmitRun";
 import "./TopBar.css";
 
-const LEADERBOARD_MENU = [
-  { to: "/leaderboard/overall", label: "Overall", icon: BarsIcon },
-  { to: "/leaderboard/sp", label: "Single Player", icon: PersonIcon },
-  { to: "/leaderboard/coop", label: "Cooperative", icon: PeopleIcon },
-];
-
-// Seasons and added games come from the catalog, ahead of the built-in boards.
-const leaderboardMenu = () => [
+// The Aggregate menu, like the old boards' but with a game level: game → board (Overall, a mode)
+// → Total and each chapter (Portal 2's chapter boards). Seasons and added games come from the
+// catalog, seasons first.
+const chapterItems = (chapters) => chapters.map((c) => ({ number: c.number, label: c.name, to: `/leaderboard/chapter/${chapterDbId(c)}` }));
+const aggregateMenu = () => [
   ...Object.values(GAMES)
     .filter((g) => g.kind === "season" && !g.hidden)
     .sort((a, b) => new Date(b.startsAt) - new Date(a.startsAt))
-    .map((g) => ({ to: `/leaderboard/game/${g.id}/overall`, label: g.label, icon: TrophyIcon, highlight: true })),
+    .map((g) => gameEntry(g, TrophyIcon, true)),
+  {
+    id: "portal2",
+    label: "Portal 2",
+    icon: BarsIcon,
+    to: "/leaderboard/overall",
+    boards: [
+      { label: "Overall", icon: BarsIcon, to: "/leaderboard/overall" },
+      { label: "Single Player", icon: PersonIcon, to: "/leaderboard/sp", chapters: chapterItems(spChapters) },
+      { label: "Cooperative", icon: PeopleIcon, to: "/leaderboard/coop", chapters: chapterItems(coopChapters) },
+    ],
+  },
+  {
+    id: "mel",
+    label: "Portal Stories: Mel",
+    icon: BarsIcon,
+    to: "/leaderboard/mel/overall",
+    boards: [
+      { label: "Overall", icon: BarsIcon, to: "/leaderboard/mel/overall" },
+      { label: "Story Mode", icon: PersonIcon, to: "/leaderboard/mel/story" },
+      { label: "Advanced Mode", icon: PersonIcon, to: "/leaderboard/mel/advanced" },
+    ],
+  },
   ...Object.values(GAMES)
     .filter((g) => g.kind === "game" && g.id !== "portal2" && g.id !== "mel" && !g.hidden)
-    .map((g) => ({ to: `/leaderboard/game/${g.id}/overall`, label: g.label, icon: BarsIcon })),
-  ...LEADERBOARD_MENU,
+    .map((g) => gameEntry(g, BarsIcon, false)),
 ];
+
+function gameEntry(g, icon, highlight) {
+  const base = `/leaderboard/game/${g.id}`;
+  return {
+    id: g.id,
+    label: g.label,
+    icon,
+    highlight,
+    to: `${base}/overall`,
+    boards: [{ label: "Overall", icon: BarsIcon, to: `${base}/overall` }, ...g.modes.map((m) => ({ label: MODE_LABELS[m] || m, icon: BarsIcon, to: `${base}/${m}` }))],
+  };
+}
+
+function MenuLink({ item, caret = false }) {
+  const Icon = item.icon;
+  return (
+    <Link className={`menu-item${item.highlight ? " is-highlight" : ""}`} to={item.to}>
+      {item.number != null ? <span className="menu-num num">{item.number}</span> : Icon ? <Icon className="menu-item-icon" /> : null}
+      <span className="menu-label">{item.label}</span>
+      {caret && (
+        <span className="menu-caret">
+          <TriangleRight size={10} />
+        </span>
+      )}
+    </Link>
+  );
+}
+
+function AggregateMenu() {
+  return (
+    <div className="nav-menu nav-menu-tree" role="menu">
+      {aggregateMenu().map((game) => (
+        <div className="menu-group" key={game.id}>
+          <MenuLink item={game} caret />
+          <div className="menu-sub">
+            {game.boards.map((board) => (
+              <div className="menu-group" key={board.to}>
+                <MenuLink item={board} caret={Boolean(board.chapters)} />
+                {board.chapters && (
+                  <div className="menu-sub menu-sub-chapters">
+                    <MenuLink item={{ label: "Total", icon: StarIcon, to: board.to }} />
+                    {board.chapters.map((c) => (
+                      <MenuLink key={c.to} item={c} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 const MORE_MENU = [
   { href: "https://discord.gg/hRwE4Zr", label: "Discord", icon: DiscordIcon },
@@ -76,12 +148,16 @@ function NavItem({ item, pathname }) {
         <Icon className="nav-icon" />
         <span>{item.label}</span>
       </NavLink>
-      {item.menu && (
-        <div className="nav-menu" role="menu">
-          {(item.menu === "leaderboard" ? leaderboardMenu() : item.menu).map((m) => (
-            <MenuItem key={m.label} item={m} />
-          ))}
-        </div>
+      {item.menu === "leaderboard" ? (
+        <AggregateMenu />
+      ) : (
+        item.menu && (
+          <div className="nav-menu" role="menu">
+            {item.menu.map((m) => (
+              <MenuItem key={m.label} item={m} />
+            ))}
+          </div>
+        )
       )}
     </li>
   );

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, Navigate, useLocation, useNavigate, useParams } from "react-router-dom";
 import Layout from "../../components/Layout";
 import { Pagination, Select, Avatar, Flag, PlayerLink, Loading, EmptyState } from "../../components/ui";
+import useCurrentUser from "../../hooks/useCurrentUser";
 import { fetchAggregatedBoard } from "../../api/boards";
 import { GAMES, MODE_LABELS, chapterDbId, isMultiplayerMode, p2ChapterByDbId, spChapters, coopChapters } from "../../data/maps";
 import useApi from "../../hooks/useApi";
@@ -168,6 +169,7 @@ function NoSeason() {
 }
 
 function Board({ title, rows, valueLabel, value, empty = "No players yet." }) {
+  const me = useCurrentUser();
   const [page, setPage] = useState(0);
   const pageCount = Math.ceil(rows.length / PAGE_SIZE);
   const visible = rows.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
@@ -185,7 +187,7 @@ function Board({ title, rows, valueLabel, value, empty = "No players yet." }) {
       </div>
       {visible.length ? (
         visible.map((r, i) => (
-          <div className="agg-row" key={r.player.profileNumber || i}>
+          <div className={`agg-row${me && !me.sample && r.player.profileNumber === me.profileNumber ? " is-me" : ""}`} key={r.player.profileNumber || i}>
             <Avatar src={r.player.avatar} name={r.player.name} size={46} />
             <span className="agg-rank num">{r.rank ?? page * PAGE_SIZE + i + 1}</span>
             <span className="agg-player">

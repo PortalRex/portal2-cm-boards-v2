@@ -50,6 +50,9 @@ pub struct CatalogMap {
     pub default_cat_id: Option<i32>,
     pub source_map: Option<String>,
     pub sort_order: i32,
+    /// When an uploaded image was set (seconds since 1970), if the map has one: it's served at
+    /// `/maps/{steam_id}/image?v={image_version}`.
+    pub image_version: Option<i64>,
     #[sqlx(skip)]
     pub categories: Vec<CatalogCategory>,
     /// Maps linked to this one.
@@ -77,7 +80,9 @@ pub async fn catalog(pool: &PgPool, include_hidden: bool) -> Result<Vec<CatalogG
     let chapters = sqlx::query_as::<_, CatalogChapter>("SELECT id, game_id, chapter_name AS name, game_mode, is_multiplayer, sort_order FROM chapters ORDER BY sort_order, id")
         .fetch_all(pool)
         .await?;
-    let maps = sqlx::query_as::<_, CatalogMap>("SELECT steam_id, chapter_id, name, bsp_name, default_cat_id, source_map, sort_order FROM maps ORDER BY sort_order, id")
+    let maps = sqlx::query_as::<_, CatalogMap>(
+        "SELECT steam_id, chapter_id, name, bsp_name, default_cat_id, source_map, sort_order, CASE WHEN image_file IS NOT NULL THEN extract(epoch FROM image_updated)::bigint END AS image_version FROM maps ORDER BY sort_order, id",
+    )
         .fetch_all(pool)
         .await?;
     let categories = sqlx::query_as::<_, CatalogCategory>("SELECT id, map_id, name FROM categories ORDER BY id").fetch_all(pool).await?;

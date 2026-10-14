@@ -1,6 +1,7 @@
 import chamberImages from "../scenes/global/ChamberImages";
 import melImages from "../scenes/global/MelImages";
 import BSP_NAMES from "./bspNames";
+import { API_BASE } from "../api/config";
 
 // Chapters and maps in game order. Single player chapters come first, then the
 // co-op courses. Each map entry is [steam leaderboard id, title].
@@ -324,6 +325,8 @@ export const melMaps = [...storyChapters, ...advancedChapters].flatMap((c) => c.
 const mapsByKey = Object.fromEntries([...allMaps, ...melMaps].map((m) => [`${m.game}:${m.id}`, m]));
 // Built-in maps by id, for chamber images and map file names the catalog doesn't carry.
 const BUILTIN_MAPS = new Map([...allMaps, ...melMaps].map((m) => [m.id, m]));
+// A built-in map's own image (the site's bundled one), by its steam id.
+export const builtInImage = (id) => BUILTIN_MAPS.get(id)?.image ?? null;
 
 export const getMap = (id, game = "portal2") => mapsByKey[`${game}:${id}`];
 
@@ -408,7 +411,8 @@ export function applyCatalog(catalog) {
             bsp: m.bsp_name || known?.bsp || null,
             chapter: c.name,
             chapterNumber: i + 1,
-            image: known?.image ?? null,
+            // An image uploaded in the games editor, else the site's built-in one.
+            image: m.image_version ? `${API_BASE}/maps/${encodeURIComponent(m.steam_id)}/image?v=${m.image_version}` : known?.image ?? null,
             sourceId: m.source_map || null,
             defaultCategory: m.default_cat_id,
             categories: m.categories || [],

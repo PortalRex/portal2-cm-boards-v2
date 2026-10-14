@@ -270,6 +270,8 @@ function WrHistoryChart({ points, loading, at, onPick }) {
 }
 
 function Leaderboard({ map, board, at, onClearAt }) {
+  const me = useCurrentUser();
+  const mine = (e) => Boolean(me && !me.sample && e.players.some((p) => p.profileNumber === me.profileNumber));
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
   const coop = isMultiplayerMode(map.mode);
@@ -336,7 +338,7 @@ function Leaderboard({ map, board, at, onClearAt }) {
             // Unpaired co-op runs have no partner on record; keep the cell so columns line up.
             const cells = coop && players.length < 2 ? [...players, null] : players;
             return (
-              <div className={`mp-entry${open ? " is-open" : ""}`} key={key}>
+              <div className={`mp-entry${open ? " is-open" : ""}${mine(e) ? " is-me" : ""}`} key={key}>
                 <div className="mp-row is-expandable" role="row" aria-expanded={open} onClick={toggleOnRowClick(() => setOpenKey(open ? null : key))}>
                   <span className="mp-rank num">
                     <RankNumber rank={e.rank} colored />

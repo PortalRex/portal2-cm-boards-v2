@@ -1,6 +1,7 @@
 import { Link, useSearchParams } from "react-router-dom";
 import Layout from "../../components/Layout";
 import { Panel, Select, PlayerLink, Loading } from "../../components/ui";
+import useCurrentUser from "../../hooks/useCurrentUser";
 import { PinIcon, TrophyIcon } from "../../components/Icons";
 import { AutorenderLink, YouTubeLink, DemoLink } from "../../components/RunMedia";
 import { fetchPreviews } from "../../api/boards";
@@ -33,8 +34,8 @@ export default function MapList() {
       <Panel icon={PinIcon} title="Leaderboards" bodyClassName="ml-body">
         <div className="ml-controls">
           <div className="ml-control">
-            <span className="ml-label">Category</span>
-            <Select value={game} onChange={(g) => update(g, GAMES[g].modes[0])} options={gameOptions()} label="Category" className="ml-select" />
+            <span className="ml-label">Games</span>
+            <Select value={game} onChange={(g) => update(g, GAMES[g].modes[0])} options={gameOptions()} label="Games" className="ml-select" />
           </div>
           <div className="ml-control">
             <span className="ml-label">Mode</span>
@@ -92,6 +93,8 @@ function ScoreIcons({ entry, game, size, slots }) {
 }
 
 function MapCard({ map, scores }) {
+  const me = useCurrentUser();
+  const isMine = (entry) => Boolean(me && !me.sample && entry?.players.some((p) => p.profileNumber === me.profileNumber));
   const [wr, ...rest] = scores || [];
   // One set of icon columns for the whole card (WR row included), so icons line up.
   const slots = iconSlots([wr, ...rest.slice(0, 6)].filter(Boolean));
@@ -100,7 +103,7 @@ function MapCard({ map, scores }) {
       <Link to={mapPath(map)} className="mc-head" style={{ backgroundImage: `url("${map.image}")` }}>
         <h3>{map.title}</h3>
       </Link>
-      <div className="mc-wr">
+      <div className={`mc-wr${isMine(wr) ? " is-me" : ""}`}>
         <TrophyIcon className="mc-trophy" />
         {wr ? (
           <>
@@ -119,7 +122,7 @@ function MapCard({ map, scores }) {
       </div>
       <ol className="mc-rows" start={2}>
         {rest.slice(0, 6).map((entry, i) => (
-          <li key={i}>
+          <li key={i} className={isMine(entry) ? "is-me" : undefined}>
             <span className="mc-name">
               {entry.players.map((p, j) => (
                 <span key={p.profileNumber || j}>

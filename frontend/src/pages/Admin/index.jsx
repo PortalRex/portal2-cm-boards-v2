@@ -47,6 +47,8 @@ const ACTIONS = {
   "map.create": "Added map",
   "map.update": "Edited map",
   "map.delete": "Deleted map",
+  "map.image": "Set map image",
+  "map.image_remove": "Removed map image",
   "map.link": "Linked maps",
   "map.unlink": "Unlinked maps",
   "category.create": "Added category",

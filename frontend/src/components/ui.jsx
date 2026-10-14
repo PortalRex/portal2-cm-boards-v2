@@ -3,6 +3,7 @@ import { SearchIcon, FilterIcon, TriangleLeft, TriangleRight, TriangleDown, Trop
 import { countryName } from "../data/countries";
 import { rankTextColor, WR_COLOR } from "../lib/ranks";
 import useCollapsed from "../hooks/useCollapsed";
+import useCurrentUser from "../hooks/useCurrentUser";
 import "./ui.css";
 
 export function Panel({ icon: Icon, title, actions, className = "", bodyClassName = "", children }) {
@@ -120,10 +121,13 @@ export function Flag({ code, height = 20 }) {
   );
 }
 
+// A player's name, linking to their profile; the signed-in player's own name is highlighted.
 export function PlayerLink({ player, className = "" }) {
+  const me = useCurrentUser();
   if (!player) return null;
+  const mine = Boolean(player.profileNumber && me && !me.sample && me.profileNumber === player.profileNumber);
   return player.profileNumber ? (
-    <Link className={`player-link ${className}`} to={`/profile/${player.profileNumber}`}>
+    <Link className={`player-link${mine ? " is-me" : ""} ${className}`} to={`/profile/${player.profileNumber}`}>
       {player.name}
     </Link>
   ) : (

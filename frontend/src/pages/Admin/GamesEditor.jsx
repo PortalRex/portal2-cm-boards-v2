@@ -18,9 +18,12 @@ import {
   adminUpdateChapter,
   adminUpdateGame,
   adminUpdateMap,
+  adminSetMapImage,
+  adminRemoveMapImage,
+  mapImageUrl,
   fetchCatalog,
 } from "../../api/client";
-import { applyCatalog, gameKey } from "../../data/maps";
+import { applyCatalog, builtInImage, gameKey } from "../../data/maps";
 import { GAME_IDS } from "../../api/config";
 import { bumpDataVersion } from "../../lib/dataVersion";
 import "./GamesEditor.css";
@@ -323,7 +326,8 @@ function GameLinks({ game, catalog, allMaps, onChanged }) {
     }),
   );
   const others = catalog.filter((g) => g.id !== game.id);
-  const [target, setTarget] = useState(others.find((g) => !counts[g.id])?.id ?? others[0]?.id);
+  // Nothing picked until staff choose a game (no game is preselected).
+  const [target, setTarget] = useState("");
   const [state, run] = useAction();
   return (
     <div className="ge-card">
@@ -354,7 +358,10 @@ function GameLinks({ game, catalog, allMaps, onChanged }) {
       </div>
       {others.length > 0 && (
         <div className="ge-inline ge-add-form">
-          <select value={target} onChange={(e) => setTarget(Number(e.target.value))}>
+          <select value={target} onChange={(e) => setTarget(e.target.value ? Number(e.target.value) : "")}>
+            <option value="" disabled>
+              Choose a game…
+            </option>
             {others.map((g) => (
               <option key={g.id} value={g.id}>
                 {g.name}
@@ -363,9 +370,12 @@ function GameLinks({ game, catalog, allMaps, onChanged }) {
           </select>
           <button
             type="button"
-            disabled={state.busy}
+            disabled={state.busy || target === ""}
             onClick={async () => {
-              if ((await run(() => adminLinkGames(game.id, target))) !== undefined) onChanged();
+              if ((await run(() => adminLinkGames(game.id, target))) !== undefined) {
+                setTarget("");
+                onChanged();
+              }
             }}
           >
             Link matching maps
@@ -688,6 +698,46 @@ function AddMap({ chapter, onChanged }) {
   );
 }
 
+// The map's picture: its uploaded image if it has one, else the site's built-in one (if any).
+function MapImage({ map, onChanged }) {
+  const [state, run] = useAction();
+  const builtIn = builtInImage(map.source_map || map.steam_id);
+  const src = map.image_version ? mapImageUrl(map.steam_id, map.image_version) : builtIn;
+  return (
+    <div className="ge-cats ge-image-row">
+      <span className="ge-hint">Image</span>
+      {src ? <img className="ge-map-thumb" src={src} alt="" /> : <span className="ge-hint">None</span>}
+      <label className="ge-upload">
+        {state.busy ? "Uploading…" : map.image_version ? "Replace image" : "Upload image"}
+        <input
+          type="file"
+          accept="image/png,image/jpeg,image/webp"
+          disabled={state.busy}
+          onChange={async (e) => {
+            const file = e.target.files?.[0];
+            e.target.value = "";
+            if (file && (await run(() => adminSetMapImage(map.steam_id, file))) !== undefined) onChanged();
+          }}
+        />
+      </label>
+      {map.image_version && (
+        <button
+          type="button"
+          className="ge-link is-danger"
+          disabled={state.busy}
+          onClick={async () => {
+            if ((await run(() => adminRemoveMapImage(map.steam_id))) !== undefined) onChanged();
+          }}
+        >
+          {builtIn ? "Use the built-in image" : "Remove image"}
+        </button>
+      )}
+      <span className="ge-hint">PNG, JPEG or WebP, up to 5 MB.</span>
+      {state.error && <span className="ge-error">{state.error}</span>}
+    </div>
+  );
+}
+
 function MapEditor({ map, multiplayer, game, allMaps, onChanged, onDeleted }) {
   const [name, setName] = useState(map.name);
   const [bsp, setBsp] = useState(map.bsp_name || "");
@@ -725,6 +775,7 @@ function MapEditor({ map, multiplayer, game, allMaps, onChanged, onDeleted }) {
         </button>
         <code className="ge-id">{map.steam_id}</code>
       </form>
+      <MapImage map={map} onChanged={onChanged} />
       <div className="ge-cats">
         <span className="ge-hint">Categories</span>
         {map.categories.map((c) => (

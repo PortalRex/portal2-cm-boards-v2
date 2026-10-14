@@ -234,6 +234,24 @@
   text-decoration: underline;
 }
 
+/* The signed-in player's own name, and their row, on boards and lists. */
+.player-link.is-me {
+  color: var(--accent-light);
+  font-weight: 600;
+}
+
+.is-me {
+  --me-tint: color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+.agg-row.is-me,
+.mc-rows li.is-me,
+.mc-wr.is-me,
+.mp-entry.is-me > .mp-row {
+  background: var(--me-tint);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
 /* YouTube embed (16:9) */
 .yt-embed {
   position: relative;

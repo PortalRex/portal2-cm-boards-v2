@@ -65,6 +65,19 @@ pub struct ServiceConfig {
     pub token: Option<String>,
 }
 
+/// Uploaded images (map images, from the games editor).
+#[derive(Deserialize, Debug, Clone, Default)]
+pub struct ImagesConfig {
+    /// Directory they're kept in (default `map-images` under the working directory).
+    pub storage: Option<String>,
+}
+
+impl ImagesConfig {
+    pub fn storage(&self) -> &str {
+        self.storage.as_deref().filter(|s| !s.is_empty()).unwrap_or("map-images")
+    }
+}
+
 /// Submitted demos: the Node parser that reads them (`server/demo-parser`) and where uploads are
 /// kept. Submissions by players are refused while `parser` or `storage` is unset.
 #[derive(Deserialize, Debug, Clone, Default)]
@@ -203,6 +216,8 @@ pub struct Config {
     pub service: ServiceConfig,
     #[serde(default)]
     pub demo: DemoConfig,
+    #[serde(default)]
+    pub images: ImagesConfig,
     #[serde(default)]
     pub ranks: RanksConfig,
     #[serde(default)]

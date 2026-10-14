@@ -11,7 +11,11 @@ use crate::{
         points_cache::invalidate_points,
     },
 };
-use actix_web::{delete, get, post, put, web, HttpResponse, Responder};
+use actix_multipart::Multipart;
+use actix_web::{delete, get, http::header, post, put, web, HttpRequest, HttpResponse, Responder};
+use futures::StreamExt;
+use serde_json::json;
+use std::path::Path;
 use chrono::NaiveDateTime;
 use serde::Deserializer;
 use sqlx::PgPool;
@@ -193,6 +197,133 @@ async fn admin_map_update(auth: AdminOrService, pool: web::Data<PgPool>, steam_i
     }
     let bsp = body.bsp_name.as_ref().map(|b| b.as_deref());
     reply(catalog::update_map(pool.get_ref(), &auth, &steam_id, body.name.as_deref(), bsp, body.default_cat_id).await).await
+}
+
+/// Largest map image accepted.
+const MAX_IMAGE_BYTES: usize = 5 * 1024 * 1024;
+
+/// The image type from the file's first bytes (PNG, JPEG or WebP), as (extension, MIME type).
+fn image_kind(bytes: &[u8]) -> Option<(&'static str, &'static str)> {
+    if bytes.starts_with(b"\x89PNG\r\n\x1a\n") {
+        Some(("png", "image/png"))
+    } else if bytes.starts_with(&[0xff, 0xd8, 0xff]) {
+        Some(("jpg", "image/jpeg"))
+    } else if bytes.len() > 12 && &bytes[..4] == b"RIFF" && &bytes[8..12] == b"WEBP" {
+        Some(("webp", "image/webp"))
+    } else {
+        None
+    }
+}
+
+/// **POST** Set a map's image (admin tier; form field `image`: PNG, JPEG or WebP, up to 5 MB). It
+/// replaces the site's built-in image for the map everywhere it's shown. Answers `{ "image_version" }`.
+#[post("/admin/maps/{steam_id}/image")]
+async fn admin_map_image_set(
+    req: HttpRequest,
+    auth: AdminOrService,
+    pool: web::Data<PgPool>,
+    config: web::Data<crate::tools::config::Config>,
+    steam_id: web::Path<String>,
+    mut payload: Multipart,
+) -> Result<impl Responder> {
+    if let Some(r) = admin_only(&auth) {
+        return Ok(r);
+    }
+    if let Err(limited) = crate::tools::ratelimit::check(&req, &config, "upload", 10, std::time::Duration::from_secs(60)) {
+        return Ok(limited);
+    }
+    let steam_id = steam_id.into_inner();
+    let old: Option<Option<String>> = sqlx::query_scalar("SELECT image_file FROM maps WHERE steam_id = $1").bind(&steam_id).fetch_optional(pool.get_ref()).await?;
+    let Some(old) = old else {
+        return Ok(HttpResponse::NotFound().body("No such map."));
+    };
+    let mut bytes: Vec<u8> = Vec::new();
+    while let Some(field) = payload.next().await {
+        let Ok(mut field) = field else {
+            return Ok(HttpResponse::BadRequest().body("Upload failed."));
+        };
+        let is_image = field.name() == Some("image");
+        while let Some(chunk) = field.next().await {
+            let Ok(chunk) = chunk else {
+                return Ok(HttpResponse::BadRequest().body("Upload failed."));
+            };
+            if is_image {
+                if bytes.len() + chunk.len() > MAX_IMAGE_BYTES {
+                    return Ok(HttpResponse::BadRequest().body("That image is too large (5 MB max)."));
+                }
+                bytes.extend_from_slice(&chunk);
+            }
+        }
+    }
+    let Some((ext, _)) = image_kind(&bytes) else {
+        return Ok(HttpResponse::BadRequest().body("Upload a PNG, JPEG or WebP image."));
+    };
+    let dir = config.images.storage();
+    let name = format!("{}-{}.{ext}", sanitize_filename::sanitize(&steam_id), &crate::tools::auth::random_token()[..10]);
+    if let Err(e) = tokio::fs::create_dir_all(dir).await {
+        log::error!("map images: {e}");
+        return Ok(HttpResponse::InternalServerError().body("Images can't be saved right now."));
+    }
+    if let Err(e) = tokio::fs::write(Path::new(dir).join(&name), &bytes).await {
+        log::error!("map images: {e}");
+        return Ok(HttpResponse::InternalServerError().body("Images can't be saved right now."));
+    }
+    let version: i64 = sqlx::query_scalar(
+        "UPDATE maps SET image_file = $2, image_updated = now() AT TIME ZONE 'utc' WHERE steam_id = $1 RETURNING extract(epoch FROM image_updated)::bigint",
+    )
+    .bind(&steam_id)
+    .bind(&name)
+    .fetch_one(pool.get_ref())
+    .await?;
+    if let Some(old) = old {
+        let _ = tokio::fs::remove_file(Path::new(dir).join(old)).await;
+    }
+    crate::controllers::moderation::log_admin(pool.get_ref(), &auth, "map.image", "map", &steam_id, json!({ "file": name, "bytes": bytes.len() })).await?;
+    Ok(HttpResponse::Ok().json(json!({ "image_version": version })))
+}
+
+/// **DELETE** Remove a map's uploaded image (admin tier); the site's built-in one is used again.
+#[delete("/admin/maps/{steam_id}/image")]
+async fn admin_map_image_delete(
+    auth: AdminOrService,
+    pool: web::Data<PgPool>,
+    config: web::Data<crate::tools::config::Config>,
+    steam_id: web::Path<String>,
+) -> Result<impl Responder> {
+    if let Some(r) = admin_only(&auth) {
+        return Ok(r);
+    }
+    let old: Option<Option<String>> = sqlx::query_scalar("SELECT image_file FROM maps WHERE steam_id = $1").bind(steam_id.as_str()).fetch_optional(pool.get_ref()).await?;
+    let Some(old) = old else {
+        return Ok(HttpResponse::NotFound().body("No such map."));
+    };
+    sqlx::query("UPDATE maps SET image_file = NULL, image_updated = NULL WHERE steam_id = $1").bind(steam_id.as_str()).execute(pool.get_ref()).await?;
+    if let Some(old) = old {
+        let _ = tokio::fs::remove_file(Path::new(config.images.storage()).join(old)).await;
+        crate::controllers::moderation::log_admin(pool.get_ref(), &auth, "map.image_remove", "map", steam_id.as_str(), json!({})).await?;
+    }
+    Ok(HttpResponse::NoContent().finish())
+}
+
+/// **GET** A map's uploaded image (the address the catalog gives, `?v=` changes with each upload).
+#[get("/maps/{steam_id}/image")]
+async fn map_image(req: HttpRequest, pool: web::Data<PgPool>, config: web::Data<crate::tools::config::Config>, steam_id: web::Path<String>) -> Result<impl Responder> {
+    let file: Option<Option<String>> = sqlx::query_scalar("SELECT image_file FROM maps WHERE steam_id = $1").bind(steam_id.as_str()).fetch_optional(pool.get_ref()).await?;
+    let Some(Some(file)) = file else {
+        return Ok(HttpResponse::NotFound().body("No image for this map."));
+    };
+    let path = Path::new(config.images.storage()).join(&file);
+    let bytes = match tokio::fs::read(&path).await {
+        Ok(b) => b,
+        Err(_) => return Ok(HttpResponse::NotFound().body("No image for this map.")),
+    };
+    let mime = image_kind(&bytes).map(|(_, m)| m).unwrap_or("application/octet-stream");
+    let _ = req;
+    Ok(HttpResponse::Ok()
+        .insert_header((header::CONTENT_TYPE, mime))
+        // The address changes with each upload, so a copy can be kept for good.
+        .insert_header((header::CACHE_CONTROL, "public, max-age=31536000, immutable"))
+        .body(bytes))
 }
 
 /// **DELETE** Delete a map without runs.

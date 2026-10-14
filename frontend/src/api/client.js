@@ -751,6 +751,14 @@ export const adminDeleteChapter = (id) => sendJson("DELETE", `/admin/chapters/${
 export const adminCreateMap = (chapterId, map) => sendJson("POST", `/admin/chapters/${chapterId}/maps`, map);
 export const adminUpdateMap = (steamId, changes) => sendJson("PUT", `/admin/maps/${encodeURIComponent(steamId)}`, changes);
 export const adminDeleteMap = (steamId) => sendJson("DELETE", `/admin/maps/${encodeURIComponent(steamId)}`);
+// A map's own image (PNG, JPEG or WebP, up to 5 MB), replacing the built-in one; or back to it.
+export function adminSetMapImage(steamId, file) {
+  const form = new FormData();
+  form.append("image", file);
+  return postForm(`/admin/maps/${encodeURIComponent(steamId)}/image`, form);
+}
+export const adminRemoveMapImage = (steamId) => sendJson("DELETE", `/admin/maps/${encodeURIComponent(steamId)}/image`);
+export const mapImageUrl = (steamId, version) => apiUrl(`/maps/${encodeURIComponent(steamId)}/image?v=${version}`);
 export const adminCreateCategory = (steamId, name) => sendJson("POST", `/admin/maps/${encodeURIComponent(steamId)}/categories`, { name });
 export const adminUpdateCategory = (id, name) => sendJson("PUT", `/admin/categories/${id}`, { name });
 export const adminDeleteCategory = (id) => sendJson("DELETE", `/admin/categories/${id}`);

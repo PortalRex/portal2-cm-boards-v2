@@ -334,6 +334,13 @@ for that player. Rules:
 - Portal Stories: Mel has no public Steam leaderboards, so Mel times come from submissions (and, until it's retired,
   the old Mel board, below). The old `backend/` fetcher service is no longer needed for this.
 
+### Map images
+
+The admin tier can give any map its own image in the games editor (`POST /admin/maps/{steam_id}/image`, form field
+`image`: PNG, JPEG or WebP up to 5 MB; `DELETE` goes back to the site's built-in image). Files are kept in
+`IMAGES.STORAGE` (migration `20261101000000_map_images.sql`), served at `GET /maps/{steam_id}/image?v=` and cached for
+good since the catalog's `image_version` changes with each upload. Uploads and removals are in the audit log.
+
 ### Staff-only mode
 
 `SERVER.PRIVATE=true` (`server/src/tools/private_site.rs`) makes the site private while staff test it: every API
