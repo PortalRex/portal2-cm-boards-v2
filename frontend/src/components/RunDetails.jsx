@@ -441,7 +441,7 @@ function WhoReacted({ changelogId }) {
   return (
     <div className="sd-who">
       <button type="button" className="sd-who-toggle" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
-        {open ? "Hide reactions" : "Who reacted"}
+        {open ? "Hide reactions" : "Reactions"}
       </button>
       {open &&
         (record.loading ? (
