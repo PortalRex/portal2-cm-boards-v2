@@ -219,6 +219,15 @@
   color: var(--hl-red-text);
 }
 
+/* Waiting for the second click of a confirm button: solid red. */
+.sd-admin button.is-confirm,
+.sd-admin button.is-confirm:hover:not(:disabled),
+.sd-admin button.is-confirm:focus-visible {
+  border-color: #c62828;
+  background: #c62828;
+  color: #fff;
+}
+
 .sd-admin-ok {
   color: var(--green);
   font-size: 14px;

@@ -349,7 +349,7 @@ function AdminTools({ run, game }) {
         {isRoleAdmin(user) && run.demoId && (
           <button
             type="button"
-            className={confirmDemo ? "is-danger" : undefined}
+            className={confirmDemo ? "is-confirm" : undefined}
             disabled={state.busy}
             onClick={() => (confirmDemo ? act("Demo removed.", () => removeRunDemo(changelogId, why)) : setConfirmDemo(true))}
             onBlur={() => setConfirmDemo(false)}
@@ -360,7 +360,7 @@ function AdminTools({ run, game }) {
         {isRoleAdmin(user) && (
           <button
             type="button"
-            className="is-danger"
+            className={`is-danger${confirmDelete ? " is-confirm" : ""}`}
             disabled={state.busy}
             onClick={() => (confirmDelete ? act("Run deleted.", () => deleteRun(changelogId, why)) : setConfirmDelete(true))}
             onBlur={() => setConfirmDelete(false)}
