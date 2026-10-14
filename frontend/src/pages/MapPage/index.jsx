@@ -460,7 +460,7 @@ function WrHistoryEditor({ map }) {
                   <PlayerLink key={j} player={p} />
                 ))}
                 {e.wrHidden && <span className="mp-wr-badge">Removed from history</span>}
-                {e.banned && <span className="mp-wr-badge">Hidden from boards</span>}
+                {e.banned && <span className="mp-wr-badge">Banned</span>}
               </span>
               <span className="end num">{formatScore(e.score)}</span>
               <span className="end">

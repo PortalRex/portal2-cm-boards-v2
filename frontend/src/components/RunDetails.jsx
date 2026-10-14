@@ -324,12 +324,12 @@ function AdminTools({ run, game }) {
       <input className="sd-admin-input" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Reason (saved in the audit log)" maxLength={500} />
       <div className="sd-admin-actions">
         {run.banned ? (
-          <button type="button" disabled={state.busy} onClick={() => act("Run restored.", () => setRunBanned(changelogId, false, why))}>
-            Restore to boards
+          <button type="button" disabled={state.busy} onClick={() => act("Run unbanned.", () => setRunBanned(changelogId, false, why))}>
+            Unban run
           </button>
         ) : (
-          <button type="button" disabled={state.busy} onClick={() => act("Run hidden from the boards.", () => setRunBanned(changelogId, true, why))}>
-            Hide from boards
+          <button type="button" disabled={state.busy} onClick={() => act("Run banned.", () => setRunBanned(changelogId, true, why))}>
+            Ban run
           </button>
         )}
         {!run.banned &&

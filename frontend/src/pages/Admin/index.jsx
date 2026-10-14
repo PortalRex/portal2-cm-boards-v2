@@ -14,10 +14,10 @@ import background from "../../scenes/global/img/Background.png";
 import "./Admin.css";
 
 const ACTIONS = {
-  "run.ban": "Hid from boards",
+  "run.ban": "Banned run",
   "run.verify": "Verified run",
   "run.unverify": "Marked run pending",
-  "run.unban": "Restored",
+  "run.unban": "Unbanned run",
   "report.resolved": "Resolved report",
   "report.dismissed": "Dismissed report",
   "report.open": "Reopened report",
@@ -282,7 +282,7 @@ function roleChange(details) {
   }
 }
 
-// Undo for "Hid from boards" / "Removed from WR history" while the run is still hidden.
+// Undo for "Banned run" / "Removed from WR history" while the run is still hidden.
 // The restore is itself logged.
 const UNDO = {
   "run.ban": { stillHidden: (e) => e.run_banned, restore: (e) => setRunBanned(e.target_id, false, `Undo of #${e.id}`) },
@@ -306,7 +306,7 @@ function RestoreButton({ entry, onChanged }) {
   };
   return (
     <button type="button" className="audit-restore" onClick={restore} disabled={state.busy} title={state.error || "Put this run back on the boards"}>
-      {state.busy ? "Restoring…" : "Restore"}
+      {entry.action === "run.ban" ? (state.busy ? "Unbanning…" : "Unban") : state.busy ? "Restoring…" : "Restore"}
     </button>
   );
 }
