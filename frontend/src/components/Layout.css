@@ -4,10 +4,13 @@
   isolation: isolate;
 }
 
+/* The background sits at layer 0 and the page above it at layer 1. (A negative z-index under a
+   filtered fixed layer let Chromium sometimes paint the background over the panels' own
+   backgrounds, leaving only their text on top of the artwork.) */
 .layout-bg {
   position: fixed;
   inset: 0;
-  z-index: -1;
+  z-index: 0;
   background-color: var(--page);
   background-size: cover;
   background-position: center top;
@@ -23,8 +26,11 @@
   background: linear-gradient(to bottom, rgb(var(--page-rgb) / 0.35), rgb(var(--page-rgb) / 0.8) 55%, var(--page));
 }
 
+/* Greyscale without a CSS filter: blending the image's luminosity onto grey keeps it part of
+   the background's own paint instead of a separately composited layer. */
 .layout-bg.tint-mono {
-  filter: grayscale(1);
+  background-color: #808080;
+  background-blend-mode: luminosity;
 }
 
 .layout-bg.tint-mono::after {
@@ -41,6 +47,8 @@
 }
 
 .layout-main {
+  position: relative;
+  z-index: 1;
   max-width: var(--content);
   margin: 0 auto;
   padding: 16px 24px 80px;

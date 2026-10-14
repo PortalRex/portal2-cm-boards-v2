@@ -416,6 +416,7 @@
 }
 
 .pf-chart {
+  position: relative;
   margin-top: 18px;
 }
 
@@ -427,7 +428,7 @@
 .pf-legend {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: flex-start;
   gap: 4px 18px;
   padding: 8px 20px 0;
 }
@@ -1439,12 +1440,26 @@
   cursor: pointer;
 }
 
-.pf-legend .pf-chart-reset {
-  margin-left: auto;
+/* Over the chart's top-right corner, so the legend keeps its one line. */
+.pf-chart-reset {
+  position: absolute;
+  top: -6px;
+  right: 10px;
+  z-index: 1;
+  padding: 1px 8px;
   border: 1px solid var(--border);
   border-radius: 4px;
-  padding: 1px 8px;
-  font-size: 11px;
+  background: var(--panel);
+  color: var(--text-2);
+  font: inherit;
+  font-size: 12px;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.pf-chart-reset:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
 }
 
 .pf-asof {

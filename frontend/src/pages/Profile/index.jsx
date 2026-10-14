@@ -19,6 +19,7 @@ import { youtubeChannelUrl } from "../../lib/youtube";
 import ProfileTabs from "./ProfileTabs";
 import { POINT_ROLES, playerRole, roleIcon, roleProgress } from "../../data/roles";
 import ActivityHeatmap from "./ActivityHeatmap";
+import { rankVars } from "../../lib/ranks";
 import "./Profile.css";
 
 
@@ -84,13 +85,13 @@ export default function Profile() {
           <div className="pf-row pf-row-2">
             <Card icon={GlobeIcon} title="Global Rank" collapseId="profile.rank" className="pf-global">
               <div className="stat-row">
-                <Stat value={<Ordinal n={view.globalRank?.sp} />} label="Singleplayer" />
-                <Stat value={<Ordinal n={view.globalRank?.coop} />} label="Cooperative" />
-                <Stat value={<Ordinal n={view.globalRank?.overall} />} label="Overall" />
+                <Stat value={<Ordinal n={view.globalRank?.sp} colored />} label="Singleplayer" />
+                <Stat value={<Ordinal n={view.globalRank?.coop} colored />} label="Cooperative" />
+                <Stat value={<Ordinal n={view.globalRank?.overall} colored />} label="Overall" />
                 <Stat
                   value={
                     <>
-                      <Ordinal n={view.globalRank?.country} />
+                      <Ordinal n={view.globalRank?.country} colored />
                       <Flag code={p.player.country} height={18} />
                     </>
                   }
@@ -143,13 +144,21 @@ export default function Profile() {
 
 const fmtAvg = (v) => (v == null ? "–" : v.toFixed(1));
 
-function Ordinal({ n }) {
+// A rank as "20th"; `colored` uses the rank colours the boards use elsewhere.
+function Ordinal({ n, colored = false }) {
   if (!n) return <>–</>;
-  return (
+  const text = (
     <>
       {n}
       <small>{ordinalSuffix(n)}</small>
     </>
+  );
+  return colored ? (
+    <span className="rank-colored" style={rankVars(n)}>
+      {text}
+    </span>
+  ) : (
+    text
   );
 }
 
@@ -601,6 +610,11 @@ function PointsChart({ profileNumber, fallback, peak, at, onPick }) {
   };
   return (
     <div className="pf-chart">
+      {zoom && (
+        <button type="button" className="pf-chart-reset" onClick={resetZoom}>
+          Reset zoom
+        </button>
+      )}
       <div ref={zoomRef} className="pf-chart-plot" title="Scroll to zoom · click a day to see the profile as it was then">
         <ResponsiveContainer width="100%" height={150}>
           <LineChart data={data} margin={{ top: 22, right: 10, bottom: 0, left: 10 }} onClick={pick}>
@@ -647,11 +661,6 @@ function PointsChart({ profileNumber, fallback, peak, at, onPick }) {
             {s.label}
           </button>
         ))}
-        {zoom && (
-          <button type="button" className="pf-chart-reset" onClick={resetZoom}>
-            Reset zoom
-          </button>
-        )}
       </div>
     </div>
   );
