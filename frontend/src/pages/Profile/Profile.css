@@ -1487,3 +1487,15 @@
 .pf-asof-clear:hover {
   text-decoration: underline;
 }
+
+.pf-country-select {
+  height: 32px;
+  min-width: 180px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--control);
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+}

@@ -1,7 +1,7 @@
 use actix_web::web;
 
 use crate::api::v1::handlers::{
-    admin::*, auth::*, changelog::*, chapters::*, coop::*, game_boards::*, maps::*, moderation::*, points::*, runs::*, sp::*, stats::*, submissions::*, catalog::*, reports::*,
+    admin::*, auth::*, changelog::*, chapters::*, countries::*, coop::*, game_boards::*, maps::*, moderation::*, points::*, runs::*, sp::*, stats::*, submissions::*, catalog::*, reports::*,
     users::*,
 };
 
@@ -30,6 +30,10 @@ pub fn init(cfg: &mut web::ServiceConfig) {
             .service(admin_run_note_delete)
             .service(admin_steam_sync)
             .service(site_info)
+            .service(my_country)
+            .service(my_country_from_steam)
+            .service(admin_user_country)
+            .service(countries_stats)
             .service(admin_old_boards_sync)
             .service(admin_demo_parse)
             .service(submission_preview)

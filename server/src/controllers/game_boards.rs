@@ -86,6 +86,7 @@ pub fn totals<'a>(pbs: impl Iterator<Item = &'a PbRank>) -> HashMap<String, Poin
             best: (i32::MAX, String::new()),
             user_name: None,
             avatar: None,
+            country_id: None,
         });
         entry.points += score(pb.rank);
         entry.score += pb.score;

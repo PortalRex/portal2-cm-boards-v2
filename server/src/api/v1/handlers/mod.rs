@@ -6,6 +6,8 @@ pub mod auth;
 pub mod changelog;
 /// Chapter-related endpoints.
 pub mod chapters;
+/// Players' countries and per-country stats
+pub mod countries;
 /// Cooperative-specific endpoints.
 pub mod coop;
 /// Demo endpoints

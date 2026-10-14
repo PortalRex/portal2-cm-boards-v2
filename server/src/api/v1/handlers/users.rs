@@ -476,7 +476,8 @@ async fn profile_points(pool: &PgPool, cache: &PointsCache, profile_number: &str
         let board_map: HashMap<String, Points> = board.points.iter().cloned().collect();
         if let Some(x) = board_map.get(profile_number) {
             let (place, score_place) = placement(&board_map, x);
-            out.push(PointsProfileWrapper { id, points: x.clone(), place, score_place });
+            let country_place = x.country_id.map(|c| board_map.values().filter(|p| p.country_id == Some(c) && p.points > x.points).count() as i32 + 1);
+            out.push(PointsProfileWrapper { id, points: x.clone(), place, score_place, country_place });
         }
     }
     Ok(out)
@@ -510,6 +511,7 @@ pub async fn profile_from_cache(
                     points: x.clone(),
                     place,
                     score_place,
+                    country_place: None,
                 });
             }
         }
@@ -522,6 +524,7 @@ pub async fn profile_from_cache(
                 points: x.clone(),
                 place,
                 score_place,
+                country_place: None,
             });
         }
     }
@@ -533,6 +536,7 @@ pub async fn profile_from_cache(
                 points: x.clone(),
                 place,
                 score_place,
+                country_place: None,
             });
         }
     }
@@ -544,6 +548,7 @@ pub async fn profile_from_cache(
                 points: x.clone(),
                 place,
                 score_place,
+                country_place: None,
             });
         }
     }

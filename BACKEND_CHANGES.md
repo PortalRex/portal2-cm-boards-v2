@@ -334,6 +334,14 @@ for that player. Rules:
 - Portal Stories: Mel has no public Steam leaderboards, so Mel times come from submissions (and, until it's retired,
   the old Mel board, below). The old `backend/` fetcher service is no longer needed for this.
 
+### Countries
+
+Players set their own country (`PUT /user/country`, or `POST /user/country/steam` to take it from their public Steam
+profile); staff can set anyone's (`PUT /admin/users/{steam_id}/country`, in the audit log). The points boards carry
+each player's `country_id`, profiles get `country_place` (rank among players of the same country), the aggregate
+boards can be filtered by country (`?country=us`), and `GET /countries/stats?board=overall|sp|coop` lists each
+country's player count, points together and best players for the Countries page.
+
 ### Map images
 
 The admin tier can give any map its own image in the games editor (`POST /admin/maps/{steam_id}/image`, form field

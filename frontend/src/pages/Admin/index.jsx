@@ -34,6 +34,7 @@ const ACTIONS = {
   "profile.unfreeze": "Unfroze profile",
   "profile.set_role": "Changed role",
   "profile.display": "Changed name / picture",
+  "profile.country": "Changed country",
   "season.create": "Created season",
   "game.create": "Created game",
   "game.update": "Edited game",

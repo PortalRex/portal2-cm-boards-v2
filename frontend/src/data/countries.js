@@ -243,5 +243,13 @@ export const countryById = (id) => {
   return row ? { code: row[0], name: row[1] } : null;
 };
 
+// Every country, by name: [{ id, code, name }].
+export const COUNTRY_LIST = Object.entries(COUNTRIES)
+  .map(([id, [code, name]]) => ({ id: Number(id), code, name }))
+  .sort((a, b) => a.name.localeCompare(b.name));
+
+const idByCode = Object.fromEntries(Object.entries(COUNTRIES).map(([id, [code]]) => [code, Number(id)]));
+export const countryIdByCode = (code) => idByCode[code] ?? null;
+
 const nameByCode = Object.fromEntries(Object.values(COUNTRIES).map(([code, name]) => [code, name]));
 export const countryName = (code) => nameByCode[code] || code?.toUpperCase();

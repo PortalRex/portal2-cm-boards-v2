@@ -131,7 +131,7 @@ function adaptPreview(row) {
 
 function adaptPoints(wrapper, mapCount) {
   const rows = (wrapper?.points || []).map(([profileNumber, p]) => ({
-    player: player(profileNumber, p.user_name, p.avatar),
+    player: { ...player(profileNumber, p.user_name, p.avatar), country: countryById(p.country_id)?.code || null },
     points: p.points,
     score: p.score,
     numScores: p.num_scores,
@@ -187,6 +187,22 @@ const apiUrl = (path) => new URL(API_BASE + path, window.location.origin).toStri
 
 // Where the Sign in button goes; Steam sends the browser back to `returnTo` afterwards.
 export const steamLoginUrl = (returnTo) => `${apiUrl("/auth/steam/login")}?return=${encodeURIComponent(returnTo)}`;
+
+// Countries: your own (by hand, or from your public Steam profile), anyone's for staff, and
+// per-country stats from a Portal 2 points board ("overall", "sp" or "coop").
+export const fetchUser = (profileNumber) => getJson(`/user/${profileNumber}`);
+export const setMyCountry = (countryId) => sendJson("PUT", "/user/country", { country_id: countryId });
+export const setMyCountryFromSteam = () => sendJson("POST", "/user/country/steam");
+export const adminSetCountry = (profileNumber, countryId, reason) => sendJson("PUT", `/admin/users/${profileNumber}/country`, { country_id: countryId, reason });
+export const fetchCountryStats = (board = "overall") =>
+  getJson("/countries/stats", { board }).then((rows) =>
+    rows.map((c) => ({
+      country: countryById(c.country_id),
+      players: c.players,
+      points: c.points,
+      top: c.top.map((t) => ({ player: player(t.profile_number, t.user_name, t.avatar), points: t.points })),
+    })),
+  );
 
 // About the site: { private } (staff-only mode).
 export const fetchSite = () => getJson("/site");
@@ -640,7 +656,7 @@ function adaptProfile(profileNumber, page, user, history, pbs) {
       steam: profileNumber,
     },
     points: { sp: byId[-1]?.points ?? 0, coop: byId[-2]?.points ?? 0, overall: byId[-3]?.points ?? 0 },
-    globalRank: { sp: placeById[-1], coop: placeById[-2], overall: placeById[-3] },
+    globalRank: { sp: placeById[-1], coop: placeById[-2], overall: placeById[-3], country: (page.points || []).find((p) => p.id === -3)?.country_place ?? null },
     averagePlace: { sp: avg("sp"), coop: avg("coop"), overall: avg("overall") },
     worldRecords: {
       sp: values.filter((s) => s.map.mode === "sp" && s.rank === 1).length,

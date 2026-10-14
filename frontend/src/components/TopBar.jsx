@@ -3,7 +3,7 @@ import { Link, NavLink, useLocation } from "react-router-dom";
 import logo from "../scenes/global/img/portal2logo.png";
 import {
   HistoryIcon, PinIcon, BarsIcon, MoreIcon, TrophyIcon, PersonIcon, PeopleIcon, MenuIcon, CloseIcon, LightModeIcon, DarkModeIcon, SteamIcon, UploadIcon,
-  DiscordIcon, GitHubIcon, DonateIcon, CompareIcon, GavelIcon, InfoIcon, StarIcon, TriangleRight,
+  DiscordIcon, GitHubIcon, DonateIcon, CompareIcon, GavelIcon, InfoIcon, StarIcon, TriangleRight, GlobeIcon,
 } from "./Icons";
 import { Avatar, Flag } from "./ui";
 import { GAMES, MODE_LABELS, chapterDbId, coopChapters, spChapters } from "../data/maps";
@@ -108,6 +108,7 @@ const MORE_MENU = [
   { href: "https://github.com/p2sr/portal2-cm-boards-v2", label: "GitHub", icon: GitHubIcon },
   { to: "/more/donators", label: "Donators", icon: DonateIcon },
   { to: "/compare", label: "Compare Players", icon: CompareIcon },
+  { to: "/more/countries", label: "Countries", icon: GlobeIcon },
   { to: "/more/wall-of-shame", label: "Wall Of Shame", icon: GavelIcon },
   { to: "/more/about", label: "About", icon: InfoIcon },
 ];

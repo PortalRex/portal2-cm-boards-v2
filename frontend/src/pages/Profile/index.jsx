@@ -5,9 +5,9 @@ import { Line, LineChart, ReferenceDot, ReferenceLine, ResponsiveContainer, Tool
 import Layout from "../../components/Layout";
 import { Card, Avatar, Flag, Loading, EmptyState } from "../../components/ui";
 import { GlobeIcon, HistoryIcon, PeakIcon, SparkleIcon, TrophyIcon, SteamIcon, TwitchIcon, YouTubeIcon, StarIcon, StarOutlineIcon } from "../../components/Icons";
-import { fetchPointsHistory, fetchPointsPeak, fetchProfile, fetchProfileAt, profileAsOf } from "../../api/client";
+import { fetchPointsHistory, fetchPointsPeak, fetchProfile, fetchProfileAt, profileAsOf, adminSetCountry } from "../../api/client";
 import useWheelZoom from "../../hooks/useWheelZoom";
-import { countryName } from "../../data/countries";
+import { countryName, COUNTRY_LIST, countryIdByCode } from "../../data/countries";
 import useApi from "../../hooks/useApi";
 import { useDataVersion } from "../../lib/dataVersion";
 import useFollows from "../../hooks/useFollows";
@@ -360,9 +360,20 @@ function DisplayControl({ player }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(player.name);
   const [url, setUrl] = useState("");
+  const [country, setCountry] = useState(player.country ? String(countryIdByCode(player.country) ?? "") : "");
   const [reason, setReason] = useState("");
   const [state, setState] = useState({ busy: false, error: null });
   if (!isStaff(user) || !(user.role === "moderator" || user.role === "admin")) return null;
+  const saveCountry = async () => {
+    setState({ busy: true, error: null });
+    try {
+      await adminSetCountry(player.profileNumber, country ? Number(country) : null, reason.trim() || undefined);
+      setState({ busy: false, error: null });
+      bumpDataVersion();
+    } catch (e) {
+      setState({ busy: false, error: e.message });
+    }
+  };
   const save = async (changes) => {
     setState({ busy: true, error: null });
     try {
@@ -407,6 +418,19 @@ function DisplayControl({ player }) {
             Use Steam picture
           </button>
         )}
+      </div>
+      <div className="pf-freeze-form">
+        <select value={country} onChange={(e) => setCountry(e.target.value)} aria-label="Country" className="pf-country-select">
+          <option value="">No country</option>
+          {COUNTRY_LIST.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
+          ))}
+        </select>
+        <button type="button" className="pf-admin-button" disabled={state.busy} onClick={saveCountry}>
+          Set country
+        </button>
       </div>
       <div className="pf-freeze-form">
         <input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Reason (audit log)" maxLength={500} />

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, Navigate, useLocation, useNavigate, useParams } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import Layout from "../../components/Layout";
 import { Pagination, Select, Avatar, Flag, PlayerLink, Loading, EmptyState } from "../../components/ui";
 import useCurrentUser from "../../hooks/useCurrentUser";
@@ -8,6 +8,7 @@ import { GAMES, MODE_LABELS, chapterDbId, isMultiplayerMode, p2ChapterByDbId, sp
 import useApi from "../../hooks/useApi";
 import { formatPoints, formatLongScore } from "../../lib/format";
 import background from "../../scenes/global/img/OverallOpaque.png";
+import { countryName } from "../../data/countries";
 import "./Aggregated.css";
 
 // Route segment -> [title, API kind] per game.
@@ -92,6 +93,12 @@ function AggregatedContent({ game, kind, title, apiKind, kicker = "Aggregated po
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const data = useApi(() => (apiKind ? fetchAggregatedBoard(game, apiKind) : Promise.resolve(null)), [game, apiKind]);
+  // Who's best in a country: the boards filtered to its players (ranks within the country).
+  const [params, setParams] = useSearchParams();
+  const country = params.get("country") || "";
+  const setCountry = (c) => setParams(c ? { country: c } : {}, { replace: true });
+  const countries = [...new Set((data.data?.points || []).map((r) => r.player.country).filter(Boolean))].sort((a, b) => countryName(a).localeCompare(countryName(b)));
+  const inCountry = (rows) => (country ? rows.filter((r) => r.player.country === country) : rows);
 
   return (
     <Layout background={background} tint="warm">
@@ -99,9 +106,18 @@ function AggregatedContent({ game, kind, title, apiKind, kicker = "Aggregated po
         <p className="agg-kicker">{kicker}</p>
         <h1 className="agg-title">{title}</h1>
         <div className="agg-selects">
-          <Select value={game} onChange={(g) => navigate(gameBoardsPath(g))} options={categories()} label="Category" className="agg-select" />
+          <Select value={game} onChange={(g) => navigate(gameBoardsPath(g))} options={categories()} label="Games" className="agg-select" />
           {game === "portal2" && (kind === "sp" || kind === "coop") && (
             <Select value={pathname} onChange={(to) => navigate(to)} options={chapterBoards(kind)} label="Chapter" className="agg-select" />
+          )}
+          {countries.length > 0 && (
+            <Select
+              value={country}
+              onChange={setCountry}
+              options={[{ value: "", label: "All countries" }, ...countries.map((c) => ({ value: c, label: countryName(c) }))]}
+              label="Country"
+              className="agg-select"
+            />
           )}
         </div>
         {game === "portal2" && (
@@ -139,10 +155,11 @@ function AggregatedContent({ game, kind, title, apiKind, kicker = "Aggregated po
           <Loading />
         ) : (
           <div className="agg-columns">
-            <Board title="Points" rows={data.data?.points || []} valueLabel="Aggregated points" value={(r) => formatPoints(r.points)} />
+            <Board key={`points-${country}`} title="Points" rows={inCountry(data.data?.points || [])} valueLabel="Aggregated points" value={(r) => formatPoints(r.points)} />
             <Board
+              key={`time-${country}`}
               title="Time"
-              rows={data.data?.times || []}
+              rows={inCountry(data.data?.times || [])}
               valueLabel="Aggregated time"
               value={(r) => formatLongScore(r.score)}
               empty={data.data?.mapCount ? `No one has a time on all ${data.data.mapCount} maps yet.` : "No players yet."}

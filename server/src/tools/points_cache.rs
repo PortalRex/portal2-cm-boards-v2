@@ -65,7 +65,7 @@ fn gzip(data: &[u8]) -> Vec<u8> {
 struct GameData {
     built: Instant,
     pbs: Vec<PbRank>,
-    labels: HashMap<String, (Option<String>, Option<String>)>,
+    labels: HashMap<String, (Option<String>, Option<String>, Option<i32>)>,
     boards: HashMap<String, Arc<Board>>,
 }
 
@@ -81,6 +81,7 @@ struct Label {
     profile_number: String,
     user_name: Option<String>,
     avatar: Option<String>,
+    country_id: Option<i32>,
 }
 
 /// Which personal bests a board is made of: all, a chapter `game_mode`, or one chapter.
@@ -135,13 +136,13 @@ impl PointsCache {
         ids.sort_unstable();
         ids.dedup();
         let labels = sqlx::query_as::<_, Label>(
-            "SELECT profile_number, COALESCE(board_name, steam_name) AS user_name, avatar FROM users WHERE profile_number = ANY($1)",
+            "SELECT profile_number, COALESCE(board_name, steam_name) AS user_name, avatar, country_id FROM users WHERE profile_number = ANY($1)",
         )
         .bind(&ids)
         .fetch_all(pool)
         .await?
         .into_iter()
-        .map(|l| (l.profile_number, (l.user_name, l.avatar)))
+        .map(|l| (l.profile_number, (l.user_name, l.avatar, l.country_id)))
         .collect();
         Ok(GameData { built: Instant::now(), pbs, labels, boards: HashMap::new() })
     }
@@ -166,9 +167,10 @@ impl PointsCache {
             }
             let mut points: Vec<(String, Points)> = totals(g.pbs.iter().filter(|pb| scope.includes(pb))).into_iter().collect();
             for (profile_number, p) in points.iter_mut() {
-                if let Some((name, avatar)) = g.labels.get(profile_number) {
+                if let Some((name, avatar, country)) = g.labels.get(profile_number) {
                     p.user_name = name.clone();
                     p.avatar = avatar.clone();
+                    p.country_id = *country;
                 }
             }
             points.sort_by(|a, b| b.1.points.partial_cmp(&a.1.points).unwrap_or(std::cmp::Ordering::Equal));

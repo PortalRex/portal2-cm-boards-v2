@@ -12,6 +12,7 @@ import WallOfShame from "./pages/WallOfShame";
 import Donators from "./pages/Donators";
 import Admin from "./pages/Admin";
 import Compare from "./pages/Compare";
+import Countries from "./pages/Countries";
 import PrivateGate from "./components/PrivateGate";
 
 function ScrollToTop() {
@@ -42,6 +43,7 @@ function App() {
         <Route path="/more/settings" element={<Settings />} />
         <Route path="/more/wall-of-shame" element={<WallOfShame />} />
         <Route path="/more/donators" element={<Donators />} />
+        <Route path="/more/countries" element={<Countries />} />
         <Route path="/admin" element={<Admin />} />
         <Route path="/compare" element={<Compare />} />
         <Route path="/more/about" element={<About />} />

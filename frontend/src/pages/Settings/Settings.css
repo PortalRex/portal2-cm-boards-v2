@@ -38,3 +38,35 @@
   height: 36px;
   padding: 0 16px;
 }
+
+.settings-country {
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 10px;
+}
+
+.settings-country select {
+  min-width: 220px;
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  background: var(--control);
+  color: var(--text);
+  font: inherit;
+}
+
+.settings-note {
+  margin: 8px 0 0;
+  font-size: 15px;
+}
+
+.settings-ok {
+  margin: 6px 0 0;
+  color: var(--green);
+}
+
+.settings-error {
+  margin: 6px 0 0;
+  color: var(--hl-red-text);
+}
