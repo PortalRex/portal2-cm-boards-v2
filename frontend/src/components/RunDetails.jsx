@@ -8,7 +8,7 @@ import useApi from "../hooks/useApi";
 import useCurrentUser, { isRoleAdmin, isStaff } from "../hooks/useCurrentUser";
 import { isMultiplayerMode } from "../data/maps";
 import { coopRoles, setRoleOverride, useRoleOverrides } from "../lib/coopRoles";
-import { formatDate, formatScore } from "../lib/format";
+import { formatDate, formatDateTime, formatScore } from "../lib/format";
 import "./RunDetails.css";
 
 // Segment table built from the demo's SAR mtriggers (read by autorender, stored with
@@ -116,7 +116,7 @@ export default function RunDetails({ run, map, game = "portal2", rendered, showR
             {view.timestamp && (
               <>
                 <dt>Date:</dt>
-                <dd className="num">{formatDate(view.timestamp)}</dd>
+                <dd className="num">{formatDateTime(view.timestamp)}</dd>
               </>
             )}
             <dt>SAR Version:</dt>

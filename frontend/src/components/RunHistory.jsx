@@ -5,7 +5,7 @@ import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "rec
 import { fetchChangelog } from "../api/client";
 import useApi from "../hooks/useApi";
 import { mapPath } from "../data/maps";
-import { formatDate, formatDelta, formatScore, parseTimestamp } from "../lib/format";
+import { formatDate, formatDateTime, formatDelta, formatScore, parseTimestamp } from "../lib/format";
 import { CloseIcon } from "./Icons";
 import { Avatar, EmptyState, Loading, RankNumber } from "./ui";
 import { AutorenderLink, CommentButton, DemoLink, YouTubeLink } from "./RunMedia";
@@ -94,7 +94,7 @@ function RunHistoryDialog({ players, map, onClose }) {
               </div>
               {rows.map((r) => (
                 <div key={r.id} className={`rh-row${r.banned ? " is-banned" : ""}`} role="row">
-                  <span className="muted" title={formatDate(r.timestamp)}>
+                  <span className="muted" title={formatDateTime(r.timestamp)}>
                     {r.timestamp ? formatDate(r.timestamp) : "Unknown date"}
                     {r.banned ? <span className="badge-banned rh-badge">Banned</span> : !r.verified && <span className="badge-pending rh-badge">Pending</span>}
                   </span>

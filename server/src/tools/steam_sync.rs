@@ -311,8 +311,8 @@ async fn sync_map(
     let mut added = 0;
     let mut recorded: HashSet<String> = HashSet::new();
     for (profile, score) in &candidates {
-        if !ensure_user(pool, config, profile, report).await? {
-            continue;
+        if ensure_user(pool, config, profile).await? {
+            report.players_created += 1;
         }
         // The second half of a pair names the first as its partner, which bundles them.
         let partner = partner_of.get(profile).filter(|p| recorded.contains(*p)).map(String::as_str);
@@ -363,11 +363,12 @@ async fn improves(pool: &PgPool, profile: &str, map_id: &str, cat: i32, score: i
     Ok(best.map_or(true, |b| score < b) && banned_same != Some(true))
 }
 
-/// Makes sure the player has an account (from the Steam Web API when it's configured).
-async fn ensure_user(pool: &PgPool, config: &Config, profile: &str, report: &mut SyncReport) -> Result<bool, sqlx::Error> {
+/// Makes sure the player has an account (from the Steam Web API when it's configured); returns
+/// whether one was created.
+pub(crate) async fn ensure_user(pool: &PgPool, config: &Config, profile: &str) -> Result<bool, sqlx::Error> {
     let exists: bool = sqlx::query_scalar("SELECT EXISTS (SELECT 1 FROM users WHERE profile_number = $1)").bind(profile).fetch_one(pool).await?;
     if exists {
-        return Ok(true);
+        return Ok(false);
     }
     let steam: Option<Users> = match config.steam.api_key.as_str() {
         "" | "unused" => None,
@@ -385,7 +386,6 @@ async fn ensure_user(pool: &PgPool, config: &Config, profile: &str, report: &mut
     .bind(steam.as_ref().and_then(|u| u.avatar.clone()))
     .execute(pool)
     .await?;
-    report.players_created += 1;
     Ok(true)
 }
 

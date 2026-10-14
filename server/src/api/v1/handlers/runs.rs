@@ -109,3 +109,27 @@ async fn admin_steam_sync(
     let report = crate::tools::steam_sync::run_once(pool.get_ref(), &config, &cache, query.map_id.as_deref()).await?;
     Ok(HttpResponse::Ok().json(report))
 }
+
+#[derive(serde::Deserialize)]
+pub struct OldBoardsSyncQuery {
+    /// Only report what would happen.
+    #[serde(default)]
+    pub dry_run: bool,
+    /// Only this game's board (1 Portal 2, 2 Mel).
+    pub game: Option<i32>,
+}
+
+/// **POST** Pull from the old boards now (staff; the schedule does this at
+/// `SYNC.OLD_BOARDS_HOURS`). `?dry_run=true` only reports what would change; `?game=` limits it
+/// to one board. Answers a report per board.
+#[post("/admin/old_boards_sync")]
+async fn admin_old_boards_sync(
+    _auth: AdminOrService,
+    pool: web::Data<PgPool>,
+    config: web::Data<crate::tools::config::Config>,
+    cache: web::Data<crate::tools::cache::CacheState>,
+    query: web::Query<OldBoardsSyncQuery>,
+) -> Result<impl Responder> {
+    let reports = crate::tools::old_boards_sync::run_once(pool.get_ref(), &config, &cache, query.dry_run, query.game).await?;
+    Ok(HttpResponse::Ok().json(reports))
+}

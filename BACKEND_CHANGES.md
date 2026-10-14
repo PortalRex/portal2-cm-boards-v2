@@ -313,11 +313,15 @@ for that player. Rules:
   entries (ties share a rank). Non-positive scores (hacked uploads show as -2147483648) and banned players don't take a
   place. Frozen players are skipped, as is any time the player already has on the map (so a banned time isn't pulled
   back) and anything that isn't an improvement.
-- **First pass per map is a baseline.** Steam's leaderboards carry no dates, so times found on a map's first pass are
-  recorded undated and without before/after ranks, like imported undated runs, instead of appearing as new runs. After
-  that, a change since the previous pass is a new run, dated when seen. State per map is in `steam_sync_maps`
-  (migration `20261028000000_steam_sync.sql`). A pass sees each player's latest best, so several improvements within
-  one interval show as one run.
+- **First pass per map is a baseline that adds nothing.** It only records what Steam shows. Steam's leaderboards
+  carry no dates, and the old board leaves some Steam times out on purpose, so a time the board doesn't have by then
+  is never pulled in. After that, only entries whose score changed on Steam since the previous pass are considered,
+  and a new run is dated when seen. A run staff remove later stays removed unless the player improves again. State is
+  in `steam_sync_maps` (fingerprint per map) and `steam_sync_entries` (each player's score as last seen), migration
+  `20261028000000_steam_sync.sql`. A pass sees each player's latest best, so several improvements within one interval
+  show as one run.
+- Only public maps are read; the old board's hidden maps (Portal Carousel, Wakeup, Container Ride, ...) have no Steam
+  leaderboard.
 - Times go through the same path as site submissions (`insert_run`): `submission = 0`, pending when they'd rank in the
   top 200 (no demo), linked boards honoured, co-op pairs formed when two new entries share a score (else the map's
   placeholder partner, fixed later by a demo or staff). Unknown players get an account from the Steam Web API.
@@ -325,8 +329,36 @@ for that player. Rules:
   previews and points cache are refreshed.
 - `POST /admin/steam_sync` (staff / service token) runs a pass now and returns what it did; `?map_id=` limits it to
   one map, for trying it out before a full pass.
-- Portal Stories: Mel has no public Steam leaderboards, so Mel times come from submissions only. The old `backend/`
-  fetcher service is no longer needed for this.
+- Portal Stories: Mel has no public Steam leaderboards, so Mel times come from submissions (and, until it's retired,
+  the old Mel board, below). The old `backend/` fetcher service is no longer needed for this.
+
+### Pulling from the old boards (until they're retired)
+
+While board.portal2.sr and the Mel board are still in use, `server/src/tools/old_boards_sync.rs` pulls what Steam can't
+tell us: Mel runs, demo and video submissions, comments, autorender videos and staff decisions. It runs at
+`SYNC.OLD_BOARDS_HOURS` in `SYNC.OLD_BOARDS_TZ` (midnight and noon, America/Chicago, by default) when
+`SYNC.OLD_BOARDS=true`. Each pull reads the board's `/changelog/json` from `SYNC.OLD_BOARDS_DAYS` (3) days back, or
+from a day before the newest run we have from it if that's older. Per entry:
+
+- **A run we already have from that board** (`legacy_changelog_ids`) gets what changed there since the last pull:
+  banned, pending, video, comment, autorender, plus a demo it's missing. "Changed" is judged against the entry as last
+  seen (`old_board_runs`, migration `20261029000000_old_boards_sync.sql`), so a decision our staff made here isn't
+  undone unless the old board changes it too. On first sight only blanks are filled.
+- **A run we have but not from that board** (the Steam sync's copy: same player, map and time within two days) is
+  linked to it and takes the old board's date, ranks and status.
+- **Anything else is added** as the old board has it: its date, ranks, status, comment, video and demo. Co-op halves
+  are paired as the import paired them (same map and time, set within three hours), else with the map's placeholder.
+- Demos are downloaded through the board's `getDemo` into `DEMO.STORAGE`, keeping the archive's file name.
+- Status changes and hides are written to the audit log as the service (`run.ban`, `run.unban`, `run.verify`,
+  `run.unverify`) with the reason.
+
+Then a Steam sync run the old board still doesn't have, once the old board's newest entry is 30 minutes past it (its
+own fetcher has had its chance), is one it left out on purpose: it's hidden with the admin note "Not on the old board".
+If the old board adds it later, the next pull links it and shows it again.
+
+`POST /admin/old_boards_sync` (staff / service token) pulls now; `?dry_run=true` only reports what would change and
+`?game=1` / `?game=2` limits it to one board. Times on the site are shown in each viewer's own time zone, with the full
+date and time on hover (as the old boards showed them).
 
 ## 12. Known gaps
 

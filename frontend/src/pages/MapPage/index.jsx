@@ -15,7 +15,7 @@ import { bumpDataVersion } from "../../lib/dataVersion";
 import { findMap, getMap, gameForMode, isMultiplayerMode, mapPath } from "../../data/maps";
 import useApi from "../../hooks/useApi";
 import { useDataVersion } from "../../lib/dataVersion";
-import { formatScore, timeAgo, formatDate, parseTimestamp } from "../../lib/format";
+import { formatScore, timeAgo, formatDate, formatDateTime, parseTimestamp } from "../../lib/format";
 import { TimeButton } from "../../components/RunHistory";
 import { BANNED_OPTIONS, RANK_OPTIONS, RUN_LIMITS, RUN_TOGGLES, TIME_OPTIONS } from "../../lib/runFilters";
 import "./MapPage.css";
@@ -303,7 +303,7 @@ function Leaderboard({ map, board }) {
                       </span>
                     ),
                   )}
-                  <span className="mp-ago muted">{timeAgo(e.timestamp)}</span>
+                  <span className="mp-ago muted" title={formatDateTime(e.timestamp)}>{timeAgo(e.timestamp)}</span>
                   <span className="mp-time num end">
                     <TimeButton score={e.score} players={players} map={map} />
                   </span>
@@ -350,7 +350,7 @@ function YourBest({ map, board, onShow }) {
       </span>
       <span className="mp-yourbest-time num">{formatScore(score)}</span>
       {partner && <span className="muted">with {partner.name}</span>}
-      <span className="muted">{timeAgo(when)}</span>
+      <span className="muted" title={formatDateTime(when)}>{timeAgo(when)}</span>
       {entry ? <span className="mp-yourbest-go">Show on board ›</span> : <span className="muted">outside the top {board.length}</span>}
     </>
   );
@@ -400,7 +400,7 @@ function WrHistoryEditor({ map }) {
           </div>
           {rows.map((e) => (
             <div className={`mp-row${e.wrHidden ? " is-wr-hidden" : ""}`} role="row" key={e.id}>
-              <span className="muted num">{formatDate(e.timestamp)}</span>
+              <span className="muted num" title={formatDateTime(e.timestamp)}>{formatDate(e.timestamp)}</span>
               <span className="mp-player">
                 {e.players.map((p, j) => (
                   <PlayerLink key={j} player={p} />
@@ -488,7 +488,7 @@ function ChamberHistoryTable({ rows, stale }) {
       </div>
       {rows.map((e) => (
         <div className="mp-row" role="row" key={e.id}>
-          <span className="muted">{formatDate(e.timestamp)}</span>
+          <span className="muted" title={formatDateTime(e.timestamp)}>{formatDate(e.timestamp)}</span>
           <span className="mp-player">
             {e.players.map((p, j) => (
               <PlayerLink key={j} player={p} />

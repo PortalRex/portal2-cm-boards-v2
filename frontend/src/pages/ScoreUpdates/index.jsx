@@ -13,7 +13,7 @@ import useApi from "../../hooks/useApi";
 import { useDataVersion } from "../../lib/dataVersion";
 import useDebounced from "../../hooks/useDebounced";
 import useFollows from "../../hooks/useFollows";
-import { timeAgo, formatDate, formatDelta, formatScore } from "../../lib/format";
+import { timeAgo, formatDate, formatDateTime, formatDelta, formatScore } from "../../lib/format";
 import { ACTIVITY_VIEWS, activityWindow } from "../../lib/activity";
 import background from "../../scenes/global/img/Background.png";
 import ScoreRow from "./ScoreRow";
@@ -279,7 +279,7 @@ function DailyChambers({ daily, today }) {
                     <RankNumber rank={e.postRank} />
                   </span>
                   <span className="num recap-time">{formatScore(e.score)}</span>
-                  <span className="green recap-delta">{timeAgo(e.timestamp)}</span>
+                  <span className="green recap-delta" title={formatDateTime(e.timestamp)}>{timeAgo(e.timestamp)}</span>
                 </li>
               ))}
             </ol>
@@ -316,7 +316,7 @@ function WeeklyRecap({ recap }) {
             <RankNumber rank={e.postRank} />
           </span>
           <span className="num recap-time">{formatScore(e.score)}</span>
-          <span className="green num recap-delta" title={timeAgo(e.timestamp)}>
+          <span className="green num recap-delta" title={`${timeAgo(e.timestamp)} · ${formatDateTime(e.timestamp)}`}>
             {e.scoreDelta != null ? formatDelta(e.scoreDelta) : "new"}
           </span>
         </li>
@@ -349,8 +349,8 @@ function Following() {
             <span className="following-rank num">
               <RankNumber rank={e.postRank} />
             </span>
-            <span className="green following-ago">{timeAgo(e.timestamp)}</span>
-            <span className="muted num following-date">{formatDate(e.timestamp)}</span>
+            <span className="green following-ago" title={formatDateTime(e.timestamp)}>{timeAgo(e.timestamp)}</span>
+            <span className="muted num following-date" title={formatDateTime(e.timestamp)}>{formatDate(e.timestamp)}</span>
           </li>
         );
       })}

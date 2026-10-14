@@ -13,7 +13,7 @@ import useFollows from "../../hooks/useFollows";
 import useCurrentUser, { isRoleAdmin, isStaff, ROLE_LABELS } from "../../hooks/useCurrentUser";
 import { setProfileBanned, setProfileDisplay, setProfileFrozen, setProfileRole } from "../../api/client";
 import { bumpDataVersion } from "../../lib/dataVersion";
-import { formatDate, formatScore, ordinalSuffix, timeAgo, formatPoints } from "../../lib/format";
+import { formatDate, formatDateTime, formatScore, ordinalSuffix, timeAgo, formatPoints } from "../../lib/format";
 import { youtubeChannelUrl } from "../../lib/youtube";
 import ProfileTabs from "./ProfileTabs";
 import { playerRole, roleProgress } from "../../data/roles";
@@ -199,7 +199,7 @@ function ScoreStat({ label, entry, green }) {
           on <b>{entry.map.title}</b>
         </span>
       )}
-      {entry?.timestamp && <span className={`stat-when ${green ? "green" : "muted"}`}>{timeAgo(entry.timestamp)}</span>}
+      {entry?.timestamp && <span className={`stat-when ${green ? "green" : "muted"}`} title={formatDateTime(entry.timestamp)}>{timeAgo(entry.timestamp)}</span>}
     </div>
   );
 }

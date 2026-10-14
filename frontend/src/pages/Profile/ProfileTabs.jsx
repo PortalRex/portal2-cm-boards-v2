@@ -10,7 +10,7 @@ import useApi from "../../hooks/useApi";
 import { useDataVersion } from "../../lib/dataVersion";
 import { GAMES, chaptersFor, isMultiplayerMode, mapPath, MODE_LABELS } from "../../data/maps";
 import { rankVars } from "../../lib/ranks";
-import { formatScore, formatDelta, formatDate, timeAgo } from "../../lib/format";
+import { formatScore, formatDelta, formatDate, formatDateTime, timeAgo } from "../../lib/format";
 import { youtubeChannelLabel, youtubeChannelUrl } from "../../lib/youtube";
 import { ROLE_LABELS } from "../../hooks/useCurrentUser";
 import { TimeButton } from "../../components/RunHistory";
@@ -240,7 +240,7 @@ function ChapterTable({ chapter, scores, coop, game, rendered, selectedMap, onSe
                 <Link to={mapPath(m)} className="pf-cmap-link">
                   {m.title}
                 </Link>
-                <small>
+                <small title={s?.timestamp ? formatDateTime(s.timestamp) : undefined}>
                   {chapter.sorted ? `${m.chapter} · ` : ""}
                   {s?.timestamp ? timeAgo(s.timestamp) : s ? "" : "No score"}
                 </small>
@@ -314,7 +314,7 @@ function History({ history, game, map }) {
             <span className={`pf-hrank is-new num${h.postRank ? " rank-tint" : ""}`} style={rankVars(h.postRank)}>
               <RankNumber rank={h.postRank} inherit />
             </span>
-            <span className="muted pf-hwhen">{map ? timeAgo(h.timestamp) : `${h.map.title} · ${timeAgo(h.timestamp)}`}</span>
+            <span className="muted pf-hwhen" title={formatDateTime(h.timestamp)}>{map ? timeAgo(h.timestamp) : `${h.map.title} · ${timeAgo(h.timestamp)}`}</span>
             <span className="end num">{formatScore(h.score)}</span>
             <span className="end num">{h.scoreDelta != null ? formatDelta(h.scoreDelta) : ""}</span>
             <span className="pf-hicons">
@@ -389,7 +389,7 @@ function LegacyTab({ scores }) {
                       {m.title}
                     </Link>
                     <span className="num end">{s?.score != null ? formatScore(s.score) : ""}</span>
-                    <span className="num end muted pf-legacy-date">{s?.timestamp ? formatDate(s.timestamp) : ""}</span>
+                    <span className="num end muted pf-legacy-date" title={s?.timestamp ? formatDateTime(s.timestamp) : undefined}>{s?.timestamp ? formatDate(s.timestamp) : ""}</span>
                   </div>
                 );
               })}

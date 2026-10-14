@@ -125,9 +125,41 @@ pub struct SyncConfig {
     /// Times are pulled when they're in a map's top this many on Steam (default 500, the old
     /// boards' window).
     pub rank_limit: Option<i32>,
+    /// Pulling from the old boards until they're retired ([crate::tools::old_boards_sync]): on
+    /// with `SYNC.OLD_BOARDS=true`.
+    pub old_boards: Option<bool>,
+    /// Hours of the day to pull, in `SYNC.OLD_BOARDS_TZ` (default "0,12": midnight and noon).
+    pub old_boards_hours: Option<String>,
+    /// Time zone of those hours (default America/Chicago).
+    pub old_boards_tz: Option<String>,
+    /// Each pull re-reads at least this many days of the old boards' changelogs (default 3), so
+    /// later changes there (bans, demos, videos) are picked up.
+    pub old_boards_days: Option<i64>,
+    /// The old boards' addresses (defaults: https://board.portal2.sr, https://mel.portal2.sr).
+    pub portal2_board_url: Option<String>,
+    pub mel_board_url: Option<String>,
 }
 
 impl SyncConfig {
+    pub fn old_boards(&self) -> bool {
+        self.old_boards.unwrap_or(false)
+    }
+    pub fn old_boards_hours(&self) -> Vec<u32> {
+        let hours: Vec<u32> = self.old_boards_hours.as_deref().unwrap_or("0,12").split(',').filter_map(|h| h.trim().parse().ok()).filter(|h| *h < 24).collect();
+        if hours.is_empty() { vec![0, 12] } else { hours }
+    }
+    pub fn old_boards_tz(&self) -> chrono_tz::Tz {
+        self.old_boards_tz.as_deref().and_then(|t| t.parse().ok()).unwrap_or(chrono_tz::America::Chicago)
+    }
+    pub fn old_boards_days(&self) -> i64 {
+        self.old_boards_days.filter(|d| *d > 0).unwrap_or(3)
+    }
+    pub fn portal2_board_url(&self) -> String {
+        self.portal2_board_url.clone().filter(|u| !u.is_empty()).unwrap_or_else(|| "https://board.portal2.sr".into()).trim_end_matches('/').to_string()
+    }
+    pub fn mel_board_url(&self) -> String {
+        self.mel_board_url.clone().filter(|u| !u.is_empty()).unwrap_or_else(|| "https://mel.portal2.sr".into()).trim_end_matches('/').to_string()
+    }
     pub fn steam(&self) -> bool {
         self.steam.unwrap_or(false)
     }

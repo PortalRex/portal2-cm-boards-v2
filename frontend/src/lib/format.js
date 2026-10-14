@@ -62,6 +62,18 @@ export function formatDate(timestamp) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
+const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+// The date and time in the viewer's own time zone, as the old boards showed it
+// ("Tue, 2026-10-13, 19:03:55").
+export function formatDateTime(timestamp) {
+  if (!timestamp) return "";
+  if (typeof timestamp === "string" && /^\d{4}-\d{2}-\d{2}$/.test(timestamp)) return timestamp;
+  const d = parseTimestamp(timestamp);
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${WEEKDAYS[d.getDay()]}, ${formatDate(d)}, ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
 export function ordinalSuffix(n) {
   const mod100 = n % 100;
   if (mod100 >= 11 && mod100 <= 13) return "th";

@@ -37,6 +37,9 @@ DEMO.STORAGE=./demos
 # SYNC.STEAM=true
 # SYNC.MINUTES=10
 # SYNC.RANK_LIMIT=500
+# SYNC.OLD_BOARDS=true
+# SYNC.OLD_BOARDS_HOURS=0,12
+# SYNC.OLD_BOARDS_TZ=America/Chicago
 # RANKS.COOP_PROOF_SINCE=2026-11-01 00:00:00
 RUST_LOG=1
 RUST_LOG="actix_web=info"
@@ -46,7 +49,7 @@ RUST_LOG="actix_web=info"
 - `STEAM.API_KEY` is used to fill in a user's Steam name and avatar when they sign in (sign-in itself works without it).
 - `SERVICE.TOKEN` is a long random string shared with the board's own services in `/backend` (set the same value as `SERVICE_TOKEN` in `backend/.env`). They send it in an `X-Service-Token` header. Every endpoint that changes data requires either that token or a signed-in admin (`users.admin > 0`); when it's unset, only admins can make changes.
 - `DEMO.PARSER` and `DEMO.STORAGE` enable run submissions (the navbar's **Submit Run**). Submitted demos are read by `server/demo-parser/parse_demo.mjs` (Node 18+; run `npm install` in that folder) for the map, the scoreboard time and the players, and saved in `DEMO.STORAGE`. `DEMO.NODE` sets the node executable if it isn't on the PATH. `DEMO.ARCHIVE` lists the folders (separated by `;`) holding the old boards' demo files, so imported runs' demos can be downloaded. `RANKS.COOP` sets co-op ranking: `run` (default) gives each run one rank (1, 2, 3); `player` gives each player one (1, 1, 3), as the old boards did. `RANKS.COOP_PROOF_SINCE` (UTC, set it to the launch) makes new top-200 co-op runs wait for a demo from each player before they're verified.
-- The server can pull new Portal 2 times from Steam's leaderboards itself: `SYNC.STEAM=true` turns it on (every `SYNC.MINUTES`, 10 by default; times in each map's top `SYNC.RANK_LIMIT` on Steam, 500 by default). `STEAM.API_KEY` lets it create accounts for players it hasn't seen. Portal Stories: Mel has no public Steam leaderboards, so Mel times come from demo submissions only. Players can only submit demos they are in; admins (`users.role = admin`) may also enter the map, time, player or partner by hand, which is recorded in the audit log.
+- The server can pull new Portal 2 times from Steam's leaderboards itself: `SYNC.STEAM=true` turns it on (every `SYNC.MINUTES`, 10 by default; times in each map's top `SYNC.RANK_LIMIT` on Steam, 500 by default). `STEAM.API_KEY` lets it create accounts for players it hasn't seen. Portal Stories: Mel has no public Steam leaderboards, so Mel times come from demo submissions. Until the old boards are retired, `SYNC.OLD_BOARDS=true` also pulls from them at midnight and noon (America/Chicago): Mel runs, demos, videos, comments and bans that Steam can't show (see BACKEND_CHANGES.md §13). Players can only submit demos they are in; admins (`users.role = admin`) may also enter the map, time, player or partner by hand, which is recorded in the audit log.
 
 Assuming the database is up and running, start the server with `cargo run` in `/server`
 

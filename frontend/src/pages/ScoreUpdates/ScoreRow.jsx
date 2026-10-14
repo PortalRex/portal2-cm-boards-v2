@@ -8,7 +8,7 @@ import RunDetails from "../../components/RunDetails";
 import { toggleOnRowClick } from "../../lib/rows";
 import { mapPath } from "../../data/maps";
 import { coopRoles, tintFor, useRoleOverrides } from "../../lib/coopRoles";
-import { formatScore, formatDelta, timeAgo, formatDate } from "../../lib/format";
+import { formatScore, formatDelta, timeAgo, formatDate, formatDateTime } from "../../lib/format";
 
 
 export default function ScoreRow({ entry, rendered, myReaction }) {
@@ -30,7 +30,7 @@ export default function ScoreRow({ entry, rendered, myReaction }) {
             {entry.map.title}
           </Link>
           <span className="sr-map-chapter">{entry.map.chapter}</span>
-          <span className="sr-map-ago green">{timeAgo(entry.timestamp)}</span>
+          <span className="sr-map-ago green" title={formatDateTime(entry.timestamp)}>{timeAgo(entry.timestamp)}</span>
         </div>
 
         <div className="sr-players">
@@ -57,7 +57,7 @@ export default function ScoreRow({ entry, rendered, myReaction }) {
         <div className="sr-delta num">{entry.scoreDelta != null ? formatDelta(entry.scoreDelta, "s") : ""}</div>
         <div className="sr-points num">{entry.pointsDelta != null ? `${entry.pointsDelta > 0 ? "+" : ""}${entry.pointsDelta}` : ""}</div>
         <div className="sr-date">
-          <span className="green">{timeAgo(entry.timestamp)}</span>
+          <span className="green" title={formatDateTime(entry.timestamp)}>{timeAgo(entry.timestamp)}</span>
           <span className="sr-date-day num">{formatDate(entry.timestamp)}</span>
         </div>
         <div className="sr-status">
