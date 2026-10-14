@@ -116,9 +116,6 @@ pub struct NewRun<'a> {
     pub submission: i32,
     /// None: verified (site submissions carry their demo). Some(false): pending.
     pub verified: Option<bool>,
-    /// A time found on the Steam sync's first pass over a map: there's no knowing when it was
-    /// set, so it's recorded undated and without before/after ranks (like imported undated runs).
-    pub baseline: bool,
 }
 
 /// Runs that would rank this high or better need a demo; without one they're pending (no
@@ -363,15 +360,15 @@ pub async fn insert_run(pool: &PgPool, run: NewRun<'_>) -> Result<Result<Recorde
     let category = board.default_cat_id.unwrap_or_default();
     let run = NewRun { map: &board, ..run };
     let pre_rank = match previous {
-        Some((_, pb)) if !run.baseline => Some(rank_for(&mut tx, run.map, run.profile_number, pb).await?),
-        _ => None,
+        Some((_, pb)) => Some(rank_for(&mut tx, run.map, run.profile_number, pb).await?),
+        None => None,
     };
-    let post_rank = if run.baseline { None } else { Some(rank_for(&mut tx, run.map, run.profile_number, run.score).await?) };
+    let post_rank = rank_for(&mut tx, run.map, run.profile_number, run.score).await?;
     let id: i64 = sqlx::query_scalar(
         r#"
             INSERT INTO changelog (timestamp, profile_number, score, map_id, banned, youtube_id, previous_id,
                 post_rank, pre_rank, submission, note, category_id, score_delta, verified)
-            VALUES (CASE WHEN $13 THEN NULL ELSE now() AT TIME ZONE 'utc' END, $1, $2, $3, false, $4, $5, $6, $7, $11, $8, $9, $10, $12)
+            VALUES (now() AT TIME ZONE 'utc', $1, $2, $3, false, $4, $5, $6, $7, $11, $8, $9, $10, $12)
             RETURNING id
         "#,
     )
@@ -387,7 +384,6 @@ pub async fn insert_run(pool: &PgPool, run: NewRun<'_>) -> Result<Result<Recorde
     .bind(previous.map(|p| run.score - p.1))
     .bind(run.submission)
     .bind(run.verified.unwrap_or(true))
-    .bind(run.baseline)
     .fetch_one(&mut *tx)
     .await?;
     if let Some(file) = &run.demo_file {

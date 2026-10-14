@@ -289,7 +289,6 @@ async fn submission_create(
         portals: info.as_ref().filter(|i| i.time_score == Some(score)).and_then(|i| i.portal_score),
         submission: 1,
         verified: None,
-        baseline: false,
     };
     let recorded = match submissions::insert_run(pool.get_ref(), run).await? {
         Ok(r) => r,

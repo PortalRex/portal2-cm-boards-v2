@@ -3,10 +3,12 @@
 //! back: every `SYNC.MINUTES` it fetches the top of each map's leaderboard and records any time
 //! that beats what the board has for that player, the way the old boards' fetcher did.
 //!
-//! Steam's leaderboards carry no dates, so the first pass over a map is a baseline: the times it
-//! finds are recorded undated (like imported undated runs) rather than as new runs. From then on,
-//! a change on Steam since the previous pass is a new run and is dated when it's seen. The pass
-//! state lives in `steam_sync_maps`.
+//! The first pass over a map only records what Steam shows (the baseline) and adds nothing:
+//! Steam's leaderboards carry no dates, and the old board leaves some Steam times out on purpose,
+//! so a time the board doesn't have by then is never pulled in. After that, only entries that
+//! changed on Steam since the previous pass are considered, and a new run is dated when it's seen.
+//! A run staff remove later stays removed unless the player improves again. State is kept in
+//! `steam_sync_maps` and `steam_sync_entries`.
 //!
 //! Rules, per Steam entry:
 //! - Only entries ranked within the top `SYNC.RANK_LIMIT` (500) of the leaderboard's valid
@@ -50,8 +52,8 @@ pub struct SyncReport {
     pub maps_unchanged: usize,
     pub maps_failed: usize,
     pub runs_added: usize,
-    /// Of those, found on a map's first pass and recorded undated.
-    pub runs_baseline: usize,
+    /// Maps passed for the first time (their entries recorded as the baseline, nothing added).
+    pub maps_baselined: usize,
     pub runs_pending: usize,
     pub players_created: usize,
 }
@@ -72,8 +74,8 @@ pub fn start(pool: PgPool, config: Config, cache: CacheState) {
         loop {
             match run_once(&pool, &config, &cache, None).await {
                 Ok(r) => log::info!(
-                    "steam sync: {} maps checked ({} unchanged, {} failed), {} runs added ({} baseline, {} pending), {} players created",
-                    r.maps_checked, r.maps_unchanged, r.maps_failed, r.runs_added, r.runs_baseline, r.runs_pending, r.players_created
+                    "steam sync: {} maps checked ({} baselined, {} unchanged, {} failed), {} runs added ({} pending), {} players created",
+                    r.maps_checked, r.maps_baselined, r.maps_unchanged, r.maps_failed, r.runs_added, r.runs_pending, r.players_created
                 ),
                 Err(e) => log::error!("steam sync failed: {e}"),
             }
@@ -82,7 +84,8 @@ pub fn start(pool: PgPool, config: Config, cache: CacheState) {
     });
 }
 
-/// One pass over every Portal 2 map (or just `only`, a map's steam id, to try it on one map).
+/// One pass over every public Portal 2 map (the hidden ones have no Steam leaderboard), or just
+/// `only`, a map's steam id, to try it on one map.
 /// `Err` only for failures that stop the whole pass (the database); a map whose leaderboard
 /// can't be read is counted in `maps_failed`.
 pub async fn run_once(pool: &PgPool, config: &Config, cache: &CacheState, only: Option<&str>) -> Result<SyncReport, sqlx::Error> {
@@ -92,7 +95,7 @@ pub async fn run_once(pool: &PgPool, config: &Config, cache: &CacheState, only: 
         r#"
             SELECT m.steam_id, m.name, c.game_id, c.game_mode, c.is_multiplayer AS is_coop, m.default_cat_id
             FROM maps AS m JOIN chapters AS c ON c.id = m.chapter_id
-            WHERE c.game_id = $1 AND m.default_cat_id IS NOT NULL AND ($2::text IS NULL OR m.steam_id = $2)
+            WHERE c.game_id = $1 AND m.is_public AND m.default_cat_id IS NOT NULL AND ($2::text IS NULL OR m.steam_id = $2)
             ORDER BY m.id
         "#,
     )
@@ -108,11 +111,11 @@ pub async fn run_once(pool: &PgPool, config: &Config, cache: &CacheState, only: 
     let mut any_added = false;
     for map in &maps {
         report.maps_checked += 1;
-        let state: Option<(bool, Option<i64>)> = sqlx::query_as("SELECT baseline_done, last_hash FROM steam_sync_maps WHERE map_id = $1")
+        let last_hash: Option<Option<i64>> = sqlx::query_scalar("SELECT last_hash FROM steam_sync_maps WHERE map_id = $1")
             .bind(&map.steam_id)
             .fetch_optional(pool)
             .await?;
-        let baseline = !state.map_or(false, |s| s.0);
+        let baseline = last_hash.is_none();
         let depth = config.sync.rank_limit() * if map.is_coop { DEPTH_COOP } else { DEPTH_SP };
         let body = match fetch_leaderboard(&client, &map.steam_id, depth).await {
             Ok(b) => b,
@@ -123,24 +126,30 @@ pub async fn run_once(pool: &PgPool, config: &Config, cache: &CacheState, only: 
             }
         };
         let digest = hash_of(&body);
-        if !baseline && state.and_then(|s| s.1) == Some(digest) {
+        if !baseline && last_hash.flatten() == Some(digest) {
             report.maps_unchanged += 1;
             continue;
         }
         let entries = parse_entries(&body);
-        match sync_map(pool, config, map, &entries, &banned, baseline, &mut report).await {
-            Ok(added) => {
-                sqlx::query(
-                    r#"
-                        INSERT INTO steam_sync_maps (map_id, baseline_done, last_hash, last_pass)
-                        VALUES ($1, true, $2, now() AT TIME ZONE 'utc')
-                        ON CONFLICT (map_id) DO UPDATE SET baseline_done = true, last_hash = EXCLUDED.last_hash, last_pass = EXCLUDED.last_pass
-                    "#,
-                )
+        let previous: HashMap<String, i32> = if baseline {
+            HashMap::new()
+        } else {
+            sqlx::query_as::<_, (String, i32)>("SELECT profile_number, score FROM steam_sync_entries WHERE map_id = $1")
                 .bind(&map.steam_id)
-                .bind(digest)
-                .execute(pool)
-                .await?;
+                .fetch_all(pool)
+                .await?
+                .into_iter()
+                .collect()
+        };
+        let result = if baseline {
+            report.maps_baselined += 1;
+            Ok(0)
+        } else {
+            sync_map(pool, config, map, &entries, &previous, &banned, &mut report).await
+        };
+        match result {
+            Ok(added) => {
+                save_snapshot(pool, &map.steam_id, &entries, digest).await?;
                 if added > 0 {
                     any_added = true;
                     if cache.default_cat_ids.contains_key(&map.steam_id) {
@@ -179,6 +188,31 @@ async fn fetch_leaderboard(client: &reqwest::Client, map_id: &str, depth: i32) -
     Ok(body)
 }
 
+/// Replaces a map's saved entries with this pass's (each player's score) and its fingerprint.
+async fn save_snapshot(pool: &PgPool, map_id: &str, entries: &[(String, i32)], digest: i64) -> Result<(), sqlx::Error> {
+    let mut seen: HashSet<&str> = HashSet::new();
+    let (players, scores): (Vec<String>, Vec<i32>) = entries.iter().filter(|(p, _)| seen.insert(p.as_str())).cloned().unzip();
+    let mut tx = pool.begin().await?;
+    sqlx::query("DELETE FROM steam_sync_entries WHERE map_id = $1").bind(map_id).execute(&mut *tx).await?;
+    sqlx::query("INSERT INTO steam_sync_entries (map_id, profile_number, score) SELECT $1, p, s FROM unnest($2::text[], $3::int[]) AS t(p, s)")
+        .bind(map_id)
+        .bind(&players)
+        .bind(&scores)
+        .execute(&mut *tx)
+        .await?;
+    sqlx::query(
+        r#"
+            INSERT INTO steam_sync_maps (map_id, last_hash, last_pass) VALUES ($1, $2, now() AT TIME ZONE 'utc')
+            ON CONFLICT (map_id) DO UPDATE SET last_hash = EXCLUDED.last_hash, last_pass = EXCLUDED.last_pass
+        "#,
+    )
+    .bind(map_id)
+    .bind(digest)
+    .execute(&mut *tx)
+    .await?;
+    tx.commit().await
+}
+
 /// A fingerprint of a leaderboard body, kept per map so an unchanged board is skipped.
 fn hash_of(body: &str) -> i64 {
     let mut h = DefaultHasher::new();
@@ -212,8 +246,17 @@ pub fn parse_entries(body: &str) -> Vec<(String, i32)> {
     out
 }
 
-/// Records the new times on one map; returns how many were added.
-async fn sync_map(pool: &PgPool, config: &Config, map: &BoardMap, entries: &[(String, i32)], banned: &HashSet<String>, baseline: bool, report: &mut SyncReport) -> Result<usize, sqlx::Error> {
+/// Records the new times on one map (entries that changed since `previous`); returns how many
+/// were added.
+async fn sync_map(
+    pool: &PgPool,
+    config: &Config,
+    map: &BoardMap,
+    entries: &[(String, i32)],
+    previous: &HashMap<String, i32>,
+    banned: &HashSet<String>,
+    report: &mut SyncReport,
+) -> Result<usize, sqlx::Error> {
     let cat = map.default_cat_id.unwrap_or_default();
     let limit = config.sync.rank_limit();
 
@@ -235,6 +278,10 @@ async fn sync_map(pool: &PgPool, config: &Config, map: &BoardMap, entries: &[(St
         }
         if rank > limit {
             break;
+        }
+        // Unchanged since the last pass: nothing new (also keeps removed runs out).
+        if previous.get(profile) == Some(score) {
+            continue;
         }
         if improves(pool, profile, &map.steam_id, cat, *score).await? && !moderation::is_frozen(pool, profile).await? {
             candidates.push((profile.clone(), *score));
@@ -282,7 +329,6 @@ async fn sync_map(pool: &PgPool, config: &Config, map: &BoardMap, entries: &[(St
             portals: None,
             submission: 0,
             verified: Some(!pending),
-            baseline,
         };
         match submissions::insert_run(pool, run).await? {
             Ok(_) => {
@@ -290,9 +336,6 @@ async fn sync_map(pool: &PgPool, config: &Config, map: &BoardMap, entries: &[(St
                 recorded.insert(profile.clone());
                 if pending {
                     report.runs_pending += 1;
-                }
-                if baseline {
-                    report.runs_baseline += 1;
                 }
             }
             Err(refused) => log::debug!("steam sync: {} on {}: {refused:?}", profile, map.name),
