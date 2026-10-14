@@ -24,9 +24,11 @@ const lookupMap = (id, game) => getMap(String(id), game) || findMap(id);
 
 const player = (profileNumber, name, avatar) => ({ profileNumber, name: name || "Unknown", avatar: avatar || null });
 
-// Unpaired co-op runs are bundled with a filler user ("N/A") in the database.
+// Unpaired co-op runs are bundled with a filler user ("N/A") in the database; they show an
+// "Unknown partner" with a default picture (no profile to link to).
 const FILLER = "N/A";
-const realPlayers = (players) => players.filter((p) => p.profileNumber !== FILLER && p.name !== FILLER);
+const unknownPartner = () => ({ profileNumber: null, name: "Unknown partner", avatar: `${process.env.PUBLIC_URL || ""}/unknown-partner.svg`, unknown: true });
+const realPlayers = (players) => players.map((p) => (p.profileNumber === FILLER || p.name === FILLER ? unknownPartner() : p));
 
 function adaptChangelog(row, game) {
   const isCoop = row.coop_id != null && (row.blue_name || row.orange_name);
