@@ -584,3 +584,16 @@
   resize: vertical;
   font: inherit;
 }
+
+.sd-swap {
+  display: inline-grid;
+}
+
+.sd-swap > span {
+  grid-area: 1 / 1;
+  text-align: center;
+}
+
+.sd-swap > .is-off {
+  visibility: hidden;
+}

@@ -354,7 +354,7 @@ function AdminTools({ run, game }) {
             onClick={() => (confirmDemo ? act("Demo removed.", () => removeRunDemo(changelogId, why)) : setConfirmDemo(true))}
             onBlur={() => setConfirmDemo(false)}
           >
-            {confirmDemo ? "Click again to remove the demo" : "Remove demo"}
+            <ConfirmLabel confirming={confirmDemo} label="Remove demo" confirm="Confirm removal" />
           </button>
         )}
         {isRoleAdmin(user) && (
@@ -365,7 +365,7 @@ function AdminTools({ run, game }) {
             onClick={() => (confirmDelete ? act("Run deleted.", () => deleteRun(changelogId, why)) : setConfirmDelete(true))}
             onBlur={() => setConfirmDelete(false)}
           >
-            {confirmDelete ? "Click again to delete permanently" : "Delete run"}
+            <ConfirmLabel confirming={confirmDelete} label="Delete run" confirm="Confirm delete" />
           </button>
         )}
       </div>
@@ -559,6 +559,21 @@ function StaffNotes({ changelogId }) {
       </form>
       {state.error && <span className="sd-roles-error">{state.error}</span>}
     </div>
+  );
+}
+
+// A button label that swaps to its confirmation on the first click. Both are laid out in the same
+// spot, so the button keeps its size and nothing around it moves.
+function ConfirmLabel({ confirming, label, confirm }) {
+  return (
+    <span className="sd-swap">
+      <span className={confirming ? "is-off" : undefined} aria-hidden={confirming}>
+        {label}
+      </span>
+      <span className={confirming ? undefined : "is-off"} aria-hidden={!confirming}>
+        {confirm}
+      </span>
+    </span>
   );
 }
 
