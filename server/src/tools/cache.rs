@@ -304,10 +304,15 @@ impl CacheState {
             let ranked = filter_coop_entries(res, config.proof.results as usize).await;
             let r = &mut self.ranks.lock().await;
             r.map_scores.insert(map_id.clone(), sorted_scores(ranked.iter().map(|e| e.map_data.score).collect()));
+            // Start the map over (players can drop off it), then keep each player's best rank: a
+            // player is listed again with every partner whose own best run they're in, best first.
+            for user in r.current_ranks.values_mut() {
+                user.remove(map_id);
+            }
             for entry in ranked {
                 for profile_number in [entry.map_data.profile_number1, entry.map_data.profile_number2] {
                     let user = r.current_ranks.entry(profile_number).or_insert_with(HashMap::new);
-                    user.insert(map_id.clone(), entry.rank);
+                    user.entry(map_id.clone()).or_insert(entry.rank);
                 }
             }
         } else {
@@ -324,6 +329,10 @@ impl CacheState {
             let ranks = sp_ranks(&res);
             let r = &mut self.ranks.lock().await;
             r.map_scores.insert(map_id.clone(), sorted_scores(res.iter().map(|e| e.score).collect()));
+            // Start the map over: a player who dropped off it (banned, run removed) has no rank there.
+            for user in r.current_ranks.values_mut() {
+                user.remove(map_id);
+            }
             for (entry, rank) in res.into_iter().zip(ranks) {
                 let user = r
                     .current_ranks

@@ -244,10 +244,12 @@
   --me-tint: color-mix(in srgb, var(--accent) 22%, transparent);
 }
 
-.agg-row.is-me,
-.mc-rows li.is-me,
+/* :nth-child(n) matches every row; it's there so these beat the boards' striped (odd / even)
+   row colours on every row, not just the unstriped ones. */
+.agg-row.is-me:not(.agg-row-head):nth-child(n),
+.mc-rows li.is-me:nth-child(n),
 .mc-wr.is-me,
-.mp-entry.is-me > .mp-row {
+.mp-entry.is-me:nth-child(n) > .mp-row {
   background: var(--me-tint);
   box-shadow: inset 3px 0 0 var(--accent);
 }
