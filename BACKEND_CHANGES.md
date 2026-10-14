@@ -342,6 +342,13 @@ each player's `country_id`, profiles get `country_place` (rank among players of 
 boards can be filtered by country (`?country=us`), and `GET /countries/stats?board=overall|sp|coop` lists each
 country's player count, points together and best players for the Countries page.
 
+### Board names
+
+A game's boards ("modes", each chapter's `game_mode`) can be renamed in the games editor: `PUT /admin/games/{id}`
+with `{"mode_name": {"mode": "sp", "name": "No hair"}}` (an empty name goes back to the default, e.g. Singleplayer).
+Names are stored in `games.mode_names` (migration `20261103000000_mode_names.sql`), returned on each catalog game
+as `mode_names`, and logged with the game's other edits.
+
 ### Map images
 
 The admin tier can give any map its own image in the games editor (`POST /admin/maps/{steam_id}/image`, form field

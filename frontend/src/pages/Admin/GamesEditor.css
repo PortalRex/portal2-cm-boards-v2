@@ -407,3 +407,19 @@
 .ge-upload input {
   display: none;
 }
+
+.ge-modes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ge-mode-key {
+  min-width: 80px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.ge-mode input {
+  width: 240px;
+}

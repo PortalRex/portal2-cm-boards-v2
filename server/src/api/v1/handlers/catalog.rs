@@ -89,15 +89,23 @@ pub struct GameUpdateBody {
     #[serde(default, deserialize_with = "nullable")]
     pub ends_at: Option<Option<NaiveDateTime>>,
     pub hidden: Option<bool>,
+    /// Rename one of the game's boards: `{"mode": "sp", "name": "No hair"}` (empty name = default).
+    pub mode_name: Option<ModeNameBody>,
 }
 
-/// **PUT** Rename a game, change its link name, hide it, or move a season's dates.
+#[derive(Deserialize)]
+pub struct ModeNameBody {
+    pub mode: String,
+    pub name: String,
+}
+
+/// **PUT** Rename a game or one of its boards, change its link name, hide it, or move a season's dates.
 #[put("/admin/games/{id}")]
 async fn admin_game_update(auth: AdminOrService, pool: web::Data<PgPool>, id: web::Path<i32>, body: web::Json<GameUpdateBody>) -> Result<impl Responder> {
     if let Some(r) = admin_only(&auth) {
         return Ok(r);
     }
-    let update = GameUpdate { name: body.name.as_deref(), slug: body.slug.as_deref(), starts_at: body.starts_at, ends_at: body.ends_at, hidden: body.hidden };
+    let update = GameUpdate { name: body.name.as_deref(), slug: body.slug.as_deref(), starts_at: body.starts_at, ends_at: body.ends_at, hidden: body.hidden, mode_name: body.mode_name.as_ref().map(|m| (m.mode.as_str(), m.name.as_str())) };
     reply(catalog::update_game(pool.get_ref(), &auth, id.into_inner(), update).await).await
 }
 

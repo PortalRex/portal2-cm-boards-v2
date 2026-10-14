@@ -10,6 +10,7 @@ import { GAMES, MODE_LABELS, chapterDbId, coopChapters, spChapters } from "../da
 import useCurrentUser, { clearCurrentUser, isStaff } from "../hooks/useCurrentUser";
 import { logout, steamLoginUrl } from "../api/client";
 import useTheme from "../hooks/useTheme";
+import { useDataVersion } from "../lib/dataVersion";
 import SubmitRun from "./SubmitRun";
 import "./TopBar.css";
 
@@ -88,6 +89,8 @@ function ExpandButton({ open, onToggle, label, className }) {
 
 function AggregateMenu() {
   const [open, setOpen] = useState({});
+  // Re-read the games after an edit in the games editor (names, boards, new games).
+  useDataVersion();
   return (
     <div className="nav-menu nav-menu-tree" role="menu">
       {aggregateMenu().map((game) => (

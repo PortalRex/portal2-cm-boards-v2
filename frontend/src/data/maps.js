@@ -353,6 +353,9 @@ const clear = (obj) => Object.keys(obj).forEach((k) => delete obj[k]);
 
 export const gameKey = (game) => BUILTIN_KEYS[game.id] || game.slug;
 
+// A board's name when its game hasn't renamed it (games editor, "Board names").
+export const defaultModeLabel = (mode) => BASE_MODE_LABELS[mode] || titleCase(mode);
+
 // Replaces the built-in map lists with the server's catalog (GET /catalog). Everything above
 // reads from the structures updated here, so it runs once, before the app renders.
 export function applyCatalog(catalog) {
@@ -362,7 +365,8 @@ export function applyCatalog(catalog) {
   clear(MODE_GAME);
   clear(CHAPTERS_BY_MODE);
   MULTIPLAYER_MODES.clear();
-  Object.keys(MODE_LABELS).forEach((k) => BASE_MODE_LABELS[k] || delete MODE_LABELS[k]);
+  clear(MODE_LABELS);
+  Object.assign(MODE_LABELS, BASE_MODE_LABELS);
   catalog.forEach((g) => {
     const key = gameKey(g);
     const builtin = Boolean(BUILTIN_KEYS[g.id]);
@@ -393,7 +397,8 @@ export function applyCatalog(catalog) {
       const group = groups.get(mk);
       MODE_GAME[mk] = key;
       if (group.multiplayer) MULTIPLAYER_MODES.add(mk);
-      if (!MODE_LABELS[mk]) MODE_LABELS[mk] = BASE_MODE_LABELS[group.mode] || titleCase(group.mode);
+      // The game's own name for the board, if it has one.
+      MODE_LABELS[mk] = g.mode_names?.[group.mode] || defaultModeLabel(group.mode);
       CHAPTERS_BY_MODE[mk] = group.chapters.map((c, i) => ({
         name: c.name || `Chapter ${i + 1}`,
         number: i + 1,

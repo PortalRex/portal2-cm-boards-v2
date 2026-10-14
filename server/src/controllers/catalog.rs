@@ -23,6 +23,12 @@ pub struct CatalogGame {
     pub ends_at: Option<NaiveDateTime>,
     pub sort_order: i32,
     pub hidden: bool,
+    #[serde(skip)]
+    pub mode_names_json: String,
+    /// The game's own names for its boards, by chapter `game_mode` ({"sp": "No hair"}); other
+    /// modes keep the site's default name.
+    #[sqlx(skip)]
+    pub mode_names: serde_json::Value,
     #[sqlx(skip)]
     pub chapters: Vec<CatalogChapter>,
 }
@@ -72,11 +78,14 @@ pub struct CatalogCategory {
 /// when `include_hidden` (staff).
 pub async fn catalog(pool: &PgPool, include_hidden: bool) -> Result<Vec<CatalogGame>, sqlx::Error> {
     let mut games = sqlx::query_as::<_, CatalogGame>(
-        "SELECT id, game_name AS name, slug, kind, base_game_id, starts_at, ends_at, sort_order, hidden FROM games WHERE $1 OR NOT hidden ORDER BY sort_order, id",
+        "SELECT id, game_name AS name, slug, kind, base_game_id, starts_at, ends_at, sort_order, hidden, mode_names::text AS mode_names_json FROM games WHERE $1 OR NOT hidden ORDER BY sort_order, id",
     )
     .bind(include_hidden)
     .fetch_all(pool)
     .await?;
+    for g in &mut games {
+        g.mode_names = serde_json::from_str(&g.mode_names_json).unwrap_or_else(|_| json!({}));
+    }
     let chapters = sqlx::query_as::<_, CatalogChapter>("SELECT id, game_id, chapter_name AS name, game_mode, is_multiplayer, sort_order FROM chapters ORDER BY sort_order, id")
         .fetch_all(pool)
         .await?;
@@ -300,6 +309,9 @@ pub struct GameUpdate<'a> {
     pub starts_at: Option<Option<NaiveDateTime>>,
     pub ends_at: Option<Option<NaiveDateTime>>,
     pub hidden: Option<bool>,
+    /// Renames one of the game's boards: (`game_mode`, name). An empty name goes back to the
+    /// default name.
+    pub mode_name: Option<(&'a str, &'a str)>,
 }
 
 /// Renames a game, changes its link name or visibility, or moves a season's dates (which only
@@ -327,6 +339,18 @@ pub async fn update_game(pool: &PgPool, actor: &AdminOrService, id: i32, update:
     if let Some(hidden) = update.hidden {
         sqlx::query("UPDATE games SET hidden = $2 WHERE id = $1").bind(id).bind(hidden).execute(&mut *tx).await?;
     }
+    if let Some((mode, name)) = update.mode_name {
+        let has_mode: bool = sqlx::query_scalar("SELECT EXISTS (SELECT 1 FROM chapters WHERE game_id = $1 AND game_mode = $2)").bind(id).bind(mode).fetch_one(&mut *tx).await?;
+        if !has_mode {
+            return Ok(Err(Refused::Invalid("This game has no chapters in that mode.".into())));
+        }
+        if name.trim().is_empty() {
+            sqlx::query("UPDATE games SET mode_names = mode_names - $2 WHERE id = $1").bind(id).bind(mode).execute(&mut *tx).await?;
+        } else {
+            let name = check!(clean_name(name, 40));
+            sqlx::query("UPDATE games SET mode_names = jsonb_set(mode_names, ARRAY[$2], to_jsonb($3::text)) WHERE id = $1").bind(id).bind(mode).bind(name).execute(&mut *tx).await?;
+        }
+    }
     let new_starts = update.starts_at.unwrap_or(starts);
     let new_ends = update.ends_at.unwrap_or(ends);
     let window_moved = new_starts != starts || new_ends != ends;
@@ -348,7 +372,7 @@ pub async fn update_game(pool: &PgPool, actor: &AdminOrService, id: i32, update:
         "game",
         &id.to_string(),
         None,
-        json!({ "name": update.name, "slug": update.slug, "hidden": update.hidden, "starts_at": new_starts, "ends_at": new_ends, "window_moved": window_moved }),
+        json!({ "name": update.name, "slug": update.slug, "hidden": update.hidden, "starts_at": new_starts, "ends_at": new_ends, "window_moved": window_moved, "mode_name": update.mode_name }),
     )
     .await?;
     tx.commit().await?;

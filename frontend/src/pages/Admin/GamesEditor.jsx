@@ -23,7 +23,7 @@ import {
   mapImageUrl,
   fetchCatalog,
 } from "../../api/client";
-import { applyCatalog, builtInImage, gameKey } from "../../data/maps";
+import { applyCatalog, builtInImage, defaultModeLabel, gameKey } from "../../data/maps";
 import { GAME_IDS } from "../../api/config";
 import { bumpDataVersion } from "../../lib/dataVersion";
 import "./GamesEditor.css";
@@ -308,9 +308,67 @@ function GamePanel({ game, catalog, allMaps, onChanged, onDeleted }) {
           </button>
         </div>
       </form>
+      <ModeNames game={game} onChanged={onChanged} />
       <GameLinks game={game} catalog={catalog} allMaps={allMaps} onChanged={onChanged} />
       {season ? <SeasonPool game={game} base={base} /> : <LayoutEditor game={game} allMaps={allMaps} onChanged={onChanged} />}
     </>
+  );
+}
+
+// The game's boards ("modes": each chapter's game_mode) and what the site calls them, e.g. "sp"
+// shown as "Singleplayer" unless renamed here.
+function ModeNames({ game, onChanged }) {
+  const modes = [...new Set(game.chapters.map((c) => c.game_mode))];
+  if (!modes.length) return null;
+  return (
+    <div className="ge-card">
+      <div className="ge-card-head">
+        <h3>Board names</h3>
+      </div>
+      <p className="ge-hint">What the menus and boards call each mode. Leave a name empty to use the default.</p>
+      <div className="ge-modes">
+        {modes.map((mode) => (
+          <ModeName key={mode} game={game} mode={mode} onChanged={onChanged} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ModeName({ game, mode, onChanged }) {
+  const saved = game.mode_names?.[mode] || "";
+  const [name, setName] = useState(saved);
+  const [state, run] = useAction();
+  const save = async (value) => {
+    if ((await run(() => adminUpdateGame(game.id, { mode_name: { mode, name: value } }))) !== undefined) onChanged();
+  };
+  return (
+    <form
+      className="ge-inline ge-mode"
+      onSubmit={(e) => {
+        e.preventDefault();
+        save(name);
+      }}
+    >
+      <span className="ge-mode-key">{mode}</span>
+      <input value={name} onChange={(e) => setName(e.target.value)} placeholder={defaultModeLabel(mode)} maxLength={40} aria-label={`Name for ${mode}`} />
+      <button type="submit" disabled={state.busy || name.trim() === saved}>
+        Save
+      </button>
+      {saved && (
+        <button
+          type="button"
+          disabled={state.busy}
+          onClick={() => {
+            setName("");
+            save("");
+          }}
+        >
+          Reset
+        </button>
+      )}
+      {state.error && <span className="ge-error">{state.error}</span>}
+    </form>
   );
 }
 
@@ -497,7 +555,7 @@ function LayoutEditor({ game, allMaps, onChanged }) {
                 setOver(null);
               }}
             >
-              <ChapterHead chapter={chapter} index={i} count={layout.length} onMove={moveChapter} onChanged={onChanged} empty={!entry.maps.length && !chapter.maps.length} />
+              <ChapterHead chapter={chapter} modeName={game.mode_names?.[chapter.game_mode] || defaultModeLabel(chapter.game_mode)} index={i} count={layout.length} onMove={moveChapter} onChanged={onChanged} empty={!entry.maps.length && !chapter.maps.length} />
               <div className="ge-maps">
                 {entry.maps.map((id) => (
                   <button
@@ -549,7 +607,7 @@ function LayoutEditor({ game, allMaps, onChanged }) {
   );
 }
 
-function ChapterHead({ chapter, index, count, onMove, onChanged, empty }) {
+function ChapterHead({ chapter, modeName, index, count, onMove, onChanged, empty }) {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(chapter.name || "");
   const [state, run] = useAction();
@@ -585,8 +643,8 @@ function ChapterHead({ chapter, index, count, onMove, onChanged, empty }) {
       ) : (
         <>
           <strong>{chapter.name}</strong>
-          <small>
-            {chapter.game_mode}
+          <small title={`Board "${chapter.game_mode}": rename it under Board names`}>
+            {modeName}
             {chapter.is_multiplayer ? " · co-op" : ""}
           </small>
           <button type="button" className="ge-link" onClick={() => setEditing(true)}>

@@ -1490,3 +1490,7 @@ ALTER TABLE maps ADD COLUMN IF NOT EXISTS image_updated timestamp without time z
 -- When a player's peak points first reached Legends (Portal 2). Legends can't be lost, so it's
 -- recorded once (tools/points_history.rs) and profiles show the role without working the peak out.
 ALTER TABLE users ADD COLUMN IF NOT EXISTS legends_at timestamp without time zone;
+
+-- A game's own names for its boards ("modes"), by chapter game_mode: {"sp": "No hair"}. Modes
+-- without one keep the site's default name (Singleplayer, Cooperative, ...).
+ALTER TABLE games ADD COLUMN IF NOT EXISTS mode_names jsonb NOT NULL DEFAULT '{}'::jsonb;
