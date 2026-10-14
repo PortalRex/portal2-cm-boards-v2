@@ -5,10 +5,11 @@ import { TriangleDown, ThumbUpIcon, ThumbUpOutlineIcon, ThumbDownIcon, ThumbDown
 import { setReaction } from "../../api/client";
 import useCurrentUser from "../../hooks/useCurrentUser";
 import RunDetails from "../../components/RunDetails";
+import { TimeButton } from "../../components/RunHistory";
 import { toggleOnRowClick } from "../../lib/rows";
 import { mapPath } from "../../data/maps";
 import { coopRoles, tintFor, useRoleOverrides } from "../../lib/coopRoles";
-import { formatScore, formatDelta, timeAgo, formatDate, formatDateTime } from "../../lib/format";
+import { formatDelta, timeAgo, formatDate, formatDateTime } from "../../lib/format";
 
 
 export default function ScoreRow({ entry, rendered, myReaction }) {
@@ -51,7 +52,7 @@ export default function ScoreRow({ entry, rendered, myReaction }) {
         </div>
 
         <div className="sr-time num">
-          {formatScore(entry.score)}
+          <TimeButton score={entry.score} players={players} map={entry.map} />
           {entry.scoreDelta != null && <span className="sr-time-delta"> ({formatDelta(entry.scoreDelta, "s")})</span>}
         </div>
         <div className="sr-delta num">{entry.scoreDelta != null ? formatDelta(entry.scoreDelta, "s") : ""}</div>

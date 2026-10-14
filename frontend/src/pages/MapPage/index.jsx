@@ -524,13 +524,13 @@ function ChamberHistory({ map }) {
       ) : !rows.length ? (
         <EmptyState>{filtered ? "No runs match these filters." : `No submissions recorded for ${map.title}.`}</EmptyState>
       ) : (
-        <ChamberHistoryTable rows={visible} stale={history.loading} />
+        <ChamberHistoryTable rows={visible} stale={history.loading} map={map} />
       )}
     </>
   );
 }
 
-function ChamberHistoryTable({ rows, stale }) {
+function ChamberHistoryTable({ rows, stale, map }) {
   return (
     <div className={`mp-table mp-history${stale ? " is-stale" : ""}`} role="table">
       <div className="mp-row mp-row-head" role="row">
@@ -553,7 +553,9 @@ function ChamberHistoryTable({ rows, stale }) {
               <RankNumber rank={e.preRank} colored /> → <RankNumber rank={e.postRank} colored />
             </span>
           </span>
-          <span className="end num">{formatScore(e.score)}</span>
+          <span className="end num">
+            <TimeButton score={e.score} players={e.players} map={map} />
+          </span>
           <span className="end num muted">{e.scoreDelta != null ? formatScore(e.scoreDelta) : ""}</span>
         </div>
       ))}

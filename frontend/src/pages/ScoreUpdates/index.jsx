@@ -13,10 +13,11 @@ import useApi from "../../hooks/useApi";
 import { useDataVersion } from "../../lib/dataVersion";
 import useDebounced from "../../hooks/useDebounced";
 import useFollows from "../../hooks/useFollows";
-import { timeAgo, formatDate, formatDateTime, formatDelta, formatScore } from "../../lib/format";
+import { timeAgo, formatDate, formatDateTime, formatDelta } from "../../lib/format";
 import { ACTIVITY_VIEWS, activityWindow } from "../../lib/activity";
 import background from "../../scenes/global/img/Background.png";
 import ScoreRow from "./ScoreRow";
+import { TimeButton } from "../../components/RunHistory";
 import { BANNED_OPTIONS, RANK_OPTIONS, RUN_LIMITS, RUN_TOGGLES, TIME_OPTIONS } from "../../lib/runFilters";
 import "./ScoreUpdates.css";
 
@@ -278,7 +279,9 @@ function DailyChambers({ daily, today }) {
                   <span className="following-rank num">
                     <RankNumber rank={e.postRank} />
                   </span>
-                  <span className="num recap-time">{formatScore(e.score)}</span>
+                  <span className="num recap-time">
+            <TimeButton score={e.score} players={e.players} map={e.map} />
+          </span>
                   <span className="green recap-delta" title={formatDateTime(e.timestamp)}>{timeAgo(e.timestamp)}</span>
                 </li>
               ))}
@@ -315,7 +318,9 @@ function WeeklyRecap({ recap }) {
           <span className="following-rank num">
             <RankNumber rank={e.postRank} />
           </span>
-          <span className="num recap-time">{formatScore(e.score)}</span>
+          <span className="num recap-time">
+            <TimeButton score={e.score} players={e.players} map={e.map} />
+          </span>
           <span className="green num recap-delta" title={`${timeAgo(e.timestamp)} · ${formatDateTime(e.timestamp)}`}>
             {e.scoreDelta != null ? formatDelta(e.scoreDelta) : "new"}
           </span>

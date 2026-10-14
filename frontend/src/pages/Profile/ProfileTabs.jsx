@@ -315,7 +315,9 @@ function History({ history, game, map }) {
               <RankNumber rank={h.postRank} inherit />
             </span>
             <span className="muted pf-hwhen" title={formatDateTime(h.timestamp)}>{map ? timeAgo(h.timestamp) : `${h.map.title} · ${timeAgo(h.timestamp)}`}</span>
-            <span className="end num">{formatScore(h.score)}</span>
+            <span className="end num">
+              <TimeButton score={h.score} players={h.players} map={h.map} />
+            </span>
             <span className="end num">{h.scoreDelta != null ? formatDelta(h.scoreDelta) : ""}</span>
             <span className="pf-hicons">
               <AutorenderLink run={h} game={game} rendered={rendered} size={22} />
