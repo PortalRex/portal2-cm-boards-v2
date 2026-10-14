@@ -1499,3 +1499,12 @@
   font: inherit;
   font-size: 14px;
 }
+
+.stat-link {
+  display: contents;
+  color: inherit;
+}
+
+.stat-link:hover .stat-label {
+  text-decoration: underline;
+}

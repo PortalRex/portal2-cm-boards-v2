@@ -95,10 +95,12 @@ function ProfileView({ profileId }) {
           <div className="pf-row pf-row-2">
             <Card icon={GlobeIcon} title="Global Rank" collapseId="profile.rank" className="pf-global">
               <div className="stat-row">
-                <Stat value={<Ordinal n={view.globalRank?.sp} colored />} label="Singleplayer" />
-                <Stat value={<Ordinal n={view.globalRank?.coop} colored />} label="Cooperative" />
-                <Stat value={<Ordinal n={view.globalRank?.overall} colored />} label="Overall" />
+                {/* Each rank opens its board on the page with this player. */}
+                <Stat value={<Ordinal n={view.globalRank?.sp} colored />} label="Singleplayer" to={view.globalRank?.sp ? `/leaderboard/sp?player=${p.player.profileNumber}` : undefined} />
+                <Stat value={<Ordinal n={view.globalRank?.coop} colored />} label="Cooperative" to={view.globalRank?.coop ? `/leaderboard/coop?player=${p.player.profileNumber}` : undefined} />
+                <Stat value={<Ordinal n={view.globalRank?.overall} colored />} label="Overall" to={view.globalRank?.overall ? `/leaderboard/overall?player=${p.player.profileNumber}` : undefined} />
                 <Stat
+                  to={view.globalRank?.country && p.player.country ? `/leaderboard/overall?country=${p.player.country}&player=${p.player.profileNumber}` : undefined}
                   value={
                     <>
                       <Ordinal n={view.globalRank?.country} colored />
@@ -221,11 +223,23 @@ function RoleBar({ board, points }) {
   );
 }
 
-function Stat({ value, label, children }) {
-  return (
-    <div className="stat">
+// A number with its label; with `to`, a link (e.g. a rank to its leaderboard).
+function Stat({ value, label, children, to }) {
+  const body = (
+    <>
       <span className="stat-value num">{value}</span>
       <span className="stat-label">{label}</span>
+    </>
+  );
+  return (
+    <div className="stat">
+      {to ? (
+        <Link to={to} className="stat-link" title={`See the ${typeof label === "string" ? label.toLowerCase() : ""} leaderboard`}>
+          {body}
+        </Link>
+      ) : (
+        body
+      )}
       {children}
     </div>
   );

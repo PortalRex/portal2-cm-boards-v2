@@ -29,8 +29,22 @@ impl Users {
             banned: false,
             registered: 0,
             avatar: Some(user.response.players[0].avatarfull.clone()),
+            steam_country: user.response.players[0].loccountrycode.clone(),
             ..Default::default()
         })
+    }
+
+    /// Gives a new account the country on its Steam profile (ISO code), unless it has one.
+    pub async fn set_default_country(pool: &PgPool, profile_number: &str, steam_country: Option<&str>) -> Result<(), sqlx::Error> {
+        let Some(code) = steam_country.filter(|c| !c.is_empty()) else {
+            return Ok(());
+        };
+        sqlx::query("UPDATE users SET country_id = (SELECT id FROM countries WHERE upper(iso) = upper($2)) WHERE profile_number = $1 AND country_id IS NULL")
+            .bind(profile_number)
+            .bind(code)
+            .execute(pool)
+            .await?;
+        Ok(())
     }
     /// Returns a [Users] from the given `profile_number`.
     #[allow(dead_code)]
@@ -223,6 +237,13 @@ impl Users {
     // TODO: Consider using profanity filter (only for really bad names): https://docs.rs/censor/latest/censor/
     /// Inserts a new user into the databse from a given [Users]. Returns the [Users] object.
     pub async fn insert_new_users(pool: &PgPool, new_user: Users) -> Result<Users, sqlx::Error> {
+        let (profile_number, steam_country) = (new_user.profile_number.clone(), new_user.steam_country.clone());
+        let inserted = Self::insert_user_row(pool, new_user).await?;
+        Self::set_default_country(pool, &profile_number, steam_country.as_deref()).await?;
+        Ok(inserted)
+    }
+
+    async fn insert_user_row(pool: &PgPool, new_user: Users) -> Result<Users, sqlx::Error> {
         // let mut res = String::new();
         // We do not care about the returning profile_number. As it is not generated and we already have it
         sqlx::query_as::<_, Users>(

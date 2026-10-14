@@ -39,6 +39,11 @@ pub struct Users {
     #[sqlx(default)]
     #[serde(default)]
     pub legends_at: Option<chrono::NaiveDateTime>,
+    /// The country on the player's Steam profile (ISO code), when read from Steam: a new
+    /// account starts with it ([Users::set_default_country]). Not stored as such.
+    #[sqlx(skip)]
+    #[serde(skip)]
+    pub steam_country: Option<String>,
 }
 
 /// One-to-one struct for countries
@@ -122,6 +127,9 @@ pub struct GetPlayerSummaries {
     pub avatar: String,
     pub avatarmedium: String,
     pub avatarfull: String,
+    /// The country on the Steam profile (ISO code), if public.
+    #[serde(default)]
+    pub loccountrycode: Option<String>,
 }
 
 /// A player's personal best on a Portal 2 map, with deltas against the ranked board.

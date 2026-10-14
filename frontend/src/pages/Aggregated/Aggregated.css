@@ -198,3 +198,9 @@
     justify-content: center;
   }
 }
+
+/* The player a profile's rank link pointed at. */
+.agg-row.is-focus:not(.agg-row-head):nth-child(n) {
+  background: color-mix(in srgb, var(--accent) 30%, transparent);
+  box-shadow: inset 3px 0 0 var(--accent-light);
+}

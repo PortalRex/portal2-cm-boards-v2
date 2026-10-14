@@ -18,7 +18,7 @@ pub async fn claim_nonce(pool: &PgPool, nonce: &str) -> Result<bool, sqlx::Error
 /// Creates or refreshes the user signing in. `steam` is their Steam profile when the Steam Web
 /// API could be reached; the board name and everything else the board stores are kept.
 pub async fn upsert_signed_in_user(pool: &PgPool, profile_number: &str, steam: Option<&Users>) -> Result<(), sqlx::Error> {
-    sqlx::query(
+    let created = sqlx::query(
         r#"
             INSERT INTO users (profile_number, steam_name, avatar, banned, registered, admin)
             VALUES ($1, $2, $3, false, 1, 0)
@@ -26,13 +26,19 @@ pub async fn upsert_signed_in_user(pool: &PgPool, profile_number: &str, steam: O
             SET steam_name = COALESCE(EXCLUDED.steam_name, users.steam_name),
                 avatar = CASE WHEN users.avatar_locked THEN users.avatar ELSE COALESCE(EXCLUDED.avatar, users.avatar) END,
                 registered = 1
+            RETURNING (xmax = 0) AS created
         "#,
     )
     .bind(profile_number)
     .bind(steam.and_then(|u| u.steam_name.clone()))
     .bind(steam.and_then(|u| u.avatar.clone()))
-    .execute(pool)
-    .await?;
+    .fetch_one(pool)
+    .await
+    .map(|row: sqlx::postgres::PgRow| sqlx::Row::get::<bool, _>(&row, "created"))?;
+    // A new account starts with its Steam country (later sign-ins leave the player's choice alone).
+    if created {
+        Users::set_default_country(pool, profile_number, steam.and_then(|u| u.steam_country.as_deref())).await?;
+    }
     Ok(())
 }
 

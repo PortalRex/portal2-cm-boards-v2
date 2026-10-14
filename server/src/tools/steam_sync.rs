@@ -386,6 +386,7 @@ pub(crate) async fn ensure_user(pool: &PgPool, config: &Config, profile: &str) -
     .bind(steam.as_ref().and_then(|u| u.avatar.clone()))
     .execute(pool)
     .await?;
+    Users::set_default_country(pool, profile, steam.as_ref().and_then(|u| u.steam_country.as_deref())).await?;
     Ok(true)
 }
 

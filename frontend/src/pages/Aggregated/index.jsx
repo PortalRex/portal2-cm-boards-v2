@@ -96,6 +96,8 @@ function AggregatedContent({ game, kind, title, apiKind, kicker = "Aggregated po
   // Who's best in a country: the boards filtered to its players (ranks within the country).
   const [params, setParams] = useSearchParams();
   const country = params.get("country") || "";
+  // ?player=: open on the page with this player, their row marked (from a profile's ranks).
+  const focus = params.get("player") || null;
   const setCountry = (c) => setParams(c ? { country: c } : {}, { replace: true });
   const countries = [...new Set((data.data?.points || []).map((r) => r.player.country).filter(Boolean))].sort((a, b) => countryName(a).localeCompare(countryName(b)));
   const inCountry = (rows) => (country ? rows.filter((r) => r.player.country === country) : rows);
@@ -155,9 +157,10 @@ function AggregatedContent({ game, kind, title, apiKind, kicker = "Aggregated po
           <Loading />
         ) : (
           <div className="agg-columns">
-            <Board key={`points-${country}`} title="Points" rows={inCountry(data.data?.points || [])} valueLabel="Aggregated points" value={(r) => formatPoints(r.points)} />
+            <Board key={`points-${country}`} focus={focus} title="Points" rows={inCountry(data.data?.points || [])} valueLabel="Aggregated points" value={(r) => formatPoints(r.points)} />
             <Board
               key={`time-${country}`}
+              focus={focus}
               title="Time"
               rows={inCountry(data.data?.times || [])}
               valueLabel="Aggregated time"
@@ -185,9 +188,10 @@ function NoSeason() {
   );
 }
 
-function Board({ title, rows, valueLabel, value, empty = "No players yet." }) {
+function Board({ title, rows, valueLabel, value, focus = null, empty = "No players yet." }) {
   const me = useCurrentUser();
-  const [page, setPage] = useState(0);
+  const focusIndex = focus ? rows.findIndex((r) => r.player.profileNumber === focus) : -1;
+  const [page, setPage] = useState(focusIndex >= 0 ? Math.floor(focusIndex / PAGE_SIZE) : 0);
   const pageCount = Math.ceil(rows.length / PAGE_SIZE);
   const visible = rows.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
   return (
@@ -204,7 +208,10 @@ function Board({ title, rows, valueLabel, value, empty = "No players yet." }) {
       </div>
       {visible.length ? (
         visible.map((r, i) => (
-          <div className={`agg-row${me && !me.sample && r.player.profileNumber === me.profileNumber ? " is-me" : ""}`} key={r.player.profileNumber || i}>
+          <div
+            className={`agg-row${me && !me.sample && r.player.profileNumber === me.profileNumber ? " is-me" : ""}${focus && r.player.profileNumber === focus ? " is-focus" : ""}`}
+            key={r.player.profileNumber || i}
+          >
             <Avatar src={r.player.avatar} name={r.player.name} size={46} />
             <span className="agg-rank num">{r.rank ?? page * PAGE_SIZE + i + 1}</span>
             <span className="agg-player">

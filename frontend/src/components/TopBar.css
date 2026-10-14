@@ -126,7 +126,7 @@
 }
 
 .menu-group:hover > .menu-item {
-  background: var(--seg-hover);
+  background: var(--control-raised);
 }
 
 .menu-sub .menu-item {
@@ -158,7 +158,12 @@
   background: var(--control-raised);
 }
 
+/* Every menu icon in the same box, whether it's a Material icon (sized by font) or one of our own
+   SVGs (sized by width), so the labels line up. */
 .menu-item-icon {
+  flex: none;
+  width: 28px !important;
+  height: 28px !important;
   font-size: 28px !important;
 }
 
@@ -197,8 +202,8 @@
 
 .profile-hover-name {
   align-self: stretch;
-  padding: 0 20px 4px;
-  text-align: right;
+  padding: 0 18px 4px;
+  text-align: left;
   font-size: 20px;
   font-weight: 500;
   overflow: hidden;
@@ -231,7 +236,7 @@
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
+  align-items: stretch;
   opacity: 0;
   visibility: hidden;
   transition: opacity 0.12s, visibility 0.12s;
@@ -252,14 +257,18 @@
   filter: blur(2px) brightness(0.7);
 }
 
+/* The same items as the top bar's other menus (More, Aggregate). */
 .profile-hover a,
 .profile-hover button {
-  padding: 2px 20px;
+  padding: 6px 18px;
   border: 0;
   background: none;
-  font-size: 34px;
-  font-weight: 300;
-  text-align: right;
+  color: inherit;
+  font: inherit;
+  font-size: 22px;
+  font-weight: 400;
+  text-align: left;
+  white-space: nowrap;
   cursor: pointer;
 }
 
@@ -269,7 +278,7 @@
 
 .profile-hover a:hover,
 .profile-hover button:hover:not(:disabled) {
-  text-decoration: underline;
+  background: var(--control-raised);
 }
 
 .theme-toggle {
