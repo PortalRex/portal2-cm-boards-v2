@@ -334,6 +334,29 @@ for that player. Rules:
 - Portal Stories: Mel has no public Steam leaderboards, so Mel times come from submissions (and, until it's retired,
   the old Mel board, below). The old `backend/` fetcher service is no longer needed for this.
 
+### Demo parsing
+
+`server/src/tools/demo_parse.rs` reads every demo the boards have with `server/demo-parser/parse_batch.mjs` (many at
+once, in parallel) and stores what's in it on `demos` (migration `20261030000000_demo_parse.sql`): the scoreboard time
+and portal count, the players, who hosted a co-op run, the SAR version and build checksum, SAR's split times, and its
+record of pauses and timescale cheats. Each demo is read once (`parsed_at`): new submissions, demos pulled from the
+old boards and restored demo files are picked up as they come, and the archive is worked through in batches, newest
+first. On by default when `DEMO.PARSER` is set; `DEMO.AUTO_PARSE=false` turns it off.
+
+From what's read, when the demo's scoreboard time is the run's own time:
+- the run gets its portal count and split times (`changelog.portals`, `changelog.segments`) when it has none;
+- a co-op run paired with the placeholder partner gets the partner the demo shows, and who hosted (played blue) is
+  set when it wasn't known; `demos.partner_name` is the partner's name in the demo.
+
+SAR version: SAR echoes its version into the console when it starts recording (`echo "SAR 1.15.5 (Built ...)"`) and
+demos keep console commands, so newer demos name it. SAR also appends the CRC32 of its own binary after the demo's
+stop message (`demos.sar_checksum`; it equals the CRC32 of that release's `sar.dll` / `sar.so` on GitHub), so an
+older demo without the echo gets the version another demo with the same checksum echoed. `sar_approved` is true when
+the checksum is on the old boards' list of approved builds (`demo-parser/checks/sar_whitelist.txt`, from their demo
+checker, mdp, which ends at Oct 2025), else unknown.
+
+`POST /admin/demo_parse?limit=` (staff / service token) reads a batch now; `?runs=1,2,3` reads those runs' demos again.
+
 ### Pulling from the old boards (until they're retired)
 
 While board.portal2.sr and the Mel board are still in use, `server/src/tools/old_boards_sync.rs` pulls what Steam can't

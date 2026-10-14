@@ -12,6 +12,7 @@ pub mod points_cache;
 pub mod points_history;
 /// Locating demo files for download
 pub mod demo_files;
+pub mod demo_parse;
 pub mod ratelimit;
 pub mod old_boards_sync;
 pub mod steam_sync;

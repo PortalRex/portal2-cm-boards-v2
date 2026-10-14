@@ -72,6 +72,14 @@ pub struct DemoConfig {
     /// Folders holding the old boards' demos (searched recursively; several separated by `;`),
     /// so their runs' demos can be downloaded.
     pub archive: Option<String>,
+    /// Read every demo in the background ([crate::tools::demo_parse]); on unless set to false.
+    pub auto_parse: Option<bool>,
+}
+
+impl DemoConfig {
+    pub fn auto_parse(&self) -> bool {
+        self.auto_parse.unwrap_or(true) && self.parser.as_deref().is_some_and(|p| !p.is_empty())
+    }
 }
 
 /// How co-op runs are ranked (`RANKS.COOP`). `run` (the default): a run takes one rank, so the

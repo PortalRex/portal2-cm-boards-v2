@@ -111,6 +111,31 @@ async fn admin_steam_sync(
 }
 
 #[derive(serde::Deserialize)]
+pub struct DemoParseQuery {
+    /// Demos to read (default 50, at most 2000).
+    pub limit: Option<i64>,
+    /// Instead, read these runs' demos again (changelog ids, comma-separated).
+    pub runs: Option<String>,
+}
+
+/// **POST** Read a batch of demos that haven't been read yet now (staff; the background job does
+/// this continuously), or `?runs=1,2,3` to read those runs' demos again. Answers what the batch
+/// did and how many are left.
+#[post("/admin/demo_parse")]
+async fn admin_demo_parse(
+    _auth: AdminOrService,
+    pool: web::Data<PgPool>,
+    config: web::Data<crate::tools::config::Config>,
+    cache: web::Data<crate::tools::cache::CacheState>,
+    query: web::Query<DemoParseQuery>,
+) -> Result<impl Responder> {
+    let limit = query.limit.unwrap_or(50).clamp(1, 2000);
+    let runs: Option<Vec<i64>> = query.runs.as_deref().map(|r| r.split(',').filter_map(|id| id.trim().parse().ok()).collect());
+    let report = crate::tools::demo_parse::run_batch(pool.get_ref(), &config, &cache, limit, runs.as_deref()).await?;
+    Ok(HttpResponse::Ok().json(report))
+}
+
+#[derive(serde::Deserialize)]
 pub struct OldBoardsSyncQuery {
     /// Only report what would happen.
     #[serde(default)]

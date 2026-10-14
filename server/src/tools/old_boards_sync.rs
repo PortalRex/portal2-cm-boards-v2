@@ -375,7 +375,8 @@ async fn restore_demo_files(pool: &PgPool, config: &Config, client: &reqwest::Cl
         fetched += 1;
         match download_demo(config, client, url, legacy_id).await {
             Ok(name) => {
-                sqlx::query("UPDATE demos SET file_id = $2 WHERE id = $1").bind(demo_id).bind(&name).execute(pool).await?;
+                // Read again now that its file is here.
+                sqlx::query("UPDATE demos SET file_id = $2, parsed_at = NULL WHERE id = $1").bind(demo_id).bind(&name).execute(pool).await?;
                 report.demo_files_restored += 1;
             }
             Err(err) if err == GONE => {

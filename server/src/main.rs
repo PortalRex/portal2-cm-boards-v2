@@ -93,6 +93,7 @@ async fn main() -> Result<(), Error> {
     // New Portal 2 times from Steam's leaderboards, on a schedule.
     crate::tools::steam_sync::start(pool.clone(), config.clone(), init_data.clone());
     crate::tools::old_boards_sync::start(pool.clone(), config.clone(), init_data.clone());
+    crate::tools::demo_parse::start(pool.clone(), config.clone(), init_data.clone());
     println!(
         "Server starting at http://{}:{}/",
         config.server.host, config.server.port
