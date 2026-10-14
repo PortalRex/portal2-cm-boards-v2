@@ -1486,3 +1486,7 @@ CREATE INDEX IF NOT EXISTS idx_run_staff_notes_run ON run_staff_notes (changelog
 -- Maps without one use the site's built-in image, if any.
 ALTER TABLE maps ADD COLUMN IF NOT EXISTS image_file character varying(200);
 ALTER TABLE maps ADD COLUMN IF NOT EXISTS image_updated timestamp without time zone;
+
+-- When a player's peak points first reached Legends (Portal 2). Legends can't be lost, so it's
+-- recorded once (tools/points_history.rs) and profiles show the role without working the peak out.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS legends_at timestamp without time zone;

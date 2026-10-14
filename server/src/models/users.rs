@@ -35,6 +35,10 @@ pub struct Users {
     #[sqlx(default)]
     #[serde(default)]
     pub avatar_locked: bool,
+    /// When the player's peak points first reached Legends (kept for good), if they have.
+    #[sqlx(default)]
+    #[serde(default)]
+    pub legends_at: Option<chrono::NaiveDateTime>,
 }
 
 /// One-to-one struct for countries

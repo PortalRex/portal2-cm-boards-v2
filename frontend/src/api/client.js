@@ -633,6 +633,8 @@ function adaptProfile(profileNumber, page, user, history, pbs) {
       steamName: user.steam_name || null,
       nameLocked: !!user.name_locked,
       avatarLocked: !!user.avatar_locked,
+      // When their peak points reached Legends (a role kept for good), if they have.
+      legendsAt: user.legends_at || null,
       frozen: !!user.frozen,
       frozenReason: user.frozen_reason || null,
       steam: profileNumber,

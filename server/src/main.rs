@@ -94,6 +94,7 @@ async fn main() -> Result<(), Error> {
     crate::tools::steam_sync::start(pool.clone(), config.clone(), init_data.clone());
     crate::tools::old_boards_sync::start(pool.clone(), config.clone(), init_data.clone());
     crate::tools::demo_parse::start(pool.clone(), config.clone(), init_data.clone());
+    crate::tools::points_history::start_legends_check(pool.clone());
     println!(
         "Server starting at http://{}:{}/",
         config.server.host, config.server.port

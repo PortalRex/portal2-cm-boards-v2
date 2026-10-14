@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { Line, LineChart, ReferenceDot, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
@@ -17,7 +17,7 @@ import { bumpDataVersion } from "../../lib/dataVersion";
 import { formatDate, formatDateTime, formatScore, ordinalSuffix, timeAgo, formatPoints } from "../../lib/format";
 import { youtubeChannelUrl } from "../../lib/youtube";
 import ProfileTabs from "./ProfileTabs";
-import { POINT_ROLES, playerRole, roleIcon, roleProgress } from "../../data/roles";
+import { playerRole, roleIcon, roleProgress } from "../../data/roles";
 import ActivityHeatmap from "./ActivityHeatmap";
 import { rankVars } from "../../lib/ranks";
 import "./Profile.css";
@@ -43,7 +43,11 @@ export default function Profile() {
   const past = useApi(() => (at && profileNumber ? fetchProfileAt(profileNumber, at) : Promise.resolve(null)), [profileNumber, at, version]);
   const view = p && at && past.data ? profileAsOf(p, past.data, at) : p;
   const pickDay = (day) => setParams(day ? { at: day } : {}, { replace: true });
-  const role = useRole(profileNumber, view?.points, at ? null : peak.data, Boolean(view) && (Boolean(at) || !peak.loading));
+  // Legends is kept once a peak reached it: the server records when, so the name has its colour
+  // as soon as the profile loads (as of a past day, only if it was reached by then).
+  const legendsAt = p?.player.legendsAt ? String(p.player.legendsAt).slice(0, 10) : null;
+  const keptLegends = Boolean(legendsAt && (!at || legendsAt <= at));
+  const role = view ? playerRole(view.points, at ? null : peak.data, keptLegends) : null;
 
   return (
     <Layout background={p?.player.avatar} blur>
@@ -163,32 +167,6 @@ function Ordinal({ n, colored = false }) {
 }
 
 // Highest points the player has ever had per board, with the date (hover) it was reached.
-// The player's role for their name: Legends is kept from the peak, which loads after the
-// profile, so until it's in (`ready`) this shows the role last seen for them in this browser (or
-// none) rather than a lower role that then flips to Legends.
-function useRole(profileNumber, points, peak, ready) {
-  const key = `p2cm.role.${profileNumber || ""}`;
-  const role = ready ? playerRole(points, peak) : null;
-  useEffect(() => {
-    if (!ready) return;
-    try {
-      if (role) localStorage.setItem(key, JSON.stringify({ name: role.name, fromPeak: !!role.fromPeak }));
-      else localStorage.removeItem(key);
-    } catch {
-      // Storage may be unavailable; the role just isn't remembered.
-    }
-  }, [key, ready, role?.name, role?.fromPeak]); // eslint-disable-line react-hooks/exhaustive-deps
-  if (ready) return role;
-  if (!profileNumber) return null;
-  try {
-    const last = JSON.parse(localStorage.getItem(key) || "null");
-    const known = last && POINT_ROLES.find((r) => r.name === last.name);
-    return known ? { ...known, fromPeak: last.fromPeak } : null;
-  } catch {
-    return null;
-  }
-}
-
 function PeakPoints({ peak }) {
   const one = (key, label) => {
     const v = peak.data?.[key];

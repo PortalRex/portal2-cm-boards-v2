@@ -220,10 +220,40 @@ pub async fn profile_at(pool: &PgPool, game_id: i32, profile_number: &str, at: N
     let Some(&me) = t.players.get(profile_number) else {
         return Ok(None);
     };
+    let (totals, mut maps) = standings(&t, at, Some(me));
+    let modes = t.modes.len();
+    let total_of = |p: usize, mode: Option<usize>| -> f64 {
+        match mode {
+            Some(m) => totals[p * modes + m],
+            None => totals[p * modes..(p + 1) * modes].iter().sum(),
+        }
+    };
+    let mine = me as usize;
+    let mut points = BTreeMap::new();
+    let mut places = BTreeMap::new();
+    for (key, mode) in board_keys(&t) {
+        let my = total_of(mine, mode);
+        points.insert(key.clone(), (my * 10.0).round() / 10.0);
+        if my > 0.0 {
+            let ahead = (0..t.players.len()).filter(|&p| total_of(p, mode) > my).count() as u32;
+            places.insert(key, ahead + 1);
+        }
+    }
+    maps.sort_by(|a, b| a.map_id.cmp(&b.map_id));
+    Ok(Some(ProfileAt { at, points, places, maps }))
+}
+
+/// The board keys of a game (its modes, then `overall`), each with its mode index (None = all).
+fn board_keys(t: &Timeline) -> Vec<(String, Option<usize>)> {
+    t.modes.iter().cloned().enumerate().map(|(i, m)| (m, Some(i))).chain(std::iter::once(("overall".to_string(), None))).collect()
+}
+
+/// Everyone's points per mode as of `at` (player-major: `[player * modes + mode]`), and, for `me`,
+/// their best time on each map then.
+fn standings(t: &Timeline, at: NaiveDateTime, me: Option<u32>) -> (Vec<f64>, Vec<MapStanding>) {
     let release = NaiveDate::from_ymd_opt(2011, 4, 19).unwrap().and_hms_opt(0, 0, 0).unwrap();
     let by_run = crate::tools::config::coop_by_run();
     let modes = t.modes.len();
-    // Everyone's points per mode (player-major), for the global places.
     let mut totals = vec![0.0f64; t.players.len() * modes];
     let mut maps = Vec::new();
     for map in &t.maps {
@@ -249,32 +279,81 @@ pub async fn profile_at(pool: &PgPool, game_id: i32, profile_number: &str, at: N
             let rank = counts.range(..s).map(|(_, c)| *c).sum::<u32>() + 1;
             let points = score(rank as i32) as f64;
             totals[p as usize * modes + map.mode] += points;
-            if p == me {
+            if Some(p) == me {
                 let ts = map.runs[i].0;
                 maps.push(MapStanding { map_id: map.map_id.clone(), score: s, rank, points, changelog_id: map.ids[i], timestamp: (ts != release).then_some(ts) });
             }
         }
     }
-    let total_of = |p: usize, mode: Option<usize>| -> f64 {
-        match mode {
-            Some(m) => totals[p * modes + m],
-            None => totals[p * modes..(p + 1) * modes].iter().sum(),
-        }
-    };
-    let mine = me as usize;
-    let mut points = BTreeMap::new();
-    let mut places = BTreeMap::new();
-    let keys: Vec<(String, Option<usize>)> = t.modes.iter().cloned().enumerate().map(|(i, m)| (m, Some(i))).chain(std::iter::once(("overall".to_string(), None))).collect();
-    for (key, mode) in keys {
-        let my = total_of(mine, mode);
-        points.insert(key.clone(), (my * 10.0).round() / 10.0);
-        if my > 0.0 {
-            let ahead = (0..t.players.len()).filter(|&p| total_of(p, mode) > my).count() as u32;
-            places.insert(key, ahead + 1);
-        }
+    (totals, maps)
+}
+
+/// Legends' points thresholds (Portal 2), as in the role manager's official list
+/// (frontend/src/data/roles.js); any one of them is enough.
+const LEGENDS: [(&str, f64); 3] = [("sp", 11700.0), ("coop", 9450.0), ("overall", 21000.0)];
+
+/// Records on the player when their peak reached Legends (the earliest qualifying peak's day).
+async fn record_legends(pool: &PgPool, game_id: i32, profile_number: &str, peaks: &BTreeMap<String, Peak>) -> Result<(), sqlx::Error> {
+    if game_id != 1 {
+        return Ok(());
     }
-    maps.sort_by(|a, b| a.map_id.cmp(&b.map_id));
-    Ok(Some(ProfileAt { at, points, places, maps }))
+    let reached = LEGENDS.iter().filter_map(|(key, min)| peaks.get(*key).filter(|p| p.points >= *min).map(|p| p.date)).min();
+    if let Some(day) = reached {
+        sqlx::query("UPDATE users SET legends_at = $2 WHERE profile_number = $1 AND (legends_at IS NULL OR legends_at > $2)")
+            .bind(profile_number)
+            .bind(day.and_hms_opt(0, 0, 0))
+            .execute(pool)
+            .await?;
+    }
+    Ok(())
+}
+
+/// In the background after startup, works out the peak of every player who could have reached
+/// Legends (at least three quarters of a threshold now: points only drop after a peak as others
+/// pass), so their profile shows Legends at once rather than after the peak is worked out.
+pub fn start_legends_check(pool: PgPool) {
+    tokio::spawn(async move {
+        tokio::time::sleep(std::time::Duration::from_secs(90)).await;
+        let candidates = match legends_candidates(&pool).await {
+            Ok(c) => c,
+            Err(e) => {
+                log::error!("legends check: {e}");
+                return;
+            }
+        };
+        let mut found = 0;
+        for profile in &candidates {
+            match points_peak(&pool, 1, profile).await {
+                Ok(peaks) => found += usize::from(LEGENDS.iter().any(|(k, min)| peaks.get(*k).is_some_and(|p| p.points >= *min))),
+                Err(e) => log::warn!("legends check {profile}: {e}"),
+            }
+            tokio::time::sleep(std::time::Duration::from_millis(20)).await;
+        }
+        log::info!("legends check: {} candidates, {found} reached Legends at their peak", candidates.len());
+    });
+}
+
+async fn legends_candidates(pool: &PgPool) -> Result<Vec<String>, sqlx::Error> {
+    let t = timeline(pool, 1).await?;
+    let (totals, _) = standings(&t, Utc::now().naive_utc(), None);
+    let modes = t.modes.len();
+    let mut names = vec![String::new(); t.players.len()];
+    for (name, &i) in &t.players {
+        names[i as usize] = name.clone();
+    }
+    let keys = board_keys(&t);
+    Ok((0..t.players.len())
+        .filter(|&p| {
+            keys.iter().any(|(key, mode)| {
+                let total = match mode {
+                    Some(m) => totals[p * modes + m],
+                    None => totals[p * modes..(p + 1) * modes].iter().sum(),
+                };
+                LEGENDS.iter().any(|(k, min)| k == key && total >= min * 0.75)
+            })
+        })
+        .map(|p| names[p].clone())
+        .collect())
 }
 
 /// A player's highest points total, with when it was reached.
@@ -294,6 +373,7 @@ pub async fn points_peak(pool: &PgPool, game_id: i32, profile_number: &str) -> R
         return Ok(hit.clone());
     }
     let result = Arc::new(compute_peak(pool, game_id, profile_number).await?);
+    record_legends(pool, game_id, profile_number, &result).await?;
     let mut peaks = cache().peaks.lock().await;
     if peaks.len() >= MAX_CACHED_RESULTS {
         peaks.clear();
