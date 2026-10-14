@@ -299,6 +299,8 @@ function AdminTools({ run, game }) {
   const [reason, setReason] = useState("");
   const [partner, setPartner] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
+  // Removing a demo can't be undone either: it asks for a second click too.
+  const [confirmDemo, setConfirmDemo] = useState(false);
   const [state, setState] = useState({ busy: false, message: null, error: null });
   const changelogId = run.changelogId ?? run.id;
   if (!isStaff(user) || changelogId == null) return null;
@@ -310,6 +312,7 @@ function AdminTools({ run, game }) {
       await fn();
       setState({ busy: false, message: label, error: null });
       setConfirmDelete(false);
+      setConfirmDemo(false);
       bumpDataVersion();
     } catch (e) {
       setState({ busy: false, message: null, error: e.message });
@@ -344,8 +347,14 @@ function AdminTools({ run, game }) {
           ))}
         {/* Removing demos and deleting runs is for the admin tier. */}
         {isRoleAdmin(user) && run.demoId && (
-          <button type="button" disabled={state.busy} onClick={() => act("Demo removed.", () => removeRunDemo(changelogId, why))}>
-            Remove demo
+          <button
+            type="button"
+            className={confirmDemo ? "is-danger" : undefined}
+            disabled={state.busy}
+            onClick={() => (confirmDemo ? act("Demo removed.", () => removeRunDemo(changelogId, why)) : setConfirmDemo(true))}
+            onBlur={() => setConfirmDemo(false)}
+          >
+            {confirmDemo ? "Click again to remove the demo" : "Remove demo"}
           </button>
         )}
         {isRoleAdmin(user) && (
