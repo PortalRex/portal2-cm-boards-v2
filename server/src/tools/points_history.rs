@@ -26,12 +26,16 @@ struct RunRow {
     score: i32,
     timestamp: NaiveDateTime,
     run_key: i64,
+    id: i64,
 }
 
 struct MapTimeline {
+    map_id: String,
     mode: usize,
     /// (time, player index, score, run), oldest first. Both halves of a co-op run share the run.
     runs: Vec<(NaiveDateTime, u32, i32, i64)>,
+    /// The changelog id of each run in `runs`.
+    ids: Vec<i64>,
 }
 
 struct Timeline {
@@ -76,7 +80,7 @@ async fn timeline(pool: &PgPool, game_id: i32) -> Result<Arc<Timeline>, sqlx::Er
             -- boards count them.
             SELECT cl.map_id, c.game_mode, cl.profile_number, cl.score,
                 COALESCE(cl.timestamp, TIMESTAMP '2011-04-19 00:00:00') AS timestamp,
-                COALESCE(cl.coop_id, -cl.id) AS run_key
+                COALESCE(cl.coop_id, -cl.id) AS run_key, cl.id
             FROM changelog AS cl
                 JOIN users AS u ON u.profile_number = cl.profile_number
                 JOIN maps AS m ON m.steam_id = cl.map_id
@@ -110,13 +114,14 @@ async fn timeline(pool: &PgPool, game_id: i32) -> Result<Arc<Timeline>, sqlx::Er
             }
         };
         let next = maps.len();
-        let mi = *map_index.entry(r.map_id).or_insert(next);
+        let mi = *map_index.entry(r.map_id.clone()).or_insert(next);
         if mi == maps.len() {
-            maps.push(MapTimeline { mode, runs: Vec::new() });
+            maps.push(MapTimeline { map_id: r.map_id, mode, runs: Vec::new(), ids: Vec::new() });
         }
         let next_player = players.len() as u32;
         let pi = *players.entry(r.profile_number).or_insert(next_player);
         maps[mi].runs.push((r.timestamp, pi, r.score, r.run_key));
+        maps[mi].ids.push(r.id);
     }
     let t = Arc::new(Timeline { modes, players, maps });
     cache().games.lock().await.insert(game_id, t.clone());
@@ -184,6 +189,92 @@ fn totals_at(t: &Timeline, me: u32, ends: &[NaiveDateTime]) -> Vec<Vec<f64>> {
         }
     }
     totals
+}
+
+/// A player's best time on one map as of a moment, with its rank and points then.
+#[derive(Debug, Serialize)]
+pub struct MapStanding {
+    pub map_id: String,
+    pub score: i32,
+    pub rank: u32,
+    pub points: f64,
+    pub changelog_id: i64,
+    /// None for imported runs without a date.
+    pub timestamp: Option<NaiveDateTime>,
+}
+
+/// A player's standing as of a moment: points and global place per board key (`sp`, `coop`, ...
+/// and `overall`), and their best time on each map then.
+#[derive(Debug, Serialize)]
+pub struct ProfileAt {
+    pub at: NaiveDateTime,
+    pub points: BTreeMap<String, f64>,
+    pub places: BTreeMap<String, u32>,
+    pub maps: Vec<MapStanding>,
+}
+
+/// Where a player stood as of `at` (None when they have no runs in the game): every map's ranks
+/// worked out against everyone's best times then, as the points boards rank them.
+pub async fn profile_at(pool: &PgPool, game_id: i32, profile_number: &str, at: NaiveDateTime) -> Result<Option<ProfileAt>, sqlx::Error> {
+    let t = timeline(pool, game_id).await?;
+    let Some(&me) = t.players.get(profile_number) else {
+        return Ok(None);
+    };
+    let release = NaiveDate::from_ymd_opt(2011, 4, 19).unwrap().and_hms_opt(0, 0, 0).unwrap();
+    let by_run = crate::tools::config::coop_by_run();
+    let modes = t.modes.len();
+    // Everyone's points per mode (player-major), for the global places.
+    let mut totals = vec![0.0f64; t.players.len() * modes];
+    let mut maps = Vec::new();
+    for map in &t.maps {
+        // Each player's best as of `at`: (score, run, index in `runs`).
+        let mut best: HashMap<u32, (i32, i64, usize)> = HashMap::new();
+        for (i, &(ts, p, s, run)) in map.runs.iter().enumerate() {
+            if ts > at {
+                break;
+            }
+            if best.get(&p).map_or(true, |&(old, _, _)| s < old) {
+                best.insert(p, (s, run, i));
+            }
+        }
+        // Entries per time (players, or distinct runs when co-op ranks by run).
+        let mut counts: BTreeMap<i32, u32> = BTreeMap::new();
+        let mut runs_seen = std::collections::HashSet::new();
+        for &(s, run, _) in best.values() {
+            if !by_run || runs_seen.insert(run) {
+                *counts.entry(s).or_insert(0) += 1;
+            }
+        }
+        for (&p, &(s, _, i)) in &best {
+            let rank = counts.range(..s).map(|(_, c)| *c).sum::<u32>() + 1;
+            let points = score(rank as i32) as f64;
+            totals[p as usize * modes + map.mode] += points;
+            if p == me {
+                let ts = map.runs[i].0;
+                maps.push(MapStanding { map_id: map.map_id.clone(), score: s, rank, points, changelog_id: map.ids[i], timestamp: (ts != release).then_some(ts) });
+            }
+        }
+    }
+    let total_of = |p: usize, mode: Option<usize>| -> f64 {
+        match mode {
+            Some(m) => totals[p * modes + m],
+            None => totals[p * modes..(p + 1) * modes].iter().sum(),
+        }
+    };
+    let mine = me as usize;
+    let mut points = BTreeMap::new();
+    let mut places = BTreeMap::new();
+    let keys: Vec<(String, Option<usize>)> = t.modes.iter().cloned().enumerate().map(|(i, m)| (m, Some(i))).chain(std::iter::once(("overall".to_string(), None))).collect();
+    for (key, mode) in keys {
+        let my = total_of(mine, mode);
+        points.insert(key.clone(), (my * 10.0).round() / 10.0);
+        if my > 0.0 {
+            let ahead = (0..t.players.len()).filter(|&p| total_of(p, mode) > my).count() as u32;
+            places.insert(key, ahead + 1);
+        }
+    }
+    maps.sort_by(|a, b| a.map_id.cmp(&b.map_id));
+    Ok(Some(ProfileAt { at, points, places, maps }))
 }
 
 /// A player's highest points total, with when it was reached.

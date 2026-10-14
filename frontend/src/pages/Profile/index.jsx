@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { Link, useParams } from "react-router-dom";
-import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Link, useParams, useSearchParams } from "react-router-dom";
+import { Line, LineChart, ReferenceDot, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import Layout from "../../components/Layout";
 import { Card, Avatar, Flag, Loading, EmptyState } from "../../components/ui";
 import { GlobeIcon, HistoryIcon, PeakIcon, SparkleIcon, TrophyIcon, SteamIcon, TwitchIcon, YouTubeIcon, StarIcon, StarOutlineIcon } from "../../components/Icons";
-import { fetchPointsHistory, fetchPointsPeak, fetchProfile } from "../../api/client";
+import { fetchPointsHistory, fetchPointsPeak, fetchProfile, fetchProfileAt, profileAsOf } from "../../api/client";
+import useWheelZoom from "../../hooks/useWheelZoom";
 import { countryName } from "../../data/countries";
 import useApi from "../../hooks/useApi";
 import { useDataVersion } from "../../lib/dataVersion";
@@ -16,7 +17,7 @@ import { bumpDataVersion } from "../../lib/dataVersion";
 import { formatDate, formatDateTime, formatScore, ordinalSuffix, timeAgo, formatPoints } from "../../lib/format";
 import { youtubeChannelUrl } from "../../lib/youtube";
 import ProfileTabs from "./ProfileTabs";
-import { playerRole, roleProgress } from "../../data/roles";
+import { playerRole, roleIcon, roleProgress } from "../../data/roles";
 import ActivityHeatmap from "./ActivityHeatmap";
 import "./Profile.css";
 
@@ -29,6 +30,12 @@ export default function Profile() {
   // Peak points: shown in their own card, and Legends is kept once a peak reached it.
   const profileNumber = p?.player.profileNumber;
   const peak = useApi(() => (profileNumber ? fetchPointsPeak(profileNumber) : Promise.resolve(null)), [profileNumber, version]);
+  // ?at=YYYY-MM-DD: the profile as it was that day (picked on the points chart).
+  const [params, setParams] = useSearchParams();
+  const at = /^\d{4}-\d{2}-\d{2}$/.test(params.get("at") || "") ? params.get("at") : null;
+  const past = useApi(() => (at && profileNumber ? fetchProfileAt(profileNumber, at) : Promise.resolve(null)), [profileNumber, at, version]);
+  const view = p && at && past.data ? profileAsOf(p, past.data, at) : p;
+  const pickDay = (day) => setParams(day ? { at: day } : {}, { replace: true });
 
   return (
     <Layout background={p?.player.avatar} blur>
@@ -38,8 +45,20 @@ export default function Profile() {
         <EmptyState>Couldn’t load this profile.</EmptyState>
       ) : (
         <div className="profile">
+          {at && (
+            <div className="pf-asof">
+              <span>
+                {past.loading ? "Loading " : "Showing "}
+                {p.player.name}’s profile as it was on <strong className="num">{formatDate(at)}</strong>
+                {past.error ? " (couldn’t load that day)" : ""}
+              </span>
+              <button type="button" className="pf-asof-clear" onClick={() => pickDay(null)}>
+                Back to today
+              </button>
+            </div>
+          )}
           <div className="pf-row pf-row-1">
-            <ProfileHeader player={p.player} role={playerRole(p.points, peak.data)} />
+            <ProfileHeader player={p.player} role={playerRole(view.points, at ? null : peak.data)} />
             <Card icon={SparkleIcon} title="Challenge Mode Points" collapseId="profile.points" className="pf-points">
               <div className="stat-row">
                 {[
@@ -47,8 +66,8 @@ export default function Profile() {
                   ["coop", "Cooperative"],
                   ["overall", "Overall"],
                 ].map(([key, label]) => (
-                  <Stat key={key} value={formatPoints(p.points[key])} label={label}>
-                    <RoleBar board={key} points={p.points[key] || 0} />
+                  <Stat key={key} value={formatPoints(view.points[key])} label={label}>
+                    <RoleBar board={key} points={view.points[key] || 0} />
                   </Stat>
                 ))}
               </div>
@@ -58,44 +77,44 @@ export default function Profile() {
           <div className="pf-row pf-row-2">
             <Card icon={GlobeIcon} title="Global Rank" collapseId="profile.rank" className="pf-global">
               <div className="stat-row">
-                <Stat value={<Ordinal n={p.globalRank?.sp} />} label="Singleplayer" />
-                <Stat value={<Ordinal n={p.globalRank?.coop} />} label="Cooperative" />
-                <Stat value={<Ordinal n={p.globalRank?.overall} />} label="Overall" />
+                <Stat value={<Ordinal n={view.globalRank?.sp} />} label="Singleplayer" />
+                <Stat value={<Ordinal n={view.globalRank?.coop} />} label="Cooperative" />
+                <Stat value={<Ordinal n={view.globalRank?.overall} />} label="Overall" />
                 <Stat
                   value={
                     <>
-                      <Ordinal n={p.globalRank?.country} />
+                      <Ordinal n={view.globalRank?.country} />
                       <Flag code={p.player.country} height={18} />
                     </>
                   }
                   label={`In ${countryName(p.player.country) || "country"}`}
                 />
               </div>
-              <PointsChart profileNumber={p.player.profileNumber} fallback={p.history} />
+              <PointsChart profileNumber={p.player.profileNumber} fallback={p.history} peak={peak.data} at={at} onPick={pickDay} />
             </Card>
 
             <Card icon={SparkleIcon} title="Statistics" collapseId="profile.stats" className="pf-stats">
               <div className="pf-stat-grid">
-                <ScoreStat label="Newest score" entry={p.newest} green />
-                <ScoreStat label="Oldest score" entry={p.oldest} />
-                <PlaceStat label="Best place" entry={p.best} />
-                <PlaceStat label="Worst place" entry={p.worst} />
+                <ScoreStat label="Newest score" entry={view.newest} green />
+                <ScoreStat label="Oldest score" entry={view.oldest} />
+                <PlaceStat label="Best place" entry={view.best} />
+                <PlaceStat label="Worst place" entry={view.worst} />
               </div>
             </Card>
 
             <div className="pf-side">
               <Card icon={SparkleIcon} title="Average Place" collapseId="profile.average" className="pf-side-card">
                 <div className="stat-row">
-                  <Stat value={fmtAvg(p.averagePlace.sp)} label="Single Player" />
-                  <Stat value={fmtAvg(p.averagePlace.coop)} label="Cooperative" />
-                  <Stat value={fmtAvg(p.averagePlace.overall)} label="Overall" />
+                  <Stat value={fmtAvg(view.averagePlace.sp)} label="Single Player" />
+                  <Stat value={fmtAvg(view.averagePlace.coop)} label="Cooperative" />
+                  <Stat value={fmtAvg(view.averagePlace.overall)} label="Overall" />
                 </div>
               </Card>
               <Card icon={TrophyIcon} title="World Records" collapseId="profile.wrs" className="pf-side-card">
                 <div className="stat-row">
-                  <Stat value={p.worldRecords.sp} label="Single Player" />
-                  <Stat value={p.worldRecords.coop} label="Cooperative" />
-                  <Stat value={p.worldRecords.sp + p.worldRecords.coop} label="Overall" />
+                  <Stat value={view.worldRecords.sp} label="Single Player" />
+                  <Stat value={view.worldRecords.coop} label="Cooperative" />
+                  <Stat value={view.worldRecords.sp + view.worldRecords.coop} label="Overall" />
                 </div>
               </Card>
               <PeakPoints peak={peak} />
@@ -108,7 +127,7 @@ export default function Profile() {
             </Card>
           )}
 
-          <ProfileTabs profile={p} />
+          <ProfileTabs profile={view} />
         </div>
       )}
     </Layout>
@@ -232,6 +251,7 @@ function ProfileHeader({ player, role }) {
       <div className="pf-identity">
         <h1 className="pf-name" style={role ? { color: role.color } : undefined} title={role ? (role.fromPeak ? `${role.name} (reached at peak points, kept for good)` : `${role.name} (from points)`) : undefined}>
           {player.name}
+          {role && <img className="pf-role-icon" src={roleIcon(role)} alt={role.name} />}
         </h1>
         {/* All badges together on one row under the name. */}
         <div className="pf-badges">
@@ -511,32 +531,81 @@ const SERIES = [
 ];
 
 // Points over time as they really were: ranks are recomputed against everyone's best times at
-// each date, so being passed shows as a drop (see fetchPointsHistory in api/client).
-function PointsChart({ profileNumber, fallback }) {
+// each date, so being passed shows as a drop (see fetchPointsHistory in api/client). Scroll over
+// it to zoom; click a day to see the profile as it was then. Each board's peak is marked.
+const dayMs = (date) => Date.parse(`${String(date).slice(0, 10)}T00:00:00Z`);
+
+function PointsChart({ profileNumber, fallback, peak, at, onPick }) {
   const [hidden, setHidden] = useState({});
   const version = useDataVersion();
   const history = useApi(() => fetchPointsHistory(profileNumber, fallback), [profileNumber, version]);
-  const data = history.data || [];
+  // The samples plus each board's peak (the samples are weekly and can miss the peak day).
+  const all = useMemo(() => {
+    const rows = (history.data || []).map((d) => ({ ...d, t: dayMs(d.date) }));
+    if (rows.length < 2) return rows;
+    const extra = SERIES.filter((s) => peak?.[s.key]?.date && peak[s.key].points > 0).map((s) => ({
+      date: String(peak[s.key].date).slice(0, 10),
+      t: dayMs(peak[s.key].date),
+      [s.key]: Math.round(peak[s.key].points),
+      peakOf: s.key,
+    }));
+    return [...rows, ...extra].sort((a, b) => a.t - b.t);
+  }, [history.data, peak]);
+  const full = all.length ? [all[0].t, all[all.length - 1].t] : null;
+  const [zoom, zoomRef, resetZoom] = useWheelZoom(full, { left: 10, right: 10, minSpan: 14 * 24 * 3600 * 1000 });
   if (history.loading && !history.data) return <div className="pf-chart-empty muted">Loading points history…</div>;
-  if (data.length < 2) return <div className="pf-chart-empty muted">Not enough submissions for a points history yet.</div>;
+  if (all.length < 2) return <div className="pf-chart-empty muted">Not enough submissions for a points history yet.</div>;
+  const [from, to] = zoom || full;
+  // What's in view, plus the samples either side so the lines run to the edges.
+  const first = Math.max(0, all.findIndex((d) => d.t >= from) - 1);
+  let lastIn = all.length - 1;
+  while (lastIn > 0 && all[lastIn].t > to) lastIn -= 1;
+  const data = all.slice(first, Math.min(all.length, lastIn + 2));
+  const atMs = at ? dayMs(at) : null;
+  const pick = (state) => {
+    const d = state?.activePayload?.[0]?.payload;
+    if (d?.date) onPick?.(String(d.date).slice(0, 10));
+  };
   return (
     <div className="pf-chart">
-      <ResponsiveContainer width="100%" height={150}>
-        <LineChart data={data} margin={{ top: 10, right: 10, bottom: 0, left: 10 }}>
-          <XAxis dataKey="date" hide />
-          <YAxis hide domain={[0, "dataMax"]} />
-          <Tooltip
-            isAnimationActive={false}
-            contentStyle={{ background: "var(--menu)", border: "1px solid var(--border)", borderRadius: 4 }}
-            labelStyle={{ color: "var(--text-2)" }}
-            labelFormatter={(d) => formatDate(d)}
-            formatter={(v, name) => [`${v} pts`, name]}
-          />
-          {SERIES.filter((s) => !hidden[s.key]).map((s) => (
-            <Line key={s.key} type="linear" dataKey={s.key} name={s.label} stroke={s.color} strokeWidth={3} dot={false} isAnimationActive={false} />
-          ))}
-        </LineChart>
-      </ResponsiveContainer>
+      <div ref={zoomRef} className="pf-chart-plot" title="Scroll to zoom · click a day to see the profile as it was then">
+        <ResponsiveContainer width="100%" height={150}>
+          <LineChart data={data} margin={{ top: 22, right: 10, bottom: 0, left: 10 }} onClick={pick}>
+            <XAxis dataKey="t" type="number" domain={[from, to]} allowDataOverflow hide />
+            <YAxis hide domain={[0, "dataMax"]} />
+            <Tooltip
+              isAnimationActive={false}
+              contentStyle={{ background: "var(--menu)", border: "1px solid var(--border)", borderRadius: 4 }}
+              labelStyle={{ color: "var(--text-2)" }}
+              labelFormatter={(t, items) => {
+                const d = items?.[0]?.payload;
+                return `${formatDate(d?.date || new Date(t).toISOString().slice(0, 10))}${d?.peakOf ? " · peak" : ""}`;
+              }}
+              formatter={(v, name) => [`${v} pts`, name]}
+            />
+            {atMs != null && atMs >= from && atMs <= to && <ReferenceLine x={atMs} stroke="var(--accent)" strokeDasharray="4 3" />}
+            {SERIES.filter((s) => !hidden[s.key]).map((s) => (
+              <Line key={s.key} type="linear" dataKey={s.key} name={s.label} stroke={s.color} strokeWidth={3} dot={false} connectNulls isAnimationActive={false} />
+            ))}
+            {SERIES.filter((s) => !hidden[s.key] && peak?.[s.key]?.date).map((s) => {
+              const t = dayMs(peak[s.key].date);
+              if (t < from || t > to) return null;
+              return (
+                <ReferenceDot
+                  key={`peak-${s.key}`}
+                  x={t}
+                  y={Math.round(peak[s.key].points)}
+                  r={4}
+                  fill={s.color}
+                  stroke="var(--panel)"
+                  strokeWidth={2}
+                  label={{ value: `Peak ${Math.round(peak[s.key].points)}`, position: "top", fill: "var(--text-2)", fontSize: 11 }}
+                />
+              );
+            })}
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
       <div className="pf-legend">
         <span className="pf-legend-title muted">Points over time</span>
         {SERIES.map((s) => (
@@ -545,6 +614,11 @@ function PointsChart({ profileNumber, fallback }) {
             {s.label}
           </button>
         ))}
+        {zoom && (
+          <button type="button" className="pf-chart-reset" onClick={resetZoom}>
+            Reset zoom
+          </button>
+        )}
       </div>
     </div>
   );

@@ -14,6 +14,9 @@
 //!   Co-op halves are paired the way the import paired them: same map and time, set within
 //!   three hours; else with the map's placeholder partner.
 //!
+//! Demos we have a record of but no file for (submitted after the demo archive was copied) are
+//! downloaded from the old board too.
+//!
 //! Then a Steam sync run the old board still doesn't have, once its own fetcher has moved past
 //! it, is one the old board left out on purpose, and is hidden (staff can see why in the audit
 //! log). If the old board adds it later, the next pull links it and shows it again.
@@ -46,6 +49,8 @@ const MAX_DEMO_BYTES: usize = 50 * 1024 * 1024;
 /// Shown in the audit log for runs this hides.
 const HIDDEN_REASON: &str = "Not on the old board (hidden by the old-board sync)";
 const CHANGED_REASON: &str = "Changed on the old board";
+/// At most this many missing demo files fetched per board per pull.
+const MAX_DEMO_FILES: usize = 500;
 /// At most this many lines of detail in a report.
 const MAX_DETAILS: usize = 300;
 
@@ -65,6 +70,12 @@ pub struct BoardReport {
     pub inserted: usize,
     pub demos_added: usize,
     pub demos_failed: usize,
+    /// Demo records whose file we didn't have (newer than the demo archive), downloaded again.
+    pub demo_files_restored: usize,
+    /// Of those, ones the old board couldn't give us (or, for a dry run, all of them).
+    pub demo_files_missing: usize,
+    /// Of those, ones the old board has lost too (not asked for again until the server restarts).
+    pub demo_files_gone: usize,
     pub hidden: usize,
     pub players_created: usize,
     /// Entries on maps we don't have.
@@ -170,6 +181,14 @@ fn unescape_note(note: &str) -> String {
         }
     }
     out
+}
+
+/// (game, old board id) of demos the old board has lost too, so they aren't asked for every pull.
+static GONE_DEMOS: std::sync::Mutex<Option<HashSet<(i32, i64)>>> = std::sync::Mutex::new(None);
+const GONE: &str = "the old board has lost this demo too";
+
+fn is_gone(game_id: i32, legacy_id: i64) -> bool {
+    GONE_DEMOS.lock().map(|g| g.as_ref().is_some_and(|set| set.contains(&(game_id, legacy_id)))).unwrap_or(false)
 }
 
 /// One pull at a time (the schedule and the staff endpoint share it).
@@ -318,7 +337,61 @@ async fn pull(
         }
     }
 
-    hide_missing(pool, game_id, since, &entries, &accounted, dry_run, report, touched).await
+    hide_missing(pool, game_id, since, &entries, &accounted, dry_run, report, touched).await?;
+    restore_demo_files(pool, config, client, url, game_id, dry_run, report).await
+}
+
+/// Downloads the files of this board's demos that we have a record of but no file for (demos
+/// submitted after the demo archive was copied), from the old board.
+async fn restore_demo_files(pool: &PgPool, config: &Config, client: &reqwest::Client, url: &str, game_id: i32, dry_run: bool, report: &mut BoardReport) -> Result<(), sqlx::Error> {
+    if config.demo.storage.as_deref().unwrap_or("").is_empty() {
+        return Ok(());
+    }
+    let rows: Vec<(i64, String, i64, i64)> = sqlx::query_as(
+        r#"
+            SELECT d.id, d.file_id, c.id, l.legacy_id FROM demos AS d
+                JOIN changelog AS c ON c.demo_id = d.id
+                JOIN legacy_changelog_ids AS l ON l.changelog_id = c.id AND l.game_id = $1
+            ORDER BY c.id DESC
+        "#,
+    )
+    .bind(game_id)
+    .fetch_all(pool)
+    .await?;
+    let mut fetched = 0;
+    for (demo_id, file, cl_id, legacy_id) in rows {
+        if crate::tools::demo_files::locate(&config.demo, &file, Some(cl_id)).await.is_some() {
+            continue;
+        }
+        if is_gone(game_id, legacy_id) {
+            report.demo_files_missing += 1;
+            report.demo_files_gone += 1;
+            continue;
+        }
+        if dry_run || fetched >= MAX_DEMO_FILES {
+            report.demo_files_missing += 1;
+            continue;
+        }
+        fetched += 1;
+        match download_demo(config, client, url, legacy_id).await {
+            Ok(name) => {
+                sqlx::query("UPDATE demos SET file_id = $2 WHERE id = $1").bind(demo_id).bind(&name).execute(pool).await?;
+                report.demo_files_restored += 1;
+            }
+            Err(err) if err == GONE => {
+                report.demo_files_missing += 1;
+                report.demo_files_gone += 1;
+                if let Ok(mut g) = GONE_DEMOS.lock() {
+                    g.get_or_insert_with(HashSet::new).insert((game_id, legacy_id));
+                }
+            }
+            Err(err) => {
+                report.demo_files_missing += 1;
+                log::warn!("old-board sync: demo file for old board run {legacy_id} ({}): {err}", report.board);
+            }
+        }
+    }
+    Ok(())
 }
 
 async fn fetch(client: &reqwest::Client, url: &str) -> Result<Vec<Entry>, String> {
@@ -681,19 +754,7 @@ async fn pair(tx: &mut Transaction<'_, Postgres>, id: i64, map: &BoardMap, profi
 
 /// Downloads the old board's demo for a run into the demo storage and attaches it.
 async fn attach_demo(pool: &PgPool, config: &Config, client: &reqwest::Client, url: &str, legacy_id: i64, cl_id: i64) -> Result<(), String> {
-    let dir = config.demo.storage.as_deref().filter(|d| !d.is_empty()).ok_or("no demo storage (DEMO.STORAGE)")?;
-    let res = client.get(format!("{url}/getDemo?id={legacy_id}")).send().await.map_err(|e| e.to_string())?;
-    if !res.status().is_success() {
-        return Err(format!("HTTP {}", res.status()));
-    }
-    // The file's own name (Map_score_steamid_id.dem), as in the demo archive.
-    let name = res.url().path().rsplit('/').next().map(|n| sanitize_filename::sanitize(n)).filter(|n| n.to_ascii_lowercase().ends_with(".dem")).unwrap_or_else(|| format!("{legacy_id}.dem"));
-    let bytes = res.bytes().await.map_err(|e| e.to_string())?;
-    if bytes.len() > MAX_DEMO_BYTES || bytes.len() < 1072 || &bytes[..8] != b"HL2DEMO\0" {
-        return Err("not a demo".into());
-    }
-    tokio::fs::create_dir_all(dir).await.map_err(|e| e.to_string())?;
-    tokio::fs::write(Path::new(dir).join(&name), &bytes).await.map_err(|e| e.to_string())?;
+    let name = download_demo(config, client, url, legacy_id).await?;
     let mut tx = pool.begin().await.map_err(|e| e.to_string())?;
     let demo_id: i64 = sqlx::query_scalar("INSERT INTO demos (file_id, parsed_successfully, cl_id) VALUES ($1, false, $2) RETURNING id")
         .bind(&name)
@@ -703,6 +764,28 @@ async fn attach_demo(pool: &PgPool, config: &Config, client: &reqwest::Client, u
         .map_err(|e| e.to_string())?;
     sqlx::query("UPDATE changelog SET demo_id = $2 WHERE id = $1 AND demo_id IS NULL").bind(cl_id).bind(demo_id).execute(&mut *tx).await.map_err(|e| e.to_string())?;
     tx.commit().await.map_err(|e| e.to_string())
+}
+
+/// Saves the old board's demo for a run in the demo storage; returns the file name.
+async fn download_demo(config: &Config, client: &reqwest::Client, url: &str, legacy_id: i64) -> Result<String, String> {
+    let dir = config.demo.storage.as_deref().filter(|d| !d.is_empty()).ok_or("no demo storage (DEMO.STORAGE)")?;
+    let res = client.get(format!("{url}/getDemo?id={legacy_id}")).send().await.map_err(|e| e.to_string())?;
+    if !res.status().is_success() {
+        return Err(format!("HTTP {}", res.status()));
+    }
+    // The file's own name (Map_score_steamid_id.dem), as in the demo archive.
+    let name = res.url().path().rsplit('/').next().map(|n| sanitize_filename::sanitize(n)).filter(|n| n.to_ascii_lowercase().ends_with(".dem")).unwrap_or_else(|| format!("{legacy_id}.dem"));
+    let bytes = res.bytes().await.map_err(|e| e.to_string())?;
+    // The old board answers this (with a 200) when the file is gone.
+    if bytes.starts_with(b"Demo URL cannot be resolved") {
+        return Err(GONE.into());
+    }
+    if bytes.len() > MAX_DEMO_BYTES || bytes.len() < 1072 || &bytes[..8] != b"HL2DEMO\0" {
+        return Err("not a demo".into());
+    }
+    tokio::fs::create_dir_all(dir).await.map_err(|e| e.to_string())?;
+    tokio::fs::write(Path::new(dir).join(&name), &bytes).await.map_err(|e| e.to_string())?;
+    Ok(name)
 }
 
 /// Hides the Steam sync's runs the old board doesn't have, once its newest entry is well past

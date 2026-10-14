@@ -245,7 +245,7 @@ impl CacheState {
         let mut map_scores = HashMap::with_capacity(coop.len() + sp.len());
         for map in sp {
             let res =
-                SpMap::get_sp_map_page(pool, &map, config.proof.results, default_cat_ids[&map], 1)
+                SpMap::get_sp_map_page(pool, &map, config.proof.results, default_cat_ids[&map], 1, None)
                     .await?;
             let ranks = sp_ranks(&res);
             map_scores.insert(map.clone(), sorted_scores(res.iter().map(|e| e.score).collect()));
@@ -262,6 +262,7 @@ impl CacheState {
                 &map,
                 default_cat_ids[&map],
                 1,
+                None,
             )
             .await?;
             // Same filtering and ranking as the co-op map page (one entry per player, ties shared).
@@ -296,6 +297,7 @@ impl CacheState {
                 map_id,
                 self.default_cat_ids[map_id],
                 1,
+                None,
             )
             .await
             .unwrap();
@@ -315,6 +317,7 @@ impl CacheState {
                 config.proof.results,
                 self.default_cat_ids[map_id],
                 1,
+                None,
             )
             .await
             .unwrap();

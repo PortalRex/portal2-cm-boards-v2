@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Navigate, useParams } from "react-router-dom";
-import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Navigate, useParams, useSearchParams } from "react-router-dom";
+import { Area, AreaChart, CartesianGrid, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import Layout from "../../components/Layout";
 import { Panel, Select, Pagination, SearchBox, Avatar, PlayerLink, OutlineButton, Loading, EmptyState, RankNumber } from "../../components/ui";
 import { PinIcon, TrophyIcon, HistoryIcon, WikiIcon } from "../../components/Icons";
@@ -17,6 +17,7 @@ import useApi from "../../hooks/useApi";
 import { useDataVersion } from "../../lib/dataVersion";
 import { formatScore, timeAgo, formatDate, formatDateTime, parseTimestamp } from "../../lib/format";
 import { TimeButton } from "../../components/RunHistory";
+import useWheelZoom from "../../hooks/useWheelZoom";
 import { BANNED_OPTIONS, RANK_OPTIONS, RUN_LIMITS, RUN_TOGGLES, TIME_OPTIONS } from "../../lib/runFilters";
 import "./MapPage.css";
 
@@ -36,9 +37,16 @@ export default function MapPage() {
 function MapPageContent({ map }) {
   const user = useCurrentUser();
   const version = useDataVersion();
-  const board = useApi(() => fetchBoard(map), [map.id, version]);
+  // ?at=: the board as it stood then (picked on the WR history chart).
+  const [params, setParams] = useSearchParams();
+  const at = params.get("at");
+  const board = useApi(() => fetchBoard(map, at), [map.id, version, at]);
   const history = useApi(() => fetchWrHistory(map), [map.id, version]);
   const [view, setView] = useState("board");
+  const pickMoment = (t) => {
+    setParams(t ? { at: new Date(t).toISOString().slice(0, 19) } : {}, { replace: true });
+    setView("board");
+  };
   const wr = board.data?.[0];
   const wrRendered = useRenderedSet(wr ? [wr] : [], map.game);
 
@@ -49,7 +57,7 @@ function MapPageContent({ map }) {
           <div className="mp-info-left">
             <h1 className="mp-title">{map.title}</h1>
             <p className="mp-chapter">{map.chapter}</p>
-            <WrHistoryChart points={history.data} loading={history.loading} />
+            <WrHistoryChart points={history.data} loading={history.loading} at={at} onPick={pickMoment} />
             <Select value="main" onChange={() => {}} options={map.game === "mel" ? MEL_CATEGORIES : CATEGORIES} label="Category" className="mp-select" />
           </div>
           <div className="mp-info-right">
@@ -77,7 +85,7 @@ function MapPageContent({ map }) {
         </div>
 
         <div className="mp-lower">
-          {view === "board" ? <Leaderboard map={map} board={board} /> : view === "wr" ? <WrHistoryEditor map={map} /> : <ChamberHistory map={map} />}
+          {view === "board" ? <Leaderboard map={map} board={board} at={at} onClearAt={() => pickMoment(null)} /> : view === "wr" ? <WrHistoryEditor map={map} /> : <ChamberHistory map={map} />}
         </div>
       </Panel>
     </Layout>
@@ -96,24 +104,33 @@ const WR_RANGES = [
 const YEAR_MS = 365.25 * 24 * 3600 * 1000;
 const MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-// Axis ticks for [from, to]: the start of each year (or each quarter for short ranges), thinned
-// to at most `max` so labels never overlap.
+const DAY_MS = 24 * 3600 * 1000;
+
+// Axis ticks for [from, to] and their labels: years, quarters, months, or days as the span
+// shrinks, thinned to at most `max` so labels never overlap.
 function timeTicks(from, to, max = 7) {
-  const short = to - from < 2.5 * YEAR_MS;
+  const span = to - from;
+  if (span < 75 * DAY_MS) {
+    const n = 4;
+    const ticks = Array.from({ length: n }, (_, i) => from + (span * (i + 0.5)) / n);
+    return { ticks, label: (t) => `${MONTHS_SHORT[new Date(t).getMonth()]} ${new Date(t).getDate()}` };
+  }
+  const months = span < 0.75 * YEAR_MS ? 1 : span < 2.5 * YEAR_MS ? 3 : 12;
   const ticks = [];
   const d = new Date(from);
-  let cur = short ? new Date(d.getFullYear(), Math.floor(d.getMonth() / 3) * 3 + 3, 1) : new Date(d.getFullYear() + 1, 0, 1);
+  let cur = new Date(d.getFullYear(), Math.floor(d.getMonth() / months) * months + months, 1);
   while (cur.getTime() <= to) {
     ticks.push(cur.getTime());
-    cur = short ? new Date(cur.getFullYear(), cur.getMonth() + 3, 1) : new Date(cur.getFullYear() + 1, 0, 1);
+    cur = new Date(cur.getFullYear(), cur.getMonth() + months, 1);
   }
   const step = Math.max(1, Math.ceil(ticks.length / max));
-  return { ticks: ticks.filter((_, i) => i % step === 0), short };
+  const label = months === 12 ? (t) => new Date(t).getFullYear() : (t) => `${MONTHS_SHORT[new Date(t).getMonth()]} ${new Date(t).getFullYear()}`;
+  return { ticks: ticks.filter((_, i) => i % step === 0), label };
 }
 
 function WrTooltip({ active, payload }) {
   const p = active && payload?.[0]?.payload;
-  if (!p || p.now) return null;
+  if (!p || p.now || p.carried) return null;
   return (
     <div className="mp-chart-tip">
       <span className="muted">{formatDate(p.t)}</span>
@@ -124,13 +141,21 @@ function WrTooltip({ active, payload }) {
   );
 }
 
-function WrHistoryChart({ points, loading }) {
+// Scroll over the chart to zoom; click a point to see the board as it stood then.
+function WrHistoryChart({ points, loading, at, onPick }) {
   // Records oldest first, each with how much it took off the previous one.
   const records = useMemo(() => {
     const list = (points || []).map((p) => ({ ...p, t: parseTimestamp(p.timestamp).getTime() })).sort((a, b) => a.t - b.t);
     return list.map((p, i) => ({ ...p, gain: i > 0 && list[i - 1].score > p.score ? list[i - 1].score - p.score : null }));
   }, [points]);
   const [range, setRange] = useState("all");
+  const now = useMemo(() => Date.now(), [records]); // eslint-disable-line react-hooks/exhaustive-deps
+  const first = records[0]?.t ?? now;
+  const span = now - first;
+  const ranges = WR_RANGES.filter((r) => !r.years || r.years * YEAR_MS < span);
+  const years = ranges.find((r) => r.value === range)?.years;
+  const rangeFrom = years ? now - years * YEAR_MS : first;
+  const [zoom, zoomRef, resetZoom] = useWheelZoom([rangeFrom, now], { left: 56, right: 12, minSpan: 7 * DAY_MS });
   useEffect(() => setRange("all"), [records]);
   if (loading && !records.length)
     return (
@@ -140,38 +165,52 @@ function WrHistoryChart({ points, loading }) {
     );
   if (!records.length) return <div className="mp-chart mp-chart-empty muted">No world record history</div>;
 
-  const now = Date.now();
-  const first = records[0].t;
-  const span = now - first;
-  const ranges = WR_RANGES.filter((r) => !r.years || r.years * YEAR_MS < span);
-  const years = ranges.find((r) => r.value === range)?.years;
-  const from = years ? now - years * YEAR_MS : first;
-  // What's in view: the record standing at the start of the range, the ones set in it, and the
-  // current one carried on to today.
+  const [from, to] = zoom || [rangeFrom, now];
+  // What's in view: the record standing at the start, the ones set in view, and the one standing
+  // at the end carried on to it (today, unless zoomed in).
   const before = records.filter((r) => r.t < from);
-  const inRange = records.filter((r) => r.t >= from);
+  const inRange = records.filter((r) => r.t >= from && r.t <= to);
+  const standing = [...before, ...inRange];
   const data = [
     ...(before.length ? [{ ...before[before.length - 1], t: from, carried: true }] : []),
     ...inRange,
-    { ...records[records.length - 1], t: now, now: true, gain: null },
+    ...(standing.length ? [{ ...standing[standing.length - 1], t: to, now: to >= now, carried: to < now, gain: null }] : []),
   ];
   const scores = data.map((d) => d.score);
   const min = Math.min(...scores);
   const max = Math.max(...scores);
   const pad = Math.max(1, Math.round((max - min) * 0.08));
-  const { ticks, short } = timeTicks(from, now);
+  const { ticks, label } = timeTicks(from, to);
+  const atMs = at ? parseTimestamp(at).getTime() : null;
+  const pick = (state) => {
+    const p = state?.activePayload?.[0]?.payload;
+    if (p) onPick?.(p.now ? null : p.t);
+  };
 
   return (
     <div className="mp-chart">
       <div className="mp-chart-head">
         <span className="muted mp-chart-count">
           {records.length} world record{records.length === 1 ? "" : "s"}
-          {years ? ` · ${inRange.length} in view` : ""}
+          {years || zoom ? ` · ${inRange.length} in view` : ""}
         </span>
+        {zoom && (
+          <button type="button" className="mp-chart-reset" onClick={resetZoom}>
+            Reset zoom
+          </button>
+        )}
         {ranges.length > 1 && (
           <div className="segmented mp-chart-ranges" role="group" aria-label="Range">
             {ranges.map((r) => (
-              <button key={r.value} type="button" className={range === r.value ? "is-active" : ""} onClick={() => setRange(r.value)}>
+              <button
+                key={r.value}
+                type="button"
+                className={range === r.value && !zoom ? "is-active" : ""}
+                onClick={() => {
+                  setRange(r.value);
+                  resetZoom();
+                }}
+              >
                 {r.label}
               </button>
             ))}
@@ -179,8 +218,9 @@ function WrHistoryChart({ points, loading }) {
         )}
         <TrophyIcon className="mp-chart-trophy" />
       </div>
+      <div ref={zoomRef} className="mp-chart-plot" title="Scroll to zoom · click to see the board as it stood then">
       <ResponsiveContainer width="100%" height={170}>
-        <AreaChart data={data} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
+        <AreaChart data={data} margin={{ top: 8, right: 12, bottom: 0, left: 0 }} onClick={pick}>
           <defs>
             <linearGradient id="wrFill" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#9d5fd0" stopOpacity={0.35} />
@@ -192,9 +232,10 @@ function WrHistoryChart({ points, loading }) {
             dataKey="t"
             type="number"
             scale="time"
-            domain={[from, now]}
+            domain={[from, to]}
+            allowDataOverflow
             ticks={ticks}
-            tickFormatter={(t) => (short ? `${MONTHS_SHORT[new Date(t).getMonth()]} ${new Date(t).getFullYear()}` : new Date(t).getFullYear())}
+            tickFormatter={label}
             tick={{ fill: "var(--text-2)", fontSize: 13 }}
             axisLine={false}
             tickLine={false}
@@ -210,6 +251,7 @@ function WrHistoryChart({ points, loading }) {
             width={56}
           />
           <Tooltip isAnimationActive={false} content={<WrTooltip />} cursor={{ stroke: "var(--border-strong)" }} />
+          {atMs != null && atMs >= from && atMs <= to && <ReferenceLine x={atMs} stroke="var(--accent)" strokeDasharray="4 3" />}
           <Area
             type="stepAfter"
             dataKey="score"
@@ -222,11 +264,12 @@ function WrHistoryChart({ points, loading }) {
           />
         </AreaChart>
       </ResponsiveContainer>
+      </div>
     </div>
   );
 }
 
-function Leaderboard({ map, board }) {
+function Leaderboard({ map, board, at, onClearAt }) {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
   const coop = isMultiplayerMode(map.mode);
@@ -251,7 +294,18 @@ function Leaderboard({ map, board }) {
 
   return (
     <>
-      <YourBest map={map} board={board.data} onShow={showEntry} />
+      {at ? (
+        <div className="mp-asof">
+          <span>
+            Leaderboard as it stood on <strong className="num">{formatDateTime(at)}</strong>
+          </span>
+          <button type="button" className="mp-asof-clear" onClick={onClearAt}>
+            Back to the current board
+          </button>
+        </div>
+      ) : (
+        <YourBest map={map} board={board.data} onShow={showEntry} />
+      )}
       <div className="mp-toolbar">
         <SearchBox
           value={search}

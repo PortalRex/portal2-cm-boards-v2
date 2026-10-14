@@ -62,6 +62,7 @@ impl CoopMap {
         map_id: &str,
         cat_id: i32,
         game_id: i32,
+        at: Option<chrono::NaiveDateTime>,
     ) -> Result<Vec<CoopMap>, sqlx::Error> {
         sqlx::query_as::<_, CoopMap>(
             r#"
@@ -96,12 +97,15 @@ impl CoopMap {
                     AND c2.verified = True
                     AND c1.category_id = $2
                     AND chapters.game_id = $3
+                    -- As of a moment: set when its first half was logged (undated runs count from release).
+                    AND ($4::timestamp IS NULL OR COALESCE(LEAST(c1.timestamp, c2.timestamp), TIMESTAMP '2011-04-19 00:00:00') <= $4)
                 ORDER BY score ASC
                 "#,
         )
         .bind(map_id)
         .bind(cat_id)
         .bind(game_id)
+        .bind(at)
         .fetch_all(pool)
         .await
     }

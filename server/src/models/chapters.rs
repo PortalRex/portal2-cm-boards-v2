@@ -28,6 +28,8 @@ pub struct GameID {
 pub struct OptIDs {
     pub cat_id: Option<i32>,
     pub game_id: Option<i32>,
+    /// For map boards: the board as it stood at this moment (see [crate::tools::helpers::parse_moment]).
+    pub at: Option<String>,
 }
 
 /// Querying for Chapters

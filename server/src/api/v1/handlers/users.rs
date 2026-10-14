@@ -402,6 +402,30 @@ async fn profile_points_history(req: HttpRequest, config: web::Data<crate::tools
 
 /// **GET** A player's peak points per board in a game (default Portal 2), each with the date it
 /// was reached: `{ "sp": { "points": 10450.2, "date": "2024-05-01" }, "coop": ..., "overall": ... }`.
+#[derive(serde::Deserialize)]
+pub struct ProfileAtQuery {
+    /// The day (YYYY-MM-DD, as of its end in UTC) or moment (ISO, UTC) to look back at.
+    pub at: String,
+    pub game_id: Option<i32>,
+}
+
+/// **GET** Where a player stood at a past moment: points and global place per board, and their
+/// best time, rank and points on each map then (ranks against everyone's times as of then).
+/// `?at=2021-04-06` or `?at=2021-04-06T12:00:00`.
+#[get("/profile/at/{profile_number}")]
+async fn profile_at(req: HttpRequest, config: web::Data<crate::tools::config::Config>, pool: web::Data<PgPool>, profile_number: web::Path<String>, query: web::Query<ProfileAtQuery>) -> Result<impl Responder> {
+    if let Err(limited) = crate::tools::ratelimit::check(&req, &config, "points", 60, std::time::Duration::from_secs(60)) {
+        return Ok(limited);
+    }
+    let Some(at) = crate::tools::helpers::parse_moment(&query.at) else {
+        return Ok(HttpResponse::BadRequest().body("Give the date as YYYY-MM-DD."));
+    };
+    match crate::tools::points_history::profile_at(pool.get_ref(), query.game_id.unwrap_or(1), &profile_number, at).await? {
+        Some(standing) => Ok(HttpResponse::Ok().json(standing)),
+        None => Ok(HttpResponse::NotFound().body("No runs for this player.")),
+    }
+}
+
 #[get("/profile/points_peak/{profile_number}")]
 async fn profile_points_peak(req: HttpRequest, config: web::Data<crate::tools::config::Config>, pool: web::Data<PgPool>, profile_number: web::Path<String>, query: web::Query<StatsQuery>) -> Result<impl Responder> {
     if let Err(limited) = ratelimit::check(&req, &config, "points", 60, Duration::from_secs(60)) {

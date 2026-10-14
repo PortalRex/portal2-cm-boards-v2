@@ -128,6 +128,7 @@ pub async fn sp_map(
         config.proof.results,
         cat_id,
         match ids.game_id { Some(g) => g, None => crate::tools::helpers::map_game_id(pool.get_ref(), &map_id).await },
+        ids.at.as_deref().and_then(crate::tools::helpers::parse_moment),
     )
     .await?;
     let mut ranked_vec = Vec::with_capacity(config.proof.results as usize);

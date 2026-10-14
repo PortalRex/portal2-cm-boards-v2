@@ -132,6 +132,7 @@ async fn coop_map(
         &map_id,
         cat_id,
         match ids.game_id { Some(g) => g, None => crate::tools::helpers::map_game_id(pool.get_ref(), &map_id).await },
+        ids.at.as_deref().and_then(crate::tools::helpers::parse_moment),
     )
     .await?;
     Ok(web::Json(

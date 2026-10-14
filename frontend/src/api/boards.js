@@ -3,7 +3,7 @@ import * as api from "./client";
 
 export const fetchPreviews = (mode) => api.fetchMapPreviews(mode);
 
-export const fetchBoard = (map) => api.fetchMapBoard(map);
+export const fetchBoard = (map, at = null) => api.fetchMapBoard(map, at);
 
 export const fetchWrHistory = (map) => api.fetchWrHistory(map);
 

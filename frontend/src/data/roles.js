@@ -14,6 +14,11 @@ export const POINT_ROLES = [
   { name: "Legends", color: "#0074d9", sp: 11700, coop: 9450, overall: 21000 },
 ];
 
+// The role's icon (public/roles/<name>.png).
+export function roleIcon(role) {
+  return role ? `${process.env.PUBLIC_URL || ""}/roles/${role.name.toLowerCase()}.png` : null;
+}
+
 // The highest role a player's points qualify for: any one board meeting a role's threshold is
 // enough (each threshold is an alternative requirement). Null below Beginner. Legends can't be
 // lost: a peak (`{ sp: { points }, ... }`, from /profile/points_peak) that ever reached it keeps it.

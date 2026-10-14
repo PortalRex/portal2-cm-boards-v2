@@ -72,6 +72,15 @@
   min-width: 0;
 }
 
+.pf-role-icon {
+  display: inline-block;
+  width: 0.85em;
+  height: 0.85em;
+  margin-left: 0.25em;
+  vertical-align: -0.08em;
+  object-fit: contain;
+}
+
 .pf-name {
   min-width: 0;
   max-width: 100%;
@@ -1410,4 +1419,42 @@
 
 .pf-activity-legend .pf-activity-cell {
   display: inline-block;
+}
+
+.pf-chart-plot {
+  cursor: pointer;
+}
+
+.pf-legend .pf-chart-reset {
+  margin-left: auto;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 8px;
+  font-size: 11px;
+}
+
+.pf-asof {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin-bottom: 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--accent) 14%, var(--panel));
+}
+
+.pf-asof-clear {
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+
+.pf-asof-clear:hover {
+  text-decoration: underline;
 }

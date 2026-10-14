@@ -9,6 +9,7 @@ import { API_BASE, GAME_IDS } from "./config";
 import { getJson as get, withFallback } from "./http";
 import * as mock from "./mock";
 import { formatSegments } from "./autorender";
+import { parseTimestamp } from "../lib/format";
 
 export { API_BASE };
 
@@ -328,11 +329,12 @@ export function fetchMapPreviews(mode) {
   );
 }
 
-export function fetchMapBoard(map) {
+// A map's board, or as it stood at `at` (a UTC time, "2021-04-06T12:00:00", or a day).
+export function fetchMapBoard(map, at = null) {
   return sample(
     async () => {
       const coop = isMultiplayerMode(map.mode);
-      const rows = await getJson(`/map/${coop ? "coop" : "sp"}/${map.id}`, gameParam(map.game));
+      const rows = await getJson(`/map/${coop ? "coop" : "sp"}/${map.id}`, { ...gameParam(map.game), ...(at ? { at } : {}) });
       return rows.map(coop ? adaptCoopRanked : adaptSpRanked);
     },
     () => mock.mockBoard(map.id, map.game),
@@ -406,6 +408,64 @@ export async function fetchProfile(profileNumber) {
 
 // A player's peak points per board ({ sp, coop, overall: { points, date } }), or {} when unknown.
 export const fetchPointsPeak = (profileNumber) => getJson(`/profile/points_peak/${profileNumber}`).catch(() => ({}));
+
+// Where a player stood on a past day (YYYY-MM-DD): { points, places, maps: [...] } from the server.
+export const fetchProfileAt = (profileNumber, at) => getJson(`/profile/at/${profileNumber}`, { at });
+
+// The profile as it was on a past day: points, places and best times then (from fetchProfileAt).
+// Runs after that day are left out of its history.
+export function profileAsOf(profile, past, at) {
+  const me = profile.player.profileNumber;
+  const end = `${at}T23:59:59Z`;
+  const history = profile.history.filter((h) => !h.timestamp || parseTimestamp(h.timestamp) <= new Date(end));
+  const byId = Object.fromEntries(profile.history.map((h) => [h.id, h]));
+  const scores = {};
+  (past.maps || []).forEach((m) => {
+    const map = getMap(m.map_id);
+    if (!map) return;
+    const h = byId[m.changelog_id];
+    scores[m.map_id] = {
+      map,
+      rank: m.rank,
+      score: m.score,
+      timestamp: m.timestamp,
+      points: m.points,
+      deltaNext: null,
+      deltaWr: null,
+      youtubeId: h?.youtubeId ?? null,
+      changelogId: m.changelog_id,
+      autorenderId: h?.autorenderId ?? null,
+      demoId: h?.demoId ?? null,
+      note: h?.note ?? null,
+      partner: h?.players.find((p) => p.profileNumber !== me) || null,
+    };
+  });
+  const values = Object.values(scores);
+  const avg = (mode) => {
+    const list = values.filter((s) => mode === "overall" || s.map.mode === mode);
+    return list.length ? list.reduce((a, s) => a + s.rank, 0) / list.length : null;
+  };
+  const sorted = [...values].sort((a, b) => a.rank - b.rank);
+  const dated = history.filter((h) => h.timestamp && !h.banned).sort((a, b) => parseTimestamp(a.timestamp) - parseTimestamp(b.timestamp));
+  const brief = (h) => h && { map: h.map, score: h.score, timestamp: h.timestamp };
+  return {
+    ...profile,
+    asOf: at,
+    points: { sp: past.points?.sp ?? 0, coop: past.points?.coop ?? 0, overall: past.points?.overall ?? 0 },
+    globalRank: { sp: past.places?.sp ?? null, coop: past.places?.coop ?? null, overall: past.places?.overall ?? null, country: null },
+    averagePlace: { sp: avg("sp"), coop: avg("coop"), overall: avg("overall") },
+    worldRecords: {
+      sp: values.filter((s) => s.map.mode === "sp" && s.rank === 1).length,
+      coop: values.filter((s) => s.map.mode === "coop" && s.rank === 1).length,
+    },
+    newest: brief(dated[dated.length - 1]) || null,
+    oldest: brief(dated[0]) || null,
+    best: sorted[0] || null,
+    worst: sorted[sorted.length - 1] || null,
+    scores,
+    history,
+  };
+}
 
 // A player's real points over time (ranks recomputed against everyone's bests at each date),
 // from the server; falls back to the rough client-side rebuild below on sample data.

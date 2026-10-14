@@ -21,6 +21,7 @@ impl SpMap {
         limit: i32,
         cat_id: i32,
         game_id: i32,
+        at: Option<chrono::NaiveDateTime>,
     ) -> Result<Vec<SpMap>, sqlx::Error> {
         sqlx::query_as::<_, SpMap>(
             r#" 
@@ -51,6 +52,8 @@ impl SpMap {
                         AND changelog.banned = False
                         AND changelog.category_id = $2
                         AND chapters.game_id = $3
+                        -- As of a moment (undated runs count from release, as the boards count them).
+                        AND ($5::timestamp IS NULL OR COALESCE(changelog.timestamp, TIMESTAMP '2011-04-19 00:00:00') <= $5)
                     ORDER BY changelog.profile_number, changelog.score ASC
                 ) t
                 ORDER BY score
@@ -60,6 +63,7 @@ impl SpMap {
         .bind(cat_id)
         .bind(game_id)
         .bind(limit)
+        .bind(at)
         .fetch_all(pool)
         .await
     }
