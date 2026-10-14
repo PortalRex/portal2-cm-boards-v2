@@ -287,6 +287,9 @@ async fn submission_create(
         demo_partner_name: partner.as_ref().and_then(|(_, n)| n.clone()),
         // Only when the time is the demo's own.
         portals: info.as_ref().filter(|i| i.time_score == Some(score)).and_then(|i| i.portal_score),
+        submission: 1,
+        verified: None,
+        baseline: false,
     };
     let recorded = match submissions::insert_run(pool.get_ref(), run).await? {
         Ok(r) => r,

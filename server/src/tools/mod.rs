@@ -13,5 +13,6 @@ pub mod points_history;
 /// Locating demo files for download
 pub mod demo_files;
 pub mod ratelimit;
+pub mod steam_sync;
 
 pub mod error;

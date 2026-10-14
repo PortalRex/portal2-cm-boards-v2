@@ -6,7 +6,7 @@ use crate::{
         error::Result,
     },
 };
-use actix_web::{get, put, web, HttpResponse, Responder};
+use actix_web::{get, post, put, web, HttpResponse, Responder};
 use sqlx::PgPool;
 
 /// **GET** Both players' halves of a co-op run (blue / host first when known): each player's
@@ -88,4 +88,24 @@ async fn admin_run_reactions(_auth: AdminOrService, pool: web::Data<PgPool>, id:
         Some(record) => HttpResponse::Ok().json(record),
         None => HttpResponse::NotFound().body("No such run."),
     })
+}
+
+#[derive(serde::Deserialize)]
+pub struct SyncQuery {
+    /// Only this map (its steam id), to try the sync on one map.
+    pub map_id: Option<String>,
+}
+
+/// **POST** Pull new Portal 2 times from Steam's leaderboards now (staff; the schedule does
+/// this every `SYNC.MINUTES`). `?map_id=` limits it to one map. Answers what the pass did.
+#[post("/admin/steam_sync")]
+async fn admin_steam_sync(
+    _auth: AdminOrService,
+    pool: web::Data<PgPool>,
+    config: web::Data<crate::tools::config::Config>,
+    cache: web::Data<crate::tools::cache::CacheState>,
+    query: web::Query<SyncQuery>,
+) -> Result<impl Responder> {
+    let report = crate::tools::steam_sync::run_once(pool.get_ref(), &config, &cache, query.map_id.as_deref()).await?;
+    Ok(HttpResponse::Ok().json(report))
 }

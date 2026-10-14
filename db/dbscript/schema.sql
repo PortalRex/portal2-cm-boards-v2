@@ -1412,3 +1412,12 @@ WHERE c.game_id = 2 AND NOT EXISTS (SELECT 1 FROM maps AS m WHERE m.chapter_id =
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
 CREATE INDEX IF NOT EXISTS idx_users_name_trgm
     ON users USING gin (COALESCE(board_name, steam_name) gin_trgm_ops);
+-- State of the Steam leaderboard sync, per map. A map's first pass is a baseline: Steam's
+-- leaderboards carry no dates, so times found then are recorded undated rather than as new runs.
+-- Later passes only see changes since the previous one, which are new runs.
+CREATE TABLE IF NOT EXISTS steam_sync_maps (
+    map_id character varying PRIMARY KEY REFERENCES maps(steam_id),
+    baseline_done boolean NOT NULL DEFAULT false,
+    last_hash bigint,
+    last_pass timestamp without time zone
+);

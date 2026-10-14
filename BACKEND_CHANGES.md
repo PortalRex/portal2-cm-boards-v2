@@ -59,6 +59,7 @@ New environment variables for the server (dotted names, as in `server/.env.examp
 | `DEMO.STORAGE` | For submissions | Directory submitted demos are saved in. |
 | `DEMO.NODE` | No | Node executable if `node` isn't on the PATH (Node 18+). |
 | `SERVER.BEHIND_PROXY` | Production | `true` when a reverse proxy is in front: client addresses (rate limits, anonymous report de-duplication) are read from `X-Forwarded-For`. Off by default, since that header can't be trusted without a proxy. Bind `SERVER.HOST` to `127.0.0.1` behind the proxy so clients can't reach the server directly. |
+| `SYNC.STEAM` / `SYNC.MINUTES` / `SYNC.RANK_LIMIT` | No | Pull new Portal 2 times from Steam's leaderboards: off unless `SYNC.STEAM=true`; every 10 minutes; times in each map's top 500 on Steam. See [§13](#13-steam-sync). |
 | `RANKS.COOP` | No | How co-op runs are ranked: `run` (default) gives each run one rank, so the next team down is rank 2; `player` gives each player a rank, so a run fills two (1, 1, 3) as the old boards did. See [§6](#6-changed-behaviour-of-existing-endpoints). |
 | `RANKS.COOP_PROOF_SINCE` | At launch | UTC time (`2026-11-01 00:00:00`) from which new co-op runs in the top 200 need a demo from each player; set it to when the site goes fully online. Unset = off (one demo verifies both halves). See [§8](#8-run-submissions-and-demos). |
 | `DEMO.ARCHIVE` | For old demos | Folders holding the old boards' demo files (several separated by `;`, searched recursively). Needed for downloading imported runs' demos. |
@@ -300,6 +301,32 @@ In `db/dbscript/` unless noted:
 - Sends `X-Service-Token` (from `SERVICE_TOKEN` in `backend/.env`) on every request to the server, via shared HTTP
   clients in `backend/src/http.rs`. The token must match the server's `SERVICE.TOKEN`.
 - Build fix: `chrono` without the removed `rustc-serialize` feature.
+
+## 13. Steam sync
+
+Challenge mode uploads each player's best time per map to Steam's leaderboards (a map's `steam_id` is its leaderboard
+id), which is how the old boards were fed. `server/src/tools/steam_sync.rs` does the same inside the server: every
+`SYNC.MINUTES` it reads the top of each Portal 2 map's leaderboard and records every time that beats what the board has
+for that player. Rules:
+
+- Only players in the map's top `SYNC.RANK_LIMIT` (500, the old board's window) on Steam count, ranked among valid
+  entries (ties share a rank). Non-positive scores (hacked uploads show as -2147483648) and banned players don't take a
+  place. Frozen players are skipped, as is any time the player already has on the map (so a banned time isn't pulled
+  back) and anything that isn't an improvement.
+- **First pass per map is a baseline.** Steam's leaderboards carry no dates, so times found on a map's first pass are
+  recorded undated and without before/after ranks, like imported undated runs, instead of appearing as new runs. After
+  that, a change since the previous pass is a new run, dated when seen. State per map is in `steam_sync_maps`
+  (migration `20261028000000_steam_sync.sql`). A pass sees each player's latest best, so several improvements within
+  one interval show as one run.
+- Times go through the same path as site submissions (`insert_run`): `submission = 0`, pending when they'd rank in the
+  top 200 (no demo), linked boards honoured, co-op pairs formed when two new entries share a score (else the map's
+  placeholder partner, fixed later by a demo or staff). Unknown players get an account from the Steam Web API.
+- A map whose leaderboard hasn't changed since the last pass is skipped; after a pass with new runs the rank cache,
+  previews and points cache are refreshed.
+- `POST /admin/steam_sync` (staff / service token) runs a pass now and returns what it did; `?map_id=` limits it to
+  one map, for trying it out before a full pass.
+- Portal Stories: Mel has no public Steam leaderboards, so Mel times come from submissions only. The old `backend/`
+  fetcher service is no longer needed for this.
 
 ## 12. Known gaps
 

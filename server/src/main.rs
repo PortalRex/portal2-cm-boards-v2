@@ -90,6 +90,8 @@ async fn main() -> Result<(), Error> {
     points_cache.clone().into_inner().start(pool.clone());
     // Index the old boards' demo archive in the background for downloads.
     crate::tools::demo_files::warm(config.demo.clone());
+    // New Portal 2 times from Steam's leaderboards, on a schedule.
+    crate::tools::steam_sync::start(pool.clone(), config.clone(), init_data.clone());
     println!(
         "Server starting at http://{}:{}/",
         config.server.host, config.server.port

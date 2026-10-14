@@ -115,6 +115,30 @@ impl RanksConfig {
     }
 }
 
+/// Pulling new Portal 2 times from Steam's leaderboards ([crate::tools::steam_sync]).
+#[derive(Deserialize, Debug, Clone, Default)]
+pub struct SyncConfig {
+    /// On with `SYNC.STEAM=true`; off by default until the first full pass has been reviewed.
+    pub steam: Option<bool>,
+    /// Minutes between passes (default 10).
+    pub minutes: Option<u64>,
+    /// Times are pulled when they're in a map's top this many on Steam (default 500, the old
+    /// boards' window).
+    pub rank_limit: Option<i32>,
+}
+
+impl SyncConfig {
+    pub fn steam(&self) -> bool {
+        self.steam.unwrap_or(false)
+    }
+    pub fn minutes(&self) -> u64 {
+        self.minutes.filter(|m| *m > 0).unwrap_or(10)
+    }
+    pub fn rank_limit(&self) -> i32 {
+        self.rank_limit.filter(|r| *r > 0).unwrap_or(500)
+    }
+}
+
 /// Wrapper for all other config variables.
 #[derive(Deserialize, Debug, Clone)]
 pub struct Config {
@@ -129,6 +153,8 @@ pub struct Config {
     pub demo: DemoConfig,
     #[serde(default)]
     pub ranks: RanksConfig,
+    #[serde(default)]
+    pub sync: SyncConfig,
 }
 // Extracts the environment variables from the .env file at the src level.
 impl Config {
