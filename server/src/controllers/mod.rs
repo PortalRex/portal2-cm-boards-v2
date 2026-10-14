@@ -94,5 +94,7 @@ pub mod catalog;
 pub mod profile_stats;
 /// Anonymous run reports
 pub mod reports;
+/// Staff-only notes on runs
+pub mod staff_notes;
 /// Controllers for users
 pub mod users;

@@ -175,13 +175,18 @@ async fn changelog_segments(pool: web::Data<PgPool>, id: web::Path<i64>) -> Resu
     })
 }
 
+#[derive(serde::Deserialize)]
+pub struct GraphQuery {
+    /// The viewer's time zone (IANA name, e.g. America/Chicago): runs are counted per day there.
+    /// UTC when missing or unknown.
+    pub tz: Option<String>,
+}
+
+/// **GET** Runs per day (all games), newest first: `[{ "date", "count" }]`, days in `?tz=`.
 #[get("/graph")]
-async fn graph(
-    pool: web::Data<PgPool>
-) -> Result<impl Responder> {
-    Ok(web::Json(
-        Graph::get_graph_data(pool.get_ref()).await?,
-    ))
+async fn graph(pool: web::Data<PgPool>, query: web::Query<GraphQuery>) -> Result<impl Responder> {
+    let tz = query.tz.as_deref().and_then(|t| t.parse::<chrono_tz::Tz>().ok()).map(|t| t.name().to_string()).unwrap_or_else(|| "UTC".into());
+    Ok(web::Json(Graph::get_graph_data(pool.get_ref(), &tz).await?))
 }
 
 /// **GET** method for getting a hashmap of all default categories.

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { Line, LineChart, ReferenceDot, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
@@ -17,7 +17,7 @@ import { bumpDataVersion } from "../../lib/dataVersion";
 import { formatDate, formatDateTime, formatScore, ordinalSuffix, timeAgo, formatPoints } from "../../lib/format";
 import { youtubeChannelUrl } from "../../lib/youtube";
 import ProfileTabs from "./ProfileTabs";
-import { playerRole, roleIcon, roleProgress } from "../../data/roles";
+import { POINT_ROLES, playerRole, roleIcon, roleProgress } from "../../data/roles";
 import ActivityHeatmap from "./ActivityHeatmap";
 import "./Profile.css";
 
@@ -29,13 +29,20 @@ export default function Profile() {
   const p = profile.data;
   // Peak points: shown in their own card, and Legends is kept once a peak reached it.
   const profileNumber = p?.player.profileNumber;
-  const peak = useApi(() => (profileNumber ? fetchPointsPeak(profileNumber) : Promise.resolve(null)), [profileNumber, version]);
+  // Tagged with whose peak it is, so a render before this player's peak arrives can't use none.
+  const peakFetch = useApi(
+    () => (profileNumber ? fetchPointsPeak(profileNumber).then((data) => ({ of: profileNumber, data })) : Promise.resolve(null)),
+    [profileNumber, version],
+  );
+  const peakReady = peakFetch.data?.of === profileNumber || Boolean(peakFetch.error);
+  const peak = { data: peakReady ? peakFetch.data?.data ?? null : null, loading: !peakReady };
   // ?at=YYYY-MM-DD: the profile as it was that day (picked on the points chart).
   const [params, setParams] = useSearchParams();
   const at = /^\d{4}-\d{2}-\d{2}$/.test(params.get("at") || "") ? params.get("at") : null;
   const past = useApi(() => (at && profileNumber ? fetchProfileAt(profileNumber, at) : Promise.resolve(null)), [profileNumber, at, version]);
   const view = p && at && past.data ? profileAsOf(p, past.data, at) : p;
   const pickDay = (day) => setParams(day ? { at: day } : {}, { replace: true });
+  const role = useRole(profileNumber, view?.points, at ? null : peak.data, Boolean(view) && (Boolean(at) || !peak.loading));
 
   return (
     <Layout background={p?.player.avatar} blur>
@@ -58,7 +65,7 @@ export default function Profile() {
             </div>
           )}
           <div className="pf-row pf-row-1">
-            <ProfileHeader player={p.player} role={playerRole(view.points, at ? null : peak.data)} />
+            <ProfileHeader player={p.player} role={role} />
             <Card icon={SparkleIcon} title="Challenge Mode Points" collapseId="profile.points" className="pf-points">
               <div className="stat-row">
                 {[
@@ -147,6 +154,32 @@ function Ordinal({ n }) {
 }
 
 // Highest points the player has ever had per board, with the date (hover) it was reached.
+// The player's role for their name: Legends is kept from the peak, which loads after the
+// profile, so until it's in (`ready`) this shows the role last seen for them in this browser (or
+// none) rather than a lower role that then flips to Legends.
+function useRole(profileNumber, points, peak, ready) {
+  const key = `p2cm.role.${profileNumber || ""}`;
+  const role = ready ? playerRole(points, peak) : null;
+  useEffect(() => {
+    if (!ready) return;
+    try {
+      if (role) localStorage.setItem(key, JSON.stringify({ name: role.name, fromPeak: !!role.fromPeak }));
+      else localStorage.removeItem(key);
+    } catch {
+      // Storage may be unavailable; the role just isn't remembered.
+    }
+  }, [key, ready, role?.name, role?.fromPeak]); // eslint-disable-line react-hooks/exhaustive-deps
+  if (ready) return role;
+  if (!profileNumber) return null;
+  try {
+    const last = JSON.parse(localStorage.getItem(key) || "null");
+    const known = last && POINT_ROLES.find((r) => r.name === last.name);
+    return known ? { ...known, fromPeak: last.fromPeak } : null;
+  } catch {
+    return null;
+  }
+}
+
 function PeakPoints({ peak }) {
   const one = (key, label) => {
     const v = peak.data?.[key];
@@ -182,7 +215,7 @@ function RoleBar({ board, points }) {
     <span className="pf-bar-wrap" tabIndex={0} aria-label={text} onMouseEnter={show} onMouseLeave={() => setPos(null)} onFocus={show} onBlur={() => setPos(null)}>
       {/* Filled in the colour of the role already reached on this board (grey before the first). */}
       <span className="pf-bar">
-        <span style={{ width: `${Math.min(100, prog.percent)}%`, background: prog.current?.color || "var(--text-muted)" }} />
+        <span className={prog.current ? "is-role" : undefined} style={{ width: `${Math.min(100, prog.percent)}%`, "--role": prog.current?.color || "var(--text-muted)" }} />
       </span>
       {pos &&
         createPortal(
@@ -249,7 +282,7 @@ function ProfileHeader({ player, role }) {
     <section className="pf-header">
       <Avatar src={player.avatar} name={player.name} size={180} className="pf-avatar" />
       <div className="pf-identity">
-        <h1 className="pf-name" style={role ? { color: role.color } : undefined} title={role ? (role.fromPeak ? `${role.name} (reached at peak points, kept for good)` : `${role.name} (from points)`) : undefined}>
+        <h1 className={`pf-name${role ? " has-role" : ""}`} style={role ? { "--role": role.color } : undefined} title={role ? (role.fromPeak ? `${role.name} (reached at peak points, kept for good)` : `${role.name} (from points)`) : undefined}>
           {player.name}
           {role && <img className="pf-role-icon" src={roleIcon(role)} alt={role.name} />}
         </h1>

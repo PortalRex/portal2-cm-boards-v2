@@ -413,6 +413,7 @@ function ActivityChart({ points, loading }) {
           isAnimationActive={false}
           contentStyle={{ background: "var(--menu)", border: "1px solid var(--border)", borderRadius: 4, fontFamily: "inherit" }}
           labelStyle={{ color: "var(--text-2)" }}
+          labelFormatter={(label, items) => (items?.[0]?.payload?.partial ? `${label} (today, so far)` : label)}
           formatter={(v) => [v, "Scores"]}
         />
         <Line

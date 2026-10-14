@@ -100,6 +100,9 @@ pub struct ChangelogPage {
     pub wr_hidden: bool,
     /// Portals placed, from the demo (when known).
     pub portals: Option<i16>,
+    /// The SAR version that recorded the run's demo (when known).
+    #[sqlx(default)]
+    pub sar_version: Option<String>,
     /// Thumbs up / down counts (a co-op run's halves share them).
     pub reactions_up: i64,
     pub reactions_down: i64,

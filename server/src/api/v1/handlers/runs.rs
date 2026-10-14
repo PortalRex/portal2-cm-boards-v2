@@ -6,7 +6,7 @@ use crate::{
         error::Result,
     },
 };
-use actix_web::{get, post, put, web, HttpResponse, Responder};
+use actix_web::{delete, get, post, put, web, HttpResponse, Responder};
 use sqlx::PgPool;
 
 /// **GET** Both players' halves of a co-op run (blue / host first when known): each player's
@@ -87,6 +87,54 @@ async fn admin_run_reactions(_auth: AdminOrService, pool: web::Data<PgPool>, id:
     Ok(match runs::reaction_record(pool.get_ref(), id.into_inner()).await? {
         Some(record) => HttpResponse::Ok().json(record),
         None => HttpResponse::NotFound().body("No such run."),
+    })
+}
+
+fn refused(r: crate::controllers::moderation::Refused) -> HttpResponse {
+    match r {
+        crate::controllers::moderation::Refused::NotFound(m) => HttpResponse::NotFound().body(m),
+        crate::controllers::moderation::Refused::Invalid(m) => HttpResponse::BadRequest().body(m),
+    }
+}
+
+/// **GET** Staff: a run's staff-only notes, oldest first (a co-op run's halves share them):
+/// `[{ id, author, author_name, avatar, body, created_at }]`.
+#[get("/admin/runs/{id}/notes")]
+async fn admin_run_notes(_auth: AdminOrService, pool: web::Data<PgPool>, id: web::Path<i64>) -> Result<impl Responder> {
+    Ok(match crate::controllers::staff_notes::list(pool.get_ref(), id.into_inner()).await? {
+        Some(notes) => HttpResponse::Ok().json(notes),
+        None => HttpResponse::NotFound().body("No such run."),
+    })
+}
+
+#[derive(serde::Deserialize)]
+pub struct NoteBody {
+    pub body: String,
+}
+
+/// **POST** Staff: add a note to a run (`{ "body" }`, up to 1000 characters). Answers `{ "id" }`.
+#[post("/admin/runs/{id}/notes")]
+async fn admin_run_note_add(auth: AdminOrService, pool: web::Data<PgPool>, id: web::Path<i64>, note: web::Json<NoteBody>) -> Result<impl Responder> {
+    let author = match &auth {
+        AdminOrService::Admin(u) => Some(u.profile_number.as_str()),
+        AdminOrService::Service => None,
+    };
+    Ok(match crate::controllers::staff_notes::add(pool.get_ref(), id.into_inner(), author, &note.body).await? {
+        Ok(id) => HttpResponse::Ok().json(serde_json::json!({ "id": id })),
+        Err(r) => refused(r),
+    })
+}
+
+/// **DELETE** Staff: delete one of your notes (the admin tier can delete anyone's).
+#[delete("/admin/runs/notes/{note_id}")]
+async fn admin_run_note_delete(auth: AdminOrService, pool: web::Data<PgPool>, note_id: web::Path<i64>) -> Result<impl Responder> {
+    let (by, any) = match &auth {
+        AdminOrService::Admin(u) => (Some(u.profile_number.as_str()), u.is_role_admin()),
+        AdminOrService::Service => (None, true),
+    };
+    Ok(match crate::controllers::staff_notes::delete(pool.get_ref(), note_id.into_inner(), by, any).await? {
+        Ok(()) => HttpResponse::NoContent().finish(),
+        Err(r) => refused(r),
     })
 }
 

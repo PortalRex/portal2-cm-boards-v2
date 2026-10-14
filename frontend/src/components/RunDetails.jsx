@@ -2,7 +2,7 @@ import { useState } from "react";
 import { OutlineButton, PlayerLink } from "./ui";
 import { DownloadIcon, FlagIcon, YouTubeIcon, PlayIcon, VideocamIcon, ThumbUpIcon, ThumbUpOutlineIcon, ThumbDownIcon, ThumbDownOutlineIcon } from "./Icons";
 import { RunVideo, runVideo } from "./RunMedia";
-import { REPORT_REASONS, addRunDemo, demoUrl, deleteRun, fetchCoopHalves, reportRun, fetchReactionRecord, fetchReactions, fetchSegments, removeRunDemo, setCoopHost, setReaction, setRunBanned, setRunPartner, setRunVerified } from "../api/client";
+import { REPORT_REASONS, addRunDemo, addStaffNote, deleteStaffNote, fetchStaffNotes, demoUrl, deleteRun, fetchCoopHalves, reportRun, fetchReactionRecord, fetchReactions, fetchSegments, removeRunDemo, setCoopHost, setReaction, setRunBanned, setRunPartner, setRunVerified } from "../api/client";
 import { bumpDataVersion, useDataVersion } from "../lib/dataVersion";
 import useApi from "../hooks/useApi";
 import useCurrentUser, { isRoleAdmin, isStaff } from "../hooks/useCurrentUser";
@@ -375,6 +375,7 @@ function AdminTools({ run, game }) {
         </form>
       )}
       <WhoReacted changelogId={changelogId} />
+      <StaffNotes changelogId={changelogId} />
       {state.message && <span className="sd-admin-ok">{state.message}</span>}
       {state.error && <span className="sd-roles-error">{state.error}</span>}
     </div>
@@ -478,6 +479,76 @@ function WhoReacted({ changelogId }) {
             )}
           </>
         ))}
+    </div>
+  );
+}
+
+// Notes only staff see, like runner comments: a thread on the run (a co-op run's halves share it).
+// Staff delete their own notes; the admin tier can delete any.
+function StaffNotes({ changelogId }) {
+  const user = useCurrentUser();
+  const [version, setVersion] = useState(0);
+  const [draft, setDraft] = useState("");
+  const [state, setState] = useState({ busy: false, error: null });
+  const notes = useApi(() => fetchStaffNotes(changelogId).catch(() => null), [changelogId, version]);
+  const post = async (e) => {
+    e.preventDefault();
+    if (!draft.trim()) return;
+    setState({ busy: true, error: null });
+    try {
+      await addStaffNote(changelogId, draft.trim());
+      setDraft("");
+      setState({ busy: false, error: null });
+      setVersion((v) => v + 1);
+    } catch (err) {
+      setState({ busy: false, error: err.message });
+    }
+  };
+  const remove = async (id) => {
+    try {
+      await deleteStaffNote(id);
+      setVersion((v) => v + 1);
+    } catch (err) {
+      setState({ busy: false, error: err.message });
+    }
+  };
+  const list = notes.data || [];
+  return (
+    <div className="sd-notes">
+      <span className="sd-notes-title">Staff notes{list.length ? ` (${list.length})` : ""}</span>
+      {notes.loading && !notes.data ? (
+        <span className="muted">Loading…</span>
+      ) : list.length ? (
+        <ul className="sd-notes-list">
+          {list.map((n, i) => (
+            <li key={n.id ?? `legacy-${i}`}>
+              <div className="sd-note-head">
+                {n.author ? <PlayerLink player={{ profileNumber: n.author, name: n.author_name }} /> : <strong>The board</strong>}
+                {n.created_at && (
+                  <span className="muted num" title={formatDateTime(`${n.created_at}Z`)}>
+                    {formatDate(`${n.created_at}Z`)}
+                  </span>
+                )}
+                {n.id != null && (n.author === user?.profileNumber || isRoleAdmin(user)) && (
+                  <button type="button" className="sd-note-delete" onClick={() => remove(n.id)}>
+                    Delete
+                  </button>
+                )}
+              </div>
+              <p className="sd-note-body">{n.body}</p>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <span className="muted">No notes yet.</span>
+      )}
+      <form className="sd-notes-form" onSubmit={post}>
+        <textarea className="sd-admin-input" value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="Add a note (only staff see these)" maxLength={1000} rows={2} />
+        <button type="submit" disabled={state.busy || !draft.trim()}>
+          Add note
+        </button>
+      </form>
+      {state.error && <span className="sd-roles-error">{state.error}</span>}
     </div>
   );
 }

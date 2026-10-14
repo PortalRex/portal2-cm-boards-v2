@@ -81,6 +81,20 @@
   object-fit: contain;
 }
 
+/* Role colours (--role): as given on dark; on light, darkened so the paler ones (Professional's
+   cyan, Beginner's yellow, Amateur's green) stay readable on white. */
+.pf-name.has-role {
+  color: var(--role);
+}
+
+:root[data-theme="light"] .pf-name.has-role {
+  color: color-mix(in srgb, var(--role) 62%, #000);
+}
+
+:root[data-theme="light"] .pf-bar span.is-role {
+  background: color-mix(in srgb, var(--role) 78%, #000);
+}
+
 .pf-name {
   min-width: 0;
   max-width: 100%;
@@ -357,7 +371,7 @@
 .pf-bar span {
   display: block;
   height: 100%;
-  background: #287d6a;
+  background: var(--role, #287d6a);
 }
 
 /* Role progress bar and its hover label. */

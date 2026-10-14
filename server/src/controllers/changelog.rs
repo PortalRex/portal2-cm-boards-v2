@@ -249,22 +249,20 @@ fn daily_hash(key: &str) -> u64 {
 }
 
 impl Graph {
-    /// Return all [Maps] on a given `game_id`.
-    pub async fn get_graph_data(
-        pool: &PgPool
-    ) -> Result<Vec<Graph>, sqlx::Error> {
-        let res = sqlx::query_as::<_, Graph>(
+    /// Runs per day, with days in time zone `tz` (a valid IANA name; timestamps are UTC).
+    pub async fn get_graph_data(pool: &PgPool, tz: &str) -> Result<Vec<Graph>, sqlx::Error> {
+        sqlx::query_as::<_, Graph>(
             r#"
-            SELECT DATE(timestamp) AS date, COUNT(*) AS count
-            FROM changelog
-            GROUP BY DATE(timestamp)
-            ORDER BY DATE(timestamp) 
-            DESC
-            "#
+                SELECT DATE((timestamp AT TIME ZONE 'UTC') AT TIME ZONE $1) AS date, COUNT(*) AS count
+                FROM changelog
+                WHERE profile_number <> 'N/A'
+                GROUP BY 1
+                ORDER BY 1 DESC
+            "#,
         )
-            .fetch_all(pool)
-            .await?;
-        Ok(res)
+        .bind(tz)
+        .fetch_all(pool)
+        .await
     }
 }
 
@@ -289,13 +287,14 @@ pub async fn build_filtered_changelog(pool: &PgPool, params: ChangelogQueryParam
         r#" 
         SELECT cl.id, cl.timestamp, cl.profile_number, cl.score, cl.map_id, cl.demo_id, cl.banned,
             cl.youtube_id, cl.previous_id, cl.coop_id, cl.post_rank, cl.pre_rank, cl.submission, cl.note,
-            cl.category_id, cl.score_delta, cl.verified, cl.admin_note, cl.autorender_id, cl.wr_hidden, cl.portals, map.name AS map_name,
+            cl.category_id, cl.score_delta, cl.verified, NULL::varchar AS admin_note, cl.autorender_id, cl.wr_hidden, cl.portals, map.name AS map_name,
             COALESCE(u.board_name, u.steam_name, cl.profile_number) AS user_name, COALESCE(u.avatar, '') AS avatar,
             COALESCE(p1.board_name, p1.steam_name, p1.profile_number) AS blue_name,
             COALESCE(p2.board_name, p2.steam_name, p2.profile_number) AS orange_name,
             p1.avatar AS blue_avatar, p2.avatar AS orange_avatar,
             p1.profile_number AS blue_profile_number, p2.profile_number AS orange_profile_number,
             coop.p1_is_host IS NOT NULL AS coop_roles_known,
+            (SELECT d.sar_version FROM demos AS d WHERE d.id = cl.demo_id) AS sar_version,
             (SELECT COUNT(*) FROM run_reactions AS rr WHERE rr.changelog_id = COALESCE(coop.cl_id1, cl.id) AND rr.reaction = 1) AS reactions_up,
             (SELECT COUNT(*) FROM run_reactions AS rr WHERE rr.changelog_id = COALESCE(coop.cl_id1, cl.id) AND rr.reaction = -1) AS reactions_down
                 FROM changelog AS cl

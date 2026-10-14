@@ -2,11 +2,18 @@
 //   month: one point per day of a calendar month
 //   year:  one point per week (starting Monday) of a calendar year
 //   all:   one point per month over the whole history
-// `offset` steps back from the current month / year (0 = current). Dates are UTC.
+// `offset` steps back from the current month / year (0 = current). Dates are the viewer's own
+// days (the server counts in their time zone); today is still going, so its point is `partial`.
 const DAY = 86400000;
 const iso = (t) => new Date(t).toISOString().slice(0, 10);
 const utc = (date) => Date.parse(`${date}T00:00:00Z`);
 const fmt = (t, opts) => new Date(t).toLocaleDateString(undefined, { timeZone: "UTC", ...opts }).toUpperCase();
+const pad = (n) => String(n).padStart(2, "0");
+// The viewer's date today, as a UTC midnight like the day keys.
+const localToday = (now) => {
+  const d = new Date(now);
+  return utc(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`);
+};
 
 export const ACTIVITY_VIEWS = [
   { value: "month", label: "Month", title: "Daily Activity" },
@@ -17,7 +24,7 @@ export const ACTIVITY_VIEWS = [
 export function activityWindow(days, view, offset, now = Date.now()) {
   const counts = new Map(days.map((d) => [d.date, d.count]));
   const first = days.length ? utc(days[0].date) : now;
-  const today = utc(iso(now));
+  const today = localToday(now);
   const nowDate = new Date(today);
 
   if (view === "month") {
@@ -25,7 +32,7 @@ export function activityWindow(days, view, offset, now = Date.now()) {
     const next = new Date(start);
     const end = Math.min(Date.UTC(next.getUTCFullYear(), next.getUTCMonth() + 1, 1) - DAY, today);
     const points = [];
-    for (let t = start; t <= end; t += DAY) points.push({ label: fmt(t, { day: "2-digit", month: "short" }), count: counts.get(iso(t)) || 0 });
+    for (let t = start; t <= end; t += DAY) points.push({ label: fmt(t, { day: "2-digit", month: "short" }), count: counts.get(iso(t)) || 0, partial: t === today });
     return { points, label: fmt(start, { month: "long", year: "numeric" }), hasPrev: start > first, hasNext: offset > 0 };
   }
 

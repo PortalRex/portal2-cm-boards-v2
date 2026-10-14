@@ -516,3 +516,71 @@
   color: var(--green);
   font-size: 14px;
 }
+
+.sd-notes {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 15px;
+}
+
+.sd-notes-title {
+  font-weight: 600;
+}
+
+.sd-notes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 260px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.sd-notes-list li {
+  padding: 6px 8px;
+  border-left: 2px solid var(--border-strong);
+  background: var(--panel-2, rgba(127, 127, 127, 0.08));
+  border-radius: 2px;
+}
+
+.sd-note-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.sd-note-body {
+  margin: 2px 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.sd-note-delete {
+  margin-left: auto;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.sd-note-delete:hover {
+  color: var(--danger, #e05252);
+}
+
+.sd-notes-form {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.sd-notes-form textarea {
+  flex: 1;
+  resize: vertical;
+  font: inherit;
+}

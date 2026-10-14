@@ -51,7 +51,11 @@ function adaptChangelog(row, game) {
     preRank: row.pre_rank,
     postRank: row.post_rank,
     scoreDelta: row.score_delta,
-    pointsDelta: null,
+    // Points on the map after the run minus before (pending and banned runs give none).
+    pointsDelta:
+      row.post_rank != null && row.verified !== false && !row.banned
+        ? Math.round(mock.pointsForRank(row.post_rank) - (row.pre_rank != null ? mock.pointsForRank(row.pre_rank) : 0))
+        : null,
     players,
     // Whose half of the run this row is (for co-op, the player who set a PB with it).
     submitter: row.profile_number,
@@ -66,7 +70,7 @@ function adaptChangelog(row, game) {
     reactionsUp: row.reactions_up ?? 0,
     reactionsDown: row.reactions_down ?? 0,
     rolesKnown: isCoop ? row.coop_roles_known !== false : null,
-    sarVersion: null,
+    sarVersion: row.sar_version ?? null,
     segments: null,
   };
 }
@@ -273,6 +277,11 @@ export async function fetchCoopHalves(coopId) {
 // entry { profile_number, user_name, avatar, reaction (1, -1, null = cleared), created_at }.
 export const fetchReactionRecord = (changelogId) => getJson(`/admin/runs/${changelogId}/reactions`);
 
+// Staff-only notes on a run, oldest first: [{ id, author, author_name, avatar, body, created_at }].
+export const fetchStaffNotes = (changelogId) => getJson(`/admin/runs/${changelogId}/notes`);
+export const addStaffNote = (changelogId, body) => sendJson("POST", `/admin/runs/${changelogId}/notes`, { body });
+export const deleteStaffNote = (noteId) => sendJson("DELETE", `/admin/runs/notes/${noteId}`);
+
 // The signed-in viewer's reactions on several runs: { [changelogId]: 1 | -1 }.
 export const fetchMyReactions = (ids) => (ids.length ? getJson("/runs/reactions/mine", { ids: ids.join(",") }) : Promise.resolve({}));
 
@@ -302,10 +311,12 @@ export async function fetchSegments(run) {
   return null;
 }
 
+// Runs per day, counted in the viewer's own days.
 export function fetchActivity() {
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
   return sample(
     async () =>
-      (await getJson("/graph"))
+      (await getJson("/graph", tz ? { tz } : {}))
         .filter((g) => g.date)
         .map((g) => ({ date: g.date.slice(0, 10), count: g.count }))
         .sort((a, b) => a.date.localeCompare(b.date)),
