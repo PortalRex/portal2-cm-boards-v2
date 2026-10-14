@@ -611,6 +611,19 @@ function PointsChart({ profileNumber, fallback, peak, at, onPick }) {
   let lastIn = all.length - 1;
   while (lastIn > 0 && all[lastIn].t > to) lastIn -= 1;
   const data = all.slice(first, Math.min(all.length, lastIn + 2));
+  // Height: the whole history shares one scale from 0 (totals compare). Zoomed in, each line gets
+  // its own scale fitted to what's in view, so its rises and drops show (hover gives the points).
+  const inView = data.filter((d) => d.t >= from && d.t <= to);
+  const domainFor = (key) => {
+    if (!zoom) return [0, "dataMax"];
+    const values = (inView.length ? inView : data).map((d) => d[key]).filter((v) => v != null);
+    if (!values.length) return [0, "dataMax"];
+    const lo = Math.min(...values);
+    const hi = Math.max(...values);
+    const pad = Math.max(3, (hi - lo) * 0.15);
+    return [Math.max(0, Math.floor(lo - pad)), Math.ceil(hi + pad)];
+  };
+  const axisFor = (key) => (zoom ? key : "shared");
   const atMs = at ? dayMs(at) : null;
   const pick = (state) => {
     const d = state?.activePayload?.[0]?.payload;
@@ -627,7 +640,11 @@ function PointsChart({ profileNumber, fallback, peak, at, onPick }) {
         <ResponsiveContainer width="100%" height={150}>
           <LineChart data={data} margin={{ top: 22, right: 10, bottom: 0, left: 10 }} onClick={pick}>
             <XAxis dataKey="t" type="number" domain={[from, to]} allowDataOverflow hide />
-            <YAxis hide domain={[0, "dataMax"]} />
+            {zoom ? (
+              SERIES.map((s) => <YAxis key={s.key} yAxisId={s.key} hide domain={domainFor(s.key)} allowDataOverflow />)
+            ) : (
+              <YAxis yAxisId="shared" hide domain={[0, "dataMax"]} />
+            )}
             <Tooltip
               isAnimationActive={false}
               contentStyle={{ background: "var(--menu)", border: "1px solid var(--border)", borderRadius: 4 }}
@@ -638,15 +655,16 @@ function PointsChart({ profileNumber, fallback, peak, at, onPick }) {
               }}
               formatter={(v, name) => [`${v} pts`, name]}
             />
-            {atMs != null && atMs >= from && atMs <= to && <ReferenceLine x={atMs} stroke="var(--accent)" strokeDasharray="4 3" />}
+            {atMs != null && atMs >= from && atMs <= to && <ReferenceLine x={atMs} yAxisId={zoom ? "overall" : "shared"} stroke="var(--accent)" strokeDasharray="4 3" />}
             {SERIES.filter((s) => !hidden[s.key]).map((s) => (
-              <Line key={s.key} type="linear" dataKey={s.key} name={s.label} stroke={s.color} strokeWidth={3} dot={false} connectNulls isAnimationActive={false} />
+              <Line key={s.key} yAxisId={axisFor(s.key)} type="linear" dataKey={s.key} name={s.label} stroke={s.color} strokeWidth={3} dot={false} connectNulls isAnimationActive={false} />
             ))}
             {SERIES.filter((s) => !hidden[s.key] && peak?.[s.key]?.date).map((s) => {
               const t = dayMs(peak[s.key].date);
               if (t < from || t > to) return null;
               return (
                 <ReferenceDot
+                  yAxisId={axisFor(s.key)}
                   key={`peak-${s.key}`}
                   x={t}
                   y={Math.round(peak[s.key].points)}
