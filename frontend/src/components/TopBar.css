@@ -100,6 +100,42 @@
   white-space: nowrap;
 }
 
+/* Dropdown arrows for the phone menu (hidden on wider screens, where menus open on hover). */
+.nav-expand,
+.menu-expand {
+  display: none;
+  position: absolute;
+  right: 12px;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  border: 0;
+  border-radius: var(--radius);
+  background: none;
+  color: var(--text-2);
+  cursor: pointer;
+}
+
+.nav-expand {
+  top: 0;
+  height: 52px;
+}
+
+.menu-expand {
+  top: 0;
+  height: 40px;
+}
+
+.nav-expand svg,
+.menu-expand svg {
+  transition: transform 0.15s;
+}
+
+.nav-expand.is-open svg,
+.menu-expand.is-open svg {
+  transform: rotate(180deg);
+}
+
 /* Aggregate: nested flyouts (game → board → Total and chapters). */
 .menu-group {
   position: relative;
@@ -382,14 +418,37 @@
     font-size: 18px;
   }
 
-  /* Phones and narrow windows: games with their boards listed under them (no chapter level). */
+  /* Phones and narrow windows: menus are dropdowns, closed until their arrow is tapped; in
+     Aggregate each game opens the same way to list its boards (no chapter level). */
+  .nav-item.has-menu {
+    position: relative;
+  }
+
+  .nav-item.has-menu > .nav-menu {
+    display: none;
+  }
+
+  .nav-item.has-menu.is-expanded > .nav-menu {
+    display: block;
+  }
+
+  .nav-expand,
+  .menu-expand {
+    display: inline-flex;
+  }
+
   .menu-sub {
+    display: none;
     position: static;
     opacity: 1;
     visibility: visible;
     box-shadow: none;
     background: none;
     padding: 0 0 4px 28px;
+  }
+
+  .menu-group.is-expanded > .menu-sub {
+    display: block;
   }
 
   .menu-sub-chapters,

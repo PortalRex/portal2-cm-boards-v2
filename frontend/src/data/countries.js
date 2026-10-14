@@ -52,6 +52,7 @@ const COUNTRIES = {
   50: ["cd", "Congo, the Democratic Republic of the"],
   51: ["ck", "Cook Islands"],
   52: ["cr", "Costa Rica"],
+  53: ["ci", "Côte d'Ivoire"],
   54: ["hr", "Croatia"],
   55: ["cu", "Cuba"],
   56: ["cy", "Cyprus"],
@@ -110,9 +111,11 @@ const COUNTRIES = {
   109: ["kz", "Kazakhstan"],
   110: ["ke", "Kenya"],
   111: ["ki", "Kiribati"],
+  112: ["kp", "North Korea"],
   113: ["kr", "Korea, Republic of"],
   114: ["kw", "Kuwait"],
   115: ["kg", "Kyrgyzstan"],
+  116: ["la", "Laos"],
   117: ["lv", "Latvia"],
   118: ["lb", "Lebanon"],
   119: ["ls", "Lesotho"],
@@ -237,6 +240,21 @@ const COUNTRIES = {
   238: ["zm", "Zambia"],
   239: ["zw", "Zimbabwe"],
 };
+
+// Everyday English names ("South Korea", "Russia", "Taiwan") from the browser, where it knows the
+// country; the list's own name otherwise. A few the browser names awkwardly are set here.
+const NAME_OVERRIDES = { cd: "DR Congo", cg: "Republic of the Congo", ps: "Palestine", va: "Vatican City" };
+const regionNames = typeof Intl !== "undefined" && Intl.DisplayNames ? new Intl.DisplayNames(["en"], { type: "region" }) : null;
+const niceName = (code, fallback) => {
+  if (NAME_OVERRIDES[code]) return NAME_OVERRIDES[code];
+  try {
+    const name = regionNames?.of(code.toUpperCase());
+    return name && name !== code.toUpperCase() ? name : fallback;
+  } catch {
+    return fallback;
+  }
+};
+for (const id of Object.keys(COUNTRIES)) COUNTRIES[id] = [COUNTRIES[id][0], niceName(COUNTRIES[id][0], COUNTRIES[id][1])];
 
 export const countryById = (id) => {
   const row = COUNTRIES[id];

@@ -3,7 +3,7 @@ import { Link, NavLink, useLocation } from "react-router-dom";
 import logo from "../scenes/global/img/portal2logo.png";
 import {
   HistoryIcon, PinIcon, BarsIcon, MoreIcon, TrophyIcon, PersonIcon, PeopleIcon, MenuIcon, CloseIcon, LightModeIcon, DarkModeIcon, SteamIcon, UploadIcon,
-  DiscordIcon, GitHubIcon, DonateIcon, CompareIcon, GavelIcon, InfoIcon, StarIcon, TriangleRight, GlobeIcon,
+  DiscordIcon, GitHubIcon, DonateIcon, CompareIcon, GavelIcon, InfoIcon, StarIcon, TriangleRight, TriangleDown, GlobeIcon,
 } from "./Icons";
 import { Avatar, Flag } from "./ui";
 import { GAMES, MODE_LABELS, chapterDbId, coopChapters, spChapters } from "../data/maps";
@@ -76,12 +76,24 @@ function MenuLink({ item, caret = false }) {
   );
 }
 
+// On phones (the menu under the hamburger) each game opens with its arrow; on wider screens the
+// arrows are hidden and the games open on hover.
+function ExpandButton({ open, onToggle, label, className }) {
+  return (
+    <button type="button" className={`${className}${open ? " is-open" : ""}`} aria-expanded={open} aria-label={`${open ? "Close" : "Open"} ${label}`} onClick={onToggle}>
+      <TriangleDown size={12} />
+    </button>
+  );
+}
+
 function AggregateMenu() {
+  const [open, setOpen] = useState({});
   return (
     <div className="nav-menu nav-menu-tree" role="menu">
       {aggregateMenu().map((game) => (
-        <div className="menu-group" key={game.id}>
+        <div className={`menu-group${open[game.id] ? " is-expanded" : ""}`} key={game.id}>
           <MenuLink item={game} caret />
+          <ExpandButton className="menu-expand" open={Boolean(open[game.id])} label={game.label} onToggle={() => setOpen((o) => ({ ...o, [game.id]: !o[game.id] }))} />
           <div className="menu-sub">
             {game.boards.map((board) => (
               <div className="menu-group" key={board.to}>
@@ -143,12 +155,15 @@ function MenuItem({ item }) {
 function NavItem({ item, pathname }) {
   const Icon = item.icon;
   const active = item.end ? pathname === item.to : (item.match || [item.to]).some((m) => pathname.startsWith(m));
+  // Phones: a menu stays closed until its arrow is tapped.
+  const [expanded, setExpanded] = useState(false);
   return (
-    <li className={`nav-item${item.menu ? " has-menu" : ""}`}>
+    <li className={`nav-item${item.menu ? " has-menu" : ""}${expanded ? " is-expanded" : ""}`}>
       <NavLink to={item.to} className={`nav-link${active ? " is-active" : ""}`} end={item.end}>
         <Icon className="nav-icon" />
         <span>{item.label}</span>
       </NavLink>
+      {item.menu && <ExpandButton className="nav-expand" open={expanded} label={item.label} onToggle={() => setExpanded((e) => !e)} />}
       {item.menu === "leaderboard" ? (
         <AggregateMenu />
       ) : (
