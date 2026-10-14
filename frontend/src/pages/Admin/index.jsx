@@ -27,6 +27,7 @@ const ACTIONS = {
   "coop.set_host": "Set colors",
   "run.hide_wr": "Removed from WR history",
   "run.show_wr": "Back in WR history",
+  "run.manual_submit": "Submitted by hand",
   "profile.ban": "Banned profile",
   "profile.unban": "Unbanned profile",
   "profile.freeze": "Froze profile",
@@ -54,6 +55,7 @@ const ACTIONS = {
 };
 const TONES = {
   "run.ban": "warn",
+  "run.manual_submit": "info",
   "run.verify": "ok",
   "run.unverify": "warn",
   "run.unban": "ok",
@@ -92,7 +94,7 @@ const TONES = {
   "category.delete": "bad",
 };
 const TABS = [
-  { value: "runs", label: "Runs", actions: ["run.ban", "run.unban", "run.verify", "run.unverify", "run.delete", "demo.remove", "run.hide_wr", "run.show_wr", "coop.set_partner", "coop.set_host", "report.resolved", "report.dismissed", "report.open"] },
+  { value: "runs", label: "Runs", actions: ["run.ban", "run.unban", "run.verify", "run.unverify", "run.delete", "run.manual_submit", "demo.remove", "run.hide_wr", "run.show_wr", "coop.set_partner", "coop.set_host", "report.resolved", "report.dismissed", "report.open"] },
   { value: "profiles", label: "Profiles", actions: ["profile.ban", "profile.unban", "profile.freeze", "profile.unfreeze", "profile.set_role", "profile.display"] },
   { value: "catalog", label: "Games", actions: ["season.create", "game.create", "game.update", "game.delete", "game.layout", "game.link", "game.unlink", "chapter.create", "chapter.update", "chapter.delete", "map.create", "map.update", "map.delete", "map.link", "map.unlink", "category.create", "category.update", "category.delete"] },
 ];
@@ -198,7 +200,7 @@ function AuditLog() {
               <span>Player(s)</span>
               <span className="end">Rank</span>
               <span className="end">Time</span>
-              <span>Admin</span>
+              <span className="audit-admin">Admin</span>
               <span>Reason</span>
               <span className="end">When</span>
             </div>
@@ -340,7 +342,7 @@ function RunAuditRow({ entry, onChanged }) {
           <RankNumber rank={entry.post_rank} />
         </span>
         <span className="end num">{entry.score != null ? formatScore(entry.score) : "—"}</span>
-        <span>
+        <span className="audit-admin">
           <ActedBy entry={entry} />
         </span>
         <Reason entry={entry} open={open} onToggle={() => setOpen((o) => !o)} />
@@ -370,7 +372,7 @@ function CatalogAuditRow({ entry }) {
             {what}
           </button>
         </span>
-        <span>
+        <span className="audit-admin">
           <ActedBy entry={entry} />
         </span>
         <Reason entry={entry} open={open} onToggle={() => setOpen((o) => !o)} />
@@ -391,7 +393,7 @@ function ProfileAuditRow({ entry }) {
           <Link to={`/profile/${entry.target_id}`}>{entry.target_id}</Link>
           {entry.action === "profile.set_role" && <small className="muted audit-role">{roleChange(entry.details)}</small>}
         </span>
-        <span>
+        <span className="audit-admin">
           <ActedBy entry={entry} />
         </span>
         <Reason entry={entry} open={open} onToggle={() => setOpen((o) => !o)} />

@@ -26,18 +26,28 @@
 .audit-row {
   display: grid;
   align-items: center;
-  gap: 0 14px;
-  min-height: 48px;
-  padding: 4px 12px;
+  gap: 0 20px;
+  min-height: 52px;
+  padding: 8px 16px;
   font-size: 16px;
 }
 
+/* Action wide enough for the longest badge ("Removed from WR history"). */
 .audit-row.is-run {
-  grid-template-columns: 140px minmax(0, 1.2fr) minmax(0, 1.3fr) 50px 80px 130px minmax(0, 1.4fr) 110px;
+  grid-template-columns: 196px minmax(0, 1.1fr) minmax(0, 1.3fr) 56px 84px 120px minmax(0, 1.2fr) 110px;
 }
 
 .audit-row.is-profile {
-  grid-template-columns: 140px 220px 160px minmax(0, 1fr) 110px;
+  grid-template-columns: 196px 220px 160px minmax(0, 1fr) 110px;
+}
+
+/* A little room after the right-aligned time, so the two columns don't run together. */
+.audit-admin {
+  padding-left: 8px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .audit-entry:nth-child(even) > .audit-row {
@@ -90,10 +100,13 @@
 
 .audit-badge {
   justify-self: start;
+  max-width: 100%;
   padding: 3px 10px;
+  overflow: hidden;
   border-radius: 4px;
   font-size: 14px;
   white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .audit-badge.is-ok {
@@ -162,7 +175,7 @@
 }
 
 .audit-details-toggle {
-  margin-left: auto;
+  flex: none;
   border: 0;
   background: none;
   color: var(--accent-light);
@@ -188,7 +201,7 @@
 
 @media (max-width: 1100px) {
   .audit-row.is-run {
-    grid-template-columns: 130px minmax(0, 1fr) minmax(0, 1fr) 70px;
+    grid-template-columns: 170px minmax(0, 1fr) minmax(0, 1fr) 70px;
   }
 
   .audit-row.is-run > :nth-child(4),
@@ -202,7 +215,7 @@
   }
 
   .audit-row.is-profile {
-    grid-template-columns: 130px minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-columns: 170px minmax(0, 1fr) minmax(0, 1fr);
   }
 }
 
