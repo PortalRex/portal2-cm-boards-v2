@@ -341,7 +341,8 @@ once, in parallel) and stores what's in it on `demos` (migration `20261030000000
 and portal count, the players, who hosted a co-op run, the SAR version and build checksum, SAR's split times, and its
 record of pauses and timescale cheats. Each demo is read once (`parsed_at`): new submissions, demos pulled from the
 old boards and restored demo files are picked up as they come, and the archive is worked through in batches, newest
-first. On by default when `DEMO.PARSER` is set; `DEMO.AUTO_PARSE=false` turns it off.
+first. On by default when `DEMO.PARSER` is set; `DEMO.AUTO_PARSE=false` turns it off. The parser uses
+`DEMO.PARSE_WORKERS` threads (4 by default) and runs at idle priority on Windows, so it only takes spare CPU.
 
 From what's read, when the demo's scoreboard time is the run's own time:
 - the run gets its portal count and split times (`changelog.portals`, `changelog.segments`) when it has none;

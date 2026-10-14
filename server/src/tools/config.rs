@@ -74,11 +74,17 @@ pub struct DemoConfig {
     pub archive: Option<String>,
     /// Read every demo in the background ([crate::tools::demo_parse]); on unless set to false.
     pub auto_parse: Option<bool>,
+    /// Threads the demo parser uses (default 4); it also runs at idle priority on Windows, so
+    /// reading the archive doesn't get in the way of anything else on the machine.
+    pub parse_workers: Option<u32>,
 }
 
 impl DemoConfig {
     pub fn auto_parse(&self) -> bool {
         self.auto_parse.unwrap_or(true) && self.parser.as_deref().is_some_and(|p| !p.is_empty())
+    }
+    pub fn parse_workers(&self) -> u32 {
+        self.parse_workers.filter(|w| *w > 0).unwrap_or(4)
     }
 }
 

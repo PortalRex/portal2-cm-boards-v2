@@ -214,7 +214,12 @@ async fn parse(config: &Config, script: &str, list: &str, count: usize) -> Vec<P
         return Vec::new();
     }
     let node = config.demo.node.as_deref().filter(|n| !n.is_empty()).unwrap_or("node");
-    let run = tokio::process::Command::new(node).arg(script).arg(&file).kill_on_drop(true).output();
+    let mut command = tokio::process::Command::new(node);
+    command.arg(script).arg(&file).arg(config.demo.parse_workers().to_string()).kill_on_drop(true);
+    // Idle priority: only spare CPU goes to reading demos.
+    #[cfg(windows)]
+    command.creation_flags(0x0000_0040); // IDLE_PRIORITY_CLASS
+    let run = command.output();
     // Generous: a few seconds a demo even on one core.
     let output = tokio::time::timeout(Duration::from_secs(60 + 3 * count as u64), run).await;
     let _ = tokio::fs::remove_file(&file).await;
