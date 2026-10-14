@@ -23,8 +23,14 @@ import { rankVars } from "../../lib/ranks";
 import "./Profile.css";
 
 
+// Each player gets a fresh page (forms, tabs, zoom and loaded data), even when going from one
+// profile straight to another.
 export default function Profile() {
   const { profileId } = useParams();
+  return <ProfileView key={profileId} profileId={profileId} />;
+}
+
+function ProfileView({ profileId }) {
   const version = useDataVersion();
   const profile = useApi(() => fetchProfile(profileId), [profileId, version]);
   const p = profile.data;
