@@ -138,6 +138,52 @@
   white-space: nowrap;
 }
 
+/* Open run reports: stays until they're dealt with (unlike the red count of new entries). */
+.staff-inbox-reports {
+  position: absolute;
+  right: -2px;
+  bottom: -1px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: #e0a63a;
+  color: #241a05;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+}
+
+.staff-inbox-reports.is-inline {
+  position: static;
+  display: inline-block;
+  margin-right: 8px;
+}
+
+.staff-inbox-open-reports {
+  display: flex;
+  align-items: center;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  color: inherit;
+  font-size: 15px;
+}
+
+.staff-inbox-open-reports:hover {
+  background: var(--control-raised);
+}
+
+.staff-inbox-note {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--text-2);
+  font-size: 13px;
+  font-style: italic;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
 /* Phones: the panel spans the screen under the top bar. */
 @media (max-width: 600px) {
   .staff-inbox-panel {

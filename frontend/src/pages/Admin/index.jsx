@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import Layout from "../../components/Layout";
 import { Panel, Select, Loading, EmptyState, PlayerLink, RankNumber } from "../../components/ui";
 import { MoreIcon } from "../../components/Icons";
@@ -15,7 +15,7 @@ import { ACTIONS, TONES } from "../../lib/adminActions";
 import "./Admin.css";
 
 const TABS = [
-  { value: "runs", label: "Runs", actions: ["run.ban", "run.unban", "run.verify", "run.unverify", "run.delete", "run.manual_submit", "demo.remove", "run.hide_wr", "run.show_wr", "coop.set_partner", "coop.set_host", "report.resolved", "report.dismissed", "report.open"] },
+  { value: "runs", label: "Runs", actions: ["run.ban", "run.unban", "run.verify", "run.unverify", "run.delete", "run.manual_submit", "demo.remove", "run.hide_wr", "run.show_wr", "coop.set_partner", "coop.set_host", "report.new", "report.resolved", "report.dismissed", "report.open"] },
   { value: "profiles", label: "Profiles", actions: ["profile.ban", "profile.unban", "profile.freeze", "profile.unfreeze", "profile.set_role", "profile.display"] },
   { value: "catalog", label: "Games", actions: ["season.create", "game.create", "game.update", "game.delete", "game.layout", "game.link", "game.unlink", "chapter.create", "chapter.update", "chapter.delete", "map.create", "map.update", "map.delete", "map.link", "map.unlink", "category.create", "category.update", "category.delete"] },
 ];
@@ -24,7 +24,12 @@ const PAGE = 50;
 // Admins only: a changelog of every change admins (or the board's services) have made.
 export default function Admin() {
   const user = useCurrentUser();
-  const [section, setSection] = useState("log");
+  // ?section=reports (or games) opens that section, e.g. from the staff inbox.
+  const [params] = useSearchParams();
+  const [section, setSection] = useState(params.get("section") || "log");
+  useEffect(() => {
+    if (params.get("section")) setSection(params.get("section"));
+  }, [params]);
   const [openReports, setOpenReports] = useState(null);
   const staff = isStaff(user);
   const refreshCount = () => fetchReportCount().then(setOpenReports, () => {});
@@ -168,7 +173,8 @@ function AuditLog() {
 
 const Badge = ({ action }) => <span className={`audit-badge is-${TONES[action] || "info"}`}>{ACTIONS[action] || action}</span>;
 
-const ActedBy = ({ entry }) => (entry.via_service ? <i className="muted">Board service</i> : <Link to={`/profile/${entry.admin_profile}`}>{entry.admin_name}</Link>);
+const ActedBy = ({ entry }) =>
+  entry.action === "report.new" ? <i className="muted">Player report</i> : entry.via_service ? <i className="muted">Board service</i> : <Link to={`/profile/${entry.admin_profile}`}>{entry.admin_name}</Link>;
 
 const When = ({ entry }) => (
   <span className="audit-when end" title={formatDate(entry.created_at)}>

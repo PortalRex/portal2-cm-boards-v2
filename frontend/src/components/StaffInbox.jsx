@@ -21,7 +21,10 @@ const parse = (details) => {
   }
 };
 
-// What an entry is about, and where it links: the run's map, the profile, or the admin log.
+const REPORTS = "/admin?section=reports";
+
+// What an entry is about, and where it links: the run's map (a new report: the reports list),
+// the profile, or the admin log.
 function describe(entry) {
   if (entry.run_id || entry.map_id) {
     const map = entry.map_id ? getMap(entry.map_id, entry.game_id === 2 ? "mel" : "portal2") : null;
@@ -30,7 +33,8 @@ function describe(entry) {
     return {
       title: map?.title || entry.map_name || `Run #${entry.target_id}`,
       sub: [players, score].filter(Boolean).join(" · "),
-      to: map && entry.run_exists ? mapPath(map) : "/admin",
+      note: entry.action === "report.new" ? entry.reason : null,
+      to: entry.action === "report.new" ? REPORTS : map && entry.run_exists ? mapPath(map) : "/admin",
     };
   }
   if (entry.target_type === "profile") return { title: entry.target_name || entry.target_id, sub: null, to: `/profile/${entry.target_id}` };
@@ -111,6 +115,7 @@ export default function StaffInbox() {
   };
 
   const unread = data?.unread || 0;
+  const openReports = data?.open_reports || 0;
   const items = data?.items || [];
   return (
     <div className="staff-inbox" ref={box}>
@@ -119,11 +124,12 @@ export default function StaffInbox() {
         className={`staff-inbox-button${open ? " is-open" : ""}`}
         onClick={toggle}
         aria-expanded={open}
-        aria-label={unread ? `Staff inbox, ${unread} new` : "Staff inbox"}
-        title="Staff inbox"
+        aria-label={`Staff inbox${unread ? `, ${unread} new` : ""}${openReports ? `, ${openReports} open report${openReports === 1 ? "" : "s"}` : ""}`}
+        title={openReports ? `Staff inbox · ${openReports} open report${openReports === 1 ? "" : "s"}` : "Staff inbox"}
       >
         <InboxIcon />
         {unread > 0 && <span className="staff-inbox-badge">{unread > 99 ? "99+" : unread}</span>}
+        {openReports > 0 && <span className="staff-inbox-reports">{openReports > 99 ? "99+" : openReports}</span>}
       </button>
       {open && (
         <div className="staff-inbox-panel" role="dialog" aria-label="Staff inbox">
@@ -131,6 +137,12 @@ export default function StaffInbox() {
             <strong>Staff actions</strong>
             <Link to="/admin">Admin log</Link>
           </div>
+          {openReports > 0 && (
+            <Link to={REPORTS} className="staff-inbox-open-reports">
+              <span className="staff-inbox-reports is-inline">{openReports}</span>
+              open report{openReports === 1 ? "" : "s"} to review
+            </Link>
+          )}
           {!items.length ? (
             <p className="staff-inbox-empty">Nothing yet.</p>
           ) : (
@@ -147,8 +159,9 @@ export default function StaffInbox() {
                           <b>{ACTIONS[e.action] || e.action}</b> {what.title}
                         </span>
                         {what.sub && <span className="staff-inbox-sub">{what.sub}</span>}
+                        {what.note && <span className="staff-inbox-note">“{what.note}”</span>}
                         <span className="staff-inbox-meta" title={formatDate(e.created_at)}>
-                          {e.via_service ? "Board service" : e.admin_name} · {timeAgo(e.created_at)}
+                          {e.action === "report.new" ? "Player report" : e.via_service ? "Board service" : e.admin_name} · {timeAgo(e.created_at)}
                         </span>
                       </span>
                     </Link>

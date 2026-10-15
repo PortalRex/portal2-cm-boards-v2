@@ -10,6 +10,17 @@ use sha2::{Digest, Sha256};
 use sqlx::{FromRow, PgPool};
 
 pub const REASONS: &[&str] = &["cheating", "wrong_time", "wrong_player", "bad_proof", "other"];
+
+/// How a reason reads in the staff log (the same wording as the report form).
+fn reason_label(reason: &str) -> &'static str {
+    match reason {
+        "cheating" => "Cheating or an illegitimate run",
+        "wrong_time" => "Wrong time",
+        "wrong_player" => "Wrong player or partner",
+        "bad_proof" => "Demo or video doesn't match",
+        _ => "Something else",
+    }
+}
 /// Reports one reporter can send per hour.
 const HOURLY_LIMIT: i64 = 5;
 
@@ -51,12 +62,26 @@ pub async fn create_report(pool: &PgPool, cl_id: i64, reason: &str, details: Opt
     )
     .bind(cl_id)
     .bind(reason)
-    .bind(details)
+    .bind(&details)
     .bind(key)
     .fetch_optional(pool)
     .await?;
     match id {
-        Some(id) => Ok(Ok(id)),
+        Some(id) => {
+            // In the staff log too (as from nobody: reports are anonymous), so it reaches the
+            // staff inbox straight away.
+            let summary = match &details {
+                Some(d) => format!("{}: {d}", reason_label(reason)),
+                None => reason_label(reason).to_string(),
+            };
+            sqlx::query("INSERT INTO admin_actions (action, target_type, target_id, reason, details) VALUES ('report.new', 'run', $1, $2, $3::jsonb)")
+                .bind(cl_id.to_string())
+                .bind(summary.chars().take(500).collect::<String>())
+                .bind(json!({ "report_id": id, "reason": reason }).to_string())
+                .execute(pool)
+                .await?;
+            Ok(Ok(id))
+        }
         None => Ok(Err(Refused::Invalid("You've already reported this run; staff will look at it.".into()))),
     }
 }

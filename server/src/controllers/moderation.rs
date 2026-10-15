@@ -706,8 +706,9 @@ pub async fn set_role(pool: &PgPool, actor: &AdminOrService, profile_number: &st
     Ok(Ok(()))
 }
 
-/// The staff inbox: the latest audit-log entries and how many are new to `viewer` (entries after
-/// the last one they saw, not counting their own). The service token sees the entries, no count.
+/// The staff inbox: the latest audit-log entries, how many are new to `viewer` (entries after
+/// the last one they saw, not counting their own; the service token gets no count) and how many
+/// run reports are open.
 pub async fn inbox(pool: &PgPool, viewer: Option<&str>, limit: i64) -> Result<Value, sqlx::Error> {
     let items = list_actions(pool, &AuditQuery { limit: Some(limit), ..Default::default() }).await?;
     let (seen_id, unread) = match viewer {
@@ -722,7 +723,8 @@ pub async fn inbox(pool: &PgPool, viewer: Option<&str>, limit: i64) -> Result<Va
         }
         None => (None, 0),
     };
-    Ok(json!({ "seen_id": seen_id, "unread": unread, "items": items }))
+    let open_reports = crate::controllers::reports::open_count(pool).await?;
+    Ok(json!({ "seen_id": seen_id, "unread": unread, "items": items, "open_reports": open_reports }))
 }
 
 /// The newest audit-log entry, and the entry `viewer` has read their inbox up to.

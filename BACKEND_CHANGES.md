@@ -356,6 +356,11 @@ which answers `{"changed": true}` as soon as there's a newer entry or the inbox 
 25 s. Long polling rather than server-sent events because Cloudflare's quick tunnels hold back streamed responses; it
 works behind any proxy. The inbox also reloads every 5 minutes as a fallback.
 
+New run reports are written to the audit log too (`report.new`, from nobody since reports are anonymous; the reason and
+the reporter's words in `reason`, `{"report_id", "reason"}` in `details`), so they reach the inbox live and count as
+new for every staff member. `GET /admin/inbox` also returns `open_reports`, shown as a second (amber) count that stays
+until the reports are dealt with.
+
 ### Board names
 
 A game's boards ("modes", each chapter's `game_mode`) can be renamed in the games editor: `PUT /admin/games/{id}`
