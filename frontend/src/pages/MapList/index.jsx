@@ -5,27 +5,41 @@ import useCurrentUser from "../../hooks/useCurrentUser";
 import { PinIcon, TrophyIcon } from "../../components/Icons";
 import { AutorenderLink, YouTubeLink, DemoLink } from "../../components/RunMedia";
 import { fetchPreviews } from "../../api/boards";
-import { GAMES, MODE_LABELS, chaptersFor, isMultiplayerMode, mapPath } from "../../data/maps";
+import { GAMES, MODE_LABELS, chaptersFor, isMultiplayerMode } from "../../data/maps";
 import useApi from "../../hooks/useApi";
 import background from "../../scenes/global/img/Background.png";
 import "./MapList.css";
 import { TimeButton } from "../../components/RunHistory";
+import SeasonSelect from "../../components/SeasonSelect";
+import { mapLink, seasonBoard, seasonsOf, useSeason } from "../../data/seasons";
 
-// Built when rendering: the game list comes from the server's catalog at startup.
-const gameOptions = () => Object.values(GAMES).map((g) => ({ value: g.id, label: g.label }));
+// Built when rendering: the game list comes from the server's catalog at startup. Seasons are
+// picked on their game (SeasonSelect), not listed as games.
+const gameOptions = () =>
+  Object.values(GAMES)
+    .filter((g) => g.kind !== "season")
+    .map((g) => ({ value: g.id, label: g.label }));
 
 export default function MapList() {
   const [params, setParams] = useSearchParams();
-  const game = GAMES[params.get("game")] ? params.get("game") : "portal2";
+  const raw = params.get("game");
+  // An old ?game=<season> link: its game with the season picked.
+  const oldSeason = GAMES[raw]?.kind === "season" && GAMES[GAMES[raw].base] ? raw : null;
+  const game = oldSeason ? GAMES[raw].base : GAMES[raw] ? raw : "portal2";
+  const picked = useSeason(game);
+  const season = oldSeason || picked;
   const modes = GAMES[game].modes;
   const mode = modes.includes(params.get("mode")) ? params.get("mode") : modes[0];
-  const previews = useApi(() => fetchPreviews(mode), [mode]);
-  const chapters = chaptersFor(mode);
+  // The season's copy of the board (null if the season has no such board).
+  const board = season ? seasonBoard(season, game, mode) : mode;
+  const previews = useApi(() => (board ? fetchPreviews(board) : Promise.resolve({})), [board]);
+  const chapters = board ? chaptersFor(board) : [];
 
-  const update = (nextGame, nextMode) => {
+  const update = (nextGame, nextMode, nextSeason = season) => {
     const next = {};
     if (nextGame !== "portal2") next.game = nextGame;
     if (nextMode !== GAMES[nextGame].modes[0]) next.mode = nextMode;
+    if (nextSeason && nextGame === game) next.season = nextSeason;
     setParams(next, { replace: true });
   };
 
@@ -35,8 +49,9 @@ export default function MapList() {
         <div className="ml-controls">
           <div className="ml-control">
             <span className="ml-label">Games</span>
-            <Select value={game} onChange={(g) => update(g, GAMES[g].modes[0])} options={gameOptions()} label="Games" className="ml-select" />
+            <Select value={game} onChange={(g) => update(g, GAMES[g].modes[0], null)} options={gameOptions()} label="Games" className="ml-select" />
           </div>
+          <SeasonControl game={game} season={season} onChange={(s) => update(game, mode, s)} />
           <div className="ml-control">
             <span className="ml-label">Mode</span>
             <div className="segmented" role="tablist">
@@ -50,6 +65,7 @@ export default function MapList() {
         </div>
 
         {previews.loading && !previews.data && <Loading />}
+        {season && !board && <p className="muted">{GAMES[season].label} has no {MODE_LABELS[mode]} maps.</p>}
 
         {chapters.map((chapter) => (
           <section key={chapter.dbId ?? `${chapter.mode}-${chapter.number}`} className="ml-chapter">
@@ -68,6 +84,17 @@ export default function MapList() {
         ))}
       </Panel>
     </Layout>
+  );
+}
+
+// The season picker with the page's other labelled controls (nothing for a game without seasons).
+function SeasonControl({ game, season, onChange }) {
+  if (!seasonsOf(game).length) return null;
+  return (
+    <div className="ml-control">
+      <span className="ml-label">Season</span>
+      <SeasonSelect base={game} season={season} onChange={onChange} className="ml-select" />
+    </div>
   );
 }
 
@@ -100,7 +127,7 @@ function MapCard({ map, scores }) {
   const slots = iconSlots([wr, ...rest.slice(0, 6)].filter(Boolean));
   return (
     <article className="map-card">
-      <Link to={mapPath(map)} className="mc-head" style={{ backgroundImage: `url("${map.image}")` }}>
+      <Link to={mapLink(map)} className="mc-head" style={{ backgroundImage: `url("${map.image}")` }}>
         <h3>{map.title}</h3>
       </Link>
       <div className={`mc-wr${isMine(wr) ? " is-me" : ""}`}>

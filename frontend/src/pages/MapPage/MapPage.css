@@ -88,6 +88,13 @@
   z-index: 1;
 }
 
+/* Category and season pickers side by side. */
+.mp-selects {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
 .mp-select {
   width: 218px;
 }

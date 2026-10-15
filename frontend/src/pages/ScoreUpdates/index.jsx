@@ -23,7 +23,11 @@ import "./ScoreUpdates.css";
 
 const PAGE_SIZE = 20;
 // Built when rendering: the game list comes from the server's catalog at startup.
-const gameOptions = () => Object.values(GAMES).map((g) => ({ value: g.id, label: g.label }));
+// Games only (a season's runs are its game's runs); an old ?game=<season> link keeps its entry.
+const gameOptions = (current) =>
+  Object.values(GAMES)
+    .filter((g) => g.kind !== "season" || g.id === current)
+    .map((g) => ({ value: g.id, label: g.label }));
 const LIMITS = RUN_LIMITS;
 const TOGGLES = RUN_TOGGLES;
 const DEFAULTS = { game: "portal2", mode: "", map: "", q: "", limit: "200", banned: "hide", page: "0" };
@@ -102,7 +106,7 @@ export default function ScoreUpdates() {
       <Panel icon={HistoryIcon} title="Score Updates" bodyClassName="su-body">
         <div className="su-toolbar">
           <SearchBox value={get("q")} onChange={(v) => set({ q: v })} placeholder="Search players" showFilter={false} />
-          <Select value={game} onChange={(g) => set({ game: g, mode: "", map: "" })} options={gameOptions()} label="Game" className="su-game" />
+          <Select value={game} onChange={(g) => set({ game: g, mode: "", map: "" })} options={gameOptions(game)} label="Game" className="su-game" />
           <Pagination page={page} pageCount={pageCount} onChange={setPage} />
         </div>
 

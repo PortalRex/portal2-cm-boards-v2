@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Navigate, useParams, useSearchParams } from "react-router-dom";
+import { Navigate, useLocation, useParams, useSearchParams } from "react-router-dom";
 import { Area, AreaChart, CartesianGrid, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import Layout from "../../components/Layout";
 import { Panel, Select, Pagination, SearchBox, Avatar, PlayerLink, OutlineButton, Loading, EmptyState, RankNumber } from "../../components/ui";
@@ -19,6 +19,8 @@ import { formatScore, timeAgo, formatDate, formatDateTime, parseTimestamp } from
 import { TimeButton } from "../../components/RunHistory";
 import useWheelZoom from "../../hooks/useWheelZoom";
 import { BANNED_OPTIONS, RANK_OPTIONS, RUN_LIMITS, RUN_TOGGLES, TIME_OPTIONS } from "../../lib/runFilters";
+import SeasonSelect from "../../components/SeasonSelect";
+import { isSeason, mapLink, seasonMap, useSeason, withSeason } from "../../data/seasons";
 import "./MapPage.css";
 
 // Runs per page on the board and in Chamber History.
@@ -28,27 +30,49 @@ const MEL_CATEGORIES = [{ value: "main", label: "Challenge Mode" }];
 
 export default function MapPage() {
   const { mode, levelId } = useParams();
+  const { search } = useLocation();
   const map = getMap(levelId, gameForMode(mode)) || findMap(levelId);
+  // ?season=: the season's copy of the map (its own board, WR history and chamber history).
+  const season = useSeason(map?.game || "");
   if (!map) return <Navigate to="/maps" replace />;
-  if (map.mode !== mode) return <Navigate to={mapPath(map)} replace />;
-  return <MapPageContent key={`${map.game}-${map.id}`} map={map} />;
+  // A season's copy opens as its base map with the season picked.
+  if (isSeason(map.game)) {
+    const link = mapLink(map);
+    return <Navigate to={link === mapPath(map) ? link : withSeason(`${link.split("?")[0]}${search}`, map.game)} replace />;
+  }
+  if (map.mode !== mode) return <Navigate to={`${mapPath(map)}${search}`} replace />;
+  const copy = season ? seasonMap(season, map.id) : null;
+  // Not in that season: the map's all-time board.
+  if (season && !copy) return <Navigate to={withSeason(`${mapPath(map)}${search}`, null)} replace />;
+  return <MapPageContent key={`${map.game}-${map.id}-${season || ""}`} map={map} data={copy || map} season={season} />;
 }
 
-function MapPageContent({ map }) {
+// `map` is the map shown (title, image); `data` is the board shown: the map itself, or with a
+// season picked, the season's copy of it.
+function MapPageContent({ map, data, season }) {
   const user = useCurrentUser();
   const version = useDataVersion();
   // ?at=: the board as it stood then (picked on the WR history chart).
   const [params, setParams] = useSearchParams();
   const at = params.get("at");
-  const board = useApi(() => fetchBoard(map, at), [map.id, version, at]);
-  const history = useApi(() => fetchWrHistory(map), [map.id, version]);
+  const board = useApi(() => fetchBoard(data, at), [data.id, version, at]);
+  const history = useApi(() => fetchWrHistory(data), [data.id, version]);
   const [view, setView] = useState("board");
   const pickMoment = (t) => {
-    setParams(t ? { at: new Date(t).toISOString().slice(0, 19) } : {}, { replace: true });
+    // Keeps ?season= (and anything else) as it is.
+    setParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (t) next.set("at", new Date(t).toISOString().slice(0, 19));
+        else next.delete("at");
+        return next;
+      },
+      { replace: true },
+    );
     setView("board");
   };
   const wr = board.data?.[0];
-  const wrRendered = useRenderedSet(wr ? [wr] : [], map.game);
+  const wrRendered = useRenderedSet(wr ? [wr] : [], data.game);
 
   return (
     <Layout background={map.image} blur narrow>
@@ -58,11 +82,14 @@ function MapPageContent({ map }) {
             <h1 className="mp-title">{map.title}</h1>
             <p className="mp-chapter">{map.chapter}</p>
             <WrHistoryChart points={history.data} loading={history.loading} at={at} onPick={pickMoment} />
-            <Select value="main" onChange={() => {}} options={map.game === "mel" ? MEL_CATEGORIES : CATEGORIES} label="Category" className="mp-select" />
+            <div className="mp-selects">
+              <Select value="main" onChange={() => {}} options={map.game === "mel" ? MEL_CATEGORIES : CATEGORIES} label="Category" className="mp-select" />
+              <SeasonSelect base={map.game} season={season} className="mp-select" />
+            </div>
           </div>
           <div className="mp-info-right">
             {wr ? (
-              <RunVideo run={wr} game={map.game} rendered={wrRendered} title={`${map.title} world record`} />
+              <RunVideo run={wr} game={data.game} rendered={wrRendered} title={`${map.title} world record`} />
             ) : (
               <div className="yt-embed yt-empty">No video</div>
             )}
@@ -85,7 +112,7 @@ function MapPageContent({ map }) {
         </div>
 
         <div className="mp-lower">
-          {view === "board" ? <Leaderboard map={map} board={board} at={at} onClearAt={() => pickMoment(null)} /> : view === "wr" ? <WrHistoryEditor map={map} /> : <ChamberHistory map={map} />}
+          {view === "board" ? <Leaderboard map={data} board={board} at={at} onClearAt={() => pickMoment(null)} /> : view === "wr" ? <WrHistoryEditor map={data} /> : <ChamberHistory map={data} />}
         </div>
       </Panel>
     </Layout>

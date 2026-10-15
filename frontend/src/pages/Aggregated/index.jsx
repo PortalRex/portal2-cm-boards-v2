@@ -9,6 +9,8 @@ import useApi from "../../hooks/useApi";
 import { formatPoints, formatLongScore } from "../../lib/format";
 import background from "../../scenes/global/img/OverallOpaque.png";
 import { countryName } from "../../data/countries";
+import { baseBoardOf, currentSeason, seasonBoard, withSeason } from "../../data/seasons";
+import SeasonSelect from "../../components/SeasonSelect";
 import "./Aggregated.css";
 
 // Route segment -> [title, API kind] per game.
@@ -26,19 +28,21 @@ const KINDS = {
 };
 
 const BASE = { portal2: "/leaderboard", mel: "/leaderboard/mel" };
-// Leaderboard home of a game: built-in games keep their old addresses.
-export const gameBoardsPath = (game) => (BASE[game] ? `${BASE[game]}/overall` : `/leaderboard/game/${game}/overall`);
+// A board of a game: built-in games keep their old addresses.
+const boardPath = (game, board) => (BASE[game] ? `${BASE[game]}/${board}` : `/leaderboard/game/${game}/${board}`);
+export const gameBoardsPath = (game) => boardPath(game, "overall");
+// Games only: seasons are picked on their game's page (SeasonSelect).
 const categories = () =>
-  Object.values(GAMES).map((g) => ({ value: g.id, label: g.id === "portal2" ? "Portal 2 Challenge Mode" : g.label }));
+  Object.values(GAMES)
+    .filter((g) => g.kind !== "season")
+    .map((g) => ({ value: g.id, label: g.id === "portal2" ? "Portal 2 Challenge Mode" : g.label }));
 
-// The season running now (else the latest one), for /leaderboard/season.
-export function currentSeason() {
-  const seasons = Object.values(GAMES).filter((g) => g.kind === "season" && !g.hidden);
-  const now = Date.now();
-  const live = seasons.filter((g) => new Date(`${g.startsAt}Z`) <= now && (!g.endsAt || new Date(`${g.endsAt}Z`) > now));
-  const byStart = (a, b) => new Date(b.startsAt) - new Date(a.startsAt);
-  return live.sort(byStart)[0] || seasons.sort(byStart)[0] || null;
-}
+// Season dates are UTC; shown as entered.
+const seasonKicker = (season) => {
+  const g = GAMES[season];
+  const day = (ts) => String(ts).slice(0, 10);
+  return g.startsAt ? `${g.label} · ${day(g.startsAt)} – ${g.endsAt ? day(g.endsAt) : "ongoing"}` : g.label;
+};
 const PAGE_SIZE = 20;
 
 // Portal 2 board picker: the three aggregated boards plus one per chapter.
@@ -53,28 +57,39 @@ const chapterBoards = (mode) => [
 
 export default function Aggregated({ game = "portal2" }) {
   const { kind, chapterId, gameId, board } = useParams();
+  const [params] = useSearchParams();
+  const { search } = useLocation();
+  // ?season=: one of the game's seasons instead of all-time.
+  const seasonOf = (base) => {
+    const key = params.get("season");
+    return key && GAMES[key]?.kind === "season" && GAMES[key].base === base ? key : null;
+  };
   if (kind === "season") {
     const season = currentSeason();
-    return season ? <Navigate to={gameBoardsPath(season.id)} replace /> : <NoSeason />;
+    return season ? <Navigate to={withSeason(gameBoardsPath(season.base), season.id)} replace /> : <NoSeason />;
   }
   if (gameId) {
     const g = GAMES[gameId];
     if (!g) return <Navigate to="/leaderboard/overall" replace />;
     if (BASE[gameId]) return <Navigate to={gameBoardsPath(gameId)} replace />;
+    // An old season address: its game's board with the season picked.
+    if (g.kind === "season" && g.base && GAMES[g.base]) {
+      return <Navigate to={withSeason(`${boardPath(g.base, baseBoardOf(gameId, board || "overall"))}${search}`, gameId)} replace />;
+    }
     const boardKey = board === "overall" || g.modes.includes(board) ? board : null;
     if (!boardKey) return <Navigate to={gameBoardsPath(gameId)} replace />;
     const title = boardKey === "overall" ? "Overall" : MODE_LABELS[boardKey] || boardKey;
-    // Season dates are UTC; show them as entered.
-    const day = (ts) => String(ts).slice(0, 10);
-    const span = g.kind === "season" && g.startsAt ? `${day(g.startsAt)} – ${g.endsAt ? day(g.endsAt) : "ongoing"}` : null;
+    const season = seasonOf(gameId);
+    const sb = season && seasonBoard(season, gameId, boardKey);
     return (
       <AggregatedContent
-        key={`${gameId}-${boardKey}`}
+        key={`${gameId}-${boardKey}-${season || ""}`}
         game={gameId}
         kind={boardKey}
         title={title}
-        apiKind={`game:${gameId}:${boardKey}`}
-        kicker={span ? `${g.label} · ${span}` : g.label}
+        season={season}
+        apiKind={season ? sb && `game:${season}:${sb}` : `game:${gameId}:${boardKey}`}
+        kicker={season ? seasonKicker(season) : g.label}
       />
     );
   }
@@ -86,10 +101,15 @@ export default function Aggregated({ game = "portal2" }) {
   }
   if (!KINDS[game][kind]) return <Navigate to={`${BASE[game]}/overall`} replace />;
   const [title, apiKind] = KINDS[game][kind];
+  const season = seasonOf(game);
+  if (season) {
+    const sb = seasonBoard(season, game, kind);
+    return <AggregatedContent key={`${game}-${kind}-${season}`} game={game} kind={kind} title={title} season={season} apiKind={sb && `game:${season}:${sb}`} kicker={seasonKicker(season)} />;
+  }
   return <AggregatedContent key={`${game}-${kind}`} game={game} kind={kind} title={title} apiKind={apiKind} />;
 }
 
-function AggregatedContent({ game, kind, title, apiKind, kicker = "Aggregated points and times" }) {
+function AggregatedContent({ game, kind, title, apiKind, season = null, kicker = "Aggregated points and times" }) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const data = useApi(() => (apiKind ? fetchAggregatedBoard(game, apiKind) : Promise.resolve(null)), [game, apiKind]);
@@ -99,8 +119,8 @@ function AggregatedContent({ game, kind, title, apiKind, kicker = "Aggregated po
   // ?player=: open on the page with this player, their row marked (from a profile's ranks).
   const focus = params.get("player") || null;
   const setCountry = (c) => setParams(c ? { country: c } : {}, { replace: true });
-  // Switching board (tab, chapter or game) keeps the chosen country.
-  const keep = (to) => (country ? `${to}?country=${country}` : to);
+  // Switching board (tab or chapter) keeps the chosen country and season.
+  const keep = (to, s = season) => withSeason(country ? `${to}?country=${country}` : to, s);
   const countries = [...new Set((data.data?.points || []).map((r) => r.player.country).filter(Boolean))].sort((a, b) => countryName(a).localeCompare(countryName(b)));
   const inCountry = (rows) => (country ? rows.filter((r) => r.player.country === country) : rows);
 
@@ -110,8 +130,9 @@ function AggregatedContent({ game, kind, title, apiKind, kicker = "Aggregated po
         <p className="agg-kicker">{kicker}</p>
         <h1 className="agg-title">{title}</h1>
         <div className="agg-selects">
-          <Select value={game} onChange={(g) => navigate(keep(gameBoardsPath(g)))} options={categories()} label="Games" className="agg-select" />
-          {game === "portal2" && (kind === "sp" || kind === "coop") && (
+          <Select value={game} onChange={(g) => navigate(keep(gameBoardsPath(g), null))} options={categories()} label="Games" className="agg-select" />
+          <SeasonSelect base={game} season={season} onChange={(s) => navigate(keep(s && pathname.includes("/chapter/") ? boardPath(game, kind) : pathname, s))} className="agg-select" />
+          {!season && game === "portal2" && (kind === "sp" || kind === "coop") && (
             <Select value={pathname} onChange={(to) => navigate(keep(to))} options={chapterBoards(kind)} label="Chapter" className="agg-select" />
           )}
           {countries.length > 0 && (

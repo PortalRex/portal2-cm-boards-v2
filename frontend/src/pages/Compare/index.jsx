@@ -4,11 +4,13 @@ import Layout from "../../components/Layout";
 import { Avatar, EmptyState, Loading, Panel, PlayerLink, RankNumber, Select } from "../../components/ui";
 import { PeopleIcon, SwapIcon } from "../../components/Icons";
 import { fetchCompareSide, searchUsers } from "../../api/client";
-import { GAMES, MODE_LABELS, chaptersFor, isMultiplayerMode, mapPath } from "../../data/maps";
+import { GAMES, MODE_LABELS, chaptersFor, isMultiplayerMode } from "../../data/maps";
 import useApi from "../../hooks/useApi";
 import useDebounced from "../../hooks/useDebounced";
 import { formatDelta, formatLongScore, formatScore } from "../../lib/format";
 import background from "../../scenes/global/img/Background.png";
+import SeasonSelect from "../../components/SeasonSelect";
+import { mapLink, seasonBoard, useSeason } from "../../data/seasons";
 import "./Compare.css";
 
 // Two players' best times side by side, map by map, for one game and board.
@@ -16,16 +18,24 @@ export default function Compare() {
   const [params, setParams] = useSearchParams();
   const a = params.get("a") || "";
   const b = params.get("b") || "";
-  const game = GAMES[params.get("game")] ? params.get("game") : "portal2";
+  const raw = params.get("game");
+  // An old ?game=<season> link: its game with the season picked.
+  const oldSeason = GAMES[raw]?.kind === "season" && GAMES[GAMES[raw].base] ? raw : null;
+  const game = oldSeason ? GAMES[raw].base : GAMES[raw] ? raw : "portal2";
+  const picked = useSeason(game);
+  const season = oldSeason || picked;
   const modes = GAMES[game].modes;
   const mode = modes.includes(params.get("mode")) ? params.get("mode") : modes[0];
+  // With a season picked: the season's results and its copy of the board.
+  const source = season || game;
+  const board = season ? seasonBoard(season, game, mode) : mode;
   const set = (changes) => {
     const next = new URLSearchParams(params);
     Object.entries(changes).forEach(([k, v]) => (v ? next.set(k, v) : next.delete(k)));
     setParams(next, { replace: true });
   };
-  const left = useApi(() => (a ? fetchCompareSide(a, game) : Promise.resolve(null)), [a, game]);
-  const right = useApi(() => (b ? fetchCompareSide(b, game) : Promise.resolve(null)), [b, game]);
+  const left = useApi(() => (a ? fetchCompareSide(a, source) : Promise.resolve(null)), [a, source]);
+  const right = useApi(() => (b ? fetchCompareSide(b, source) : Promise.resolve(null)), [b, source]);
 
   return (
     <Layout background={background} tint="mono">
@@ -41,12 +51,15 @@ export default function Compare() {
           {Object.keys(GAMES).length > 1 && (
             <Select
               value={game}
-              onChange={(g) => set({ game: g === "portal2" ? "" : g, mode: "" })}
-              options={Object.values(GAMES).map((g) => ({ value: g.id, label: g.label }))}
+              onChange={(g) => set({ game: g === "portal2" ? "" : g, mode: "", season: "" })}
+              options={Object.values(GAMES)
+                .filter((g) => g.kind !== "season")
+                .map((g) => ({ value: g.id, label: g.label }))}
               label="Game"
               className="cmp-select"
             />
           )}
+          <SeasonSelect base={game} season={season} onChange={(s) => set({ game: game === "portal2" ? "" : game, season: s || "" })} className="cmp-select" />
           <div className="segmented">
             {modes.map((m) => (
               <button key={m} type="button" className={m === mode ? "is-active" : ""} onClick={() => set({ mode: m === modes[0] ? "" : m })}>
@@ -56,7 +69,7 @@ export default function Compare() {
           </div>
         </div>
         {left.data && right.data ? (
-          <Comparison mode={mode} left={left.data} right={right.data} />
+          board ? <Comparison mode={board} left={left.data} right={right.data} /> : <EmptyState>{GAMES[season].label} has no {MODE_LABELS[mode]} maps.</EmptyState>
         ) : (
           !left.loading && !right.loading && <EmptyState>Pick two players to compare their times.</EmptyState>
         )}
@@ -185,7 +198,7 @@ function Comparison({ mode, left, right }) {
               <div key={m.id} className="cmp-row">
                 <Side score={l} win={diff != null ? diff < 0 : Boolean(l)} />
                 <span className="cmp-map">
-                  <Link to={mapPath(m)}>{m.title}</Link>
+                  <Link to={mapLink(m)}>{m.title}</Link>
                   {diff != null && diff !== 0 && <small className="num">{formatDelta(Math.abs(diff))}</small>}
                 </span>
                 <Side score={r} win={diff != null ? diff > 0 : Boolean(r)} right />

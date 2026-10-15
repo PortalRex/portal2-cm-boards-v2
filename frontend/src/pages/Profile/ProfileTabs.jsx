@@ -15,13 +15,16 @@ import { formatScore, formatDelta, formatDate, formatDateTime, timeAgo } from ".
 import { youtubeChannelLabel, youtubeChannelUrl } from "../../lib/youtube";
 import { ROLE_LABELS } from "../../hooks/useCurrentUser";
 import { TimeButton } from "../../components/RunHistory";
+import SeasonSelect from "../../components/SeasonSelect";
+import { seasonBoard, useSeason } from "../../data/seasons";
 
-// Portal 2's boards, then a tab per other game (Mel, seasons, ...), then Legacy and Info.
+// Portal 2's boards, then a tab per other game (Mel, ...), then Legacy and Info. Seasons are
+// picked inside their game's tabs (SeasonSelect), not tabs of their own.
 const profileTabs = () => [
   { key: "sp", label: "Singleplayer" },
   { key: "coop", label: "Cooperative" },
   ...Object.values(GAMES)
-    .filter((g) => g.id !== "portal2")
+    .filter((g) => g.id !== "portal2" && g.kind !== "season")
     .map((g) => ({ key: `game:${g.id}`, label: g.label })),
   { key: "stats", label: "Stats" },
   { key: "legacy", label: "Legacy" },
@@ -56,6 +59,13 @@ export default function ProfileTabs({ profile }) {
   const [tab, setTab] = useState("sp");
   const [sort, setSort] = useState("default");
   const [selectedMap, setSelectedMap] = useState(null);
+  // The season picked in the current tab (a ?season= link opens Portal 2's tabs on it).
+  const linked = useSeason("portal2");
+  const [season, setSeason] = useState(linked);
+  const pickSeason = (s) => {
+    setSeason(s);
+    setSelectedMap(null);
+  };
 
   return (
     <section className="pf-tabs">
@@ -70,6 +80,8 @@ export default function ProfileTabs({ profile }) {
             onClick={() => {
               setTab(t.key);
               setSelectedMap(null);
+              // Singleplayer and Cooperative share Portal 2's season; another game starts on all-time.
+              if (!(["sp", "coop"].includes(tab) && ["sp", "coop"].includes(t.key))) setSeason(null);
             }}
           >
             {t.label}
@@ -78,12 +90,28 @@ export default function ProfileTabs({ profile }) {
       </div>
 
       <div className="pf-tabpanel" role="tabpanel">
-        {tab === "sp" || tab === "coop" ? (
-          <ModeTab mode={tab} profile={profile} selectedMap={selectedMap} onSelectMap={setSelectedMap} sort={sort} onSort={setSort} />
+        {(tab === "sp" || tab === "coop") && season ? (
+          <GameTab
+            key={`${tab}-${season}`}
+            game="portal2"
+            fixedMode={tab}
+            season={season}
+            onSeason={pickSeason}
+            profileNumber={profile.player.profileNumber}
+            player={profile.player}
+            selectedMap={selectedMap}
+            onSelectMap={setSelectedMap}
+            sort={sort}
+            onSort={setSort}
+          />
+        ) : tab === "sp" || tab === "coop" ? (
+          <ModeTab mode={tab} profile={profile} selectedMap={selectedMap} onSelectMap={setSelectedMap} sort={sort} onSort={setSort} onSeason={pickSeason} />
         ) : tab.startsWith("game:") ? (
           <GameTab
-            key={tab}
+            key={`${tab}-${season || ""}`}
             game={tab.slice(5)}
+            season={season}
+            onSeason={pickSeason}
             profileNumber={profile.player.profileNumber}
             player={profile.player}
             selectedMap={selectedMap}
@@ -103,13 +131,14 @@ export default function ProfileTabs({ profile }) {
   );
 }
 
-function ModeTab({ mode, profile, selectedMap, onSelectMap, sort, onSort }) {
+function ModeTab({ mode, profile, selectedMap, onSelectMap, sort, onSort, onSeason }) {
   const chapters = chaptersFor(mode);
   const rendered = useRenderedSet(useMemo(() => Object.values(profile.scores), [profile.scores]), "portal2");
   return (
     <>
       <div className="pf-controls">
         <Select value="p2cm" onChange={() => {}} options={CATEGORIES} label="Category" className="pf-category" />
+        <SeasonSelect base="portal2" season={null} onChange={onSeason} className="pf-category" />
         <SortSelect sort={sort} onSort={onSort} />
       </div>
       <h2 className="pf-section-title">Summary</h2>
@@ -137,20 +166,21 @@ function ModeTab({ mode, profile, selectedMap, onSelectMap, sort, onSort }) {
   );
 }
 
-// Results in another game (Portal Stories: Mel, a season, ...), board by board.
-function GameTab({ game, profileNumber, player, selectedMap, onSelectMap, sort, onSort }) {
+// Results in another game (Portal Stories: Mel, ...), board by board; or with a season picked,
+// the season's results on its copies of the game's boards. `fixedMode`: one board only (Portal
+// 2's Singleplayer / Cooperative tabs with a season picked).
+function GameTab({ game, fixedMode = null, season = null, onSeason, profileNumber, player, selectedMap, onSelectMap, sort, onSort }) {
   const modes = GAMES[game]?.modes || [];
-  const [mode, setMode] = useState(modes[0]);
+  const [picked, setMode] = useState(modes[0]);
+  const mode = fixedMode || picked;
+  const source = season || game;
+  const board = season ? seasonBoard(season, game, mode) : mode;
   const version = useDataVersion();
-  const results = useApi(() => fetchGameProfile(profileNumber, game), [profileNumber, game, version]);
-  const label = GAMES[game]?.label || game;
-  if (results.loading && !results.data) return <Loading label={`Loading ${label} results`} />;
-  const scores = results.data?.scores || {};
-  if (!Object.keys(scores).length) return <EmptyState>No {label} scores for this player.</EmptyState>;
-  const chapters = chaptersFor(mode);
-  return (
-    <>
-      <div className="pf-controls">
+  const results = useApi(() => fetchGameProfile(profileNumber, source), [profileNumber, source, version]);
+  const label = GAMES[source]?.label || source;
+  const controls = (
+    <div className="pf-controls">
+      {!fixedMode && (
         <div className="segmented pf-mel-modes" role="tablist">
           {modes.map((m) => (
             <button key={m} type="button" role="tab" aria-selected={mode === m} className={mode === m ? "is-active" : ""} onClick={() => setMode(m)}>
@@ -158,8 +188,28 @@ function GameTab({ game, profileNumber, player, selectedMap, onSelectMap, sort, 
             </button>
           ))}
         </div>
-        <SortSelect sort={sort} onSort={onSort} />
-      </div>
+      )}
+      {fixedMode && <Select value="p2cm" onChange={() => {}} options={CATEGORIES} label="Category" className="pf-category" />}
+      <SeasonSelect base={game} season={season} onChange={onSeason} className="pf-category" />
+      <SortSelect sort={sort} onSort={onSort} />
+    </div>
+  );
+  if (results.loading && !results.data) return <Loading label={`Loading ${label} results`} />;
+  const scores = results.data?.scores || {};
+  const chapters = board ? chaptersFor(board) : [];
+  if (!Object.keys(scores).length || !board)
+    return (
+      <>
+        {controls}
+        <EmptyState>
+          No {label}
+          {season && fixedMode ? ` ${MODE_LABELS[fixedMode] || ""}` : ""} scores for this player.
+        </EmptyState>
+      </>
+    );
+  return (
+    <>
+      {controls}
       <h2 className="pf-section-title">Summary</h2>
       <Summary chapters={chapters} scores={scores} onSelectMap={onSelectMap} />
       {orderedChapters(chapters, scores, sort).map((chapter) => (
@@ -167,15 +217,15 @@ function GameTab({ game, profileNumber, player, selectedMap, onSelectMap, sort, 
           key={chapter.dbId ?? `${chapter.mode}-${chapter.name}`}
           chapter={chapter}
           scores={scores}
-          coop={isMultiplayerMode(mode)}
-          game={game}
+          coop={isMultiplayerMode(board)}
+          game={source}
           selectedMap={selectedMap}
           onSelectMap={onSelectMap}
           player={player}
         />
       ))}
       <div className="pf-bottom">
-        <History history={results.data.history} game={game} map={selectedMap} />
+        <History history={results.data.history} game={source} map={selectedMap} />
       </div>
     </>
   );
@@ -437,17 +487,31 @@ const pct = (n, of) => (of ? `${Math.round((n / of) * 100)}%` : "–");
 // Activity, co-op partners and demo stats for one game.
 function StatsTab({ profileNumber }) {
   const [game, setGame] = useState("portal2");
+  const [season, setSeason] = useState(null);
+  const source = season || game;
   const version = useDataVersion();
-  const stats = useApi(() => fetchProfileStats(profileNumber, game), [profileNumber, game, version]);
-  const games = Object.values(GAMES).map((g) => ({ value: g.id, label: g.label }));
+  const stats = useApi(() => fetchProfileStats(profileNumber, source), [profileNumber, source, version]);
+  const games = Object.values(GAMES)
+    .filter((g) => g.kind !== "season")
+    .map((g) => ({ value: g.id, label: g.label }));
   const s = stats.data?.summary;
   return (
     <div className="pf-stats">
-      {games.length > 1 && (
-        <div className="pf-controls">
-          <Select value={game} onChange={setGame} options={games} label="Game" className="pf-category" />
-        </div>
-      )}
+      <div className="pf-controls">
+        {games.length > 1 && (
+          <Select
+            value={game}
+            onChange={(g) => {
+              setGame(g);
+              setSeason(null);
+            }}
+            options={games}
+            label="Game"
+            className="pf-category"
+          />
+        )}
+        <SeasonSelect base={game} season={season} onChange={setSeason} className="pf-category" />
+      </div>
       {stats.loading && !stats.data ? (
         <Loading label="Loading stats" />
       ) : !s ? (

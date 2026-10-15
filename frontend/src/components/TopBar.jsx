@@ -13,17 +13,31 @@ import useTheme from "../hooks/useTheme";
 import { useDataVersion } from "../lib/dataVersion";
 import SubmitRun from "./SubmitRun";
 import StaffInbox from "./StaffInbox";
+import { currentSeason, isLive, seasonsOf, withSeason } from "../data/seasons";
 import "./TopBar.css";
 
 // The Aggregate menu, like the old boards' but with a game level: game → board (Overall, a mode)
-// → Total and each chapter (Portal 2's chapter boards). Seasons and added games come from the
-// catalog, seasons first.
+// → Total and each chapter (Portal 2's chapter boards). Added games come from the catalog. A
+// game's seasons sit under it: "Current season" while one runs, and "Seasons" listing them all.
 const chapterItems = (chapters) => chapters.map((c) => ({ number: c.number, label: c.name, to: `/leaderboard/chapter/${chapterDbId(c)}` }));
+// A game's season entries: the running one highlighted, then the list (no "Total" row).
+const seasonBoards = (base, overallPath) => {
+  const seasons = seasonsOf(base).filter((g) => !g.hidden);
+  if (!seasons.length) return [];
+  const live = currentSeason(base);
+  return [
+    ...(live && isLive(live) ? [{ label: "Current season", icon: TrophyIcon, highlight: true, to: withSeason(overallPath, live.id) }] : []),
+    {
+      label: "Seasons",
+      icon: TrophyIcon,
+      to: withSeason(overallPath, seasons[0].id),
+      noTotal: true,
+      chapters: seasons.map((g) => ({ label: g.label, icon: TrophyIcon, to: withSeason(overallPath, g.id) })),
+    },
+  ];
+};
+
 const aggregateMenu = () => [
-  ...Object.values(GAMES)
-    .filter((g) => g.kind === "season" && !g.hidden)
-    .sort((a, b) => new Date(b.startsAt) - new Date(a.startsAt))
-    .map((g) => gameEntry(g, TrophyIcon, true)),
   {
     id: "portal2",
     label: "Portal 2",
@@ -33,6 +47,7 @@ const aggregateMenu = () => [
       { label: "Overall", icon: BarsIcon, to: "/leaderboard/overall" },
       { label: "Single Player", icon: PersonIcon, to: "/leaderboard/sp", chapters: chapterItems(spChapters) },
       { label: "Cooperative", icon: PeopleIcon, to: "/leaderboard/coop", chapters: chapterItems(coopChapters) },
+      ...seasonBoards("portal2", "/leaderboard/overall"),
     ],
   },
   {
@@ -44,6 +59,7 @@ const aggregateMenu = () => [
       { label: "Overall", icon: BarsIcon, to: "/leaderboard/mel/overall" },
       { label: "Story Mode", icon: PersonIcon, to: "/leaderboard/mel/story" },
       { label: "Advanced Mode", icon: PersonIcon, to: "/leaderboard/mel/advanced" },
+      ...seasonBoards("mel", "/leaderboard/mel/overall"),
     ],
   },
   ...Object.values(GAMES)
@@ -59,7 +75,11 @@ function gameEntry(g, icon, highlight) {
     icon,
     highlight,
     to: `${base}/overall`,
-    boards: [{ label: "Overall", icon: BarsIcon, to: `${base}/overall` }, ...g.modes.map((m) => ({ label: MODE_LABELS[m] || m, icon: BarsIcon, to: `${base}/${m}` }))],
+    boards: [
+      { label: "Overall", icon: BarsIcon, to: `${base}/overall` },
+      ...g.modes.map((m) => ({ label: MODE_LABELS[m] || m, icon: BarsIcon, to: `${base}/${m}` })),
+      ...seasonBoards(g.id, `${base}/overall`),
+    ],
   };
 }
 
@@ -100,11 +120,11 @@ function AggregateMenu() {
           <ExpandButton className="menu-expand" open={Boolean(open[game.id])} label={game.label} onToggle={() => setOpen((o) => ({ ...o, [game.id]: !o[game.id] }))} />
           <div className="menu-sub">
             {game.boards.map((board) => (
-              <div className="menu-group" key={board.to}>
+              <div className="menu-group" key={board.label}>
                 <MenuLink item={board} caret={Boolean(board.chapters)} />
                 {board.chapters && (
                   <div className="menu-sub menu-sub-chapters">
-                    <MenuLink item={{ label: "Total", icon: StarIcon, to: board.to }} />
+                    {!board.noTotal && <MenuLink item={{ label: "Total", icon: StarIcon, to: board.to }} />}
                     {board.chapters.map((c) => (
                       <MenuLink key={c.to} item={c} />
                     ))}
