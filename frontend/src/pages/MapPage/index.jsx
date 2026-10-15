@@ -113,7 +113,15 @@ function timeTicks(from, to, max = 7) {
   if (span < 75 * DAY_MS) {
     const n = 4;
     const ticks = Array.from({ length: n }, (_, i) => from + (span * (i + 0.5)) / n);
-    return { ticks, label: (t) => `${MONTHS_SHORT[new Date(t).getMonth()]} ${new Date(t).getDate()}` };
+    const day = (t) => `${MONTHS_SHORT[new Date(t).getMonth()]} ${new Date(t).getDate()}`;
+    // Within a couple of days (a new season's first records): times of day, with the day when
+    // the ticks fall on different days.
+    if (span < 2 * DAY_MS) {
+      const time = (t) => new Date(t).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+      const oneDay = new Set(ticks.map((t) => new Date(t).toDateString())).size === 1;
+      return { ticks, label: oneDay ? time : (t) => `${day(t)} ${time(t)}` };
+    }
+    return { ticks, label: day };
   }
   const months = span < 0.75 * YEAR_MS ? 1 : span < 2.5 * YEAR_MS ? 3 : 12;
   const ticks = [];

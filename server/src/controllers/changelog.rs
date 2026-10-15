@@ -361,11 +361,13 @@ pub async fn build_filtered_changelog(pool: &PgPool, params: ChangelogQueryParam
     if let Some(banned) = params.banned {
         filters.push(format!("cl.banned = '{}'\n", banned));
     }
-    // These values are interpolated into the SQL string, so only accept digits
-    // (map IDs and Steam profile numbers are always numeric).
+    // These values are interpolated into the SQL string, so only accept characters that can't
+    // end the quoted value: digits for Steam profile numbers; for map ids also letters, dashes
+    // and underscores (a season's maps are e.g. "s4-47736").
     let is_numeric = |s: &str| !s.is_empty() && s.chars().all(|c| c.is_ascii_digit());
+    let is_map_id = |s: &str| (1..=32).contains(&s.len()) && s.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_');
     if let Some(chamber) = params.chamber {
-        if !is_numeric(&chamber) {
+        if !is_map_id(&chamber) {
             return Err(sqlx::Error::RowNotFound);
         }
         filters.push(format!("cl.map_id = '{}'\n", &chamber));
