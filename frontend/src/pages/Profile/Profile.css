@@ -764,14 +764,10 @@
 
 /* History + submission form */
 .pf-bottom {
-  display: grid;
-  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
-  gap: 40px;
   margin-top: 30px;
 }
 
-.pf-history .pf-section-title,
-.pf-form .pf-section-title {
+.pf-history .pf-section-title {
   margin-top: 0;
 }
 
@@ -869,62 +865,6 @@
   cursor: not-allowed;
 }
 
-.pf-form fieldset {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin: 0;
-  padding: 0;
-  border: 0;
-}
-
-.pf-form label {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  font-size: 20px;
-  text-transform: uppercase;
-}
-
-.pf-form label span {
-  white-space: nowrap;
-}
-
-.pf-form input {
-  flex: 1;
-  min-width: 0;
-  height: 28px;
-  padding: 0 8px;
-  border: 1px solid var(--border);
-  border-radius: 3px;
-  background: var(--control-raised);
-  color: var(--text);
-  font: inherit;
-  font-size: 16px;
-}
-
-.pf-form-buttons {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  margin-top: 6px;
-}
-
-.pf-form-buttons button {
-  height: 28px;
-  border: 0;
-  border-radius: 6px;
-  background: var(--control-raised-2);
-  color: var(--text-muted);
-  font-size: 20px;
-  text-transform: uppercase;
-}
-
-.pf-form fieldset:disabled button,
-.pf-form fieldset:disabled input {
-  cursor: not-allowed;
-}
-
 .pf-info {
   display: grid;
   grid-template-columns: 160px 1fr;
@@ -971,9 +911,6 @@
     grid-template-columns: 1fr 1fr;
   }
 
-  .pf-bottom {
-    grid-template-columns: 1fr;
-  }
 }
 
 @media (max-width: 800px) {

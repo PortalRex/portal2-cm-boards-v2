@@ -120,7 +120,6 @@ function ModeTab({ mode, profile, selectedMap, onSelectMap, sort, onSort }) {
 
       <div className="pf-bottom">
         <History history={profile.history} game="portal2" map={selectedMap} />
-        <SubmissionForm map={selectedMap} />
       </div>
     </>
   );
@@ -336,35 +335,6 @@ function History({ history, game, map }) {
       <button type="button" className="pf-new-submission" disabled title="Submissions require Steam sign-in">
         New submission
       </button>
-    </section>
-  );
-}
-
-// Layout of the create/edit form from the design. Posting needs Steam sign-in,
-// which the frontend doesn't have yet, so the controls are disabled.
-function SubmissionForm({ map }) {
-  return (
-    <section className="pf-form">
-      <h2 className="pf-section-title">Create/Edit Submission{map ? ` · ${map.title}` : ""}</h2>
-      <fieldset disabled title="Submissions require Steam sign-in">
-        <label>
-          <span>Time:</span>
-          <input type="text" inputMode="decimal" />
-        </label>
-        <label>
-          <span>YouTube URL:</span>
-          <input type="url" />
-        </label>
-        <label>
-          <span>Comment:</span>
-          <input type="text" />
-        </label>
-        <div className="pf-form-buttons">
-          <button type="button">Browse for demo</button>
-          <button type="submit">Submit</button>
-          <button type="button">Cancel</button>
-        </div>
-      </fieldset>
     </section>
   );
 }
