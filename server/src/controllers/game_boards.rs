@@ -30,25 +30,27 @@ pub async fn pb_ranks(pool: &PgPool, game_id: i32, modes: Option<&[&str]>, chapt
                     -- Both halves of a co-op run share a coop_id: one run.
                     COALESCE('c' || cl.coop_id, 'r' || cl.id) AS run_key
                 FROM changelog AS cl
-                    INNER JOIN users AS u ON (u.profile_number = cl.profile_number)
                     INNER JOIN maps AS m ON (m.steam_id = cl.map_id)
                     INNER JOIN chapters AS c ON (c.id = m.chapter_id)
                 WHERE c.game_id = $1
                     AND ($2::text[] IS NULL OR c.game_mode = ANY($2))
                     AND ($3::int IS NULL OR c.id = $3)
-                    AND u.banned = False
+                    -- Anti-joins rather than joins: the planner badly underestimates the rows
+                    -- here and picked a nested loop over every player (minutes per board).
+                    AND NOT EXISTS (SELECT 1 FROM users AS bu WHERE bu.profile_number = cl.profile_number AND bu.banned)
                     AND cl.banned = False
                     AND cl.verified = True
                     AND cl.category_id = m.default_cat_id
                     AND cl.profile_number <> 'N/A'
                     -- A co-op run counts once both halves are verified and neither half nor player is banned
-                    -- (as on the co-op map page).
-                    AND NOT EXISTS (
-                        SELECT 1 FROM coop_bundled AS cb
-                            JOIN changelog AS o ON o.id IN (cb.cl_id1, cb.cl_id2) AND o.id <> cl.id
+                    -- (as on the co-op map page). Bundles with a bad half are found once (a hashed
+                    -- set) rather than per run; this run's own half is already checked above.
+                    AND (cl.coop_id IS NULL OR cl.coop_id NOT IN (
+                        SELECT cb.id FROM coop_bundled AS cb
+                            JOIN changelog AS o ON o.id IN (cb.cl_id1, cb.cl_id2)
                             JOIN users AS ou ON ou.profile_number = o.profile_number
-                        WHERE cb.id = cl.coop_id AND (NOT o.verified OR o.banned OR ou.banned)
-                    )
+                        WHERE NOT o.verified OR o.banned OR ou.banned
+                    ))
                 ORDER BY cl.profile_number, cl.map_id, cl.score ASC, cl.timestamp ASC
             ),
             -- Each run counted once (its players' bests can point at the same run).

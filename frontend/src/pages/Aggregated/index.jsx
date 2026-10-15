@@ -19,9 +19,9 @@ const KINDS = {
     coop: ["Cooperative", "coop"],
   },
   mel: {
+    overall: ["Overall", "mel-overall"],
     story: ["Story Mode", "story"],
     advanced: ["Advanced Mode", "advanced"],
-    overall: ["Overall", "mel-overall"],
   },
 };
 

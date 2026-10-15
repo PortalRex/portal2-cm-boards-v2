@@ -82,19 +82,22 @@ async fn timeline(pool: &PgPool, game_id: i32) -> Result<Arc<Timeline>, sqlx::Er
                 COALESCE(cl.timestamp, TIMESTAMP '2011-04-19 00:00:00') AS timestamp,
                 COALESCE(cl.coop_id, -cl.id) AS run_key, cl.id
             FROM changelog AS cl
-                JOIN users AS u ON u.profile_number = cl.profile_number
                 JOIN maps AS m ON m.steam_id = cl.map_id
                 JOIN chapters AS c ON c.id = m.chapter_id
-            WHERE c.game_id = $1 AND cl.verified AND NOT cl.banned AND NOT u.banned
+            WHERE c.game_id = $1 AND cl.verified AND NOT cl.banned
+              -- Anti-joins rather than joins: the planner badly underestimates the rows here and
+              -- picked a nested loop over every player (minutes per game).
+              AND NOT EXISTS (SELECT 1 FROM users AS bu WHERE bu.profile_number = cl.profile_number AND bu.banned)
               AND cl.category_id = m.default_cat_id AND cl.profile_number <> 'N/A'
               -- A co-op run counts once both halves are verified and neither half nor player is banned
-              -- (as on the co-op map page).
-              AND NOT EXISTS (
-                  SELECT 1 FROM coop_bundled AS cb
-                      JOIN changelog AS o ON o.id IN (cb.cl_id1, cb.cl_id2) AND o.id <> cl.id
+              -- (as on the co-op map page). Bundles with a bad half are found once (a hashed set);
+              -- this run's own half is already checked above.
+              AND (cl.coop_id IS NULL OR cl.coop_id NOT IN (
+                  SELECT cb.id FROM coop_bundled AS cb
+                      JOIN changelog AS o ON o.id IN (cb.cl_id1, cb.cl_id2)
                       JOIN users AS ou ON ou.profile_number = o.profile_number
-                  WHERE cb.id = cl.coop_id AND (NOT o.verified OR o.banned OR ou.banned)
-              )
+                  WHERE NOT o.verified OR o.banned OR ou.banned
+              ))
             ORDER BY 5, cl.id
         "#,
     )
