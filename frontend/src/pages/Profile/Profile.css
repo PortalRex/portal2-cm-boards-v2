@@ -773,7 +773,7 @@
 
 .pf-hrow {
   display: grid;
-  grid-template-columns: 60px 30px 60px minmax(0, 1fr) 90px 60px 76px 116px;
+  grid-template-columns: 60px 30px 60px minmax(0, 1fr) 90px 60px 76px;
   align-items: center;
   gap: 0 8px;
   min-height: 33px;
@@ -824,45 +824,6 @@
 .pf-hicons svg {
   font-size: 22px;
   display: block;
-}
-
-.pf-hactions {
-  display: flex;
-  gap: 4px;
-}
-
-.pf-hactions button {
-  height: 22px;
-  padding: 0 12px;
-  border: 0;
-  border-radius: 11px;
-  background: #7e7e7e;
-  font-size: 15px;
-  text-transform: uppercase;
-}
-
-.pf-hactions button.is-ban {
-  background: var(--hl-red);
-  color: var(--hl-red-text);
-}
-
-.pf-hactions button:disabled {
-  cursor: not-allowed;
-}
-
-.pf-new-submission {
-  margin-top: 10px;
-  height: 28px;
-  padding: 0 34px;
-  border: 0;
-  border-radius: 6px;
-  background: var(--control-raised-2);
-  font-size: 18px;
-  text-transform: uppercase;
-}
-
-.pf-new-submission:disabled {
-  cursor: not-allowed;
 }
 
 .pf-info {

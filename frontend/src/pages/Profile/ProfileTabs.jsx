@@ -301,7 +301,6 @@ function History({ history, game, map }) {
         <span className="end">New time</span>
         <span className="end">ΔOld</span>
         <span />
-        <span />
       </div>
       {rows.length ? (
         rows.map((h) => (
@@ -323,18 +322,11 @@ function History({ history, game, map }) {
               {h.youtubeId && <YouTubeLink id={h.youtubeId} size={22} />}
               <DemoLink demoId={h.demoId} hideMissing />
             </span>
-            <span className="pf-hactions">
-              <button type="button" disabled title="Requires moderator sign-in">Edit</button>
-              <button type="button" disabled title="Requires moderator sign-in" className="is-ban">Ban</button>
-            </span>
           </div>
         ))
       ) : (
         <EmptyState>{map ? `No submissions for ${map.title}.` : "No submissions yet."}</EmptyState>
       )}
-      <button type="button" className="pf-new-submission" disabled title="Submissions require Steam sign-in">
-        New submission
-      </button>
     </section>
   );
 }
