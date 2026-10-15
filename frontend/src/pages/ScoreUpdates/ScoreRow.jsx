@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Avatar, PlayerLink, RankChange } from "../../components/ui";
-import { TriangleDown, ThumbUpIcon, ThumbUpOutlineIcon, ThumbDownIcon, ThumbDownOutlineIcon } from "../../components/Icons";
+import { TriangleDown, ThumbUpIcon, ThumbUpOutlineIcon, ThumbDownIcon, ThumbDownOutlineIcon, PendingIcon, BannedIcon } from "../../components/Icons";
 import { setReaction } from "../../api/client";
 import useCurrentUser from "../../hooks/useCurrentUser";
 import RunDetails from "../../components/RunDetails";
@@ -63,7 +63,17 @@ export default function ScoreRow({ entry, rendered, myReaction }) {
         </div>
         <div className="sr-status">
           <RowReactions entry={entry} myReaction={myReaction} />
-          {entry.banned ? <span className="badge-banned">Banned</span> : pending && <span className="badge-pending">Pending</span>}
+          {entry.banned ? (
+            <span className="sr-status-icon is-banned" role="img" aria-label="Banned" title="Banned">
+              <BannedIcon />
+            </span>
+          ) : (
+            pending && (
+              <span className="sr-status-icon is-pending" role="img" aria-label="Pending" title="Pending verification">
+                <PendingIcon />
+              </span>
+            )
+          )}
         </div>
         <button type="button" className="sr-toggle" onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-label={open ? "Hide details" : "Show details"}>
           <TriangleDown size={14} />

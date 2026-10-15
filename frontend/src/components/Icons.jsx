@@ -41,6 +41,8 @@ export { default as CompareIcon } from "@mui/icons-material/CompareArrows";
 export { default as GavelIcon } from "@mui/icons-material/Gavel";
 export { default as InfoIcon } from "@mui/icons-material/InfoOutlined";
 export { default as InboxIcon } from "@mui/icons-material/InboxOutlined";
+export { default as PendingIcon } from "@mui/icons-material/HourglassEmptyRounded";
+export { default as BannedIcon } from "@mui/icons-material/Block";
 
 const svgProps = (size) => ({ width: size, height: size, viewBox: "0 0 24 24", fill: "currentColor", "aria-hidden": true });
 

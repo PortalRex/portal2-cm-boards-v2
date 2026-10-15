@@ -184,7 +184,7 @@
 }
 
 .score-table {
-  --su-cols: 83px 83px minmax(170px, 1.2fr) minmax(220px, 2.3fr) 110px 100px 90px 150px 140px 44px;
+  --su-cols: 83px 83px minmax(170px, 1.2fr) minmax(220px, 2.3fr) 110px 100px 90px 150px 156px 44px;
 }
 
 .score-head {
@@ -368,11 +368,36 @@
   color: var(--text-muted);
 }
 
+/* Reactions, then a pending / banned icon in a fixed slot so the reactions line up across rows. */
 .sr-status {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: auto 24px;
+  justify-content: center;
   align-items: center;
-  gap: 4px;
+  column-gap: 6px;
+}
+
+.sr-status-icon {
+  display: inline-grid;
+  place-items: center;
+  grid-column: 2;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+}
+
+.sr-status-icon svg {
+  font-size: 16px;
+}
+
+.sr-status-icon.is-pending {
+  background: var(--pending);
+  color: var(--pending-text);
+}
+
+.sr-status-icon.is-banned {
+  background: var(--banned);
+  color: var(--banned-text);
 }
 
 .sr-reactions {
@@ -447,7 +472,33 @@
 
 @media (max-width: 1400px) {
   .score-table {
-    --su-cols: 70px 70px minmax(150px, 1.2fr) minmax(180px, 2fr) 96px 86px 76px 132px 90px 40px;
+    --su-cols: 70px 70px minmax(150px, 1.2fr) minmax(180px, 2fr) 96px 86px 76px 132px 124px 40px;
+  }
+
+  /* Smaller reaction buttons so they and the status icon fit the narrower column. */
+  .sr-reactions {
+    gap: 3px;
+  }
+
+  .sr-reactions button {
+    gap: 3px;
+    height: 30px;
+    padding: 0 6px;
+    font-size: 14px;
+  }
+
+  .sr-reactions button svg {
+    font-size: 18px;
+  }
+
+  .sr-status {
+    grid-template-columns: auto 22px;
+    column-gap: 4px;
+  }
+
+  .sr-status-icon {
+    width: 22px;
+    height: 22px;
   }
 }
 
