@@ -299,27 +299,21 @@
   background: linear-gradient(90deg, transparent 46px, var(--portal-neutral) 46px, transparent 70%);
 }
 
-/* A "PB" tag in the player's colour (grey when it's unknown who was blue) marks who set a PB
+/* A trophy in the player's colour (grey when it's unknown who was blue) marks who set a PB
    with a co-op run. */
-.sr-pb-tag {
+.sr-pb-icon {
   flex: none;
   margin: 0 10px 0 auto;
-  padding: 1px 6px;
-  border-radius: 3px;
-  background: rgb(195 198 204);
-  color: #16191d;
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 16px;
-  letter-spacing: 0.06em;
+  color: rgb(195 198 204);
+  font-size: 17px !important;
 }
 
-.sr-player.tint-blue .sr-pb-tag {
-  background: rgb(127 188 255);
+.sr-player.tint-blue .sr-pb-icon {
+  color: rgb(127 188 255);
 }
 
-.sr-player.tint-orange .sr-pb-tag {
-  background: rgb(255 184 119);
+.sr-player.tint-orange .sr-pb-icon {
+  color: rgb(255 184 119);
 }
 
 /* Wide screens: a co-op run's two players side by side on one line. */

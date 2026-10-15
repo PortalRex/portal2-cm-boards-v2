@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Avatar, PlayerLink, RankChange } from "../../components/ui";
-import { TriangleDown, ThumbUpIcon, ThumbUpOutlineIcon, ThumbDownIcon, ThumbDownOutlineIcon, PendingIcon, BannedIcon } from "../../components/Icons";
+import { TriangleDown, ThumbUpIcon, ThumbUpOutlineIcon, ThumbDownIcon, ThumbDownOutlineIcon, PendingIcon, BannedIcon, TrophyIcon } from "../../components/Icons";
 import { setReaction } from "../../api/client";
 import useCurrentUser from "../../hooks/useCurrentUser";
 import RunDetails from "../../components/RunDetails";
@@ -46,7 +46,7 @@ export default function ScoreRow({ entry, rendered, myReaction }) {
               <div key={i} className={`sr-player${coop ? ` ${tintFor(rolesKnown, i)}` : ""}`} title={title || undefined}>
                 <Avatar src={p.avatar} name={p.name} size={46} />
                 <PlayerLink player={p} className="sr-player-name" />
-                {pb && <span className="sr-pb-tag">PB</span>}
+                {pb && <TrophyIcon className="sr-pb-icon" role="img" aria-hidden={false} aria-label="PB" />}
               </div>
             );
           })}
