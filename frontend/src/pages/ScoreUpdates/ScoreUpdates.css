@@ -329,6 +329,11 @@
   text-shadow: 0 0 6px rgb(var(--pb-rgb) / 55%);
 }
 
+/* ...and the partner who didn't PB has their name dimmed (neither is when both did). */
+.score-row.is-coop:has(.sr-player.is-pb) .sr-player:not(.is-pb) .sr-player-name {
+  opacity: 0.55;
+}
+
 .score-row.is-coop .sr-player.is-pb.tint-blue {
   --pb-rgb: 127 188 255;
 }
