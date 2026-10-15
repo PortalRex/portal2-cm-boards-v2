@@ -1,0 +1,20 @@
+# Development: the site runs on React's dev server from ./frontend, so edits reload in the browser.
+#   docker compose -f docker-compose.yaml -f docker-compose.dev.yaml up -d
+# (or put COMPOSE_FILE=docker-compose.yaml:docker-compose.dev.yaml in a .env next to this file).
+services:
+  web:
+    build: !reset null
+    image: node:20-bookworm
+    user: node
+    working_dir: /app
+    # Installs dependencies on the first start (node_modules is shared with ./frontend).
+    command: ["sh", "-c", "[ -d node_modules ] || npm ci --no-audit --no-fund; exec npm start"]
+    environment:
+      BROWSER: none
+      REACT_APP_API_URL: /api/v1
+      # frontend/src/setupProxy.js passes /api to the web server.
+      DEV_API_PROXY: http://server:8080
+    ports: !override
+      - "${WEB_PORT:-3000}:3000"
+    volumes:
+      - ./frontend:/app
