@@ -4,6 +4,7 @@ import { Select, Avatar, PlayerLink, EmptyState, Loading, RankNumber } from "../
 import { ChevronDownIcon, TriangleRight } from "../../components/Icons";
 import { AutorenderLink, YouTubeLink, useRenderedSet, DemoLink, CommentButton } from "../../components/RunMedia";
 import RunDetails from "../../components/RunDetails";
+import { scrollToCentre } from "../../lib/scroll";
 import { toggleOnRowClick } from "../../lib/rows";
 import { fetchGameProfile, fetchProfileStats } from "../../api/client";
 import useApi from "../../hooks/useApi";
@@ -178,7 +179,7 @@ function Summary({ chapters, scores, onSelectMap }) {
   const openRun = (m) => {
     onSelectMap(m);
     // After the row has opened.
-    setTimeout(() => document.getElementById(runRowId(m))?.scrollIntoView({ behavior: "smooth", block: "center" }), 0);
+    setTimeout(() => scrollToCentre(document.getElementById(runRowId(m))), 0);
   };
   return (
     <div className="pf-summary">
