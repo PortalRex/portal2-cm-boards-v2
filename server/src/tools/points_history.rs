@@ -213,6 +213,8 @@ pub struct ProfileAt {
     pub at: NaiveDateTime,
     pub points: BTreeMap<String, f64>,
     pub places: BTreeMap<String, u32>,
+    /// Overall place among players of the same country (their country now), if they have one.
+    pub country_place: Option<u32>,
     pub maps: Vec<MapStanding>,
 }
 
@@ -242,8 +244,19 @@ pub async fn profile_at(pool: &PgPool, game_id: i32, profile_number: &str, at: N
             places.insert(key, ahead + 1);
         }
     }
+    // Overall place among the players of the same country then.
+    let countrymates: Vec<String> = sqlx::query_scalar(
+        "SELECT u.profile_number FROM users AS u JOIN users AS me ON me.profile_number = $1 WHERE me.country_id IS NOT NULL AND u.country_id = me.country_id",
+    )
+    .bind(profile_number)
+    .fetch_all(pool)
+    .await?;
+    let my_overall = total_of(mine, None);
+    let country_place = (!countrymates.is_empty() && my_overall > 0.0).then(|| {
+        countrymates.iter().filter_map(|pn| t.players.get(pn)).filter(|&&p| total_of(p as usize, None) > my_overall).count() as u32 + 1
+    });
     maps.sort_by(|a, b| a.map_id.cmp(&b.map_id));
-    Ok(Some(ProfileAt { at, points, places, maps }))
+    Ok(Some(ProfileAt { at, points, places, country_place, maps }))
 }
 
 /// The board keys of a game (its modes, then `overall`), each with its mode index (None = all).

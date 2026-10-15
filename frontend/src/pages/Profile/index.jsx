@@ -15,7 +15,7 @@ import useFollows from "../../hooks/useFollows";
 import useCurrentUser, { isRoleAdmin, isStaff, ROLE_LABELS } from "../../hooks/useCurrentUser";
 import { setProfileBanned, setProfileDisplay, setProfileFrozen, setProfileRole } from "../../api/client";
 import { bumpDataVersion } from "../../lib/dataVersion";
-import { formatDate, formatDateTime, formatScore, ordinalSuffix, timeAgo, formatPoints } from "../../lib/format";
+import { formatDate, formatDateTime, formatScore, ordinalSuffix, timeAgo, formatPoints, parseTimestamp } from "../../lib/format";
 import { youtubeChannelUrl } from "../../lib/youtube";
 import ProfileTabs from "./ProfileTabs";
 import { playerRole, roleIcon, roleProgress } from "../../data/roles";
@@ -263,6 +263,8 @@ function Stat({ value, label, children, to }) {
   );
 }
 
+const RECENT_MS = 7 * 24 * 3600 * 1000;
+
 function ScoreStat({ label, entry, green }) {
   return (
     <div className="stat">
@@ -276,7 +278,12 @@ function ScoreStat({ label, entry, green }) {
           on <b>{entry.map.title}</b>
         </span>
       )}
-      {entry?.timestamp && <span className={`stat-when ${green ? "green" : "muted"}`} title={formatDateTime(entry.timestamp)}>{timeAgo(entry.timestamp)}</span>}
+      {entry?.timestamp && (
+        // Green while it's recent (the past week), grey after.
+        <span className={`stat-when ${green && Date.now() - parseTimestamp(entry.timestamp).getTime() < RECENT_MS ? "green" : "muted"}`} title={formatDateTime(entry.timestamp)}>
+          {timeAgo(entry.timestamp)}
+        </span>
+      )}
     </div>
   );
 }

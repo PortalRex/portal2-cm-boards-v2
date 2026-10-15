@@ -99,6 +99,8 @@ function AggregatedContent({ game, kind, title, apiKind, kicker = "Aggregated po
   // ?player=: open on the page with this player, their row marked (from a profile's ranks).
   const focus = params.get("player") || null;
   const setCountry = (c) => setParams(c ? { country: c } : {}, { replace: true });
+  // Switching board (tab, chapter or game) keeps the chosen country.
+  const keep = (to) => (country ? `${to}?country=${country}` : to);
   const countries = [...new Set((data.data?.points || []).map((r) => r.player.country).filter(Boolean))].sort((a, b) => countryName(a).localeCompare(countryName(b)));
   const inCountry = (rows) => (country ? rows.filter((r) => r.player.country === country) : rows);
 
@@ -108,9 +110,9 @@ function AggregatedContent({ game, kind, title, apiKind, kicker = "Aggregated po
         <p className="agg-kicker">{kicker}</p>
         <h1 className="agg-title">{title}</h1>
         <div className="agg-selects">
-          <Select value={game} onChange={(g) => navigate(gameBoardsPath(g))} options={categories()} label="Games" className="agg-select" />
+          <Select value={game} onChange={(g) => navigate(keep(gameBoardsPath(g)))} options={categories()} label="Games" className="agg-select" />
           {game === "portal2" && (kind === "sp" || kind === "coop") && (
-            <Select value={pathname} onChange={(to) => navigate(to)} options={chapterBoards(kind)} label="Chapter" className="agg-select" />
+            <Select value={pathname} onChange={(to) => navigate(keep(to))} options={chapterBoards(kind)} label="Chapter" className="agg-select" />
           )}
           {countries.length > 0 && (
             <Select
@@ -125,7 +127,7 @@ function AggregatedContent({ game, kind, title, apiKind, kicker = "Aggregated po
         {game === "portal2" && (
           <nav className="agg-modes" aria-label="Portal 2 boards">
             {Object.entries(KINDS.portal2).map(([k, [label]]) => (
-              <Link key={k} to={`${BASE.portal2}/${k}`} className={k === kind ? "is-active" : ""}>
+              <Link key={k} to={keep(`${BASE.portal2}/${k}`)} className={k === kind ? "is-active" : ""}>
                 {label}
               </Link>
             ))}
@@ -134,7 +136,7 @@ function AggregatedContent({ game, kind, title, apiKind, kicker = "Aggregated po
         {game === "mel" && (
           <nav className="agg-modes" aria-label="Mel boards">
             {Object.entries(KINDS.mel).map(([k, [label]]) => (
-              <Link key={k} to={`${BASE.mel}/${k}`} className={k === kind ? "is-active" : ""}>
+              <Link key={k} to={keep(`${BASE.mel}/${k}`)} className={k === kind ? "is-active" : ""}>
                 {label}
               </Link>
             ))}
@@ -143,7 +145,7 @@ function AggregatedContent({ game, kind, title, apiKind, kicker = "Aggregated po
         {!BASE[game] && GAMES[game] && (
           <nav className="agg-modes" aria-label={`${GAMES[game].label} boards`}>
             {["overall", ...GAMES[game].modes].map((k) => (
-              <Link key={k} to={`/leaderboard/game/${game}/${k}`} className={k === kind ? "is-active" : ""}>
+              <Link key={k} to={keep(`/leaderboard/game/${game}/${k}`)} className={k === kind ? "is-active" : ""}>
                 {k === "overall" ? "Overall" : MODE_LABELS[k] || k}
               </Link>
             ))}

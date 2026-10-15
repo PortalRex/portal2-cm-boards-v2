@@ -9,7 +9,7 @@ import { toggleOnRowClick } from "../../lib/rows";
 import { fetchGameProfile, fetchProfileStats } from "../../api/client";
 import useApi from "../../hooks/useApi";
 import { useDataVersion } from "../../lib/dataVersion";
-import { GAMES, chaptersFor, isMultiplayerMode, mapPath, MODE_LABELS } from "../../data/maps";
+import { GAMES, chapterDbId, chaptersFor, isMultiplayerMode, mapPath, MODE_LABELS } from "../../data/maps";
 import { rankVars } from "../../lib/ranks";
 import { formatScore, formatDelta, formatDate, formatDateTime, timeAgo } from "../../lib/format";
 import { youtubeChannelLabel, youtubeChannelUrl } from "../../lib/youtube";
@@ -94,7 +94,7 @@ export default function ProfileTabs({ profile }) {
         ) : tab === "stats" ? (
           <StatsTab profileNumber={profile.player.profileNumber} />
         ) : tab === "legacy" ? (
-          <LegacyTab scores={profile.scores} />
+          <LegacyTab scores={profile.scores} player={profile.player} />
         ) : (
           <InfoTab player={profile.player} />
         )}
@@ -113,10 +113,21 @@ function ModeTab({ mode, profile, selectedMap, onSelectMap, sort, onSort }) {
         <SortSelect sort={sort} onSort={onSort} />
       </div>
       <h2 className="pf-section-title">Summary</h2>
-      <Summary chapters={chapters} scores={profile.scores} onSelectMap={onSelectMap} />
+      <Summary chapters={chapters} scores={profile.scores} onSelectMap={onSelectMap} chapterLink={(c) => chapterBoardPath(c, profile.player)} />
 
       {orderedChapters(chapters, profile.scores, sort).map((chapter) => (
-        <ChapterTable key={chapter.dbId ?? `${chapter.mode}-${chapter.name}`} chapter={chapter} scores={profile.scores} coop={mode === "coop"} game="portal2" rendered={rendered} selectedMap={selectedMap} onSelectMap={onSelectMap} player={profile.player} />
+        <ChapterTable
+          key={chapter.dbId ?? `${chapter.mode}-${chapter.name}`}
+          chapter={chapter}
+          scores={profile.scores}
+          coop={mode === "coop"}
+          game="portal2"
+          rendered={rendered}
+          selectedMap={selectedMap}
+          onSelectMap={onSelectMap}
+          player={profile.player}
+          chapterLink={chapterBoardPath(chapter, profile.player)}
+        />
       ))}
 
       <div className="pf-bottom">
@@ -175,7 +186,11 @@ const runRowId = (map) => `pf-run-${map.id}`;
 
 // A tile with a run opens it in the chapter tables below (scrolled to); one without goes to the
 // map page.
-function Summary({ chapters, scores, onSelectMap }) {
+// A Portal 2 chapter's aggregated board, opened on the player's row.
+const chapterBoardPath = (chapter, player) => `/leaderboard/chapter/${chapterDbId(chapter)}?player=${player.profileNumber}`;
+
+// `chapterLink(chapter)`: where a chapter's average and name lead (its aggregated board), if it has one.
+function Summary({ chapters, scores, onSelectMap, chapterLink }) {
   const openRun = (m) => {
     onSelectMap(m);
     // After the row has opened.
@@ -188,13 +203,27 @@ function Summary({ chapters, scores, onSelectMap }) {
         const avg = ranks.length ? Math.round(ranks.reduce((a, b) => a + b, 0) / ranks.length) : null;
         return (
           <div className="pf-summary-row" key={chapter.dbId ?? `${chapter.mode}-${chapter.name}`}>
-            <span className={`pf-summary-avg num${avg ? " rank-tint" : ""}`} style={rankVars(avg)} title="Average rank">
-              {avg ?? "–"}
-            </span>
-            <span className="pf-summary-chapter">
-              <small>{isMultiplayerMode(chapter.mode) ? "Course" : "Chapter"} {chapter.number}</small>
-              {chapter.name}
-            </span>
+            {chapterLink ? (
+              <>
+                <Link to={chapterLink(chapter)} className={`pf-summary-avg num${avg ? " rank-tint" : ""}`} style={rankVars(avg)} title={`Average rank · ${chapter.name} board`}>
+                  {avg ?? "–"}
+                </Link>
+                <Link to={chapterLink(chapter)} className="pf-summary-chapter is-link" title={`${chapter.name} board`}>
+                  <small>{isMultiplayerMode(chapter.mode) ? "Course" : "Chapter"} {chapter.number}</small>
+                  {chapter.name}
+                </Link>
+              </>
+            ) : (
+              <>
+                <span className={`pf-summary-avg num${avg ? " rank-tint" : ""}`} style={rankVars(avg)} title="Average rank">
+                  {avg ?? "–"}
+                </span>
+                <span className="pf-summary-chapter">
+                  <small>{isMultiplayerMode(chapter.mode) ? "Course" : "Chapter"} {chapter.number}</small>
+                  {chapter.name}
+                </span>
+              </>
+            )}
             <span className="pf-summary-tiles">
               {chapter.maps.map((m) => {
                 const rank = scores[m.id]?.rank;
@@ -217,11 +246,11 @@ function Summary({ chapters, scores, onSelectMap }) {
   );
 }
 
-function ChapterTable({ chapter, scores, coop, game, rendered, selectedMap, onSelectMap, player }) {
+function ChapterTable({ chapter, scores, coop, game, rendered, selectedMap, onSelectMap, player, chapterLink }) {
   return (
     <section className="pf-chapter">
       <div className={`pf-crow pf-crow-head${coop ? " is-coop" : ""}`}>
-        <h3>{chapter.name}</h3>
+        <h3>{chapterLink ? <Link to={chapterLink} className="pf-chapter-link" title={`${chapter.name} board`}>{chapter.name}</Link> : chapter.name}</h3>
         <span className="end">Time</span>
         <span className="end">ΔNext</span>
         <span className="end">ΔWR</span>
@@ -346,7 +375,9 @@ function History({ history, game, map }) {
 
 // Compact single-page view in the style of the original board's profile: every
 // Portal 2 map with rank, time and date, singleplayer and co-op side by side.
-function LegacyTab({ scores }) {
+function LegacyTab({ scores, player }) {
+  const [openId, setOpenId] = useState(null);
+  const rendered = useRenderedSet(useMemo(() => Object.values(scores), [scores]), "portal2");
   return (
     <div className="pf-legacy">
       {["sp", "coop"].map((mode) => (
@@ -357,16 +388,39 @@ function LegacyTab({ scores }) {
               <h3>{chapter.name}</h3>
               {chapter.maps.map((m) => {
                 const s = scores[m.id];
+                const open = Boolean(s) && openId === m.id;
+                const toggle = () => setOpenId(open ? null : m.id);
                 return (
-                  <div key={m.id} className={`pf-legacy-row${s?.rank === 1 ? " is-wr" : ""}`}>
-                    <span className={`pf-legacy-rank num${s?.rank ? " rank-tint" : ""}`} style={rankVars(s?.rank)}>
-                      <RankNumber rank={s?.rank} inherit />
-                    </span>
-                    <Link to={mapPath(m)} className="pf-legacy-map">
-                      {m.title}
-                    </Link>
-                    <span className="num end">{s?.score != null ? formatScore(s.score) : ""}</span>
-                    <span className="num end muted pf-legacy-date" title={s?.timestamp ? formatDateTime(s.timestamp) : undefined}>{s?.timestamp ? formatDate(s.timestamp) : ""}</span>
+                  <div key={m.id} className={`pf-legacy-entry${open ? " is-open" : ""}`}>
+                    <div
+                      className={`pf-legacy-row${s?.rank === 1 ? " is-wr" : ""}${s ? " is-expandable" : ""}`}
+                      onClick={s ? toggle : undefined}
+                      role={s ? "button" : undefined}
+                      tabIndex={s ? 0 : undefined}
+                      aria-expanded={s ? open : undefined}
+                      onKeyDown={s ? (e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), toggle()) : undefined}
+                    >
+                      <span className={`pf-legacy-rank num${s?.rank ? " rank-tint" : ""}`} style={rankVars(s?.rank)}>
+                        <RankNumber rank={s?.rank} inherit />
+                      </span>
+                      {s ? (
+                        <span className="pf-legacy-map">{m.title}</span>
+                      ) : (
+                        <Link to={mapPath(m)} className="pf-legacy-map">
+                          {m.title}
+                        </Link>
+                      )}
+                      <span className="num end">{s?.score != null ? formatScore(s.score) : ""}</span>
+                      <span className="num end muted pf-legacy-date" title={s?.timestamp ? formatDateTime(s.timestamp) : undefined}>{s?.timestamp ? formatDate(s.timestamp) : ""}</span>
+                    </div>
+                    {open && (
+                      <div className="pf-legacy-details">
+                        <Link to={mapPath(m)} className="pf-legacy-maplink">
+                          {m.title} board →
+                        </Link>
+                        <RunDetails run={{ ...s, players: [player, s.partner].filter(Boolean) }} map={m} game="portal2" rendered={rendered} />
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -405,6 +459,7 @@ function StatsTab({ profileNumber }) {
             <Stat label="Singleplayer maps" value={`${s.sp_maps} / ${s.sp_map_count}`} note={pct(s.sp_maps, s.sp_map_count)} hide={!s.sp_map_count} />
             <Stat label="Co-op maps" value={`${s.coop_maps} / ${s.coop_map_count}`} note={pct(s.coop_maps, s.coop_map_count)} hide={!s.coop_map_count} />
             <Stat label="Co-op partners" value={stats.data.uniquePartners} hide={!s.coop_map_count} />
+            <Stat label="World records" value={s.wr_runs} note={s.wr_runs ? `held on ${s.wr_maps} map${s.wr_maps === 1 ? "" : "s"}` : "none yet"} />
             <Stat label="Time saved" value={formatScore(s.time_saved)} note="through improvements" />
             <Stat label="With demo" value={pct(s.runs_with_demo, s.runs)} note={`${s.runs_with_demo} runs`} />
             <Stat label="With video" value={pct(s.runs_with_video, s.runs)} note={`${s.runs_with_video} runs`} />

@@ -1167,8 +1167,38 @@
   font-size: 15px;
 }
 
-.pf-legacy-row:nth-child(even) {
+.pf-legacy-entry:nth-child(even) > .pf-legacy-row {
   background: var(--row);
+}
+
+.pf-legacy-row.is-expandable {
+  cursor: pointer;
+}
+
+.pf-legacy-row.is-expandable:hover,
+.pf-legacy-entry.is-open > .pf-legacy-row {
+  background: var(--control-raised);
+}
+
+.pf-legacy-details {
+  padding: 8px 0 14px;
+}
+
+.pf-legacy-maplink {
+  display: inline-block;
+  margin: 0 0 6px 4px;
+  color: var(--accent-light);
+  font-size: 14px;
+}
+
+/* Chapter averages and names lead to the chapter's aggregated board. */
+a.pf-summary-avg:hover {
+  outline: 1px solid var(--text);
+}
+
+.pf-summary-chapter.is-link:hover,
+.pf-chapter-link:hover {
+  text-decoration: underline;
 }
 
 .pf-legacy-row.is-wr {

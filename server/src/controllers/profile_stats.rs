@@ -23,6 +23,9 @@ pub struct StatsSummary {
     /// Personal bests (one per map) with a portal count, and their total.
     pub pbs_with_portals: i64,
     pub pb_portals_total: i64,
+    /// Runs that were a world record when set (as in the WR history), and on how many maps.
+    pub wr_runs: i64,
+    pub wr_maps: i64,
 }
 
 #[derive(Debug, Serialize, FromRow)]
@@ -80,7 +83,9 @@ pub async fn profile_stats(pool: &PgPool, profile_number: &str, game_id: i32) ->
                 (SELECT COUNT(*) FROM runs WHERE portals IS NOT NULL) AS runs_with_portals,
                 COALESCE((SELECT SUM(portals) FROM runs), 0)::bigint AS portals_total,
                 (SELECT COUNT(*) FROM pbs WHERE portals IS NOT NULL) AS pbs_with_portals,
-                COALESCE((SELECT SUM(portals) FROM pbs), 0)::bigint AS pb_portals_total
+                COALESCE((SELECT SUM(portals) FROM pbs), 0)::bigint AS pb_portals_total,
+                (SELECT COUNT(*) FROM runs WHERE verified AND post_rank = 1 AND NOT wr_hidden) AS wr_runs,
+                (SELECT COUNT(DISTINCT map_id) FROM runs WHERE verified AND post_rank = 1 AND NOT wr_hidden) AS wr_maps
         "#,
     )
     .bind(profile_number)

@@ -498,7 +498,7 @@ export function profileAsOf(profile, past, at) {
     ...profile,
     asOf: at,
     points: { sp: past.points?.sp ?? 0, coop: past.points?.coop ?? 0, overall: past.points?.overall ?? 0 },
-    globalRank: { sp: past.places?.sp ?? null, coop: past.places?.coop ?? null, overall: past.places?.overall ?? null, country: null },
+    globalRank: { sp: past.places?.sp ?? null, coop: past.places?.coop ?? null, overall: past.places?.overall ?? null, country: past.country_place ?? null },
     averagePlace: { sp: avg("sp"), coop: avg("coop"), overall: avg("overall") },
     worldRecords: {
       sp: values.filter((s) => s.map.mode === "sp" && s.rank === 1).length,
