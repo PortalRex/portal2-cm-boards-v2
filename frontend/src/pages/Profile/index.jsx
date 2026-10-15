@@ -4,9 +4,10 @@ import { Link, useParams, useSearchParams } from "react-router-dom";
 import { Line, LineChart, ReferenceDot, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import Layout from "../../components/Layout";
 import { Card, Avatar, Flag, Loading, EmptyState } from "../../components/ui";
-import { GlobeIcon, HistoryIcon, PeakIcon, SparkleIcon, TrophyIcon, SteamIcon, TwitchIcon, YouTubeIcon, StarIcon, StarOutlineIcon } from "../../components/Icons";
+import { GlobeIcon, HistoryIcon, PeakIcon, SparkleIcon, TrophyIcon, SteamIcon, TwitchIcon, YouTubeIcon, StarIcon, StarOutlineIcon, TriangleDown } from "../../components/Icons";
 import { fetchPointsHistory, fetchPointsPeak, fetchProfile, fetchProfileAt, profileAsOf, adminSetCountry } from "../../api/client";
 import useWheelZoom from "../../hooks/useWheelZoom";
+import { useCollapsedGroup } from "../../hooks/useCollapsed";
 import { countryName, COUNTRY_LIST, countryIdByCode } from "../../data/countries";
 import useApi from "../../hooks/useApi";
 import { useDataVersion } from "../../lib/dataVersion";
@@ -75,6 +76,7 @@ function ProfileView({ profileId }) {
               </button>
             </div>
           )}
+          <CollapseAll />
           <div className="pf-row pf-row-1">
             <ProfileHeader player={p.player} role={role} />
             <Card icon={SparkleIcon} title="Challenge Mode Points" collapseId="profile.points" className="pf-points">
@@ -155,6 +157,22 @@ function ProfileView({ profileId }) {
 }
 
 const fmtAvg = (v) => (v == null ? "–" : v.toFixed(1));
+
+// The profile's cards above the tabs.
+const PROFILE_CARDS = ["profile.points", "profile.rank", "profile.stats", "profile.average", "profile.wrs", "profile.peak", "profile.activity"];
+
+// Opens or closes every card above the tabs at once (each still opens on its own too).
+function CollapseAll() {
+  const [all, toggleAll] = useCollapsedGroup(PROFILE_CARDS);
+  return (
+    <div className="pf-collapse-all">
+      <button type="button" onClick={toggleAll} aria-expanded={!all}>
+        {all ? "Expand all" : "Collapse all"}
+        <TriangleDown size={11} className={all ? "" : "is-up"} />
+      </button>
+    </div>
+  );
+}
 
 // A rank as "20th"; `colored` uses the rank colours the boards use elsewhere.
 function Ordinal({ n, colored = false }) {

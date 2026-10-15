@@ -3,6 +3,40 @@
   margin: 0 auto;
 }
 
+/* Opens / closes every card above the tabs. */
+.pf-collapse-all {
+  display: flex;
+  justify-content: flex-end;
+  margin: -6px 0 8px;
+}
+
+.pf-collapse-all button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  border: 0;
+  border-radius: var(--radius);
+  background: var(--card-head, rgba(255, 255, 255, 0.04));
+  color: var(--text-2);
+  font: inherit;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.pf-collapse-all button:hover {
+  background: var(--control-raised);
+  color: var(--text);
+}
+
+.pf-collapse-all svg {
+  transition: transform 0.15s;
+}
+
+.pf-collapse-all svg.is-up {
+  transform: rotate(180deg);
+}
+
 .pf-row {
   display: grid;
   gap: 20px;
