@@ -316,12 +316,15 @@
   color: rgb(255 184 119);
 }
 
-/* The "Glow" setting: a soft glow in the player's colour instead of the trophy (grey when it's
-   unknown who was blue). */
+/* The "Coloured name" setting: the PB player's name in their portal colour, a little bolder,
+   instead of the trophy (grey when it's unknown who was blue). */
 .score-row.is-coop .sr-player.is-pb {
   --pb-rgb: 195 198 204;
-  border-radius: 4px;
-  box-shadow: 0 0 8px rgb(var(--pb-rgb) / 35%), inset 0 0 8px rgb(var(--pb-rgb) / 25%);
+}
+
+.score-row.is-coop .sr-player.is-pb .sr-player-name {
+  color: rgb(var(--pb-rgb));
+  font-weight: 600;
 }
 
 .score-row.is-coop .sr-player.is-pb.tint-blue {
