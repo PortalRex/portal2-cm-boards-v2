@@ -4,7 +4,7 @@ import { Link, useParams, useSearchParams } from "react-router-dom";
 import { Line, LineChart, ReferenceDot, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import Layout from "../../components/Layout";
 import { Card, Avatar, Flag, Loading, EmptyState } from "../../components/ui";
-import { GlobeIcon, HistoryIcon, PeakIcon, SparkleIcon, TrophyIcon, SteamIcon, TwitchIcon, YouTubeIcon, StarIcon, StarOutlineIcon, SwapIcon, TriangleDown } from "../../components/Icons";
+import { GlobeIcon, HistoryIcon, PeakIcon, SparkleIcon, TrophyIcon, SteamIcon, TwitchIcon, YouTubeIcon, StarIcon, StarOutlineIcon, SwapIcon, EditIcon, TriangleDown } from "../../components/Icons";
 import { fetchPointsHistory, fetchPointsPeak, fetchProfile, fetchProfileAt, profileAsOf, adminSetCountry } from "../../api/client";
 import useWheelZoom from "../../hooks/useWheelZoom";
 import { useCollapsedGroup } from "../../hooks/useCollapsed";
@@ -306,28 +306,41 @@ function ProfileHeader({ player, role }) {
   return (
     <section className="pf-header">
       <Avatar src={player.avatar} name={player.name} size={180} className="pf-avatar" />
+      <div className="pf-actions">
+        <FollowButton player={player} />
+        <CompareLink player={player} />
+      </div>
+      <div className="pf-links">
+        {links.map(({ href, icon: Icon, label, className }) => (
+          <a key={label} href={href} target="_blank" rel="noreferrer" className={`pf-link ${className}`} aria-label={label} title={label}>
+            <Icon size={32} />
+          </a>
+        ))}
+      </div>
       <div className="pf-identity">
-        <h1 className={`pf-name${role ? " has-role" : ""}`} style={role ? { "--role": role.color } : undefined} title={role ? (role.fromPeak ? `${role.name} (reached at peak points, kept for good)` : `${role.name} (from points)`) : undefined}>
-          {player.name}
-          {role && <img className="pf-role-icon" src={roleIcon(role)} alt={role.name} />}
-        </h1>
-        {/* All badges together on one row under the name. */}
-        <div className="pf-badges">
-          {(player.badges || []).map((b) => (
-            <span key={b.label} className={`pf-badge is-${b.tone}`}>
-              {b.label}
-            </span>
-          ))}
-          {player.banned && (
-            <span className="pf-badge is-red" title="Banned: this player's runs are hidden from the boards">
-              Banned
-            </span>
-          )}
-          {player.frozen && (
-            <span className="pf-badge is-frozen" title={player.frozenReason ? `Frozen: ${player.frozenReason}` : "Frozen: existing times stay, new ones aren't accepted"}>
-              Frozen
-            </span>
-          )}
+        <div className="pf-name-row">
+          <h1 className={`pf-name${role ? " has-role" : ""}`} style={role ? { "--role": role.color } : undefined} title={role ? (role.fromPeak ? `${role.name} (reached at peak points, kept for good)` : `${role.name} (from points)`) : undefined}>
+            {player.name}
+            {role && <img className="pf-role-icon" src={roleIcon(role)} alt={role.name} />}
+          </h1>
+          {/* All badges together, beside the name. */}
+          <div className="pf-badges">
+            {(player.badges || []).map((b) => (
+              <span key={b.label} className={`pf-badge is-${b.tone}`}>
+                {b.label}
+              </span>
+            ))}
+            {player.banned && (
+              <span className="pf-badge is-red" title="Banned: this player's runs are hidden from the boards">
+                Banned
+              </span>
+            )}
+            {player.frozen && (
+              <span className="pf-badge is-frozen" title={player.frozenReason ? `Frozen: ${player.frozenReason}` : "Frozen: existing times stay, new ones aren't accepted"}>
+                Frozen
+              </span>
+            )}
+          </div>
         </div>
         {player.country && (
           <div className="pf-country">
@@ -335,21 +348,13 @@ function ProfileHeader({ player, role }) {
             {countryName(player.country)}
           </div>
         )}
-        <div className="pf-staff-tools">
-          <RoleControl player={player} />
-          <FreezeControl player={player} />
-          <BanControl player={player} />
-          <DisplayControl player={player} />
-        </div>
       </div>
-      <FollowButton player={player} />
-      <CompareLink player={player} />
-      <div className="pf-links">
-        {links.map(({ href, icon: Icon, label, className }) => (
-          <a key={label} href={href} target="_blank" rel="noreferrer" className={`pf-link ${className}`} aria-label={label} title={label}>
-            <Icon size={32} />
-          </a>
-        ))}
+      {/* Staff only, in the bottom-right corner. */}
+      <div className="pf-staff-tools">
+        <RoleControl player={player} />
+        <FreezeControl player={player} />
+        <BanControl player={player} />
+        <DisplayControl player={player} />
       </div>
     </section>
   );
@@ -417,13 +422,15 @@ function DisplayControl({ player }) {
       setState({ busy: false, error: e.message });
     }
   };
-  if (!open)
+  if (!open) {
+    const locked = player.nameLocked || player.avatarLocked;
+    const label = `Edit name & picture${locked ? " (set by staff)" : ""}`;
     return (
-      <button type="button" className="pf-admin-button" onClick={() => setOpen(true)} title="Replace this player's name or picture">
-        Edit name & picture
-        {(player.nameLocked || player.avatarLocked) && <span className="pf-locked"> (set by staff)</span>}
+      <button type="button" className={`pf-admin-button pf-edit-button${locked ? " is-locked" : ""}`} onClick={() => setOpen(true)} title={label} aria-label={label}>
+        <EditIcon />
       </button>
     );
+  }
   return (
     <div className="pf-display-form">
       <div className="pf-freeze-form">

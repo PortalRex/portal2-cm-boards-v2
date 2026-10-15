@@ -97,26 +97,47 @@
   line-height: 13px;
 }
 
-/* Header card */
+/* Header card: the picture on the left; follow / compare and the links along the top; name,
+   badges and country along the bottom, with the staff tools in the bottom-right corner. */
 .pf-header {
-  display: flex;
-  align-items: center;
-  gap: 36px;
-  min-height: 180px;
-  padding: 20px 36px 20px 40px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto 1fr;
+  grid-template-areas:
+    "avatar actions links"
+    "avatar identity staff";
+  gap: 12px 32px;
+  padding: 20px 28px 20px 32px;
   background: var(--card);
   border-radius: var(--radius-lg);
 }
 
 .pf-avatar {
+  grid-area: avatar;
   border-radius: 20px;
-  flex-shrink: 0;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
 }
 
+.pf-actions {
+  grid-area: actions;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
 .pf-identity {
-  flex: 1;
+  grid-area: identity;
+  align-self: end;
   min-width: 0;
+  margin-bottom: 12px;
+}
+
+.pf-name-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 24px;
 }
 
 .pf-role-icon {
@@ -157,24 +178,33 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
-  margin-top: 10px;
 }
 
 .pf-badges:empty {
   display: none;
 }
 
-/* Admin controls sit on their own line under the name, so they never crowd it. */
 .pf-staff-tools {
+  grid-area: staff;
+  align-self: end;
+  justify-self: end;
   display: flex;
   flex-wrap: wrap;
+  justify-content: flex-end;
   align-items: center;
   gap: 10px;
-  margin-top: 12px;
 }
 
 .pf-staff-tools:empty {
   display: none;
+}
+
+/* The edit form gets its own full-width row under the name. */
+.pf-staff-tools:has(.pf-display-form) {
+  grid-row: 3;
+  grid-column: 2 / -1;
+  justify-self: stretch;
+  justify-content: flex-start;
 }
 
 .pf-badge {
@@ -280,11 +310,13 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-top: 12px;
+  margin-top: 10px;
   font-size: 18px;
 }
 
 .pf-links {
+  grid-area: links;
+  justify-self: end;
   display: flex;
   gap: 14px;
 }
@@ -893,8 +925,14 @@
 }
 
 @media (max-width: 800px) {
+  /* Name and badges beside the picture; follow / compare and the links under them. */
   .pf-header {
-    flex-wrap: wrap;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-rows: auto;
+    grid-template-areas:
+      "avatar identity identity"
+      "actions actions links"
+      "staff staff staff";
     gap: 16px;
     padding: 20px;
   }
@@ -905,21 +943,24 @@
     margin: 0;
   }
 
-  /* Name and badges fill the row beside the picture; follow / compare / links wrap below. */
   .pf-identity {
-    flex: 1 1 calc(100% - 112px);
+    align-self: center;
+    margin-bottom: 0;
   }
 
   .pf-name {
     font-size: 30px;
   }
 
-  .pf-badges {
-    margin-top: 6px;
+  .pf-name-row {
+    gap: 6px 12px;
   }
 
-  .pf-links {
-    width: 100%;
+  .pf-staff-tools,
+  .pf-staff-tools:has(.pf-display-form) {
+    grid-area: staff;
+    justify-self: start;
+    justify-content: flex-start;
   }
 
   /* Phones: the caption on its own line, the three series together under it. */
@@ -1218,9 +1259,30 @@
   flex-basis: 100%;
 }
 
-.pf-locked {
-  color: var(--text-muted);
-  font-size: 13px;
+/* Edit name & picture: a round pen button; a dot marks a name or picture set by staff. */
+.pf-edit-button {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  padding: 0;
+  border-style: solid;
+  border-radius: 50%;
+}
+
+.pf-edit-button svg {
+  font-size: 20px;
+}
+
+.pf-edit-button.is-locked::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
 }
 
 /* Phones: long names shrink and break; stat cards spread across the width. */
