@@ -43,9 +43,10 @@ export default function ScoreRow({ entry, rendered, myReaction }) {
               coop && !rolesKnown && "Unknown which player was blue",
             ].filter(Boolean).join(". ");
             return (
-              <div key={i} className={`sr-player${coop ? ` ${tintFor(rolesKnown, i)}` : ""}${pb ? " is-pb" : ""}`} title={title || undefined}>
+              <div key={i} className={`sr-player${coop ? ` ${tintFor(rolesKnown, i)}` : ""}`} title={title || undefined}>
                 <Avatar src={p.avatar} name={p.name} size={46} />
                 <PlayerLink player={p} className="sr-player-name" />
+                {pb && <span className="sr-pb-tag">PB</span>}
               </div>
             );
           })}

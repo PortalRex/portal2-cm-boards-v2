@@ -299,20 +299,27 @@
   background: linear-gradient(90deg, transparent 46px, var(--portal-neutral) 46px, transparent 70%);
 }
 
-/* A pastel outline in the player's colour marks who set a PB with a co-op run. */
-.score-row.is-coop .sr-player.is-pb {
-  --pb-outline: rgb(195 198 204 / 50%);
-  outline: 2px solid var(--pb-outline);
-  outline-offset: -2px;
-  border-radius: 4px;
+/* A "PB" tag in the player's colour (grey when it's unknown who was blue) marks who set a PB
+   with a co-op run. */
+.sr-pb-tag {
+  flex: none;
+  margin: 0 10px 0 auto;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: rgb(195 198 204);
+  color: #16191d;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 16px;
+  letter-spacing: 0.06em;
 }
 
-.score-row.is-coop .sr-player.is-pb.tint-blue {
-  --pb-outline: rgb(127 188 255 / 50%);
+.sr-player.tint-blue .sr-pb-tag {
+  background: rgb(127 188 255);
 }
 
-.score-row.is-coop .sr-player.is-pb.tint-orange {
-  --pb-outline: rgb(255 184 119 / 50%);
+.sr-player.tint-orange .sr-pb-tag {
+  background: rgb(255 184 119);
 }
 
 /* Wide screens: a co-op run's two players side by side on one line. */
