@@ -7,6 +7,7 @@ import { fetchUser, logout, setMyCountry, setMyCountryFromSteam, steamLoginUrl }
 import { COUNTRY_LIST } from "../../data/countries";
 import { bumpDataVersion } from "../../lib/dataVersion";
 import useTheme from "../../hooks/useTheme";
+import useCoopPbStyle, { COOP_PB_STYLES } from "../../hooks/useCoopPbStyle";
 import background from "../../scenes/global/img/Background.png";
 import "./Settings.css";
 
@@ -58,6 +59,7 @@ function CountrySetting({ user }) {
 
 export default function Settings() {
   const { theme, toggleTheme } = useTheme();
+  const [pbStyle, setPbStyle] = useCoopPbStyle();
   const user = useCurrentUser();
 
   return (
@@ -72,6 +74,15 @@ export default function Settings() {
               </button>
             ))}
           </div>
+          <h3 className="settings-sub">Co-op PBs in Score Updates</h3>
+          <div className="segmented settings-theme">
+            {COOP_PB_STYLES.map((o) => (
+              <button key={o.value} type="button" className={pbStyle === o.value ? "is-active" : ""} onClick={() => setPbStyle(o.value)}>
+                {o.label}
+              </button>
+            ))}
+          </div>
+          <p className="muted settings-note">How a co-op run marks which player set a personal best: a trophy by their name, or a border round them.</p>
         </section>
 
         {user && !user.sample && <CountrySetting user={user} />}

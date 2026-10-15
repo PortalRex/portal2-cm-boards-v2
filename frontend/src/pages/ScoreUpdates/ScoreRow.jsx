@@ -9,12 +9,14 @@ import { TimeButton } from "../../components/RunHistory";
 import { toggleOnRowClick } from "../../lib/rows";
 import { mapPath } from "../../data/maps";
 import { coopRoles, tintFor, useRoleOverrides } from "../../lib/coopRoles";
+import useCoopPbStyle from "../../hooks/useCoopPbStyle";
 import { formatDelta, timeAgo, formatDate, formatDateTime } from "../../lib/format";
 
 
 export default function ScoreRow({ entry, rendered, myReaction }) {
   const [open, setOpen] = useState(false);
   const { players, rolesKnown } = coopRoles(entry, useRoleOverrides());
+  const [pbStyle] = useCoopPbStyle();
   const coop = players.length > 1;
   const pending = !entry.verified;
 
@@ -36,17 +38,17 @@ export default function ScoreRow({ entry, rendered, myReaction }) {
 
         <div className="sr-players">
           {players.map((p, i) => {
-            // Outlined: this player set a PB with the run.
+            // Marked (trophy, or an outline with the "Border" setting): this player set a PB with the run.
             const pb = coop ? entry.pbs?.find((x) => x.profileNumber && x.profileNumber === p.profileNumber) : null;
             const title = [
               pb && `${p.name} set a PB${pb.scoreDelta != null ? ` (${formatDelta(pb.scoreDelta, "s")})` : ""}${pb.postRank ? `, rank ${pb.preRank ?? "–"} → ${pb.postRank}` : ""}`,
               coop && !rolesKnown && "Unknown which player was blue",
             ].filter(Boolean).join(". ");
             return (
-              <div key={i} className={`sr-player${coop ? ` ${tintFor(rolesKnown, i)}` : ""}`} title={title || undefined}>
+              <div key={i} className={`sr-player${coop ? ` ${tintFor(rolesKnown, i)}` : ""}${pb && pbStyle === "border" ? " is-pb" : ""}`} title={title || undefined}>
                 <Avatar src={p.avatar} name={p.name} size={46} />
                 <PlayerLink player={p} className="sr-player-name" />
-                {pb && <TrophyIcon className="sr-pb-icon" role="img" aria-hidden={false} aria-label="PB" />}
+                {pb && pbStyle === "icon" && <TrophyIcon className="sr-pb-icon" role="img" aria-hidden={false} aria-label="PB" />}
               </div>
             );
           })}

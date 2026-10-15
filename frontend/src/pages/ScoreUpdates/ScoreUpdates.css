@@ -316,6 +316,22 @@
   color: rgb(255 184 119);
 }
 
+/* The "Border" setting: a pastel outline in the player's colour instead of the trophy. */
+.score-row.is-coop .sr-player.is-pb {
+  --pb-outline: rgb(195 198 204 / 50%);
+  outline: 2px solid var(--pb-outline);
+  outline-offset: -2px;
+  border-radius: 4px;
+}
+
+.score-row.is-coop .sr-player.is-pb.tint-blue {
+  --pb-outline: rgb(127 188 255 / 50%);
+}
+
+.score-row.is-coop .sr-player.is-pb.tint-orange {
+  --pb-outline: rgb(255 184 119 / 50%);
+}
+
 /* Wide screens: a co-op run's two players side by side on one line. */
 @media (min-width: 1200px) {
   .score-row.is-coop .sr-players {
