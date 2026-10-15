@@ -123,91 +123,33 @@ The front-end build can be done with `npm install` in the `/board-portal-2` fold
 * Light and dark theme support.
 * Prototyped page designs for many auxiliary pages.
 
-## Should I set up this environment with Docker? Or set it up locally?
+## Docker
 
-[@cesarila](https://github.com/cesarila) has contributed a working Docker solution to building the boards.
-For those unfamiliar with Docker, it allows you to run different container environments that act similar to to lightweight Virtual Machines, where you can define ahead of time what is installed on the containers when they're built.
+`docker-compose.yaml` runs the whole board: Postgres (`db`), the web server (`server`) and the site (`web`, nginx serving the built frontend and passing `/api` to the server), at <http://localhost:3000>. You need Docker with the Compose plugin (Docker Desktop includes it; on WSL, either Docker Desktop or Docker Engine inside WSL works).
 
-This means minimal technical knowledge needed outside of learning to use Docker (details below). The main drawback of this is that you have less direct control over your environment, and the performance is much worse.
+### First start
 
-If you're familiar with development on Linux/WSL, I would recommend installing Postgres, Rust and Node locally, but if you're looking to mess around and learn as a beginner, or only want to work on the Front-end, I would recommend using Docker.
+1. Copy `server/.env.example` to `server/.env` and fill it in. Only `SERVICE.TOKEN` (a long random string, e.g. `openssl rand -hex 32`) and, optionally, `STEAM.API_KEY` matter here: the database address, host, port and storage paths are set in `docker-compose.yaml`. If you serve the site somewhere other than `http://localhost:3000`, set `SERVER.PUBLIC_URL` to match (and `WEB_PORT=<port>` in a `.env` next to `docker-compose.yaml` for another local port).
+2. `docker compose up -d --build`
 
-Additionally, if you want to focus on entirely front-end contributions, contact Daniel for information on a publicly accessible IP you can use to hit the backend API endpoints without needing to build it on your machine.
-
-## Docker Setup Guide (Web-Server & Database)
-
-### Prerequisites
-
-1. Docker
-    1. [Get Docker](https://docs.docker.com/get-docker/)
-    2. Optional Post-Installation Steps:
-        * [Linux](https://docs.docker.com/engine/install/linux-postinstall/)
-1. Have docker-compose available (Linux only, comes bundled with Docker desktop for Mac and Windows):
-    * [Linux Install](https://docs.docker.com/compose/cli-command/#install-on-linux)
-    * Short Version:
-
-        ```bash
-        mkdir -p ~/.docker/cli-plugins/
-        sudo curl -L "https://github.com/docker/compose/releases/download/v2.1.0/docker-compose-$(uname -s)-$(uname -m)" -o ~/.docker/cli-plugins/docker-compose
-        sudo chmod +x ~/.docker/cli-plugins
-        ```
-
-        * Note: v2.1.0 is the latest release at the time of writing this. All releases are available [here](https://github.com/docker/compose/releases/)
-    * [Shortest Version](https://gist.github.com/cesarila/a58504fbc3924bcef6ae8ce83a652071)
-
-### Building
-
-Assuming you've satisfied the prerequisites, you can build the containers from the root directory of this repo with:
-`docker compose build`
-This only needs to be done on changes to entrypoint scripts, dockerfiles, and docker-compose.yaml. This includes changes made by people other than you.
-If you don't want to think about it, always rebuild your containers after pulling from the repo.
-
-### Running
-
-Run containers in the foreground:
-
-* `docker compose up`
-
-Run containers in the background with logging visible:
-
-* `docker compose up &`
-
-Run containers detached from the current shell (no logging visible):
-
-* `docker compose up -d`
-
-### .env for Docker
-
-Copy the `.env.example` file in the `/server` folder, and rename it to `.env`, change the contents to follow the convention below.
-The `DATABASE_URL` field should be identical if the docker files are unchanged, and the `SERVER.HOST` should bind to `0.0.0.0` rather than `127.0.0.1` for running in a Docker container.
-
-```txt
-DATABASE_URL=postgresql://docker:docker@postgres/p2boards
-SERVER.HOST=0.0.0.0
-SERVER.PORT=8080
-PROOF.RESULTS=500
-PROOF.DEMO=200
-PROOF.VIDEO=200
-STEAM.API_KEY=
-BACKBLAZE.KEYID=
-BACKBLAZE.KEY=
-BACKBLAZE.BUCKET=
-RUST_LOG=1
-RUST_LOG="actix_web=info"
-```
-
-### Troubleshooting Database
-
-To rebuild the database volume from the database dump, do the following:
+An empty database gets the tables from `db/dbscript/schema.sql` (no runs, games or maps). To load a database dump (`pg_dump -Fc` file or plain `.sql`):
 
 ```bash
-docker compose down # make sure all containers are stopped
-docker volume rm portal2-cm-boards-v2_postgres_data
-docker compose build
-docker compose up
+./scripts/restore-db.sh ~/path/to/p2boards.dump
 ```
 
-If this doesn't work for any reason, one thing to check is that the file copied in db/Dockerfile is the same as the dump in db/dbdump. If these files don't match, make them match, save your changes, and try the above steps again.
+It replaces everything in the database, runs `ANALYZE` (a restore has no planner statistics, which makes some pages take seconds) and restarts the server.
+
+### Day to day
+
+```bash
+docker compose up -d --build   # start, or rebuild and restart after pulling changes
+docker compose logs -f server  # follow the server's log
+docker compose down            # stop (the data stays)
+docker compose exec db psql -U docker p2boards   # database shell
+```
+
+The database lives in the `p2boards_pgdata` volume and submitted demos and map images in `p2boards_uploads`; `docker compose down -v` deletes both.
 
 ## Original Project Team
 

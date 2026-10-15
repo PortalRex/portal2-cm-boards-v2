@@ -1,31 +1,55 @@
-version: "3.9"
+# The whole board in Docker: Postgres, the Rust web server and the site (nginx), at http://localhost:3000.
+# Settings are read from server/.env (copy server/.env.example); the values under `server.environment`
+# below are fixed for this setup and override it. See "Docker" in README.md.
+name: p2boards
+
 services:
-  web-server:
-    container_name: "web-server"
-    build: ./server
-    command: cargo watch -x 'run'
-    env_file:
-      ./server/.env.entrypoint.dev
-    ports:
-      - "8080:8080"
-    volumes:
-      - type: bind
-        source: ./server
-        target: /opt/server
-      - type: volume
-        source: cargo_home
-        target: /opt/cargo
-
-
-  postgres:
-    build: ./db
+  db:
+    image: postgres:16-bookworm
+    restart: unless-stopped
     environment:
-      - POSTGRES_DB=p2boards
-      - POSTGRES_PASSWORD=docker
-      - POSTGRES_USER=docker
+      POSTGRES_DB: p2boards
+      POSTGRES_USER: docker
+      POSTGRES_PASSWORD: docker
     volumes:
-      - postgres_data:/var/lib/postgresql/data/
+      - pgdata:/var/lib/postgresql/data
+      # Creates the tables when the volume is empty (first start only).
+      - ./db/dbscript/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U docker -d p2boards"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  server:
+    build: ./server
+    restart: unless-stopped
+    env_file: ./server/.env
+    environment:
+      DATABASE_URL: postgresql://docker:docker@db:5432/p2boards
+      SERVER.HOST: 0.0.0.0
+      SERVER.PORT: "8080"
+      # Only nginx (web) can reach the server, so the client address comes from X-Forwarded-For.
+      SERVER.BEHIND_PROXY: "true"
+      DEMO.PARSER: ./demo-parser/parse_demo.mjs
+      DEMO.STORAGE: /data/demos
+      IMAGES.STORAGE: /data/map-images
+    volumes:
+      - uploads:/data
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    build: ./frontend
+    restart: unless-stopped
+    # Keep SERVER.PUBLIC_URL in server/.env in step if you change the port.
+    ports:
+      - "${WEB_PORT:-3000}:80"
+    depends_on:
+      - server
 
 volumes:
-  cargo_home:
-  postgres_data:
+  pgdata:
+  # Submitted demos and map images.
+  uploads:
