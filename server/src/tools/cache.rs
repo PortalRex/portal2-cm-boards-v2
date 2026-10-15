@@ -191,6 +191,23 @@ impl CacheState {
             ranks: Arc::new(Mutex::new(current_ranks)),
         }
     }
+    /// Rebuilds every map's ranks from the database in the background and swaps them in (and
+    /// saves them for the next start). The ranks loaded from the file at startup are only as
+    /// recent as that file: changes since (bans, sync passes, edits) were only kept in memory.
+    pub fn refresh_ranks_in_background(&self, pool: PgPool, config: Config) {
+        let cache = self.clone();
+        tokio::spawn(async move {
+            let started = std::time::Instant::now();
+            match CacheState::load_all_ranks(&cache.default_cat_ids, &pool, &config, false).await {
+                Ok(fresh) => {
+                    *cache.ranks.lock().await = fresh;
+                    log::info!("rank cache rebuilt in {:?}", started.elapsed());
+                }
+                Err(e) => log::warn!("rank cache: rebuild failed, keeping the saved ranks: {e}"),
+            }
+        });
+    }
+
     /// A map's default category: from the startup cache, else the database (maps added since
     /// startup, e.g. a new season). 0 when the map has none, which matches no runs.
     pub async fn default_cat(&self, pool: &PgPool, map_id: &str) -> i32 {

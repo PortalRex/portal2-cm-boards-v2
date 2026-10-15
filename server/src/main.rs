@@ -84,6 +84,8 @@ async fn main() -> Result<(), Error> {
     let default_cat_ids = crate::tools::helpers::get_default_cat_ids(&pool).await;
     // Construct the cache.
     let init_data = crate::tools::cache::CacheState::new(&pool, &config, default_cat_ids).await;
+    // The saved ranks get the server going; the up-to-date ones replace them shortly.
+    init_data.refresh_ranks_in_background(pool.clone(), config.clone());
     // Aggregated points, computed by the server and kept in memory (built in the background now).
     let points_cache = web::Data::new(crate::tools::points_cache::PointsCache::default());
     let _ = crate::tools::points_cache::POINTS.set(points_cache.clone().into_inner());

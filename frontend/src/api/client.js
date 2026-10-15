@@ -597,7 +597,7 @@ function scoresFromRanks(profileNumber, ranks, history, game) {
 
 // Personal bests from /profile/scores fill in times and deltas; maps where the player
 // is outside the ranked results get an entry without a rank.
-function mergePbs(scores, pbs, history) {
+function mergePbs(scores, pbs, history, me) {
   const byId = Object.fromEntries(history.map((h) => [h.id, h]));
   (pbs || []).forEach((pb) => {
     const map = getMap(pb.map_id);
@@ -614,7 +614,19 @@ function mergePbs(scores, pbs, history) {
       note: h?.note ?? null,
       partner: null,
     };
-    scores[pb.map_id] = { ...s, score: pb.score, timestamp: pb.timestamp, deltaWr: pb.delta_to_wr ?? null, deltaNext: pb.delta_to_next ?? null };
+    // The run's own details come from the best run itself, not the latest run on the map (a
+    // later, slower or banned run would otherwise lend it its partner, demo and video).
+    const run = h
+      ? {
+          changelogId: h.id,
+          youtubeId: h.youtubeId ?? null,
+          autorenderId: h.autorenderId ?? null,
+          demoId: h.demoId ?? null,
+          note: h.note ?? null,
+          partner: h.players.find((p) => p.profileNumber !== me) || null,
+        }
+      : { changelogId: pb.changelog_id };
+    scores[pb.map_id] = { ...s, ...run, score: pb.score, timestamp: pb.timestamp, deltaWr: pb.delta_to_wr ?? null, deltaNext: pb.delta_to_next ?? null };
   });
   return scores;
 }
@@ -632,7 +644,7 @@ const splitTitles = (title) =>
 function adaptProfile(profileNumber, page, user, history, pbs) {
   const byId = Object.fromEntries((page.points || []).map((p) => [p.id, p.points]));
   const placeById = Object.fromEntries((page.points || []).map((p) => [p.id, p.place ?? null]));
-  const scores = mergePbs(scoresFromRanks(profileNumber, page.ranks, history, "portal2"), pbs, history);
+  const scores = mergePbs(scoresFromRanks(profileNumber, page.ranks, history, "portal2"), pbs, history, profileNumber);
   const values = Object.values(scores).filter((s) => s.rank != null);
   const avg = (mode) => {
     const list = values.filter((s) => mode === "overall" || s.map.mode === mode);
