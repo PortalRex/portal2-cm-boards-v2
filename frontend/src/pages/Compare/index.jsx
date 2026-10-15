@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import Layout from "../../components/Layout";
 import { Avatar, EmptyState, Loading, Panel, PlayerLink, RankNumber, Select } from "../../components/ui";
-import { PeopleIcon } from "../../components/Icons";
+import { PeopleIcon, SwapIcon } from "../../components/Icons";
 import { fetchCompareSide, searchUsers } from "../../api/client";
 import { GAMES, MODE_LABELS, chaptersFor, isMultiplayerMode, mapPath } from "../../data/maps";
 import useApi from "../../hooks/useApi";
@@ -32,8 +32,8 @@ export default function Compare() {
       <Panel icon={PeopleIcon} title="Compare players" bodyClassName="cmp-body">
         <div className="cmp-players">
           <PlayerSlot side={left.data} loading={left.loading} onPick={(pn) => set({ a: pn })} label="First player" />
-          <button type="button" className="cmp-swap" onClick={() => set({ a: b, b: a })} disabled={!a && !b} title="Swap players">
-            ⇄
+          <button type="button" className="cmp-swap" onClick={() => set({ a: b, b: a })} disabled={!a && !b} title="Swap players" aria-label="Swap players">
+            <SwapIcon />
           </button>
           <PlayerSlot side={right.data} loading={right.loading} onPick={(pn) => set({ b: pn })} label="Second player" />
         </div>

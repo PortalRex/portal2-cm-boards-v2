@@ -4,7 +4,7 @@ import { Link, useParams, useSearchParams } from "react-router-dom";
 import { Line, LineChart, ReferenceDot, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import Layout from "../../components/Layout";
 import { Card, Avatar, Flag, Loading, EmptyState } from "../../components/ui";
-import { GlobeIcon, HistoryIcon, PeakIcon, SparkleIcon, TrophyIcon, SteamIcon, TwitchIcon, YouTubeIcon, StarIcon, StarOutlineIcon, TriangleDown } from "../../components/Icons";
+import { GlobeIcon, HistoryIcon, PeakIcon, SparkleIcon, TrophyIcon, SteamIcon, TwitchIcon, YouTubeIcon, StarIcon, StarOutlineIcon, SwapIcon, TriangleDown } from "../../components/Icons";
 import { fetchPointsHistory, fetchPointsPeak, fetchProfile, fetchProfileAt, profileAsOf, adminSetCountry } from "../../api/client";
 import useWheelZoom from "../../hooks/useWheelZoom";
 import { useCollapsedGroup } from "../../hooks/useCollapsed";
@@ -584,6 +584,7 @@ function CompareLink({ player }) {
   const to = me ? `/compare?a=${me}&b=${player.profileNumber}` : `/compare?a=${player.profileNumber}`;
   return (
     <Link to={to} className="pf-follow pf-compare" title={me ? "Compare your times with this player" : "Compare this player with someone"}>
+      <SwapIcon />
       Compare
     </Link>
   );
