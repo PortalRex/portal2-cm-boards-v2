@@ -236,12 +236,17 @@
   border-color: var(--text-muted);
 }
 
+/* Sits on the darkened banner image, so it's light in both themes. */
 .profile-hover-name {
-  align-self: stretch;
-  padding: 0 18px 4px;
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  padding: 0 18px 10px;
+  color: #fff;
   text-align: left;
   font-size: 20px;
-  font-weight: 500;
+  font-weight: 400;
+  text-shadow: 0 1px 3px rgb(0 0 0 / 60%);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -284,12 +289,34 @@
   visibility: visible;
 }
 
+/* The avatar, blurred and darkened. The image overhangs the banner, which clips it, so the
+   blur doesn't soften the edges into the menu. */
 .profile-hover-banner {
-  align-self: stretch;
+  position: relative;
+  display: flex;
+  align-items: flex-end;
   height: 125px;
   margin-bottom: 8px;
-  background-size: cover;
-  background-position: center;
+  overflow: hidden;
+  background: #2a2d33;
+}
+
+.profile-hover-banner::before {
+  content: "";
+  position: absolute;
+  inset: -8px;
+  background: var(--banner, none) center / cover no-repeat;
+  filter: blur(2px) brightness(0.55);
+  transition: filter 0.12s;
+}
+
+/* It links to the profile: not styled like the menu's other links, it brightens on hover instead. */
+.profile-hover a.profile-hover-banner {
+  padding: 0;
+  background: #2a2d33;
+}
+
+.profile-hover a.profile-hover-banner:hover::before {
   filter: blur(2px) brightness(0.7);
 }
 

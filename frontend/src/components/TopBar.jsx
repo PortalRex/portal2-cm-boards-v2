@@ -201,8 +201,9 @@ function ProfileMenu({ user, pathname, search }) {
         <Avatar src={user.avatar} name={user.name} size={48} className="topbar-avatar" />
       </Link>
       <div className="profile-hover" role="menu">
-        <div className="profile-hover-banner" style={{ backgroundImage: user.avatar ? `url("${user.avatar}")` : undefined }} />
-        <span className="profile-hover-name">{user.name}</span>
+        <Link to={`/profile/${user.profileNumber}`} className="profile-hover-banner" style={user.avatar ? { "--banner": `url("${user.avatar}")` } : undefined}>
+          <span className="profile-hover-name">{user.name}</span>
+        </Link>
         <Link to={`/profile/${user.profileNumber}`}>My Profile</Link>
         <Link to="/more/settings">Settings</Link>
         {isStaff(user) && <Link to="/admin">Staff</Link>}
