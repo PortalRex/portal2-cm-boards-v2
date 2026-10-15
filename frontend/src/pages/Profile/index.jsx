@@ -216,7 +216,7 @@ function PeakPoints({ peak }) {
 // Progress toward the next community role on a board; hover (or focus) shows how far off it is.
 function RoleBar({ board, points }) {
   const prog = roleProgress(board, points);
-  const text = prog.reached ? `${prog.reached} threshold reached` : `${prog.missing.toLocaleString()} points to ${prog.next} | ${prog.percent}%`;
+  const text = prog.reached ? `${prog.reached} threshold reached` : `${prog.missing.toLocaleString()} points to ${prog.next}: ${prog.percent}%`;
   const [pos, setPos] = useState(null);
   // The label goes on the page body (the card would clip it), above the bar and inside the window.
   const show = (e) => {
