@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
 
 // How Score Updates marks who set a PB with a co-op run: "icon" (a trophy, the default) or
-// "border" (an outline round the player in their colour). Remembered per browser and shared by
-// every open page.
+// "border" (a glow round the player in their colour; the stored value is from when it was an
+// outline). Remembered per browser and shared by every open page.
 const KEY = "p2cm.coopPbStyle";
 const EVENT = "p2cm-coop-pb-style";
 export const COOP_PB_STYLES = [
   { value: "icon", label: "Trophy" },
-  { value: "border", label: "Border" },
+  { value: "border", label: "Glow" },
 ];
 
 function saved() {

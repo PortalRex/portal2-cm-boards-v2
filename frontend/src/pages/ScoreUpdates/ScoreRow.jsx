@@ -38,7 +38,7 @@ export default function ScoreRow({ entry, rendered, myReaction }) {
 
         <div className="sr-players">
           {players.map((p, i) => {
-            // Marked (trophy, or an outline with the "Border" setting): this player set a PB with the run.
+            // Marked (trophy, or a glow with the "Glow" setting): this player set a PB with the run.
             const pb = coop ? entry.pbs?.find((x) => x.profileNumber && x.profileNumber === p.profileNumber) : null;
             const title = [
               pb && `${p.name} set a PB${pb.scoreDelta != null ? ` (${formatDelta(pb.scoreDelta, "s")})` : ""}${pb.postRank ? `, rank ${pb.preRank ?? "–"} → ${pb.postRank}` : ""}`,

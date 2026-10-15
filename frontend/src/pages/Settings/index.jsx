@@ -82,7 +82,7 @@ export default function Settings() {
               </button>
             ))}
           </div>
-          <p className="muted settings-note">How a co-op run marks which player set a personal best: a trophy by their name, or a border round them.</p>
+          <p className="muted settings-note">How a co-op run marks which player set a personal best: a trophy by their name, or a soft glow round them in their colour.</p>
         </section>
 
         {user && !user.sample && <CountrySetting user={user} />}

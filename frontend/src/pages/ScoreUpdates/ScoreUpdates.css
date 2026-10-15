@@ -316,12 +316,10 @@
   color: rgb(255 184 119);
 }
 
-/* The "Border" setting: a pastel outline in the player's colour instead of the trophy, with a
-   soft glow of the same colour (inside and out, no brighter than the outline). */
+/* The "Glow" setting: a soft glow in the player's colour instead of the trophy (grey when it's
+   unknown who was blue). */
 .score-row.is-coop .sr-player.is-pb {
   --pb-rgb: 195 198 204;
-  outline: 2px solid rgb(var(--pb-rgb) / 50%);
-  outline-offset: -2px;
   border-radius: 4px;
   box-shadow: 0 0 8px rgb(var(--pb-rgb) / 35%), inset 0 0 8px rgb(var(--pb-rgb) / 25%);
 }
