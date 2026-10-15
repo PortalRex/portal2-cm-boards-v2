@@ -11,91 +11,9 @@ import Reports from "./Reports";
 import { formatDate, formatScore, timeAgo } from "../../lib/format";
 import { getMap, mapPath } from "../../data/maps";
 import background from "../../scenes/global/img/Background.png";
+import { ACTIONS, TONES } from "../../lib/adminActions";
 import "./Admin.css";
 
-const ACTIONS = {
-  "run.ban": "Banned run",
-  "run.verify": "Verified run",
-  "run.unverify": "Marked run pending",
-  "run.unban": "Unbanned run",
-  "report.resolved": "Resolved report",
-  "report.dismissed": "Dismissed report",
-  "report.open": "Reopened report",
-  "run.delete": "Deleted",
-  "demo.remove": "Removed demo",
-  "coop.set_partner": "Set partner",
-  "coop.set_host": "Set colors",
-  "run.hide_wr": "Removed from WR history",
-  "run.show_wr": "Back in WR history",
-  "run.manual_submit": "Submitted by hand",
-  "profile.ban": "Banned profile",
-  "profile.unban": "Unbanned profile",
-  "profile.freeze": "Froze profile",
-  "profile.unfreeze": "Unfroze profile",
-  "profile.set_role": "Changed role",
-  "profile.display": "Changed name / picture",
-  "profile.country": "Changed country",
-  "season.create": "Created season",
-  "game.create": "Created game",
-  "game.update": "Edited game",
-  "game.delete": "Deleted game",
-  "game.layout": "Rearranged maps",
-  "game.link": "Linked games",
-  "game.unlink": "Unlinked games",
-  "chapter.create": "Added chapter",
-  "chapter.update": "Edited chapter",
-  "chapter.delete": "Deleted chapter",
-  "map.create": "Added map",
-  "map.update": "Edited map",
-  "map.delete": "Deleted map",
-  "map.image": "Set map image",
-  "map.image_remove": "Removed map image",
-  "map.link": "Linked maps",
-  "map.unlink": "Unlinked maps",
-  "category.create": "Added category",
-  "category.update": "Renamed category",
-  "category.delete": "Deleted category",
-};
-const TONES = {
-  "run.ban": "warn",
-  "run.manual_submit": "info",
-  "run.verify": "ok",
-  "run.unverify": "warn",
-  "run.unban": "ok",
-  "report.resolved": "ok",
-  "report.dismissed": "info",
-  "report.open": "warn",
-  "run.delete": "bad",
-  "demo.remove": "warn",
-  "coop.set_partner": "info",
-  "coop.set_host": "info",
-  "run.hide_wr": "warn",
-  "run.show_wr": "ok",
-  "profile.ban": "bad",
-  "profile.unban": "ok",
-  "profile.freeze": "bad",
-  "profile.unfreeze": "ok",
-  "profile.set_role": "info",
-  "profile.display": "warn",
-  "season.create": "ok",
-  "game.create": "ok",
-  "game.update": "info",
-  "game.delete": "bad",
-  "game.layout": "info",
-  "game.link": "info",
-  "game.unlink": "warn",
-  "chapter.create": "ok",
-  "chapter.update": "info",
-  "chapter.delete": "bad",
-  "map.create": "ok",
-  "map.update": "info",
-  "map.delete": "bad",
-  "map.link": "info",
-  "map.unlink": "warn",
-  "category.create": "ok",
-  "category.update": "info",
-  "category.delete": "bad",
-};
 const TABS = [
   { value: "runs", label: "Runs", actions: ["run.ban", "run.unban", "run.verify", "run.unverify", "run.delete", "run.manual_submit", "demo.remove", "run.hide_wr", "run.show_wr", "coop.set_partner", "coop.set_host", "report.resolved", "report.dismissed", "report.open"] },
   { value: "profiles", label: "Profiles", actions: ["profile.ban", "profile.unban", "profile.freeze", "profile.unfreeze", "profile.set_role", "profile.display"] },
@@ -393,7 +311,7 @@ function ProfileAuditRow({ entry }) {
       <div className="audit-row is-profile" role="row">
         <Badge action={entry.action} />
         <span>
-          <Link to={`/profile/${entry.target_id}`}>{entry.target_id}</Link>
+          <Link to={`/profile/${entry.target_id}`}>{entry.target_name || entry.target_id}</Link>
           {entry.action === "profile.set_role" && <small className="muted audit-role">{roleChange(entry.details)}</small>}
         </span>
         <span className="audit-admin">

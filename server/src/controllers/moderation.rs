@@ -42,6 +42,8 @@ pub struct AdminAction {
     pub run_banned: Option<bool>,
     /// Whether the run is currently removed from the WR history.
     pub run_wr_hidden: Option<bool>,
+    /// The player's name, for profile actions.
+    pub target_name: Option<String>,
 }
 
 /// Filters for [list_actions].
@@ -159,7 +161,8 @@ pub async fn list_actions(pool: &PgPool, q: &AuditQuery) -> Result<Vec<AdminActi
                    COALESCE(ou.board_name, ou.steam_name, ou.profile_number) AS partner_name,
                    cl.id IS NOT NULL AS run_exists,
                    cl.banned AS run_banned,
-                   cl.wr_hidden AS run_wr_hidden
+                   cl.wr_hidden AS run_wr_hidden,
+                   COALESCE(tu.board_name, tu.steam_name) AS target_name
             FROM page AS p
             LEFT JOIN users AS u ON u.profile_number = p.admin_profile
             LEFT JOIN changelog AS cl ON cl.id = p.run_id
@@ -168,6 +171,7 @@ pub async fn list_actions(pool: &PgPool, q: &AuditQuery) -> Result<Vec<AdminActi
             LEFT JOIN users AS pu ON pu.profile_number = COALESCE(cl.profile_number, p.deleted ->> 'profile_number')
             LEFT JOIN coop_bundled AS cb ON cb.id = cl.coop_id
             LEFT JOIN users AS ou ON ou.profile_number = NULLIF(CASE WHEN cb.p_id1 = cl.profile_number THEN cb.p_id2 ELSE cb.p_id1 END, 'N/A')
+            LEFT JOIN users AS tu ON p.target_type = 'profile' AND tu.profile_number = p.target_id
             ORDER BY p.id DESC
         "#,
     )
@@ -700,4 +704,29 @@ pub async fn set_role(pool: &PgPool, actor: &AdminOrService, profile_number: &st
     log_action(&mut tx, actor, "profile.set_role", "profile", profile_number, reason, json!({ "before": before, "role": role })).await?;
     tx.commit().await?;
     Ok(Ok(()))
+}
+
+/// The staff inbox: the latest audit-log entries and how many are new to `viewer` (entries after
+/// the last one they saw, not counting their own). The service token sees the entries, no count.
+pub async fn inbox(pool: &PgPool, viewer: Option<&str>, limit: i64) -> Result<Value, sqlx::Error> {
+    let items = list_actions(pool, &AuditQuery { limit: Some(limit), ..Default::default() }).await?;
+    let (seen_id, unread) = match viewer {
+        Some(pn) => {
+            let seen: Option<i64> = sqlx::query_scalar("SELECT staff_inbox_seen_id FROM users WHERE profile_number = $1").bind(pn).fetch_optional(pool).await?.flatten();
+            let unread: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM admin_actions WHERE id > $1 AND admin_profile IS DISTINCT FROM $2")
+                .bind(seen.unwrap_or(0))
+                .bind(pn)
+                .fetch_one(pool)
+                .await?;
+            (seen, unread)
+        }
+        None => (None, 0),
+    };
+    Ok(json!({ "seen_id": seen_id, "unread": unread, "items": items }))
+}
+
+/// Marks the staff inbox read up to entry `id` (it never moves back).
+pub async fn inbox_seen(pool: &PgPool, viewer: &str, id: i64) -> Result<(), sqlx::Error> {
+    sqlx::query("UPDATE users SET staff_inbox_seen_id = GREATEST(COALESCE(staff_inbox_seen_id, 0), $2) WHERE profile_number = $1").bind(viewer).bind(id).execute(pool).await?;
+    Ok(())
 }

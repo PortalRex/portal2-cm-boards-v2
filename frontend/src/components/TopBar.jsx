@@ -12,6 +12,7 @@ import { logout, steamLoginUrl } from "../api/client";
 import useTheme from "../hooks/useTheme";
 import { useDataVersion } from "../lib/dataVersion";
 import SubmitRun from "./SubmitRun";
+import StaffInbox from "./StaffInbox";
 import "./TopBar.css";
 
 // The Aggregate menu, like the old boards' but with a game level: game → board (Overall, a mode)
@@ -258,6 +259,7 @@ export default function TopBar() {
             {theme === "light" ? <DarkModeIcon /> : <LightModeIcon />}
           </button>
           <ProfileMenu user={user} pathname={pathname} search={search.replace(/[?&]signin=failed/, "")} />
+          {isStaff(user) && !user.sample && <StaffInbox />}
           {user?.country && <Flag code={user.country} height={30} />}
           <button type="button" className="menu-toggle" onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-label="Menu">
             {open ? <CloseIcon /> : <MenuIcon />}

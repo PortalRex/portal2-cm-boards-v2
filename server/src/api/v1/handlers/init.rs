@@ -10,6 +10,8 @@ pub fn init(cfg: &mut web::ServiceConfig) {
     cfg.service(
         web::scope("/api/v1")
             .service(admin_audit)
+            .service(admin_inbox)
+            .service(admin_inbox_seen)
             .service(admin_run_banned)
             .service(admin_run_demo_delete)
             .service(admin_run_delete)

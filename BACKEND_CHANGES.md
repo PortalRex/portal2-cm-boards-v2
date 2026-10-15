@@ -342,6 +342,13 @@ each player's `country_id`, profiles get `country_place` (rank among players of 
 boards can be filtered by country (`?country=us`), and `GET /countries/stats?board=overall|sp|coop` lists each
 country's player count, points together and best players for the Countries page.
 
+### Staff inbox
+
+Staff get an inbox next to their avatar: `GET /admin/inbox` returns the latest 20 audit-log entries, `unread` (entries
+after the last one the viewer saw, not counting their own) and `seen_id`; `PUT /admin/inbox/seen` with `{"id": n}`
+marks it read up to that entry (stored in `users.staff_inbox_seen_id`, migration `20261104000000_staff_inbox.sql`, so
+it follows the account across devices). Audit-log entries about a profile now carry `target_name`.
+
 ### Board names
 
 A game's boards ("modes", each chapter's `game_mode`) can be renamed in the games editor: `PUT /admin/games/{id}`

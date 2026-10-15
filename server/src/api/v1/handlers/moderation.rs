@@ -82,6 +82,31 @@ async fn admin_audit(_auth: AdminOrService, pool: web::Data<PgPool>, query: web:
     Ok(web::Json(moderation::list_actions(pool.get_ref(), &query).await?))
 }
 
+/// **GET** The staff inbox (the avatar's inbox in the top bar): the latest audit-log entries,
+/// `unread` (new since the viewer last opened it, not counting their own) and `seen_id`.
+#[get("/admin/inbox")]
+async fn admin_inbox(auth: AdminOrService, pool: web::Data<PgPool>) -> Result<impl Responder> {
+    let viewer = match &auth {
+        AdminOrService::Admin(user) => Some(user.profile_number.as_str()),
+        AdminOrService::Service => None,
+    };
+    Ok(web::Json(moderation::inbox(pool.get_ref(), viewer, 20).await?))
+}
+
+#[derive(Deserialize)]
+pub struct InboxSeenBody {
+    pub id: i64,
+}
+
+/// **PUT** Mark the staff inbox read up to entry `id`.
+#[put("/admin/inbox/seen")]
+async fn admin_inbox_seen(auth: AdminOrService, pool: web::Data<PgPool>, body: web::Json<InboxSeenBody>) -> Result<impl Responder> {
+    if let AdminOrService::Admin(user) = &auth {
+        moderation::inbox_seen(pool.get_ref(), &user.profile_number, body.id).await?;
+    }
+    Ok(HttpResponse::NoContent().finish())
+}
+
 /// **PUT** Hide a run from the boards (`{"banned": true}`) or restore it. Applies to both
 /// halves of a co-op run.
 #[put("/admin/runs/{id}/banned")]

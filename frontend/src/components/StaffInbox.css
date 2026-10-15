@@ -1,0 +1,151 @@
+.staff-inbox {
+  position: relative;
+}
+
+.staff-inbox-button {
+  position: relative;
+  display: inline-flex;
+  padding: 6px;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--text-2);
+  cursor: pointer;
+}
+
+.staff-inbox-button:hover,
+.staff-inbox-button.is-open {
+  background: var(--control-raised);
+  color: var(--text);
+}
+
+.staff-inbox-button svg {
+  font-size: 26px;
+}
+
+.staff-inbox-badge {
+  position: absolute;
+  top: 0;
+  right: -2px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: #d9363e;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+}
+
+.staff-inbox-panel {
+  position: absolute;
+  top: 52px;
+  right: 0;
+  z-index: 50;
+  width: 380px;
+  max-width: calc(100vw - 32px);
+  background: var(--menu);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+}
+
+.staff-inbox-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  font-size: 17px;
+}
+
+.staff-inbox-head a {
+  color: var(--accent-light);
+  font-size: 15px;
+}
+
+.staff-inbox-empty {
+  margin: 0;
+  padding: 16px;
+  color: var(--text-muted);
+}
+
+.staff-inbox-list {
+  max-height: min(70vh, 520px);
+  margin: 0;
+  padding: 4px 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.staff-inbox-list li.is-new {
+  background: var(--me-tint);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.staff-inbox-item {
+  display: flex;
+  gap: 10px;
+  padding: 8px 16px;
+  color: inherit;
+}
+
+.staff-inbox-item:hover {
+  background: var(--control-raised);
+}
+
+.staff-inbox-dot {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  margin-top: 7px;
+  border-radius: 50%;
+  background: #4f8cc9;
+}
+
+.staff-inbox-dot.is-ok {
+  background: #4caf6a;
+}
+
+.staff-inbox-dot.is-warn {
+  background: #e0a63a;
+}
+
+.staff-inbox-dot.is-bad {
+  background: #e05252;
+}
+
+.staff-inbox-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  font-size: 15px;
+  line-height: 1.35;
+}
+
+.staff-inbox-line b {
+  font-weight: 600;
+}
+
+.staff-inbox-sub,
+.staff-inbox-meta {
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Phones: the panel spans the screen under the top bar. */
+@media (max-width: 600px) {
+  .staff-inbox-panel {
+    position: fixed;
+    top: 72px;
+    right: 16px;
+    left: 16px;
+    width: auto;
+    max-width: none;
+  }
+}

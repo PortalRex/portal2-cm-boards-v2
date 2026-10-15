@@ -275,6 +275,9 @@ export async function fetchWrHistoryForStaff(map) {
 
 // The audit log, newest first: [{ id, admin_name, via_service, action, target_type, target_id, reason, details, created_at }].
 export const fetchAudit = (params) => getJson("/admin/audit", params);
+// Staff inbox: { unread, seen_id, items } (items as in the audit log); mark read up to an entry.
+export const fetchStaffInbox = () => getJson("/admin/inbox");
+export const markStaffInboxSeen = (id) => send("PUT", "/admin/inbox/seen", { id });
 
 // Both players' halves of a co-op run, blue (host) first when known. A half without a run
 // of its own has changelogId null.

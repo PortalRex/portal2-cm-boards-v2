@@ -1494,3 +1494,7 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS legends_at timestamp without time zon
 -- A game's own names for its boards ("modes"), by chapter game_mode: {"sp": "No hair"}. Modes
 -- without one keep the site's default name (Singleplayer, Cooperative, ...).
 ALTER TABLE games ADD COLUMN IF NOT EXISTS mode_names jsonb NOT NULL DEFAULT '{}'::jsonb;
+
+-- The staff inbox next to the avatar: the newest audit-log entry each staff member has seen, so
+-- the badge counts what's new to them.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS staff_inbox_seen_id bigint;
