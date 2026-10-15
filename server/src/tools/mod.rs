@@ -16,6 +16,8 @@ pub mod demo_parse;
 pub mod ratelimit;
 pub mod old_boards_sync;
 pub mod private_site;
+/// Live updates for the staff inbox
+pub mod staff_events;
 pub mod steam_sync;
 
 pub mod error;

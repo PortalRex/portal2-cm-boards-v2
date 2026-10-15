@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { InboxIcon } from "./Icons";
-import { fetchStaffInbox, markStaffInboxSeen } from "../api/client";
+import { fetchStaffInbox, markStaffInboxSeen, waitStaffInbox } from "../api/client";
 import { ACTIONS, TONES } from "../lib/adminActions";
 import { useDataVersion } from "../lib/dataVersion";
 import { formatDate, formatScore, timeAgo } from "../lib/format";
@@ -9,8 +9,9 @@ import { getMap, mapPath } from "../data/maps";
 import useCurrentUser from "../hooks/useCurrentUser";
 import "./StaffInbox.css";
 
-// How often the badge checks for new staff actions.
-const POLL = 60 * 1000;
+// New staff actions arrive live (waitStaffInbox); the inbox is also loaded again on this
+// interval in case the live connection misses something.
+const POLL = 5 * 60 * 1000;
 
 const parse = (details) => {
   try {
@@ -38,7 +39,7 @@ function describe(entry) {
 }
 
 // Staff only: an inbox next to the avatar with a badge counting staff actions (the audit log)
-// made since you last opened it, not counting your own. Opening it marks them read.
+// made since you last opened it, not counting your own. Opening it marks them read. Updates live.
 export default function StaffInbox() {
   const user = useCurrentUser();
   const [data, setData] = useState(null);
@@ -49,9 +50,7 @@ export default function StaffInbox() {
   const { pathname } = useLocation();
   const version = useDataVersion();
 
-  const load = useCallback(() => {
-    fetchStaffInbox().then(setData, () => {});
-  }, []);
+  const load = useCallback(() => fetchStaffInbox().then(setData, () => {}), []);
 
   useEffect(() => {
     load();
@@ -60,6 +59,29 @@ export default function StaffInbox() {
     }, POLL);
     return () => clearInterval(timer);
   }, [load, version]);
+
+  // Live: wait for the next entry (or the inbox being read in another tab), load, repeat.
+  const newestId = data?.items?.[0]?.id ?? null;
+  const seenId = data?.seen_id ?? null;
+  const loaded = data != null;
+  const [round, setRound] = useState(0);
+  useEffect(() => {
+    if (!loaded) return undefined;
+    const abort = new AbortController();
+    let retry = null;
+    const again = () => !abort.signal.aborted && setRound((r) => r + 1);
+    waitStaffInbox(newestId, seenId, abort.signal).then(
+      (changed) => (changed ? load().then(again) : again()),
+      () => {
+        // Server restarting or offline: try again shortly.
+        if (!abort.signal.aborted) retry = setTimeout(again, 10000);
+      },
+    );
+    return () => {
+      abort.abort();
+      clearTimeout(retry);
+    };
+  }, [loaded, newestId, seenId, round, load]);
 
   useEffect(() => setOpen(false), [pathname]);
 
@@ -82,7 +104,8 @@ export default function StaffInbox() {
     const newest = data?.items?.[0]?.id;
     setHighlightAfter(data?.unread ? data.seen_id ?? 0 : null);
     if (newest && data.unread) {
-      setData((d) => ({ ...d, unread: 0, seen_id: newest }));
+      // The badge clears now; seen_id follows once the server has it (the wait then reloads).
+      setData((d) => ({ ...d, unread: 0 }));
       markStaffInboxSeen(newest).catch(() => {});
     }
   };

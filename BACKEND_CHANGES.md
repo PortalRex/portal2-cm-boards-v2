@@ -349,6 +349,13 @@ after the last one the viewer saw, not counting their own) and `seen_id`; `PUT /
 marks it read up to that entry (stored in `users.staff_inbox_seen_id`, migration `20261104000000_staff_inbox.sql`, so
 it follows the account across devices). Audit-log entries about a profile now carry `target_name`.
 
+The inbox updates live. A trigger announces each new audit-log entry (`NOTIFY staff_inbox`, migration
+`20261105000000_staff_inbox_notify.sql`, so entries from anything count: staff, the syncs, scripts) and
+`server/src/tools/staff_events.rs` listens for it. Browsers long-poll `GET /admin/inbox/wait?after=<newest id>&seen=<seen_id>`,
+which answers `{"changed": true}` as soon as there's a newer entry or the inbox was read in another tab, else 204 after
+25 s. Long polling rather than server-sent events because Cloudflare's quick tunnels hold back streamed responses; it
+works behind any proxy. The inbox also reloads every 5 minutes as a fallback.
+
 ### Board names
 
 A game's boards ("modes", each chapter's `game_mode`) can be renamed in the games editor: `PUT /admin/games/{id}`

@@ -278,6 +278,15 @@ export const fetchAudit = (params) => getJson("/admin/audit", params);
 // Staff inbox: { unread, seen_id, items } (items as in the audit log); mark read up to an entry.
 export const fetchStaffInbox = () => getJson("/admin/inbox");
 export const markStaffInboxSeen = (id) => send("PUT", "/admin/inbox/seen", { id });
+// Live staff inbox: resolves true once there's something new after entry `after` (or the inbox
+// was read elsewhere), false after about 25 s of nothing; then ask again.
+export const waitStaffInbox = async (after, seen, signal) => {
+  const params = new URLSearchParams({ after: String(after || 0) });
+  if (seen != null) params.set("seen", String(seen));
+  const res = await fetch(`${API_BASE}/admin/inbox/wait?${params}`, { credentials: "include", signal });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.status === 200;
+};
 
 // Both players' halves of a co-op run, blue (host) first when known. A half without a run
 // of its own has changelogId null.

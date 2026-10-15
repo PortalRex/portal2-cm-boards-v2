@@ -725,8 +725,19 @@ pub async fn inbox(pool: &PgPool, viewer: Option<&str>, limit: i64) -> Result<Va
     Ok(json!({ "seen_id": seen_id, "unread": unread, "items": items }))
 }
 
+/// The newest audit-log entry, and the entry `viewer` has read their inbox up to.
+pub async fn inbox_state(pool: &PgPool, viewer: Option<&str>) -> Result<(i64, Option<i64>), sqlx::Error> {
+    let newest: i64 = sqlx::query_scalar("SELECT COALESCE(MAX(id), 0) FROM admin_actions").fetch_one(pool).await?;
+    let seen = match viewer {
+        Some(pn) => sqlx::query_scalar("SELECT staff_inbox_seen_id FROM users WHERE profile_number = $1").bind(pn).fetch_optional(pool).await?.flatten(),
+        None => None,
+    };
+    Ok((newest, seen))
+}
+
 /// Marks the staff inbox read up to entry `id` (it never moves back).
 pub async fn inbox_seen(pool: &PgPool, viewer: &str, id: i64) -> Result<(), sqlx::Error> {
     sqlx::query("UPDATE users SET staff_inbox_seen_id = GREATEST(COALESCE(staff_inbox_seen_id, 0), $2) WHERE profile_number = $1").bind(viewer).bind(id).execute(pool).await?;
+    crate::tools::staff_events::publish(crate::tools::staff_events::StaffEvent::Seen { profile: viewer.to_string(), id });
     Ok(())
 }

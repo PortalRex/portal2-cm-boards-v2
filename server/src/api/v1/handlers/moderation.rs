@@ -98,6 +98,50 @@ pub struct InboxSeenBody {
     pub id: i64,
 }
 
+#[derive(Deserialize)]
+pub struct InboxWaitQuery {
+    /// The newest entry the browser has.
+    pub after: i64,
+    /// The `seen_id` the browser has.
+    pub seen: Option<i64>,
+}
+
+/// **GET** Live staff inbox (long polling): answers `{"changed": true}` as soon as there's an
+/// audit-log entry after `after`, or the viewer read their inbox up to somewhere other than
+/// `seen` (in another tab); else 204 after 25 s. The browser then loads the inbox and asks again.
+/// (Long polling rather than a stream, since some proxies, Cloudflare's quick tunnels among
+/// them, hold back streamed responses.)
+#[get("/admin/inbox/wait")]
+async fn admin_inbox_wait(auth: AdminOrService, pool: web::Data<PgPool>, query: web::Query<InboxWaitQuery>) -> Result<impl Responder> {
+    use crate::tools::staff_events::{subscribe, StaffEvent};
+    let viewer = match &auth {
+        AdminOrService::Admin(user) => Some(user.profile_number.clone()),
+        AdminOrService::Service => None,
+    };
+    // Subscribe first, then check what's already there, so nothing slips in between.
+    let mut rx = subscribe();
+    let changed = HttpResponse::Ok().json(serde_json::json!({ "changed": true }));
+    let (newest, seen) = moderation::inbox_state(pool.get_ref(), viewer.as_deref()).await?;
+    if newest > query.after || (viewer.is_some() && seen != query.seen) {
+        return Ok(changed);
+    }
+    let wait = async {
+        loop {
+            match rx.recv().await {
+                Ok(StaffEvent::Action { id, .. }) if id > query.after => return true,
+                Ok(StaffEvent::Seen { profile, .. }) if viewer.as_deref() == Some(profile.as_str()) => return true,
+                Ok(_) => continue,
+                Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => return true,
+                Err(tokio::sync::broadcast::error::RecvError::Closed) => return false,
+            }
+        }
+    };
+    Ok(match tokio::time::timeout(std::time::Duration::from_secs(25), wait).await {
+        Ok(true) => changed,
+        _ => HttpResponse::NoContent().finish(),
+    })
+}
+
 /// **PUT** Mark the staff inbox read up to entry `id`.
 #[put("/admin/inbox/seen")]
 async fn admin_inbox_seen(auth: AdminOrService, pool: web::Data<PgPool>, body: web::Json<InboxSeenBody>) -> Result<impl Responder> {
