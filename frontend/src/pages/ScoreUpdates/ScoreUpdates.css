@@ -322,9 +322,9 @@
     flex-direction: row;
   }
 
+  /* Same avatar-to-name gap as singleplayer rows, so the names line up down the list. */
   .score-row.is-coop .sr-player {
     flex: 1 1 0;
-    gap: 12px;
   }
 
   .score-row.is-coop .sr-player-name {
