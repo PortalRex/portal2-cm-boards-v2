@@ -305,7 +305,7 @@ function ProfileHeader({ player, role }) {
   ].filter(Boolean);
   return (
     <section className="pf-header">
-      <Avatar src={player.avatar} name={player.name} size={180} className="pf-avatar" />
+      <Avatar src={player.avatar} name={player.name} size={138} className="pf-avatar" />
       {/* Bottom row (name, badges, country; links) first in the markup; shown under the top row. */}
       <div className="pf-head-main">
         <div className="pf-head-bottom">
@@ -433,7 +433,7 @@ function DisplayControl({ player }) {
     const locked = player.nameLocked || player.avatarLocked;
     const label = `Edit name & picture${locked ? " (set by staff)" : ""}`;
     return (
-      <button type="button" className={`pf-admin-button pf-edit-button${locked ? " is-locked" : ""}`} onClick={() => setOpen(true)} title={label} aria-label={label}>
+      <button type="button" className={`pf-icon-button pf-edit-button${locked ? " is-locked" : ""}`} onClick={() => setOpen(true)} title={label} aria-label={label}>
         <EditIcon />
       </button>
     );
@@ -597,9 +597,8 @@ function CompareLink({ player }) {
   const me = user && !user.sample && user.profileNumber !== player.profileNumber ? user.profileNumber : null;
   const to = me ? `/compare?a=${me}&b=${player.profileNumber}` : `/compare?a=${player.profileNumber}`;
   return (
-    <Link to={to} className="pf-follow pf-compare" title={me ? "Compare your times with this player" : "Compare this player with someone"}>
+    <Link to={to} className="pf-icon-button" title={me ? "Compare your times with this player" : "Compare this player with someone"} aria-label="Compare">
       <SwapIcon />
-      Compare
     </Link>
   );
 }
@@ -610,13 +609,13 @@ function FollowButton({ player }) {
   return (
     <button
       type="button"
-      className={`pf-follow${following ? " is-following" : ""}`}
+      className={`pf-icon-button${following ? " is-following" : ""}`}
       onClick={() => toggleFollow(player)}
       aria-pressed={following}
-      title={following ? "Stop following (saved in this browser)" : "Follow this player's runs on Score Updates (saved in this browser)"}
+      aria-label="Follow"
+      title={following ? "Following: click to stop (saved in this browser)" : "Follow this player's runs on Score Updates (saved in this browser)"}
     >
       {following ? <StarIcon /> : <StarOutlineIcon />}
-      {following ? "Following" : "Follow"}
     </button>
   );
 }

@@ -97,16 +97,15 @@
   line-height: 13px;
 }
 
-/* Header card: the picture on the left. Beside it, follow / compare and the staff tools in the
-   top-right corner; name, badges and country along the bottom with the links bottom-right. The
-   bottom row comes first in the markup (name first for screen readers), hence column-reverse. */
-/* A grey band across the top like the other cards' heads; the picture overlaps it. Beside the
-   picture: follow / compare just under the band, the name and links along the bottom. */
+/* Header card: a grey band across the top like the other cards' heads, with follow / compare /
+   the staff tools as small icon buttons at its right end; the picture overlaps the band; name,
+   badges and country along the bottom with the links bottom-right. */
 .pf-header {
   --pf-band: 48px;
+  position: relative;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
-  gap: 32px;
+  gap: 28px;
   padding: 20px 28px 20px 32px;
   background: linear-gradient(var(--card-head) 0 var(--pf-band), var(--card) var(--pf-band));
   border-radius: var(--radius-lg);
@@ -117,25 +116,32 @@
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
 }
 
-/* The two rows, top one pushed below the band. The bottom row comes first in the markup (name
-   first for screen readers), hence column-reverse. Padding rather than a margin keeps the
-   column's height to its content. */
+/* Beside the picture: the bottom row at the bottom (the top row sits in the band). */
 .pf-head-main {
   display: flex;
-  flex-direction: column-reverse;
-  justify-content: space-between;
-  gap: 8px;
+  flex-direction: column;
+  justify-content: flex-end;
   min-width: 0;
-  padding-top: calc(var(--pf-band) - 20px + 10px);
 }
 
-/* Follow / compare and the staff tools, just under the band. */
+/* Follow / compare and the staff tools, in the band (kept out of the layout's height). */
 .pf-head-top {
+  position: absolute;
+  top: 0;
+  right: 28px;
   display: flex;
+  align-items: center;
+  gap: 8px;
+  height: var(--pf-band);
+}
+
+/* While the name & picture form is open: under the band, across the header. */
+.pf-head-top:has(.pf-display-form) {
+  position: static;
+  grid-column: 1 / -1;
   flex-wrap: wrap;
   justify-content: flex-end;
-  align-items: center;
-  gap: 12px;
+  height: auto;
 }
 
 .pf-head-bottom {
@@ -147,9 +153,8 @@
 
 .pf-actions {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
 }
 
 .pf-identity {
@@ -339,34 +344,33 @@
   gap: 14px;
 }
 
-.pf-follow {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 40px;
-  padding: 0 16px 0 12px;
+/* Follow, compare and edit: small round icon buttons (32px in the 48px band). */
+.pf-icon-button {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
   border: 1px solid var(--border-strong);
-  border-radius: 20px;
+  border-radius: 50%;
   background: var(--control);
   color: var(--text-2);
-  font-size: 17px;
-  white-space: nowrap;
   cursor: pointer;
 }
 
-.pf-follow:hover {
+.pf-icon-button:hover {
   border-color: var(--text-muted);
   color: var(--text);
 }
 
-.pf-follow.is-following {
+.pf-icon-button.is-following {
   border-color: var(--accent);
   background: var(--accent);
   color: #fff;
 }
 
-.pf-follow svg {
-  font-size: 22px;
+.pf-icon-button svg {
+  font-size: 18px;
 }
 
 .pf-link {
@@ -1281,12 +1285,6 @@
   max-width: 820px;
 }
 
-.pf-compare {
-  display: inline-flex;
-  align-items: center;
-  color: var(--text);
-  text-decoration: none;
-}
 .pf-display-form {
   display: flex;
   flex-direction: column;
@@ -1294,21 +1292,9 @@
   flex-basis: 100%;
 }
 
-/* Edit name & picture: a round pen button, as tall as follow / compare beside it; a dot marks a
-   name or picture set by staff. */
+/* Edit name & picture: a dot marks a name or picture set by staff. */
 .pf-edit-button {
   position: relative;
-  display: inline-grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  padding: 0;
-  border-style: solid;
-  border-radius: 50%;
-}
-
-.pf-edit-button svg {
-  font-size: 20px;
 }
 
 .pf-edit-button.is-locked::after {
