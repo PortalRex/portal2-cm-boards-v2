@@ -73,6 +73,8 @@ function adaptChangelog(row, game) {
     reactionsDown: row.reactions_down ?? 0,
     rolesKnown: isCoop ? row.coop_roles_known !== false : null,
     sarVersion: row.sar_version ?? null,
+    // The old board had no date: estimated from the runs around it.
+    dateEstimated: Boolean(row.date_estimated),
     segments: null,
   };
 }
@@ -623,6 +625,7 @@ function mergePbs(scores, pbs, history, me) {
           autorenderId: h.autorenderId ?? null,
           demoId: h.demoId ?? null,
           note: h.note ?? null,
+          dateEstimated: h.dateEstimated,
           partner: h.players.find((p) => p.profileNumber !== me) || null,
         }
       : { changelogId: pb.changelog_id };

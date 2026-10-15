@@ -103,6 +103,9 @@ pub struct ChangelogPage {
     /// The SAR version that recorded the run's demo (when known).
     #[sqlx(default)]
     pub sar_version: Option<String>,
+    /// The old board had no date for the run; `timestamp` is estimated from the runs around it.
+    #[sqlx(default)]
+    pub date_estimated: bool,
     /// Thumbs up / down counts (a co-op run's halves share them).
     pub reactions_up: i64,
     pub reactions_down: i64,

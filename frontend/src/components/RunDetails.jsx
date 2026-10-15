@@ -116,7 +116,13 @@ export default function RunDetails({ run, map, game = "portal2", rendered, showR
             {view.timestamp && (
               <>
                 <dt>Date:</dt>
-                <dd className="num">{formatDateTime(view.timestamp)}</dd>
+                {view.dateEstimated ? (
+                  <dd className="num" title="The old board had no date for this run; this is when the runs around it were added.">
+                    About {formatDate(view.timestamp)} <span className="muted">(estimated)</span>
+                  </dd>
+                ) : (
+                  <dd className="num">{formatDateTime(view.timestamp)}</dd>
+                )}
               </>
             )}
             <dt>SAR Version:</dt>

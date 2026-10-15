@@ -342,6 +342,15 @@ each player's `country_id`, profiles get `country_place` (rank among players of 
 boards can be filtered by country (`?country=us`), and `GET /countries/stats?board=overall|sp|coop` lists each
 country's player count, points together and best players for the Countries page.
 
+### Estimated dates for undated runs
+
+About 40,600 imported Portal 2 runs had no date on the old board. Each now has the date of the last dated run before it
+in the same game (runs were added in id order), flagged with `changelog.date_estimated` (migration
+`20261106000000_estimated_dates.sql`; the changelog returns `date_estimated`, and run details show "About <date>
+(estimated)"). Boards as they stood on a past date, points history and Legends then place them where they were added
+instead of at Portal 2's release. To undo: `UPDATE changelog SET timestamp = NULL, date_estimated = false WHERE
+date_estimated;`.
+
 ### Staff inbox
 
 Staff get an inbox next to their avatar: `GET /admin/inbox` returns the latest 20 audit-log entries, `unread` (entries

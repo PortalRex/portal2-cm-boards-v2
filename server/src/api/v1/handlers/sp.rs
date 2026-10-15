@@ -131,14 +131,14 @@ pub async fn sp_map(
         ids.at.as_deref().and_then(crate::tools::helpers::parse_moment),
     )
     .await?;
-    let mut ranked_vec = Vec::with_capacity(config.proof.results as usize);
+    // Ties share a rank (and its points), and the next time down skips past them: 1, 2, 2, 4.
+    let mut ranked_vec: Vec<SpRanked> = Vec::with_capacity(config.proof.results as usize);
     for (i, entry) in sp_map.into_iter().enumerate() {
-        // TODO: Fix tied ranks.
-        ranked_vec.push(SpRanked {
-            map_data: entry,
-            rank: i as i32 + 1,
-            points: score(i as i32 + 1),
-        })
+        let rank = match ranked_vec.last() {
+            Some(prev) if prev.map_data.score == entry.score => prev.rank,
+            _ => i as i32 + 1,
+        };
+        ranked_vec.push(SpRanked { map_data: entry, rank, points: score(rank) })
     }
     Ok(web::Json(ranked_vec))
 }
