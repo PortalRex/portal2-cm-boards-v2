@@ -112,7 +112,7 @@ function ModeTab({ mode, profile, selectedMap, onSelectMap, sort, onSort }) {
         <SortSelect sort={sort} onSort={onSort} />
       </div>
       <h2 className="pf-section-title">Summary</h2>
-      <Summary chapters={chapters} scores={profile.scores} />
+      <Summary chapters={chapters} scores={profile.scores} onSelectMap={onSelectMap} />
 
       {orderedChapters(chapters, profile.scores, sort).map((chapter) => (
         <ChapterTable key={chapter.dbId ?? `${chapter.mode}-${chapter.name}`} chapter={chapter} scores={profile.scores} coop={mode === "coop"} game="portal2" rendered={rendered} selectedMap={selectedMap} onSelectMap={onSelectMap} player={profile.player} />
@@ -149,7 +149,7 @@ function GameTab({ game, profileNumber, player, selectedMap, onSelectMap, sort, 
         <SortSelect sort={sort} onSort={onSort} />
       </div>
       <h2 className="pf-section-title">Summary</h2>
-      <Summary chapters={chapters} scores={scores} />
+      <Summary chapters={chapters} scores={scores} onSelectMap={onSelectMap} />
       {orderedChapters(chapters, scores, sort).map((chapter) => (
         <ChapterTable
           key={chapter.dbId ?? `${chapter.mode}-${chapter.name}`}
@@ -169,7 +169,17 @@ function GameTab({ game, profileNumber, player, selectedMap, onSelectMap, sort, 
   );
 }
 
-function Summary({ chapters, scores }) {
+// The run row for a map in the chapter tables below (Summary scrolls to it).
+const runRowId = (map) => `pf-run-${map.id}`;
+
+// A tile with a run opens it in the chapter tables below (scrolled to); one without goes to the
+// map page.
+function Summary({ chapters, scores, onSelectMap }) {
+  const openRun = (m) => {
+    onSelectMap(m);
+    // After the row has opened.
+    setTimeout(() => document.getElementById(runRowId(m))?.scrollIntoView({ behavior: "smooth", block: "center" }), 0);
+  };
   return (
     <div className="pf-summary">
       {chapters.map((chapter) => {
@@ -187,8 +197,13 @@ function Summary({ chapters, scores }) {
             <span className="pf-summary-tiles">
               {chapter.maps.map((m) => {
                 const rank = scores[m.id]?.rank;
-                return (
-                  <Link key={m.id} to={mapPath(m)} className={`pf-tile num${rank ? " rank-tint" : ""}`} style={rankVars(rank)} title={`${m.title}${rank ? ` — rank ${rank}` : ""}`}>
+                const title = `${m.title}${rank ? ` — rank ${rank}` : ""}`;
+                return scores[m.id] ? (
+                  <button key={m.id} type="button" onClick={() => openRun(m)} className={`pf-tile num${rank ? " rank-tint" : ""}`} style={rankVars(rank)} title={title}>
+                    <RankNumber rank={rank} inherit />
+                  </button>
+                ) : (
+                  <Link key={m.id} to={mapPath(m)} className="pf-tile num" title={title}>
                     <RankNumber rank={rank} inherit />
                   </Link>
                 );
@@ -202,7 +217,6 @@ function Summary({ chapters, scores }) {
 }
 
 function ChapterTable({ chapter, scores, coop, game, rendered, selectedMap, onSelectMap, player }) {
-  const [openId, setOpenId] = useState(null);
   return (
     <section className="pf-chapter">
       <div className={`pf-crow pf-crow-head${coop ? " is-coop" : ""}`}>
@@ -217,14 +231,12 @@ function ChapterTable({ chapter, scores, coop, game, rendered, selectedMap, onSe
       {chapter.maps.map((m) => {
         const s = scores[m.id];
         const selected = selectedMap?.id === m.id;
-        const open = openId === m.id;
-        // Opening a run also narrows History to its map; closing it shows all history again.
-        const toggle = () => {
-          setOpenId(open ? null : m.id);
-          onSelectMap(open ? null : m);
-        };
+        // The selected map's run is the open one (from its row or the Summary). Opening a run also
+        // narrows History to its map; closing it shows all history again.
+        const open = Boolean(s) && selected;
+        const toggle = () => onSelectMap(open ? null : m);
         return (
-          <div key={m.id} className={`pf-centry${open ? " is-open" : ""}`}>
+          <div key={m.id} id={runRowId(m)} className={`pf-centry${open ? " is-open" : ""}`}>
             <div
               className={`pf-crow${coop ? " is-coop" : ""}${selected ? " is-selected" : ""}${s ? " is-expandable" : ""}`}
               style={s ? rankVars(s.rank) : undefined}

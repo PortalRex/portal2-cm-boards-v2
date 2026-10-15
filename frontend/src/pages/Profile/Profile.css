@@ -57,6 +57,15 @@
   gap: 12px;
 }
 
+/* Global Rank and Statistics are at least as tall as the three side cards together (two of 109px,
+   one of 124px, two 12px gaps), so collapsing a side card doesn't nudge the row and everything
+   under it by a couple of pixels. Only beside the side cards (wide layout). */
+@media (min-width: 1201px) {
+  .pf-row-2 > .card:not(.is-collapsed) {
+    min-height: calc(2 * 109px + 124px + 2 * 12px);
+  }
+}
+
 /* Compact cards so three fit beside Global Rank and Statistics. */
 .pf-side-card .card-head {
   height: 40px;
@@ -70,18 +79,22 @@
   padding: 10px 16px 12px;
 }
 
+/* Whole-pixel line heights so the cards (and everything under them) sit on whole pixels. */
 .pf-side-card .stat-value {
   font-size: 28px;
+  line-height: 31px;
 }
 
 .pf-side-card .stat-label {
   font-size: 13px;
+  line-height: 16px;
 }
 
 .pf-peak-date {
   margin-top: 2px;
   color: var(--text-muted);
   font-size: 11px;
+  line-height: 13px;
 }
 
 /* Header card */
@@ -602,9 +615,14 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  padding: 0;
+  border: 0;
   border-radius: 2px;
   background: var(--track);
+  color: inherit;
+  font-family: inherit;
   font-size: 16px;
+  cursor: pointer;
 }
 
 .pf-tile:hover {
