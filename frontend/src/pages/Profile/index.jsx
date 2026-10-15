@@ -306,55 +306,62 @@ function ProfileHeader({ player, role }) {
   return (
     <section className="pf-header">
       <Avatar src={player.avatar} name={player.name} size={180} className="pf-avatar" />
-      <div className="pf-actions">
-        <FollowButton player={player} />
-        <CompareLink player={player} />
-      </div>
-      <div className="pf-links">
-        {links.map(({ href, icon: Icon, label, className }) => (
-          <a key={label} href={href} target="_blank" rel="noreferrer" className={`pf-link ${className}`} aria-label={label} title={label}>
-            <Icon size={32} />
-          </a>
-        ))}
-      </div>
-      <div className="pf-identity">
-        <div className="pf-name-row">
-          <h1 className={`pf-name${role ? " has-role" : ""}`} style={role ? { "--role": role.color } : undefined} title={role ? (role.fromPeak ? `${role.name} (reached at peak points, kept for good)` : `${role.name} (from points)`) : undefined}>
-            {player.name}
-            {role && <img className="pf-role-icon" src={roleIcon(role)} alt={role.name} />}
-          </h1>
-          {/* All badges together, beside the name. */}
-          <div className="pf-badges">
-            {(player.badges || []).map((b) => (
-              <span key={b.label} className={`pf-badge is-${b.tone}`}>
-                {b.label}
-              </span>
+      {/* Bottom row (name, badges, country; links) first in the markup; shown under the top row. */}
+      <div className="pf-head-main">
+        <div className="pf-head-bottom">
+          <div className="pf-identity">
+            <div className="pf-name-row">
+              <h1 className={`pf-name${role ? " has-role" : ""}`} style={role ? { "--role": role.color } : undefined} title={role ? (role.fromPeak ? `${role.name} (reached at peak points, kept for good)` : `${role.name} (from points)`) : undefined}>
+                {player.name}
+                {role && <img className="pf-role-icon" src={roleIcon(role)} alt={role.name} />}
+              </h1>
+              {/* All badges together, beside the name. */}
+              <div className="pf-badges">
+                {(player.badges || []).map((b) => (
+                  <span key={b.label} className={`pf-badge is-${b.tone}`}>
+                    {b.label}
+                  </span>
+                ))}
+                {player.banned && (
+                  <span className="pf-badge is-red" title="Banned: this player's runs are hidden from the boards">
+                    Banned
+                  </span>
+                )}
+                {player.frozen && (
+                  <span className="pf-badge is-frozen" title={player.frozenReason ? `Frozen: ${player.frozenReason}` : "Frozen: existing times stay, new ones aren't accepted"}>
+                    Frozen
+                  </span>
+                )}
+              </div>
+            </div>
+            {player.country && (
+              <div className="pf-country">
+                <Flag code={player.country} height={22} />
+                {countryName(player.country)}
+              </div>
+            )}
+          </div>
+          <div className="pf-links">
+            {links.map(({ href, icon: Icon, label, className }) => (
+              <a key={label} href={href} target="_blank" rel="noreferrer" className={`pf-link ${className}`} aria-label={label} title={label}>
+                <Icon size={32} />
+              </a>
             ))}
-            {player.banned && (
-              <span className="pf-badge is-red" title="Banned: this player's runs are hidden from the boards">
-                Banned
-              </span>
-            )}
-            {player.frozen && (
-              <span className="pf-badge is-frozen" title={player.frozenReason ? `Frozen: ${player.frozenReason}` : "Frozen: existing times stay, new ones aren't accepted"}>
-                Frozen
-              </span>
-            )}
           </div>
         </div>
-        {player.country && (
-          <div className="pf-country">
-            <Flag code={player.country} height={22} />
-            {countryName(player.country)}
+        <div className="pf-head-top">
+          <div className="pf-actions">
+            <FollowButton player={player} />
+            <CompareLink player={player} />
           </div>
-        )}
-      </div>
-      {/* Staff only, in the bottom-right corner. */}
-      <div className="pf-staff-tools">
-        <RoleControl player={player} />
-        <FreezeControl player={player} />
-        <BanControl player={player} />
-        <DisplayControl player={player} />
+          {/* Staff only, after follow / compare. */}
+          <div className="pf-staff-tools">
+            <RoleControl player={player} />
+            <FreezeControl player={player} />
+            <BanControl player={player} />
+            <DisplayControl player={player} />
+          </div>
+        </div>
       </div>
     </section>
   );

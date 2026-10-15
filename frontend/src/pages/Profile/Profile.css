@@ -97,29 +97,55 @@
   line-height: 13px;
 }
 
-/* Header card: the picture on the left; follow / compare and the links along the top; name,
-   badges and country along the bottom, with the staff tools in the bottom-right corner. */
+/* Header card: the picture on the left. Beside it, follow / compare and the staff tools in the
+   top-right corner; name, badges and country along the bottom with the links bottom-right. The
+   bottom row comes first in the markup (name first for screen readers), hence column-reverse. */
+/* A grey band across the top like the other cards' heads; the picture overlaps it. Beside the
+   picture: follow / compare just under the band, the name and links along the bottom. */
 .pf-header {
+  --pf-band: 48px;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  grid-template-rows: auto 1fr;
-  grid-template-areas:
-    "avatar actions links"
-    "avatar identity staff";
-  gap: 12px 32px;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 32px;
   padding: 20px 28px 20px 32px;
-  background: var(--card);
+  background: linear-gradient(var(--card-head) 0 var(--pf-band), var(--card) var(--pf-band));
   border-radius: var(--radius-lg);
 }
 
 .pf-avatar {
-  grid-area: avatar;
   border-radius: 20px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
 }
 
+/* The two rows, top one pushed below the band. The bottom row comes first in the markup (name
+   first for screen readers), hence column-reverse. Padding rather than a margin keeps the
+   column's height to its content. */
+.pf-head-main {
+  display: flex;
+  flex-direction: column-reverse;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  padding-top: calc(var(--pf-band) - 20px + 10px);
+}
+
+/* Follow / compare and the staff tools, just under the band. */
+.pf-head-top {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+}
+
+.pf-head-bottom {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
 .pf-actions {
-  grid-area: actions;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -127,10 +153,8 @@
 }
 
 .pf-identity {
-  grid-area: identity;
-  align-self: end;
   min-width: 0;
-  margin-bottom: 12px;
+  margin-bottom: 4px;
 }
 
 .pf-name-row {
@@ -185,9 +209,6 @@
 }
 
 .pf-staff-tools {
-  grid-area: staff;
-  align-self: end;
-  justify-self: end;
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
@@ -199,11 +220,9 @@
   display: none;
 }
 
-/* The edit form gets its own full-width row under the name. */
+/* The edit form gets its own full-width line under follow / compare. */
 .pf-staff-tools:has(.pf-display-form) {
-  grid-row: 3;
-  grid-column: 2 / -1;
-  justify-self: stretch;
+  flex-basis: 100%;
   justify-content: flex-start;
 }
 
@@ -315,8 +334,7 @@
 }
 
 .pf-links {
-  grid-area: links;
-  justify-self: end;
+  flex: none;
   display: flex;
   gap: 14px;
 }
@@ -925,10 +943,12 @@
 }
 
 @media (max-width: 800px) {
-  /* Name and badges beside the picture; follow / compare and the links under them. */
+  /* Name and badges beside the picture; follow / compare and the links under them; staff tools
+     last. The row wrappers step aside (display: contents) so their parts can be placed here. */
   .pf-header {
+    display: grid;
+    background: var(--card);
     grid-template-columns: auto minmax(0, 1fr) auto;
-    grid-template-rows: auto;
     grid-template-areas:
       "avatar identity identity"
       "actions actions links"
@@ -937,15 +957,32 @@
     padding: 20px;
   }
 
+  .pf-head-main,
+  .pf-head-top,
+  .pf-head-bottom {
+    display: contents;
+  }
+
   .pf-avatar {
+    grid-area: avatar;
     width: 96px !important;
     height: 96px !important;
     margin: 0;
   }
 
   .pf-identity {
+    grid-area: identity;
     align-self: center;
     margin-bottom: 0;
+  }
+
+  .pf-actions {
+    grid-area: actions;
+  }
+
+  .pf-links {
+    grid-area: links;
+    align-self: center;
   }
 
   .pf-name {
@@ -956,10 +993,8 @@
     gap: 6px 12px;
   }
 
-  .pf-staff-tools,
-  .pf-staff-tools:has(.pf-display-form) {
+  .pf-staff-tools {
     grid-area: staff;
-    justify-self: start;
     justify-content: flex-start;
   }
 
@@ -1259,12 +1294,14 @@
   flex-basis: 100%;
 }
 
-/* Edit name & picture: a round pen button; a dot marks a name or picture set by staff. */
+/* Edit name & picture: a round pen button, as tall as follow / compare beside it; a dot marks a
+   name or picture set by staff. */
 .pf-edit-button {
   position: relative;
   display: inline-grid;
   place-items: center;
-  width: 34px;
+  width: 40px;
+  height: 40px;
   padding: 0;
   border-style: solid;
   border-radius: 50%;
