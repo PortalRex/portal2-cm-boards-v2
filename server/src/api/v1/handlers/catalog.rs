@@ -89,7 +89,8 @@ pub struct GameUpdateBody {
     #[serde(default, deserialize_with = "nullable")]
     pub ends_at: Option<Option<NaiveDateTime>>,
     pub hidden: Option<bool>,
-    /// Rename one of the game's boards: `{"mode": "sp", "name": "No hair"}` (empty name = default).
+    /// Add or rename one of the game's modes: `{"mode": "sp", "name": "No hair"}` (empty name =
+    /// default name, or remove a mode no chapter uses).
     pub mode_name: Option<ModeNameBody>,
 }
 
@@ -99,7 +100,7 @@ pub struct ModeNameBody {
     pub name: String,
 }
 
-/// **PUT** Rename a game or one of its boards, change its link name, hide it, or move a season's dates.
+/// **PUT** Rename a game, add or rename one of its modes, change its link name, hide it, or move a season's dates.
 #[put("/admin/games/{id}")]
 async fn admin_game_update(auth: AdminOrService, pool: web::Data<PgPool>, id: web::Path<i32>, body: web::Json<GameUpdateBody>) -> Result<impl Responder> {
     if let Some(r) = admin_only(&auth) {

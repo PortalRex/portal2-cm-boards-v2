@@ -309,8 +309,8 @@ pub struct GameUpdate<'a> {
     pub starts_at: Option<Option<NaiveDateTime>>,
     pub ends_at: Option<Option<NaiveDateTime>>,
     pub hidden: Option<bool>,
-    /// Renames one of the game's boards: (`game_mode`, name). An empty name goes back to the
-    /// default name.
+    /// Adds or renames one of the game's modes (boards): (`game_mode`, name). An empty name goes
+    /// back to the default name, or removes a mode no chapter uses.
     pub mode_name: Option<(&'a str, &'a str)>,
 }
 
@@ -340,10 +340,11 @@ pub async fn update_game(pool: &PgPool, actor: &AdminOrService, id: i32, update:
         sqlx::query("UPDATE games SET hidden = $2 WHERE id = $1").bind(id).bind(hidden).execute(&mut *tx).await?;
     }
     if let Some((mode, name)) = update.mode_name {
-        let has_mode: bool = sqlx::query_scalar("SELECT EXISTS (SELECT 1 FROM chapters WHERE game_id = $1 AND game_mode = $2)").bind(id).bind(mode).fetch_one(&mut *tx).await?;
-        if !has_mode {
-            return Ok(Err(Refused::Invalid("This game has no chapters in that mode.".into())));
+        if !valid_mode(mode) {
+            return Ok(Err(Refused::Invalid("The mode key can use lowercase letters, digits and underscores (e.g. sp, coop).".into())));
         }
+        // An empty name drops the game's own name: a mode chapters use goes back to its default
+        // name, one no chapter uses is removed.
         if name.trim().is_empty() {
             sqlx::query("UPDATE games SET mode_names = mode_names - $2 WHERE id = $1").bind(id).bind(mode).execute(&mut *tx).await?;
         } else {

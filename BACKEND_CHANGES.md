@@ -361,10 +361,12 @@ the reporter's words in `reason`, `{"report_id", "reason"}` in `details`), so th
 new for every staff member. `GET /admin/inbox` also returns `open_reports`, shown as a second (amber) count that stays
 until the reports are dealt with.
 
-### Board names
+### Game modes
 
-A game's boards ("modes", each chapter's `game_mode`) can be renamed in the games editor: `PUT /admin/games/{id}`
-with `{"mode_name": {"mode": "sp", "name": "No hair"}}` (an empty name goes back to the default, e.g. Singleplayer).
+A game's modes (boards, each chapter's `game_mode`) can be added and renamed in the games editor: `PUT /admin/games/{id}`
+with `{"mode_name": {"mode": "sp", "name": "No hair"}}`. A mode can be added before any chapter is in it; an empty
+name goes back to the default name (e.g. Singleplayer), or removes a mode no chapter uses. Chapters are put in a mode
+when they're added or edited.
 Names are stored in `games.mode_names` (migration `20261103000000_mode_names.sql`), returned on each catalog game
 as `mode_names`, and logged with the game's other edits.
 

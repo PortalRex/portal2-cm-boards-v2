@@ -308,34 +308,47 @@ function GamePanel({ game, catalog, allMaps, onChanged, onDeleted }) {
           </button>
         </div>
       </form>
-      <ModeNames game={game} onChanged={onChanged} />
+      <GameModes game={game} onChanged={onChanged} />
       <GameLinks game={game} catalog={catalog} allMaps={allMaps} onChanged={onChanged} />
       {season ? <SeasonPool game={game} base={base} /> : <LayoutEditor game={game} allMaps={allMaps} onChanged={onChanged} />}
     </>
   );
 }
 
-// The game's boards ("modes": each chapter's game_mode) and what the site calls them, e.g. "sp"
-// shown as "Singleplayer" unless renamed here.
-function ModeNames({ game, onChanged }) {
-  const modes = [...new Set(game.chapters.map((c) => c.game_mode))];
-  if (!modes.length) return null;
+// A game's modes (boards): the ones its chapters use plus any added here that no chapter uses
+// yet, each with what the site calls it ("sp" is "Singleplayer" unless renamed).
+const gameModes = (game) => [...new Set([...game.chapters.map((c) => c.game_mode), ...Object.keys(game.mode_names || {})])];
+const modeLabel = (game, mode) => game.mode_names?.[mode] || defaultModeLabel(mode);
+const modeKey = (name) =>
+  name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 20);
+
+function GameModes({ game, onChanged }) {
+  const season = game.kind === "season";
+  const modes = gameModes(game);
+  if (!modes.length && season) return null;
   return (
     <div className="ge-card">
       <div className="ge-card-head">
-        <h3>Board names</h3>
+        <h3>Game modes</h3>
       </div>
-      <p className="ge-hint">What the menus and boards call each mode. Leave a name empty to use the default.</p>
+      <p className="ge-hint">
+        Each mode is its own board, with the chapters put in it. Leave a name empty to use the default.{!season && " A new mode shows on the site once a chapter in it has maps."}
+      </p>
       <div className="ge-modes">
         {modes.map((mode) => (
-          <ModeName key={mode} game={game} mode={mode} onChanged={onChanged} />
+          <ModeName key={mode} game={game} mode={mode} chapters={game.chapters.filter((c) => c.game_mode === mode).length} onChanged={onChanged} />
         ))}
       </div>
+      {!season && <AddMode game={game} modes={modes} onChanged={onChanged} />}
     </div>
   );
 }
 
-function ModeName({ game, mode, onChanged }) {
+function ModeName({ game, mode, chapters, onChanged }) {
   const saved = game.mode_names?.[mode] || "";
   const [name, setName] = useState(saved);
   const [state, run] = useAction();
@@ -350,12 +363,15 @@ function ModeName({ game, mode, onChanged }) {
         save(name);
       }}
     >
-      <span className="ge-mode-key">{mode}</span>
+      <span className="ge-mode-key">
+        {mode}
+        <small>{chapters ? `${chapters} chapter${chapters === 1 ? "" : "s"}` : "no chapters yet"}</small>
+      </span>
       <input value={name} onChange={(e) => setName(e.target.value)} placeholder={defaultModeLabel(mode)} maxLength={40} aria-label={`Name for ${mode}`} />
       <button type="submit" disabled={state.busy || name.trim() === saved}>
         Save
       </button>
-      {saved && (
+      {saved && chapters > 0 && (
         <button
           type="button"
           disabled={state.busy}
@@ -367,8 +383,88 @@ function ModeName({ game, mode, onChanged }) {
           Reset
         </button>
       )}
+      {!chapters && (
+        <button type="button" className="is-danger" disabled={state.busy} onClick={() => save("")}>
+          Remove
+        </button>
+      )}
       {state.error && <span className="ge-error">{state.error}</span>}
     </form>
+  );
+}
+
+function AddMode({ game, modes, onChanged }) {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [key, setKey] = useState("");
+  const [keyEdited, setKeyEdited] = useState(false);
+  const [state, run] = useAction();
+  if (!open)
+    return (
+      <button type="button" className="ge-add" onClick={() => setOpen(true)}>
+        + Add mode
+      </button>
+    );
+  const taken = modes.includes(key);
+  return (
+    <form
+      className="ge-inline ge-add-form"
+      onSubmit={async (e) => {
+        e.preventDefault();
+        if ((await run(() => adminUpdateGame(game.id, { mode_name: { mode: key, name } }))) !== undefined) {
+          setOpen(false);
+          setName("");
+          setKey("");
+          setKeyEdited(false);
+          onChanged();
+        }
+      }}
+    >
+      <input
+        value={name}
+        onChange={(e) => {
+          setName(e.target.value);
+          if (!keyEdited) setKey(modeKey(e.target.value));
+        }}
+        placeholder="Mode name"
+        maxLength={40}
+        required
+        autoFocus
+      />
+      <input
+        value={key}
+        onChange={(e) => {
+          setKey(modeKey(e.target.value));
+          setKeyEdited(true);
+        }}
+        placeholder="key"
+        title="Short key for the mode, used in links (lowercase letters, digits, underscores)"
+        className="ge-short"
+        required
+      />
+      <button type="submit" disabled={state.busy || !key || taken}>
+        Add
+      </button>
+      <button type="button" onClick={() => setOpen(false)}>
+        Cancel
+      </button>
+      {taken && <span className="ge-error">This game already has a mode with that key.</span>}
+      {state.error && <span className="ge-error">{state.error}</span>}
+    </form>
+  );
+}
+
+// Choosing a chapter's mode: the game's modes, and Singleplayer / Cooperative if it has neither.
+function ModeSelect({ game, value, onChange }) {
+  const modes = [...new Set([...gameModes(game), "sp", "coop", value])];
+  return (
+    <select value={value} onChange={(e) => onChange(e.target.value)} aria-label="Mode" title="The mode (board) this chapter counts for">
+      {modes.map((m) => (
+        <option key={m} value={m}>
+          {modeLabel(game, m)} ({m})
+        </option>
+      ))}
+    </select>
   );
 }
 
@@ -555,7 +651,7 @@ function LayoutEditor({ game, allMaps, onChanged }) {
                 setOver(null);
               }}
             >
-              <ChapterHead chapter={chapter} modeName={game.mode_names?.[chapter.game_mode] || defaultModeLabel(chapter.game_mode)} index={i} count={layout.length} onMove={moveChapter} onChanged={onChanged} empty={!entry.maps.length && !chapter.maps.length} />
+              <ChapterHead chapter={chapter} game={game} index={i} count={layout.length} onMove={moveChapter} onChanged={onChanged} empty={!entry.maps.length && !chapter.maps.length} />
               <div className="ge-maps">
                 {entry.maps.map((id) => (
                   <button
@@ -607,9 +703,10 @@ function LayoutEditor({ game, allMaps, onChanged }) {
   );
 }
 
-function ChapterHead({ chapter, modeName, index, count, onMove, onChanged, empty }) {
+function ChapterHead({ chapter, game, index, count, onMove, onChanged, empty }) {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(chapter.name || "");
+  const [mode, setMode] = useState(chapter.game_mode);
   const [state, run] = useAction();
   return (
     <div className="ge-chapter-head">
@@ -626,29 +723,38 @@ function ChapterHead({ chapter, modeName, index, count, onMove, onChanged, empty
           className="ge-inline"
           onSubmit={async (e) => {
             e.preventDefault();
-            if ((await run(() => adminUpdateChapter(chapter.id, { name }))) !== undefined) {
+            const changes = { name };
+            if (mode !== chapter.game_mode) changes.game_mode = mode;
+            if ((await run(() => adminUpdateChapter(chapter.id, changes))) !== undefined) {
               setEditing(false);
               onChanged();
             }
           }}
         >
           <input value={name} onChange={(e) => setName(e.target.value)} maxLength={50} autoFocus />
+          <ModeSelect game={game} value={mode} onChange={setMode} />
           <button type="submit" disabled={state.busy}>
             Save
           </button>
-          <button type="button" onClick={() => setEditing(false)}>
+          <button
+            type="button"
+            onClick={() => {
+              setEditing(false);
+              setMode(chapter.game_mode);
+            }}
+          >
             Cancel
           </button>
         </form>
       ) : (
         <>
           <strong>{chapter.name}</strong>
-          <small title={`Board "${chapter.game_mode}": rename it under Board names`}>
-            {modeName}
+          <small title={`Mode "${chapter.game_mode}": rename it under Game modes`}>
+            {modeLabel(game, chapter.game_mode)}
             {chapter.is_multiplayer ? " · co-op" : ""}
           </small>
           <button type="button" className="ge-link" onClick={() => setEditing(true)}>
-            Rename
+            Edit
           </button>
           {empty && (
             <button
@@ -672,7 +778,7 @@ function AddChapter({ game, onChanged }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [multi, setMulti] = useState(false);
-  const [mode, setMode] = useState("sp");
+  const [mode, setMode] = useState(() => gameModes(game)[0] || "sp");
   const [state, run] = useAction();
   if (!open)
     return (
@@ -704,7 +810,7 @@ function AddChapter({ game, onChanged }) {
         />
         Co-op
       </label>
-      <input value={mode} onChange={(e) => setMode(e.target.value)} placeholder="Board key" title="The board this chapter counts for (sp, coop, ...)" className="ge-short" required />
+      <ModeSelect game={game} value={mode} onChange={setMode} />
       <button type="submit" disabled={state.busy}>
         Add
       </button>

@@ -29,12 +29,16 @@ use tokio::sync::Mutex;
 /// The app's points cache, so any endpoint that changes runs can invalidate it.
 pub static POINTS: OnceLock<Arc<PointsCache>> = OnceLock::new();
 
-/// Drops the cached points boards (call after any change to runs).
+/// Drops the cached points boards (call after any change to runs). Done in the background: while
+/// a board is being built (minutes after a restart) its lock is held, and an admin's change
+/// shouldn't wait for that before it answers.
 pub async fn invalidate_points() {
-    if let Some(cache) = POINTS.get() {
-        cache.invalidate().await;
-    }
-    crate::tools::points_history::clear().await;
+    tokio::spawn(async {
+        if let Some(cache) = POINTS.get() {
+            cache.invalidate().await;
+        }
+        crate::tools::points_history::clear().await;
+    });
 }
 
 /// Games kept warm, and the boards built ahead of requests.
