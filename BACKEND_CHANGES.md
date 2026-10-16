@@ -192,6 +192,9 @@ All under `/api/v1`. Auth: **public**, **signed in**, **staff** (any tier or ser
 - **`PUT /changelog/demo`** (backend attaching a demo): verifies the run if it was pending.
 - **`GET /map/sp/{id}`, `/map/coop/{id}`** work for any game; the game is taken from the map unless `game_id` is given.
   Unknown maps no longer panic.
+  Each entry also carries the demo's `portals` and `sar_version` (co-op: `portals1` / `portals2`, `sar_version1` /
+  `sar_version2`, one per half), so a run opened on a map page shows them as Score Updates does.
+- **`GET /coop/{coop_id}/halves`** adds each half's `portals` and `sar_version`.
 - **`GET /coop`** (previews) takes `game_id`.
 - **`GET /user/{id}`** adds `frozen`, `role`, `name_locked`, `avatar_locked`; drops `auth_hash`, `discord_id`.
 - **Sign-in and `PUT /user/avatar/{id}`** leave staff-set pictures alone.

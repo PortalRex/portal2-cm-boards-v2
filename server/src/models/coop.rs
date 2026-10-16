@@ -51,6 +51,11 @@ pub struct CoopMap {
     pub avatar2: Option<String>,
     pub autorender_id1: Option<String>,
     pub autorender_id2: Option<String>,
+    /// Portals placed and SAR version, read from each half's demo.
+    pub portals1: Option<i16>,
+    pub portals2: Option<i16>,
+    pub sar_version1: Option<String>,
+    pub sar_version2: Option<String>,
 }
 
 /// The data for the preview page for all Coop Maps

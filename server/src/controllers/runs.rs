@@ -18,6 +18,9 @@ pub struct CoopHalf {
     pub autorender_id: Option<String>,
     pub demo_id: Option<i64>,
     pub has_segments: bool,
+    /// Portals placed and SAR version, read from the demo.
+    pub portals: Option<i16>,
+    pub sar_version: Option<String>,
 }
 
 /// Both halves of a co-op run, blue (the host) first when known.
@@ -34,7 +37,8 @@ pub async fn coop_halves(pool: &PgPool, coop_id: i64) -> Result<Vec<CoopHalf>, s
                    CASE WHEN s.profile_number = 'N/A' THEN NULL ELSE COALESCE(u.board_name, u.steam_name, s.profile_number) END AS user_name,
                    u.avatar, s.is_host,
                    run.id AS changelog_id, run.score, run.timestamp, run.note, run.youtube_id, run.autorender_id, run.demo_id,
-                   run.segments IS NOT NULL AS has_segments
+                   run.segments IS NOT NULL AS has_segments,
+                   run.portals, (SELECT d.sar_version FROM demos AS d WHERE d.id = run.demo_id) AS sar_version
             FROM slots AS s
             LEFT JOIN users AS u ON u.profile_number = s.profile_number
             LEFT JOIN changelog AS run ON run.id = s.cl_id AND run.profile_number <> 'N/A'

@@ -20,6 +20,10 @@ pub struct SpMap {
     pub avatar: Option<String>,
     /// Autorender share ID of the run's rendered video, if any.
     pub autorender_id: Option<String>,
+    /// Portals placed, read from the demo.
+    pub portals: Option<i16>,
+    /// SAR version the demo was recorded with.
+    pub sar_version: Option<String>,
 }
 
 /// The data for the preview page for all SP Maps

@@ -75,7 +75,10 @@ impl CoopMap {
                     c1.youtube_id AS youtube_id1, c2.youtube_id AS youtube_id2,
                     c1.submission AS submission1, c2.submission AS submission2, 
                     c1.category_id, p1.avatar AS avatar1, p2.avatar AS avatar2,
-                    c1.autorender_id AS autorender_id1, c2.autorender_id AS autorender_id2
+                    c1.autorender_id AS autorender_id1, c2.autorender_id AS autorender_id2,
+                    c1.portals AS portals1, c2.portals AS portals2,
+                    (SELECT d.sar_version FROM demos AS d WHERE d.id = c1.demo_id) AS sar_version1,
+                    (SELECT d.sar_version FROM demos AS d WHERE d.id = c2.demo_id) AS sar_version2
                 FROM (SELECT * FROM 
                 coop_bundled 
                 WHERE id IN 

@@ -91,6 +91,8 @@ function adaptSpRanked(row) {
     autorenderId: d.autorender_id ?? null,
     demoId: d.demo_id,
     note: d.note,
+    portals: d.portals ?? null,
+    sarVersion: d.sar_version ?? null,
     players: [player(d.profile_number, d.user_name, d.avatar)],
   };
 }
@@ -110,6 +112,9 @@ function adaptCoopRanked(row) {
     autorenderId: d.autorender_id1 || d.autorender_id2 || null,
     demoId: d.demo_id1 || d.demo_id2,
     note: d.note1 || d.note2,
+    // Each half's own are shown once the halves load (RunDetails); these cover the moment before.
+    portals: d.portals1 ?? d.portals2 ?? null,
+    sarVersion: d.sar_version1 || d.sar_version2 || null,
     players: realPlayers(hostFirst(d, [player(d.profile_number1, d.user_name1, d.avatar1), player(d.profile_number2, d.user_name2, d.avatar2)])),
   };
 }
@@ -309,6 +314,8 @@ export async function fetchCoopHalves(coopId) {
     autorenderId: h.autorender_id,
     demoId: h.demo_id,
     hasSegments: h.has_segments,
+    portals: h.portals ?? null,
+    sarVersion: h.sar_version ?? null,
   }));
 }
 
@@ -618,6 +625,8 @@ function mergePbs(scores, pbs, history, me) {
       autorenderId: h?.autorenderId ?? null,
       demoId: h?.demoId ?? null,
       note: h?.note ?? null,
+      portals: h?.portals ?? null,
+      sarVersion: h?.sarVersion ?? null,
       partner: null,
     };
     // The run's own details come from the best run itself, not the latest run on the map (a
@@ -629,6 +638,8 @@ function mergePbs(scores, pbs, history, me) {
           autorenderId: h.autorenderId ?? null,
           demoId: h.demoId ?? null,
           note: h.note ?? null,
+          portals: h.portals ?? null,
+          sarVersion: h.sarVersion ?? null,
           dateEstimated: h.dateEstimated,
           partner: h.players.find((p) => p.profileNumber !== me) || null,
         }

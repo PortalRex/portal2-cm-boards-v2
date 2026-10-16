@@ -40,6 +40,8 @@ export default function RunDetails({ run, map, game = "portal2", rendered, showR
           autorenderId: half.autorenderId,
           demoId: half.demoId,
           note: half.note,
+          portals: half.portals,
+          sarVersion: half.sarVersion,
           timestamp: half.timestamp ?? run.timestamp,
         }
       : run;
@@ -126,11 +128,11 @@ export default function RunDetails({ run, map, game = "portal2", rendered, showR
               </>
             )}
             <dt>SAR Version:</dt>
-            <dd>{run.sarVersion || "Unknown"}</dd>
-            {run.portals != null && (
+            <dd>{view.sarVersion || "Unknown"}</dd>
+            {view.portals != null && (
               <>
                 <dt>Portals:</dt>
-                <dd className="num">{run.portals}</dd>
+                <dd className="num">{view.portals}</dd>
               </>
             )}
             <dt>Status:</dt>

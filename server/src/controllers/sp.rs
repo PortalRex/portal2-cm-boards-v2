@@ -36,7 +36,9 @@ impl SpMap {
                     t.category_id,
                     COALESCE(t.board_name, t.steam_name, t.CL_profile_number) AS user_name,
                     t.avatar,
-                    t.autorender_id
+                    t.autorender_id,
+                    t.portals,
+                    (SELECT d.sar_version FROM demos AS d WHERE d.id = t.demo_id) AS sar_version
                 FROM (
                     SELECT DISTINCT ON (changelog.profile_number)
                         changelog.id as cl_id,
