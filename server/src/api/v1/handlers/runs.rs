@@ -192,7 +192,7 @@ async fn admin_jobs(auth: AdminOrService, config: web::Data<crate::tools::config
 #[post("/admin/steam_sync")]
 async fn admin_steam_sync(
     auth: AdminOrService,
-    pool: web::Data<PgPool>,
+    pool: web::Data<crate::tools::jobs::JobsPool>,
     config: web::Data<crate::tools::config::Config>,
     cache: web::Data<crate::tools::cache::CacheState>,
     query: web::Query<SyncQuery>,
@@ -203,13 +203,13 @@ async fn admin_steam_sync(
         Err(r) => return Ok(r),
     };
     if query.background {
-        let (pool, config, cache, only) = (pool.get_ref().clone(), config.get_ref().clone(), cache.get_ref().clone(), query.map_id.clone());
+        let (pool, config, cache, only) = (pool.0.clone(), config.get_ref().clone(), cache.get_ref().clone(), query.map_id.clone());
         tokio::spawn(async move {
             let _ = jobs::track(jobs::STEAM_SYNC, &by, false, steam_sync::summary, steam_sync::run_once(&pool, &config, &cache, only.as_deref())).await;
         });
         return Ok(started());
     }
-    let report = jobs::track(jobs::STEAM_SYNC, &by, false, steam_sync::summary, steam_sync::run_once(pool.get_ref(), &config, &cache, query.map_id.as_deref())).await?;
+    let report = jobs::track(jobs::STEAM_SYNC, &by, false, steam_sync::summary, steam_sync::run_once(&pool.0, &config, &cache, query.map_id.as_deref())).await?;
     Ok(HttpResponse::Ok().json(report))
 }
 
@@ -230,7 +230,7 @@ pub struct DemoParseQuery {
 #[post("/admin/demo_parse")]
 async fn admin_demo_parse(
     auth: AdminOrService,
-    pool: web::Data<PgPool>,
+    pool: web::Data<crate::tools::jobs::JobsPool>,
     config: web::Data<crate::tools::config::Config>,
     cache: web::Data<crate::tools::cache::CacheState>,
     query: web::Query<DemoParseQuery>,
@@ -243,13 +243,13 @@ async fn admin_demo_parse(
         Err(r) => return Ok(r),
     };
     if query.background {
-        let (pool, config, cache) = (pool.get_ref().clone(), config.get_ref().clone(), cache.get_ref().clone());
+        let (pool, config, cache) = (pool.0.clone(), config.get_ref().clone(), cache.get_ref().clone());
         tokio::spawn(async move {
             let _ = jobs::track(jobs::DEMO_PARSE, &by, false, demo_parse::summary, demo_parse::run_batch(&pool, &config, &cache, limit, runs.as_deref())).await;
         });
         return Ok(started());
     }
-    let report = jobs::track(jobs::DEMO_PARSE, &by, false, demo_parse::summary, demo_parse::run_batch(pool.get_ref(), &config, &cache, limit, runs.as_deref())).await?;
+    let report = jobs::track(jobs::DEMO_PARSE, &by, false, demo_parse::summary, demo_parse::run_batch(&pool.0, &config, &cache, limit, runs.as_deref())).await?;
     Ok(HttpResponse::Ok().json(report))
 }
 
@@ -271,7 +271,7 @@ pub struct OldBoardsSyncQuery {
 #[post("/admin/old_boards_sync")]
 async fn admin_old_boards_sync(
     auth: AdminOrService,
-    pool: web::Data<PgPool>,
+    pool: web::Data<crate::tools::jobs::JobsPool>,
     config: web::Data<crate::tools::config::Config>,
     cache: web::Data<crate::tools::cache::CacheState>,
     query: web::Query<OldBoardsSyncQuery>,
@@ -282,12 +282,12 @@ async fn admin_old_boards_sync(
         Err(r) => return Ok(r),
     };
     if query.background {
-        let (pool, config, cache, dry_run, game) = (pool.get_ref().clone(), config.get_ref().clone(), cache.get_ref().clone(), query.dry_run, query.game);
+        let (pool, config, cache, dry_run, game) = (pool.0.clone(), config.get_ref().clone(), cache.get_ref().clone(), query.dry_run, query.game);
         tokio::spawn(async move {
             let _ = jobs::track(jobs::OLD_BOARDS, &by, dry_run, old_boards_sync::summary, old_boards_sync::run_once(&pool, &config, &cache, dry_run, game)).await;
         });
         return Ok(started());
     }
-    let reports = jobs::track(jobs::OLD_BOARDS, &by, query.dry_run, old_boards_sync::summary, old_boards_sync::run_once(pool.get_ref(), &config, &cache, query.dry_run, query.game)).await?;
+    let reports = jobs::track(jobs::OLD_BOARDS, &by, query.dry_run, old_boards_sync::summary, old_boards_sync::run_once(&pool.0, &config, &cache, query.dry_run, query.game)).await?;
     Ok(HttpResponse::Ok().json(reports))
 }

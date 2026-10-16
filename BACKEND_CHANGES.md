@@ -448,6 +448,40 @@ If the old board adds it later, the next pull links it and shows it again.
 `?game=1` / `?game=2` limits it to one board. Times on the site are shown in each viewer's own time zone, with the full
 date and time on hover (as the old boards showed them).
 
+## 14. Security and performance hardening
+
+From a review of the server and site (October 2026):
+
+- **`/admin/changelog`, `/admin/banned_stats`** now need a staff account or the service token (they were open, and
+  the first lists banned and pending runs with their notes). **`/admins`** only takes `admin_level` from staff; everyone
+  else gets the public list (shadow admins stay unlisted).
+- The **raw insert/update endpoints** the backend service uses (`POST /sp/post_score`, `PUT /sp/update`,
+  `POST /coop/post_score`, `PUT /coop/update_changelog/...`, `POST /points/*`, `POST /user`, `PUT /user/avatar/...`,
+  `POST /changelog`, `PUT /changelog/demo`) take the **service token only** (`ServiceOnly` in `tools/auth.rs`). They
+  bypass the validated, audit-logged moderation paths, so staff accounts no longer reach them; the site doesn't use them.
+- The **changelog filter** (`controllers/changelog.rs`, `build_filtered_changelog`) is built with `sqlx::QueryBuilder`:
+  request values are bound parameters rather than text pasted into the SQL.
+- **Database pools** (`main.rs`): the API's pool has 20 connections, a 5 s wait for one and a **60 s statement
+  timeout**, so a slow query can't tie up every connection and stall the whole API. The background jobs (syncs, demo
+  parsing, cache rebuilds, the "run now" endpoints) use their **own pool** (`tools::jobs::JobsPool`) without a timeout,
+  so a long pass neither starves the API nor gets cut short.
+- **World record history**: migration `20261107000000_wr_index.sql` adds a partial index on `changelog`
+  (`post_rank = 1 AND verified IS TRUE AND banned = false AND wr_hidden = false`, newest first). The WR query on a map
+  page went from a scan of the whole changelog to an index read (~35 ms to ~10 ms idle; far more under load).
+- **Co-op map boards** (`controllers/coop.rs`): the map's runs are found through `changelog (map_id, score)` and joined
+  to their bundle, instead of filtering `coop_bundled` by a sub-select that scanned every bundle, and the two
+  `sar_version` sub-selects per row are joins. Same rows and order (checked on five maps).
+- **One HTTP client** (`tools::helpers::http_client`) for the Steam calls, instead of one per sign-in.
+- The **CORS** allowed origins come from `SERVER.PUBLIC_URL` (plus the dev frontend); the access log leaves out the
+  Steam callback (its query string holds the sign-in's one-time values).
+- **Site headers** (`frontend/security-headers.conf`, included by `nginx.conf`): a Content-Security-Policy (no inline
+  scripts: the theme script moved to `public/theme.js` and the image builds with `INLINE_RUNTIME_CHUNK=false`),
+  `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, and HSTS when the request
+  came in over https.
+- **Postgres** in `docker-compose.yaml` runs with `shared_buffers=512MB`, `work_mem=16MB`,
+  `effective_cache_size=2GB` (the image's defaults spilled the bigger sorts and joins to disk).
+- `GET /banned_user?profile_number=` works again (its query parameter couldn't be read before).
+
 ## 12. Known gaps
 
 - `server/src/tests/db_tests.rs` doesn't compile: it calls three `Changelog::transaction_*` functions that don't exist

@@ -13,13 +13,8 @@ impl Admin {
     ) -> Result<Option<Vec<ChangelogPage>>, sqlx::Error> {
         let mut additional_filters: Vec<String> =
             vec!["(cl.banned = 'true' OR cl.verified = 'false' OR u.banned = 'true')".to_string()];
-        let query_string =
-            build_filtered_changelog(pool, params, Some(&mut additional_filters)).await?;
-        Ok(Some(
-            sqlx::query_as::<_, ChangelogPage>(&query_string)
-                .fetch_all(pool)
-                .await?,
-        ))
+        let mut query = build_filtered_changelog(pool, params, Some(&mut additional_filters)).await?;
+        Ok(Some(query.build_query_as::<ChangelogPage>().fetch_all(pool).await?))
     }
     /// Returns a [BannedTimeDetails] to display information on specific users and their problematic scores.
     pub async fn get_user_banned_time_stats(

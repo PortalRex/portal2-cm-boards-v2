@@ -48,7 +48,7 @@ use actix_web::{
 use anyhow::{Error, Result};
 use dotenv::dotenv;
 use env_logger::Env;
-use sqlx::PgPool;
+use sqlx::{postgres::PgPoolOptions, Executor};
 
 /// Module for the API versions containing handlers for API endpoints.
 mod api;
@@ -72,7 +72,17 @@ async fn main() -> Result<(), Error> {
     // println!("{:#?}", config);
     // Database pool, uses manager to build new database pool, saved in web::Data.
     // Reference Code: https://github.com/actix/examples/blob/master/database_interactions/diesel/src/main.rs
-    let pool = PgPool::connect(&config.database_url).await?;
+    // The API's pool: a request waits at most 5 s for a connection and a statement runs at most
+    // 60 s, so one slow query can't tie up every connection and freeze the whole API.
+    let pool = PgPoolOptions::new()
+        .max_connections(20)
+        .acquire_timeout(std::time::Duration::from_secs(5))
+        .after_connect(|conn, _| Box::pin(async move { conn.execute("SET statement_timeout = '60s'").await.map(|_| ()) }))
+        .connect(&config.database_url)
+        .await?;
+    // The background jobs' pool (syncs, demo parsing, cache rebuilds): no statement timeout, and
+    // its own connections, so a long pass neither starves the API nor gets cut short.
+    let jobs_pool = PgPoolOptions::new().max_connections(4).connect(&config.database_url).await?;
 
     // Initializes Logger with "default" format:  %a %t "%r" %s %b "%{Referer}i" "%{User-Agent}i" %T
     // Remote-IP, Time, First line of request, Response status, Size of response in bytes, Referer, User-Agent, Time to serve
@@ -85,27 +95,31 @@ async fn main() -> Result<(), Error> {
     // Construct the cache.
     let init_data = crate::tools::cache::CacheState::new(&pool, &config, default_cat_ids).await;
     // The saved ranks get the server going; the up-to-date ones replace them shortly.
-    init_data.refresh_ranks_in_background(pool.clone(), config.clone());
+    init_data.refresh_ranks_in_background(jobs_pool.clone(), config.clone());
     // Aggregated points, computed by the server and kept in memory (built in the background now).
     let points_cache = web::Data::new(crate::tools::points_cache::PointsCache::default());
     let _ = crate::tools::points_cache::POINTS.set(points_cache.clone().into_inner());
-    points_cache.clone().into_inner().start(pool.clone());
+    points_cache.clone().into_inner().start(jobs_pool.clone());
     // Index the old boards' demo archive in the background for downloads.
     crate::tools::demo_files::warm(config.demo.clone());
     // New Portal 2 times from Steam's leaderboards, on a schedule.
-    crate::tools::steam_sync::start(pool.clone(), config.clone(), init_data.clone());
-    crate::tools::old_boards_sync::start(pool.clone(), config.clone(), init_data.clone());
-    crate::tools::demo_parse::start(pool.clone(), config.clone(), init_data.clone());
-    crate::tools::points_history::start_legends_check(pool.clone());
-    crate::tools::staff_events::start(pool.clone());
+    crate::tools::steam_sync::start(jobs_pool.clone(), config.clone(), init_data.clone());
+    crate::tools::old_boards_sync::start(jobs_pool.clone(), config.clone(), init_data.clone());
+    crate::tools::demo_parse::start(jobs_pool.clone(), config.clone(), init_data.clone());
+    crate::tools::points_history::start_legends_check(jobs_pool.clone());
+    crate::tools::staff_events::start(jobs_pool.clone());
+    let jobs_pool = web::Data::new(crate::tools::jobs::JobsPool(jobs_pool));
     println!(
         "Server starting at http://{}:{}/",
         config.server.host, config.server.port
     );
     // Start our web server, mount and set up routes, data, wrapping, middleware and loggers
     HttpServer::new(move || {
+        // The site is served from the same origin as the API; the dev frontend (:3000) and the
+        // configured public address are the only cross-origin callers allowed.
         let cors = Cors::default()
             .allowed_origin("http://localhost:3000")
+            .allowed_origin(crate::tools::auth::origin_of(config.server.public_url()))
             .allowed_methods(vec!["GET", "POST", "PUT", "DELETE"])
             .allowed_headers(vec![actix_web::http::header::CONTENT_TYPE])
             .max_age(3600);
@@ -119,11 +133,13 @@ async fn main() -> Result<(), Error> {
             .wrap(cors)
             .wrap(headers)
             .wrap(Compress::default())
-            .wrap(Logger::default())
+            // The Steam callback's query string carries the sign-in's one-time values; keep it out of the log.
+            .wrap(Logger::default().exclude_regex("^/api/v1/auth/steam/callback"))
             .app_data(web::Data::new(pool.clone()))
             .app_data(web::Data::new(config.clone()))
             .app_data(web::Data::new(init_data.clone()))
             .app_data(points_cache.clone())
+            .app_data(jobs_pool.clone())
             .configure(api::v1::handlers::init::init)
     })
     .bind(format!("{}:{}", host, port))?

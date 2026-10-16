@@ -58,7 +58,8 @@ impl SpMap {
                         AND ($5::timestamp IS NULL OR COALESCE(changelog.timestamp, TIMESTAMP '2011-04-19 00:00:00') <= $5)
                     ORDER BY changelog.profile_number, changelog.score ASC
                 ) t
-                ORDER BY score
+                -- Equal times: the earlier run first (the order was otherwise left to the planner).
+                ORDER BY score, timestamp ASC NULLS LAST, cl_id
                 LIMIT $4"#,
         )
         .bind(map_id)
