@@ -437,11 +437,11 @@ from a day before the newest run we have from it if that's older. Per entry:
 - Status changes and hides are written to the audit log as the service (`run.ban`, `run.unban`, `run.verify`,
   `run.unverify`) with the reason.
 
-Then a Steam sync run the old board still doesn't have, once the old board's newest entry is 30 minutes past it (its
-own fetcher has had its chance), is one it left out on purpose: it's hidden with the admin note "Not on the old board".
+Then a Steam sync run the old board still doesn't have, three days after it was set (the old board takes Steam's
+times in irregular batches, sometimes more than a day apart), is one it left out on purpose: it's hidden with the admin note "Not on the old board".
 If the old board adds it later, the next pull links it and shows it again.
 
-`POST /admin/old_boards_sync` (staff / service token) pulls now; `?dry_run=true` only reports what would change and
+`POST /admin/old_boards_sync` (admins / service token; also the Jobs tab on the Admin page) pulls now; `?dry_run=true` only reports what would change and
 `?game=1` / `?game=2` limits it to one board. Times on the site are shown in each viewer's own time zone, with the full
 date and time on hover (as the old boards showed them).
 

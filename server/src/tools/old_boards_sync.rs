@@ -17,9 +17,10 @@
 //! Demos we have a record of but no file for (submitted after the demo archive was copied) are
 //! downloaded from the old board too.
 //!
-//! Then a Steam sync run the old board still doesn't have, once its own fetcher has moved past
-//! it, is one the old board left out on purpose, and is hidden (staff can see why in the audit
-//! log). If the old board adds it later, the next pull links it and shows it again.
+//! Then a Steam sync run the old board still doesn't have, three days on (its Steam fetcher runs
+//! in irregular batches, sometimes more than a day apart), is one the old board left out on
+//! purpose, and is hidden (staff can see why in the audit log). If the old board adds it later,
+//! the next pull links it and shows it again.
 use crate::{
     controllers::{
         moderation::{self, FILLER},
@@ -43,8 +44,12 @@ const MEL_GAME_ID: i32 = 2;
 const MATCH_WINDOW_HOURS: i64 = 48;
 /// Co-op halves set this close together with the same time are one run (as the import paired them).
 const COOP_WINDOW_HOURS: i64 = 3;
-/// A Steam sync run is only judged missing once the old board's newest entry is this much newer.
+/// A Steam sync run is only judged missing once the old board's newest entry is this much newer...
 const MISSING_AFTER_MINUTES: i64 = 30;
+/// ...and the run is at least this old: the old board takes Steam's times in irregular batches,
+/// sometimes well over a day apart (38 hours in October 2026), so a run it hasn't listed yet
+/// isn't missing until then.
+const HIDE_AFTER_HOURS: i64 = 72;
 const MAX_DEMO_BYTES: usize = 50 * 1024 * 1024;
 /// Shown in the audit log for runs this hides.
 const HIDDEN_REASON: &str = "Not on the old board (hidden by the old-board sync)";
@@ -316,6 +321,8 @@ async fn pull(
     .await?;
     let now = Utc::now().naive_utc();
     let mut since = now - Span::days(config.sync.old_boards_days());
+    // Far enough back to cover the runs old enough to judge (HIDE_AFTER_HOURS) with a day to spare.
+    since = since.min(now - Span::hours(HIDE_AFTER_HOURS + 24));
     if let Some(n) = newest {
         since = since.min(n - Span::days(1));
     }
@@ -841,7 +848,7 @@ async fn hide_missing(
     .bind(game_id)
     .bind(FILLER)
     .bind(since + Span::hours(1))
-    .bind(newest - Span::minutes(MISSING_AFTER_MINUTES))
+    .bind((newest - Span::minutes(MISSING_AFTER_MINUTES)).min(Utc::now().naive_utc() - Span::hours(HIDE_AFTER_HOURS)))
     .fetch_all(pool)
     .await?;
     for (id, profile, map_name, score, timestamp, _) in rows.iter().filter(|r| !accounted.contains(&r.0)) {
