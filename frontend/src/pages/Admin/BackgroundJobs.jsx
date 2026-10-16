@@ -42,13 +42,14 @@ export default function BackgroundJobs() {
     return () => clearInterval(timer);
   }, [load, anyRunning, busy]);
 
+  // Starts the job on the server (it answers straight away); the list then shows it running and
+  // its result once it's done (checked every few seconds while anything runs).
   const run = async (job, label, query) => {
     setBusy(`${job.key}:${label}`);
     setMessages((m) => ({ ...m, [job.key]: null }));
-    load();
     try {
       await runJob(job.key, query);
-      if (!query.includes("dry_run")) bumpDataVersion();
+      if (!query.includes("dry_run")) setRefreshAfter({ key: job.key, since: Date.now() });
     } catch (e) {
       setMessages((m) => ({ ...m, [job.key]: e.message }));
     } finally {
@@ -56,6 +57,16 @@ export default function BackgroundJobs() {
       load();
     }
   };
+  // Once a real run has finished, the rest of the site reloads its data.
+  const [refreshAfter, setRefreshAfter] = useState(null);
+  useEffect(() => {
+    const job = refreshAfter && (jobs || []).find((j) => j.key === refreshAfter.key);
+    const done = job?.last && !job.last.running && job.last.finished_at && new Date(`${job.last.finished_at}Z`).getTime() >= refreshAfter.since - 2000;
+    if (done) {
+      setRefreshAfter(null);
+      bumpDataVersion();
+    }
+  }, [jobs, refreshAfter]);
 
   if (error && !jobs) return <EmptyState>Couldn’t load the background jobs: {error}</EmptyState>;
   if (!jobs) return <Loading />;

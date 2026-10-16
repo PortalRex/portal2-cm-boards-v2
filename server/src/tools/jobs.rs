@@ -57,7 +57,25 @@ where
         run.trigger = Some(trigger.to_string());
         run.dry_run = dry_run;
     }
+    // If the run is dropped part-way (e.g. its request was cut off), it's marked as interrupted
+    // rather than left "running".
+    struct Unfinished(&'static str);
+    impl Drop for Unfinished {
+        fn drop(&mut self) {
+            if let Ok(mut t) = table().lock() {
+                let run = t.entry(self.0).or_default();
+                if run.running {
+                    run.running = false;
+                    run.finished_at = Some(Utc::now().naive_utc());
+                    run.ok = Some(false);
+                    run.summary = Some("Interrupted before it finished.".to_string());
+                }
+            }
+        }
+    }
+    let guard = Unfinished(job);
     let result = work.await;
+    std::mem::forget(guard);
     if let Ok(mut t) = table().lock() {
         let run = t.entry(job).or_default();
         run.running = false;

@@ -142,6 +142,14 @@ async fn admin_run_note_delete(auth: AdminOrService, pool: web::Data<PgPool>, no
 pub struct SyncQuery {
     /// Only this map (its steam id), to try the sync on one map.
     pub map_id: Option<String>,
+    /// Start it and answer straight away (202); its progress shows in `GET /admin/jobs`.
+    #[serde(default)]
+    pub background: bool,
+}
+
+/// The answer to a run started in the background.
+fn started() -> HttpResponse {
+    HttpResponse::Accepted().json(serde_json::json!({ "started": true }))
 }
 
 /// Who may run the background jobs by hand: the admin tier (and the board's services). Returns
@@ -194,6 +202,13 @@ async fn admin_steam_sync(
         Ok(by) => by,
         Err(r) => return Ok(r),
     };
+    if query.background {
+        let (pool, config, cache, only) = (pool.get_ref().clone(), config.get_ref().clone(), cache.get_ref().clone(), query.map_id.clone());
+        tokio::spawn(async move {
+            let _ = jobs::track(jobs::STEAM_SYNC, &by, false, steam_sync::summary, steam_sync::run_once(&pool, &config, &cache, only.as_deref())).await;
+        });
+        return Ok(started());
+    }
     let report = jobs::track(jobs::STEAM_SYNC, &by, false, steam_sync::summary, steam_sync::run_once(pool.get_ref(), &config, &cache, query.map_id.as_deref())).await?;
     Ok(HttpResponse::Ok().json(report))
 }
@@ -204,6 +219,9 @@ pub struct DemoParseQuery {
     pub limit: Option<i64>,
     /// Instead, read these runs' demos again (changelog ids, comma-separated).
     pub runs: Option<String>,
+    /// Start it and answer straight away (202).
+    #[serde(default)]
+    pub background: bool,
 }
 
 /// **POST** Read a batch of demos that haven't been read yet now (admins; the background job does
@@ -224,6 +242,13 @@ async fn admin_demo_parse(
         Ok(by) => by,
         Err(r) => return Ok(r),
     };
+    if query.background {
+        let (pool, config, cache) = (pool.get_ref().clone(), config.get_ref().clone(), cache.get_ref().clone());
+        tokio::spawn(async move {
+            let _ = jobs::track(jobs::DEMO_PARSE, &by, false, demo_parse::summary, demo_parse::run_batch(&pool, &config, &cache, limit, runs.as_deref())).await;
+        });
+        return Ok(started());
+    }
     let report = jobs::track(jobs::DEMO_PARSE, &by, false, demo_parse::summary, demo_parse::run_batch(pool.get_ref(), &config, &cache, limit, runs.as_deref())).await?;
     Ok(HttpResponse::Ok().json(report))
 }
@@ -235,6 +260,9 @@ pub struct OldBoardsSyncQuery {
     pub dry_run: bool,
     /// Only this game's board (1 Portal 2, 2 Mel).
     pub game: Option<i32>,
+    /// Start it and answer straight away (202).
+    #[serde(default)]
+    pub background: bool,
 }
 
 /// **POST** Pull from the old boards now (admins; the schedule does this at
@@ -253,6 +281,13 @@ async fn admin_old_boards_sync(
         Ok(by) => by,
         Err(r) => return Ok(r),
     };
+    if query.background {
+        let (pool, config, cache, dry_run, game) = (pool.get_ref().clone(), config.get_ref().clone(), cache.get_ref().clone(), query.dry_run, query.game);
+        tokio::spawn(async move {
+            let _ = jobs::track(jobs::OLD_BOARDS, &by, dry_run, old_boards_sync::summary, old_boards_sync::run_once(&pool, &config, &cache, dry_run, game)).await;
+        });
+        return Ok(started());
+    }
     let reports = jobs::track(jobs::OLD_BOARDS, &by, query.dry_run, old_boards_sync::summary, old_boards_sync::run_once(pool.get_ref(), &config, &cache, query.dry_run, query.game)).await?;
     Ok(HttpResponse::Ok().json(reports))
 }

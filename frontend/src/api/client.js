@@ -280,7 +280,7 @@ export const fetchAudit = (params) => getJson("/admin/audit", params);
 // Admins: the background jobs (Steam sync, old-board pull, demo parsing) with their schedule and
 // last run, and running one now (`key` is the job's endpoint; `query` e.g. "dry_run=true").
 export const fetchJobs = () => getJson("/admin/jobs");
-export const runJob = (key, query = "") => sendJson("POST", `/admin/${key}${query ? `?${query}` : ""}`);
+export const runJob = (key, query = "") => sendJson("POST", `/admin/${key}?${query ? `${query}&` : ""}background=true`);
 // Staff inbox: { unread, seen_id, items } (items as in the audit log); mark read up to an entry.
 export const fetchStaffInbox = () => getJson("/admin/inbox");
 export const markStaffInboxSeen = (id) => send("PUT", "/admin/inbox/seen", { id });
@@ -785,7 +785,11 @@ export function submitRun(file, fields) {
 async function sendJson(method, path, body) {
   const res = await fetch(apiUrl(path), { method, headers: { "Content-Type": "application/json" }, body: body === undefined ? undefined : JSON.stringify(body) });
   if (res.status === 401) throw new Error("Sign in required.");
-  if (!res.ok) throw new Error((await res.text()) || `Request failed (${res.status})`);
+  if (!res.ok) {
+    // A proxy's error page (HTML) isn't a message to show.
+    const text = await res.text();
+    throw new Error(text && !text.trimStart().startsWith("<") ? text : res.status === 524 || res.status === 504 ? "The server took too long to answer." : `Request failed (${res.status})`);
+  }
   return res.headers.get("content-type")?.includes("application/json") ? res.json() : null;
 }
 
