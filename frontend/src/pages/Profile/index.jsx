@@ -246,7 +246,9 @@ function Stat({ value, label, children, to }) {
   const body = (
     <>
       <span className="stat-value num">{value}</span>
-      <span className="stat-label">{label}</span>
+      <span className="stat-label" title={typeof label === "string" ? label : undefined}>
+        {label}
+      </span>
     </>
   );
   return (
@@ -268,7 +270,9 @@ const RECENT_MS = 7 * 24 * 3600 * 1000;
 function ScoreStat({ label, entry, green }) {
   return (
     <div className="stat">
-      <span className="stat-label">{label}</span>
+      <span className="stat-label" title={typeof label === "string" ? label : undefined}>
+        {label}
+      </span>
       <span className="stat-value num">
         {entry?.score != null ? formatScore(entry.score) : "–"}
         {entry?.score != null && <small>s</small>}
@@ -291,7 +295,9 @@ function ScoreStat({ label, entry, green }) {
 function PlaceStat({ label, entry }) {
   return (
     <div className="stat">
-      <span className="stat-label">{label}</span>
+      <span className="stat-label" title={typeof label === "string" ? label : undefined}>
+        {label}
+      </span>
       <span className="stat-value num">
         <Ordinal n={entry?.rank} />
       </span>

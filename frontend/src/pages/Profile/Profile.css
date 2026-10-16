@@ -441,6 +441,11 @@
   color: var(--text-2);
   text-transform: uppercase;
   white-space: nowrap;
+  /* A long country name ("In South Georgia & South Sandwich Islands") is cut short rather than
+     running over its neighbours; the full name shows on hover. */
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .stat-on {
