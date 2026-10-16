@@ -637,6 +637,11 @@ const SERIES = [
 // each date, so being passed shows as a drop (see fetchPointsHistory in api/client). Scroll over
 // it to zoom; click a day to see the profile as it was then. Each board's peak is marked.
 const dayMs = (date) => Date.parse(`${String(date).slice(0, 10)}T00:00:00Z`);
+// The plot's height and top margin (room for the top peak label), and the clear space a peak
+// label needs above its dot before it's put below instead.
+const PLOT_H = 128;
+const PLOT_TOP = 22;
+const LABEL_ROOM = 20;
 
 function PointsChart({ profileNumber, fallback, peak, at, onPick }) {
   const [hidden, setHidden] = useState({});
@@ -677,6 +682,36 @@ function PointsChart({ profileNumber, fallback, peak, at, onPick }) {
     return [Math.max(0, Math.floor(lo - pad)), Math.ceil(hi + pad)];
   };
   const axisFor = (key) => (zoom ? key : "shared");
+  // Where a value sits on its line's scale, in pixels from the top of the plot (PLOT_H tall).
+  const shown = SERIES.filter((s) => !hidden[s.key]);
+  const sharedMax = Math.max(1, ...data.flatMap((d) => shown.map((s) => d[s.key] ?? 0)));
+  const yPx = (key, v) => {
+    const [lo, hi] = zoom ? domainFor(key).map((x) => (x === "dataMax" ? sharedMax : x)) : [0, sharedMax];
+    return PLOT_H - ((v - lo) / Math.max(1, hi - lo)) * PLOT_H;
+  };
+  // A line's value at a moment (between its samples).
+  const valueAt = (key, t) => {
+    const pts = all.filter((d) => d[key] != null);
+    const after = pts.findIndex((d) => d.t >= t);
+    if (after < 0) return pts[pts.length - 1]?.[key] ?? null;
+    if (after === 0 || pts[after].t === t) return pts[after][key];
+    const a = pts[after - 1], b = pts[after];
+    return a[key] + ((b[key] - a[key]) * (t - a.t)) / (b.t - a.t);
+  };
+  // A peak's label goes above its dot unless another line runs through that space; then below,
+  // or whichever side has more room.
+  const labelSide = (key, t, v) => {
+    const y = yPx(key, v);
+    let above = y + PLOT_TOP, below = PLOT_H - y;
+    shown.filter((s) => s.key !== key).forEach((s) => {
+      const o = valueAt(s.key, t);
+      if (o == null) return;
+      const oy = yPx(s.key, o);
+      if (oy <= y) above = Math.min(above, y - oy);
+      else below = Math.min(below, oy - y);
+    });
+    return above >= LABEL_ROOM || above >= below ? "top" : "bottom";
+  };
   const atMs = at ? dayMs(at) : null;
   const pick = (state) => {
     const d = state?.activePayload?.[0]?.payload;
@@ -690,8 +725,8 @@ function PointsChart({ profileNumber, fallback, peak, at, onPick }) {
         </button>
       )}
       <div ref={zoomRef} className="pf-chart-plot" title="Scroll to zoom · click a day to see the profile as it was then">
-        <ResponsiveContainer width="100%" height={150}>
-          <LineChart data={data} margin={{ top: 22, right: 10, bottom: 0, left: 10 }} onClick={pick}>
+        <ResponsiveContainer width="100%" height={PLOT_H + PLOT_TOP}>
+          <LineChart data={data} margin={{ top: PLOT_TOP, right: 10, bottom: 0, left: 10 }} onClick={pick}>
             <XAxis dataKey="t" type="number" domain={[from, to]} allowDataOverflow hide />
             {zoom ? (
               SERIES.map((s) => <YAxis key={s.key} yAxisId={s.key} hide domain={domainFor(s.key)} allowDataOverflow />)
@@ -725,7 +760,7 @@ function PointsChart({ profileNumber, fallback, peak, at, onPick }) {
                   fill={s.color}
                   stroke="var(--panel)"
                   strokeWidth={2}
-                  label={{ value: `Peak ${Math.round(peak[s.key].points)}`, position: "top", fill: "var(--text-2)", fontSize: 11 }}
+                  label={{ value: `Peak ${Math.round(peak[s.key].points)}`, position: labelSide(s.key, t, Math.round(peak[s.key].points)), fill: "var(--text-2)", fontSize: 11 }}
                 />
               );
             })}
