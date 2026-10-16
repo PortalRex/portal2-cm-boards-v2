@@ -277,6 +277,10 @@ export async function fetchWrHistoryForStaff(map) {
 
 // The audit log, newest first: [{ id, admin_name, via_service, action, target_type, target_id, reason, details, created_at }].
 export const fetchAudit = (params) => getJson("/admin/audit", params);
+// Admins: the background jobs (Steam sync, old-board pull, demo parsing) with their schedule and
+// last run, and running one now (`key` is the job's endpoint; `query` e.g. "dry_run=true").
+export const fetchJobs = () => getJson("/admin/jobs");
+export const runJob = (key, query = "") => sendJson("POST", `/admin/${key}${query ? `?${query}` : ""}`);
 // Staff inbox: { unread, seen_id, items } (items as in the audit log); mark read up to an entry.
 export const fetchStaffInbox = () => getJson("/admin/inbox");
 export const markStaffInboxSeen = (id) => send("PUT", "/admin/inbox/seen", { id });

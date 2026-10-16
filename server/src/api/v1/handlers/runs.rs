@@ -144,17 +144,57 @@ pub struct SyncQuery {
     pub map_id: Option<String>,
 }
 
-/// **POST** Pull new Portal 2 times from Steam's leaderboards now (staff; the schedule does
+/// Who may run the background jobs by hand: the admin tier (and the board's services). Returns
+/// the name the run is recorded under, or the refusal.
+fn job_runner(auth: &AdminOrService, job: &'static str) -> std::result::Result<String, HttpResponse> {
+    let name = match auth {
+        AdminOrService::Admin(user) if !user.is_role_admin() => return Err(HttpResponse::Forbidden().body("Only admins can run the background jobs.")),
+        AdminOrService::Admin(user) => user.user_name.clone(),
+        AdminOrService::Service => "board service".to_string(),
+    };
+    if crate::tools::jobs::is_running(job) {
+        return Err(HttpResponse::Conflict().body("That job is already running."));
+    }
+    Ok(name)
+}
+
+/// **GET** Admins: each background job, whether it's on, its schedule and its last run since the
+/// server started (`running`, `started_at`, `finished_at`, `trigger`, `ok`, `summary`).
+#[get("/admin/jobs")]
+async fn admin_jobs(auth: AdminOrService, config: web::Data<crate::tools::config::Config>) -> Result<impl Responder> {
+    if let AdminOrService::Admin(user) = &auth {
+        if !user.is_role_admin() {
+            return Ok(HttpResponse::Forbidden().body("Only admins can see the background jobs."));
+        }
+    }
+    use crate::tools::jobs::{DEMO_PARSE, OLD_BOARDS, STEAM_SYNC};
+    let runs = crate::tools::jobs::snapshot();
+    let job = |key: &'static str, name: &str, enabled: bool, schedule: String| {
+        serde_json::json!({ "key": key, "name": name, "enabled": enabled, "schedule": schedule, "last": runs.get(key) })
+    };
+    Ok(HttpResponse::Ok().json(serde_json::json!([
+        job(STEAM_SYNC, "Steam sync", config.sync.steam(), format!("Every {} minutes", config.sync.minutes())),
+        job(OLD_BOARDS, "Old-board pull", config.sync.old_boards(), crate::tools::old_boards_sync::schedule(&config)),
+        job(DEMO_PARSE, "Demo parsing", config.demo.auto_parse(), "Every 10 minutes, and straight on while demos are waiting".to_string()),
+    ])))
+}
+
+/// **POST** Pull new Portal 2 times from Steam's leaderboards now (admins; the schedule does
 /// this every `SYNC.MINUTES`). `?map_id=` limits it to one map. Answers what the pass did.
 #[post("/admin/steam_sync")]
 async fn admin_steam_sync(
-    _auth: AdminOrService,
+    auth: AdminOrService,
     pool: web::Data<PgPool>,
     config: web::Data<crate::tools::config::Config>,
     cache: web::Data<crate::tools::cache::CacheState>,
     query: web::Query<SyncQuery>,
 ) -> Result<impl Responder> {
-    let report = crate::tools::steam_sync::run_once(pool.get_ref(), &config, &cache, query.map_id.as_deref()).await?;
+    use crate::tools::{jobs, steam_sync};
+    let by = match job_runner(&auth, jobs::STEAM_SYNC) {
+        Ok(by) => by,
+        Err(r) => return Ok(r),
+    };
+    let report = jobs::track(jobs::STEAM_SYNC, &by, false, steam_sync::summary, steam_sync::run_once(pool.get_ref(), &config, &cache, query.map_id.as_deref())).await?;
     Ok(HttpResponse::Ok().json(report))
 }
 
@@ -166,12 +206,12 @@ pub struct DemoParseQuery {
     pub runs: Option<String>,
 }
 
-/// **POST** Read a batch of demos that haven't been read yet now (staff; the background job does
+/// **POST** Read a batch of demos that haven't been read yet now (admins; the background job does
 /// this continuously), or `?runs=1,2,3` to read those runs' demos again. Answers what the batch
 /// did and how many are left.
 #[post("/admin/demo_parse")]
 async fn admin_demo_parse(
-    _auth: AdminOrService,
+    auth: AdminOrService,
     pool: web::Data<PgPool>,
     config: web::Data<crate::tools::config::Config>,
     cache: web::Data<crate::tools::cache::CacheState>,
@@ -179,7 +219,12 @@ async fn admin_demo_parse(
 ) -> Result<impl Responder> {
     let limit = query.limit.unwrap_or(50).clamp(1, 2000);
     let runs: Option<Vec<i64>> = query.runs.as_deref().map(|r| r.split(',').filter_map(|id| id.trim().parse().ok()).collect());
-    let report = crate::tools::demo_parse::run_batch(pool.get_ref(), &config, &cache, limit, runs.as_deref()).await?;
+    use crate::tools::{demo_parse, jobs};
+    let by = match job_runner(&auth, jobs::DEMO_PARSE) {
+        Ok(by) => by,
+        Err(r) => return Ok(r),
+    };
+    let report = jobs::track(jobs::DEMO_PARSE, &by, false, demo_parse::summary, demo_parse::run_batch(pool.get_ref(), &config, &cache, limit, runs.as_deref())).await?;
     Ok(HttpResponse::Ok().json(report))
 }
 
@@ -192,17 +237,22 @@ pub struct OldBoardsSyncQuery {
     pub game: Option<i32>,
 }
 
-/// **POST** Pull from the old boards now (staff; the schedule does this at
+/// **POST** Pull from the old boards now (admins; the schedule does this at
 /// `SYNC.OLD_BOARDS_HOURS`). `?dry_run=true` only reports what would change; `?game=` limits it
 /// to one board. Answers a report per board.
 #[post("/admin/old_boards_sync")]
 async fn admin_old_boards_sync(
-    _auth: AdminOrService,
+    auth: AdminOrService,
     pool: web::Data<PgPool>,
     config: web::Data<crate::tools::config::Config>,
     cache: web::Data<crate::tools::cache::CacheState>,
     query: web::Query<OldBoardsSyncQuery>,
 ) -> Result<impl Responder> {
-    let reports = crate::tools::old_boards_sync::run_once(pool.get_ref(), &config, &cache, query.dry_run, query.game).await?;
+    use crate::tools::{jobs, old_boards_sync};
+    let by = match job_runner(&auth, jobs::OLD_BOARDS) {
+        Ok(by) => by,
+        Err(r) => return Ok(r),
+    };
+    let reports = jobs::track(jobs::OLD_BOARDS, &by, query.dry_run, old_boards_sync::summary, old_boards_sync::run_once(pool.get_ref(), &config, &cache, query.dry_run, query.game)).await?;
     Ok(HttpResponse::Ok().json(reports))
 }

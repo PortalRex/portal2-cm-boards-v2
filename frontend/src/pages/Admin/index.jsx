@@ -8,6 +8,7 @@ import { bumpDataVersion } from "../../lib/dataVersion";
 import useCurrentUser, { isRoleAdmin, isStaff } from "../../hooks/useCurrentUser";
 import GamesEditor from "./GamesEditor";
 import Reports from "./Reports";
+import BackgroundJobs from "./BackgroundJobs";
 import { formatDate, formatScore, timeAgo } from "../../lib/format";
 import { getMap, mapPath } from "../../data/maps";
 import background from "../../scenes/global/img/Background.png";
@@ -37,6 +38,7 @@ export default function Admin() {
     if (staff) refreshCount();
   }, [staff]);
   const games = section === "games" && isRoleAdmin(user);
+  const jobs = section === "jobs" && isRoleAdmin(user);
   const reports = section === "reports" && staff;
   const actions = staff && (
     <div className="segmented">
@@ -51,17 +53,24 @@ export default function Admin() {
           Games
         </button>
       )}
+      {isRoleAdmin(user) && (
+        <button type="button" className={section === "jobs" ? "is-active" : ""} onClick={() => setSection("jobs")}>
+          Jobs
+        </button>
+      )}
     </div>
   );
   return (
     <Layout background={background} tint="mono">
-      <Panel icon={MoreIcon} title={games ? "Games and maps" : reports ? "Run reports" : "Admin changelog"} actions={actions} bodyClassName="admin-body">
+      <Panel icon={MoreIcon} title={games ? "Games and maps" : jobs ? "Background jobs" : reports ? "Run reports" : "Admin changelog"} actions={actions} bodyClassName="admin-body">
         {!user ? (
           <EmptyState>Sign in with an admin account to see the admin changelog.</EmptyState>
         ) : !isStaff(user) ? (
           <EmptyState>Staff only.</EmptyState>
         ) : games ? (
           <GamesEditor />
+        ) : jobs ? (
+          <BackgroundJobs />
         ) : reports ? (
           <Reports onCountChange={refreshCount} />
         ) : (

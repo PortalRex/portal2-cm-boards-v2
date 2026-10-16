@@ -16,6 +16,8 @@ pub mod demo_parse;
 pub mod ratelimit;
 pub mod old_boards_sync;
 pub mod private_site;
+/// The background jobs' last runs (admin page)
+pub mod jobs;
 /// Live updates for the staff inbox
 pub mod staff_events;
 pub mod steam_sync;

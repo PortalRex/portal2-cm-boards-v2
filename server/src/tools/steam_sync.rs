@@ -72,7 +72,7 @@ pub fn start(pool: PgPool, config: Config, cache: CacheState) {
         // Let the caches warm first.
         tokio::time::sleep(Duration::from_secs(30)).await;
         loop {
-            match run_once(&pool, &config, &cache, None).await {
+            match crate::tools::jobs::track(crate::tools::jobs::STEAM_SYNC, "schedule", false, summary, run_once(&pool, &config, &cache, None)).await {
                 Ok(r) => log::info!(
                     "steam sync: {} maps checked ({} baselined, {} unchanged, {} failed), {} runs added ({} pending), {} players created",
                     r.maps_checked, r.maps_baselined, r.maps_unchanged, r.maps_failed, r.runs_added, r.runs_pending, r.players_created
@@ -82,6 +82,14 @@ pub fn start(pool: PgPool, config: Config, cache: CacheState) {
             tokio::time::sleep(every).await;
         }
     });
+}
+
+/// What a pass did, in one line (admin page).
+pub fn summary(r: &SyncReport) -> String {
+    format!(
+        "{} maps checked ({} unchanged, {} failed), {} runs added ({} pending), {} players created",
+        r.maps_checked, r.maps_unchanged, r.maps_failed, r.runs_added, r.runs_pending, r.players_created
+    )
 }
 
 /// One pass over every public Portal 2 map (the hidden ones have no Steam leaderboard), or just

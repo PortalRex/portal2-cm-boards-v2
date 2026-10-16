@@ -203,7 +203,7 @@ pub fn start(pool: PgPool, config: Config, cache: CacheState) {
     tokio::spawn(async move {
         loop {
             tokio::time::sleep(until_next(&config)).await;
-            match run_once(&pool, &config, &cache, false, None).await {
+            match crate::tools::jobs::track(crate::tools::jobs::OLD_BOARDS, "schedule", false, summary, run_once(&pool, &config, &cache, false, None)).await {
                 Ok(reports) => {
                     for r in reports {
                         log::info!(
@@ -217,6 +217,29 @@ pub fn start(pool: PgPool, config: Config, cache: CacheState) {
             }
         }
     });
+}
+
+/// What a pull did, in one line per board (admin page).
+pub fn summary(reports: &Vec<BoardReport>) -> String {
+    reports
+        .iter()
+        .map(|r| {
+            format!(
+                "{}: {} added, {} linked to Steam runs, {} updated, {} demos added, {} hidden{}",
+                r.board, r.inserted, r.matched, r.updated, r.demos_added, r.hidden,
+                if r.errors.is_empty() { String::new() } else { format!(", {} errors", r.errors.len()) }
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(" · ")
+}
+
+/// The schedule in words (admin page).
+pub fn schedule(config: &Config) -> String {
+    let mut hours = config.sync.old_boards_hours();
+    hours.sort_unstable();
+    let list: Vec<String> = hours.iter().map(|h| format!("{h:02}:00")).collect();
+    format!("Daily at {} ({})", list.join(" and "), config.sync.old_boards_tz().name())
 }
 
 /// Time until the next scheduled hour (on the hour, in the configured time zone).

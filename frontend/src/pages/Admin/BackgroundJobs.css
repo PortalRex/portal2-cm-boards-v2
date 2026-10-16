@@ -1,0 +1,100 @@
+.bj {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.bj-intro {
+  margin: 0 0 4px;
+  font-size: 15px;
+}
+
+.bj-job {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 20px;
+  border-radius: var(--radius);
+  background: var(--row);
+}
+
+.bj-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+}
+
+.bj-head h3 {
+  margin: 0;
+  font-size: 19px;
+}
+
+.bj-state {
+  padding: 1px 8px;
+  border-radius: 4px;
+  background: var(--control-raised);
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.bj-state.is-on {
+  background: var(--hl-green);
+  color: var(--text);
+}
+
+.bj-schedule {
+  font-size: 14px;
+}
+
+.bj-last {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  font-size: 15px;
+}
+
+.bj-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #e05252;
+}
+
+.bj-dot.is-ok {
+  background: #4caf6a;
+}
+
+.bj-summary {
+  flex-basis: 100%;
+  color: var(--text-2);
+  font-size: 14px;
+}
+
+.bj-summary.is-bad,
+.bj-error {
+  color: var(--hl-red-text);
+}
+
+.bj-running {
+  color: var(--accent-light);
+}
+
+.bj-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.bj-actions .outline-button {
+  height: 34px;
+  padding: 0 16px;
+}
+
+.bj-error {
+  font-size: 14px;
+}

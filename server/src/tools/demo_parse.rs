@@ -93,7 +93,7 @@ pub fn start(pool: PgPool, config: Config, cache: CacheState) {
     tokio::spawn(async move {
         tokio::time::sleep(Duration::from_secs(60)).await;
         loop {
-            match run_batch(&pool, &config, &cache, BATCH, None).await {
+            match crate::tools::jobs::track(crate::tools::jobs::DEMO_PARSE, "schedule", false, summary, run_batch(&pool, &config, &cache, BATCH, None)).await {
                 Ok(r) if r.picked > 0 => {
                     log::info!(
                         "demo parsing: {} read ({} failed, {} files missing), {} portal counts, {} split times, {} partners, {} hosts, {} versions named; {} to go",
@@ -112,6 +112,14 @@ pub fn start(pool: PgPool, config: Config, cache: CacheState) {
             }
         }
     });
+}
+
+/// What a batch did, in one line (admin page).
+pub fn summary(r: &ParseReport) -> String {
+    format!(
+        "{} demos read ({} failed, {} files missing), {} partners and {} hosts filled in; {} waiting",
+        r.parsed, r.failed, r.missing_file, r.partners_set, r.hosts_set, r.remaining
+    )
 }
 
 /// Reads up to `limit` demos that haven't been read yet, newest first; or, with `runs`, those
