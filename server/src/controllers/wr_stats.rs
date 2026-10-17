@@ -6,8 +6,14 @@
 //!
 //! From that: every map's current record, the longest-lasting records, the longest streaks one
 //! player held a map, the biggest improvements, days spent holding records, and how many records
-//! each player held over time (the race). Also how often each hundredths ending occurs: at 60
-//! ticks a second, times ending in 2 or 7 can't come from a normal run, so staff get those listed.
+//! each player held over time (the race). Also how often each hundredths ending occurs, and for
+//! staff the runs worth checking against their demo.
+//!
+//! A run's time is its demo's ticks ÷ 60, cut down to the hundredth, so times end in 0, 1, 3, 5, 6
+//! or 8. Other endings have known causes: in 2014-16 some runs used `-tickrate` (since banned);
+//! and on some players' setups (Linux among them) the time can come out 0.01 low, or rounded up
+//! rather than cut, because of floating point. Neither of those is a different run: the demo's
+//! ticks match. What matters is a time that doesn't match its own demo.
 //! Cached ten minutes per game; dropped with the points cache when runs change.
 use chrono::{Datelike, Duration as ChronoDuration, NaiveDate, NaiveDateTime, Utc};
 use sqlx::{FromRow, PgPool};
@@ -21,8 +27,8 @@ const MAX_AGE: Duration = Duration::from_secs(10 * 60);
 const LISTED: usize = 100;
 /// Players shown per race frame.
 const RACE_TOP: usize = 12;
-/// Unlikely times listed for staff (newest first).
-const UNLIKELY: i64 = 500;
+/// Runs listed per staff group.
+const FLAGGED: i64 = 500;
 
 #[derive(FromRow)]
 struct WrRow {
@@ -164,8 +170,9 @@ pub struct Race {
     pub frames: Vec<RaceFrame>,
 }
 
+/// A run for staff to look at, with what its demo says.
 #[derive(Debug, Clone, Serialize, FromRow)]
-pub struct UnlikelyTime {
+pub struct FlaggedRun {
     pub id: i64,
     pub map_id: String,
     pub map_name: String,
@@ -176,6 +183,20 @@ pub struct UnlikelyTime {
     pub avatar: Option<String>,
     pub post_rank: Option<i32>,
     pub demo_id: Option<i64>,
+    /// The demo's ticks as a time (ticks ÷ 60, cut down to the hundredth), when its splits were read.
+    pub demo_score: Option<i32>,
+    /// `mismatch` (more than 0.03 s from its demo), `no_check` (an odd ending, no demo read),
+    /// `low` (just under its demo: timer rounding) or `rounded` (just over: rounded up, not cut).
+    pub kind: String,
+}
+
+/// The staff groups and how many runs fall in each (lists are capped at [FLAGGED]).
+#[derive(Debug, Clone, Default, Serialize)]
+pub struct Flagged {
+    pub runs: Vec<FlaggedRun>,
+    pub counts: BTreeMap<String, i64>,
+    /// Runs ending in 4 or 9 that are 0.01 under their demo (the same timer rounding; not listed).
+    pub low_4_9: i64,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -193,9 +214,8 @@ pub struct WrStats {
     pub race_players: HashMap<String, Player>,
     /// Verified runs per hundredths ending (index 0-99), per board key.
     pub endings: BTreeMap<String, Vec<i64>>,
-    /// Runs whose time ends in 2 or 7 (staff only; empty for everyone else).
-    pub unlikely: Vec<UnlikelyTime>,
-    pub unlikely_count: i64,
+    /// Runs for staff to check against their demo (empty for everyone else).
+    pub flagged: Flagged,
 }
 
 static CACHE: OnceLock<Mutex<HashMap<i32, (Instant, Arc<WrStats>)>>> = OnceLock::new();
@@ -211,7 +231,7 @@ pub fn clear() {
     }
 }
 
-/// The game's world record stats (the full set, unlikely times included; the endpoint hides
+/// The game's world record stats (the full set, the staff groups included; the endpoint hides
 /// those from non-staff).
 pub async fn wr_stats(pool: &PgPool, game_id: i32) -> Result<Arc<WrStats>, sqlx::Error> {
     if let Some((built, s)) = cache().lock().ok().and_then(|c| c.get(&game_id).cloned()) {
@@ -473,24 +493,64 @@ async fn compute(pool: &PgPool, game_id: i32) -> Result<WrStats, sqlx::Error> {
             e[cs as usize] += n;
         }
     }
-    let unlikely_where = r#"
-        FROM changelog AS cl JOIN maps AS m ON m.steam_id = cl.map_id JOIN chapters AS c ON c.id = m.chapter_id
-            JOIN users AS u ON u.profile_number = cl.profile_number
-        WHERE c.game_id = $1 AND cl.verified AND NOT cl.banned AND NOT u.banned AND cl.score > 0 AND cl.score % 5 = 2
-          AND cl.profile_number <> 'N/A'
-    "#;
-    let unlikely_count: i64 = sqlx::query_scalar(&format!("SELECT COUNT(*) {unlikely_where}")).bind(game_id).fetch_one(pool).await?;
-    let unlikely = sqlx::query_as::<_, UnlikelyTime>(&format!(
-        r#"SELECT cl.id, cl.map_id, m.name AS map_name, cl.score, cl.timestamp, cl.profile_number,
-            COALESCE(u.board_name, u.steam_name, cl.profile_number) AS user_name, u.avatar, cl.post_rank, cl.demo_id
-        {unlikely_where}
-        ORDER BY cl.post_rank NULLS LAST, cl.timestamp DESC NULLS LAST
-        LIMIT $2"#
-    ))
+    // Runs to check: every verified run by an unbanned player whose time doesn't match its demo,
+    // and the odd endings (2 or 7) with what their demo says (or that there's none to check).
+    let flagged_rows = sqlx::query_as::<_, FlaggedRun>(
+        r#"
+            WITH runs AS (
+                SELECT cl.id, cl.map_id, m.name AS map_name, cl.score, cl.timestamp, cl.profile_number,
+                    COALESCE(u.board_name, u.steam_name, cl.profile_number) AS user_name, u.avatar, cl.post_rank, cl.demo_id,
+                    (SELECT SUM((e->>'ticks')::int) FROM jsonb_array_elements(cl.segments) AS e) AS ticks
+                FROM changelog AS cl
+                    JOIN maps AS m ON m.steam_id = cl.map_id
+                    JOIN chapters AS c ON c.id = m.chapter_id
+                    JOIN users AS u ON u.profile_number = cl.profile_number
+                WHERE c.game_id = $1 AND cl.verified AND NOT cl.banned AND NOT u.banned AND cl.score > 0 AND cl.profile_number <> 'N/A'
+                  AND (cl.segments IS NOT NULL OR cl.score % 5 = 2)
+            ), judged AS (
+                SELECT *, floor(ticks * 5 / 3.0)::int AS demo_score,
+                    CASE
+                        WHEN ticks IS NULL THEN 'no_check'
+                        WHEN abs(score - ticks * 5 / 3.0) > 3 THEN 'mismatch'
+                        WHEN score = floor(ticks * 5 / 3.0) THEN 'ok'
+                        -- Within 0.03 s: timer rounding (or, on co-op, the other player's demo being a
+                        -- few ticks off the shared time). Below or above the demo's time.
+                        WHEN score < floor(ticks * 5 / 3.0) THEN 'low'
+                        ELSE 'rounded'
+                    END AS kind
+                FROM runs
+            )
+            SELECT id, map_id, map_name, score, timestamp, profile_number, user_name, avatar, post_rank, demo_id, demo_score, kind
+            FROM judged
+            WHERE kind = 'mismatch' OR (score % 5 = 2 AND kind <> 'ok')
+            ORDER BY post_rank NULLS LAST, timestamp DESC NULLS LAST
+        "#,
+    )
     .bind(game_id)
-    .bind(UNLIKELY)
     .fetch_all(pool)
     .await?;
+    let mut counts: BTreeMap<String, i64> = BTreeMap::new();
+    let mut listed: BTreeMap<String, i64> = BTreeMap::new();
+    let mut runs = Vec::new();
+    for r in flagged_rows {
+        *counts.entry(r.kind.clone()).or_insert(0) += 1;
+        let n = listed.entry(r.kind.clone()).or_insert(0);
+        if *n < FLAGGED {
+            *n += 1;
+            runs.push(r);
+        }
+    }
+    let low_4_9: i64 = sqlx::query_scalar(
+        r#"
+            SELECT COUNT(*) FROM changelog AS cl JOIN maps AS m ON m.steam_id = cl.map_id JOIN chapters AS c ON c.id = m.chapter_id
+            WHERE c.game_id = $1 AND cl.verified AND NOT cl.banned AND cl.score % 5 = 4 AND cl.segments IS NOT NULL
+              AND cl.score = floor((SELECT SUM((e->>'ticks')::int) FROM jsonb_array_elements(cl.segments) AS e) * 5 / 3.0) - 1
+        "#,
+    )
+    .bind(game_id)
+    .fetch_one(pool)
+    .await?;
+    let flagged = Flagged { runs, counts, low_4_9 };
 
-    Ok(WrStats { records, total_time, holders, longest, domination, improvements, race, race_players, endings, unlikely, unlikely_count })
+    Ok(WrStats { records, total_time, holders, longest, domination, improvements, race, race_players, endings, flagged })
 }

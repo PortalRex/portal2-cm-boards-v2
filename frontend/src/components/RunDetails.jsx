@@ -138,6 +138,7 @@ export default function RunDetails({ run, map, game = "portal2", rendered, showR
             <dt>Status:</dt>
             <dd>{run.banned ? "Banned" : run.verified === false ? "Pending" : "Verified"}</dd>
           </dl>
+          <TimerNote run={run} segments={segments.data} />
           <PendingProof run={run} />
           {showReactions && <ReactionsBar changelogId={own} />}
           <ReportRun changelogId={own} />
@@ -182,6 +183,24 @@ export default function RunDetails({ run, map, game = "portal2", rendered, showR
         </div>
       </div>
     </div>
+  );
+}
+
+// When the demo's ticks give a time 0.01 above the run's (or the run's was rounded up rather than
+// cut down), that's how the player's setup handles the timer, not a different run: said so here so
+// nobody reports it. The demo time is ticks ÷ 60 cut down to the hundredth.
+function TimerNote({ run, segments }) {
+  const ticks = segments?.length ? segments[segments.length - 1].totalTicks : null;
+  if (ticks == null || run.score == null) return null;
+  const demo = Math.floor((ticks * 5) / 3);
+  const rounded = Math.round((ticks * 5) / 3);
+  const low = run.score === demo - 1;
+  const up = run.score !== demo && run.score === rounded;
+  if (!low && !up) return null;
+  return (
+    <p className="sd-timer-note" title="Some setups (Linux among them) turn ticks into a time slightly differently.">
+      Timer rounding: the demo’s {ticks} ticks are {formatScore(demo)}; the game showed {formatScore(run.score)}.
+    </p>
   );
 }
 

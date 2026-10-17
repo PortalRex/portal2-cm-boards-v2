@@ -204,8 +204,8 @@ async fn site_stats(
 /// `longest` (longest-lasting records), `domination` (one player holding a map through several
 /// record times), `improvements`, the `race` (records held per player at the start of each month,
 /// per board and overall, with `race_players`), and `endings` (verified runs per hundredths
-/// ending). Staff (and the service token) also get `unlikely`: runs ending in 2 or 7, which a
-/// normal 60-tick run can't produce.
+/// ending). Staff (and the service token) also get `flagged`: runs whose time doesn't match their
+/// demo, and the runs ending in 2 or 7 with what their demo says (timer rounding, or no demo).
 ///
 /// - `/api/v1/stats/wr`
 #[get("/stats/wr")]
@@ -225,6 +225,6 @@ async fn wr_stats(
         return Ok(actix_web::HttpResponse::Ok().json(&*stats));
     }
     let mut public = (*stats).clone();
-    public.unlikely.clear();
+    public.flagged = Default::default();
     Ok(actix_web::HttpResponse::Ok().json(public))
 }

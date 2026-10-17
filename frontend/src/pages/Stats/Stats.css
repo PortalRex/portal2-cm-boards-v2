@@ -317,7 +317,57 @@
 }
 
 .st-unlikely .st-row {
-  grid-template-columns: minmax(120px, 1fr) 90px minmax(0, 1fr) 70px 120px 100px;
+  grid-template-columns: minmax(120px, 1fr) 90px 90px minmax(0, 1fr) 60px 110px 70px;
+}
+
+.st-flag {
+  margin-bottom: 12px;
+  border-radius: 8px;
+  background: var(--row);
+  overflow: hidden;
+}
+
+.st-flag.is-alert {
+  box-shadow: inset 4px 0 0 #e05a4f;
+}
+
+.st-flag .st-row:nth-child(even) {
+  background: rgb(255 255 255 / 0.03);
+}
+
+.st-flag-head {
+  display: grid;
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr) 20px;
+  align-items: baseline;
+  gap: 4px 16px;
+  width: 100%;
+  padding: 12px 16px;
+  border: 0;
+  background: none;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.st-flag-title {
+  font-size: 19px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.st-flag-count {
+  margin-left: 6px;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.st-flag-note {
+  font-size: 14px;
+}
+
+.st-bad {
+  color: #e36b6b;
+  font-weight: 600;
 }
 
 .st-staff {
@@ -470,6 +520,10 @@
   background: #e05a4f;
 }
 
+.st-ending.is-low .st-ending-bar {
+  background: #e3a33b;
+}
+
 .st-ending-label {
   position: absolute;
   bottom: -22px;
@@ -521,9 +575,18 @@
   .st-imp .st-row > :nth-child(7),
   .st-days .st-row > :nth-child(4),
   .st-days .st-row > :nth-child(5),
-  .st-unlikely .st-row > :nth-child(5),
-  .st-unlikely .st-row > :nth-child(6) {
+  .st-unlikely .st-row > :nth-child(6),
+  .st-unlikely .st-row > :nth-child(7) {
     display: none;
+  }
+
+  .st-flag-head {
+    grid-template-columns: minmax(0, 1fr) 20px;
+  }
+
+  .st-flag-note {
+    grid-column: 1;
+    grid-row: 2;
   }
 
   .st-hist .st-row {
@@ -580,7 +643,7 @@
   }
 
   .st-unlikely .st-row {
-    grid-template-columns: minmax(0, 1fr) 70px minmax(0, 1fr) 40px;
+    grid-template-columns: minmax(0, 1fr) 62px 62px minmax(0, 1fr) 34px;
   }
 
   .st-share-row {
@@ -615,4 +678,12 @@
     padding: 0 12px;
     font-size: 15px;
   }
+}
+
+.st-amber {
+  color: #e3a33b;
+}
+
+.st-red {
+  color: #e36b6b;
 }
