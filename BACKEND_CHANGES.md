@@ -460,18 +460,13 @@ profile shows, and "now" comes from the points boards, so the page and profiles 
 the background after the points boards (startup and after each change); an out-of-date copy is served while a new
 one is built, so no request waits for it.
 
-`GET /stats/wr?game_id=` (`controllers/wr_stats.rs`) feeds the Records, History, Race and Times tabs. From the world
+`GET /stats/wr?game_id=` (`controllers/wr_stats.rs`) feeds the Records, History and Race tabs. From the world
 record history, each map's records are split into reigns (each faster record time until a faster one; players who tie
 join from their own run). It answers every map's current record with how long it has stood and the total time per
 board; per player the maps held now, days spent holding records and record runs set; the longest-lasting records
 (standing ones included, with who beat them); the longest streaks one player held a map through several record times;
 the biggest improvements; how many records each player held at the start of every month since 2012 (the race, per
-board and overall); and verified runs per hundredths ending. Staff and the service token also get `flagged`: runs
-checked against their own demo's ticks (a time is ticks ÷ 60, cut down to the hundredth). Groups: `mismatch` (more
-than 0.03 s from the demo), `no_check` (ending in …2 or …7 with no demo read), `low` / `rounded` (within 0.03 s: timer
-rounding, which some setups such as Linux show as 0.01 low or rounded up; on co-op, the other player's demo can be a
-few ticks off the shared time). Runs ending in …4/…9 that are 0.01 under their demo are only counted. Banned …2/…7
-runs from 2014-16 are the `-tickrate` era. Cached ten minutes; cleared with the points cache.
+board and overall). Cached ten minutes; cleared with the points cache.
 
 ## 12. Known gaps
 

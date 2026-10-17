@@ -5,7 +5,7 @@ import { StatsIcon } from "../../components/Icons";
 import { ComparePanel } from "../Compare";
 import { CountriesPanel } from "../Countries";
 import { fetchSiteStats } from "../../api/client";
-import { HistoryPanel, RacePanel, RecordsPanel, TimesPanel, useWrStats } from "./WrPages";
+import { HistoryPanel, RacePanel, RecordsPanel, useWrStats } from "./WrPages";
 import { GAMES, MODE_LABELS } from "../../data/maps";
 import useApi from "../../hooks/useApi";
 import { formatDate, formatLongScore, formatPoints, formatScore, timeAgo } from "../../lib/format";
@@ -17,11 +17,10 @@ const TABS = [
   { path: "/stats/records", label: "Records" },
   { path: "/stats/history", label: "History" },
   { path: "/stats/race", label: "Race" },
-  { path: "/stats/times", label: "Times" },
   { path: "/stats/compare", label: "Compare" },
   { path: "/stats/countries", label: "Countries" },
 ];
-const PANELS = { records: RecordsPanel, history: HistoryPanel, race: RacePanel, times: TimesPanel, compare: ComparePanel, countries: CountriesPanel };
+const PANELS = { records: RecordsPanel, history: HistoryPanel, race: RacePanel, compare: ComparePanel, countries: CountriesPanel };
 
 // The Stats section: site-wide runner stats, with Compare players and Countries as its other tabs.
 export default function Stats({ tab = "runners" }) {

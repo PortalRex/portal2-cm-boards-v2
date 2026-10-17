@@ -2,13 +2,12 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Avatar, EmptyState, Loading, Panel, PlayerLink } from "../../components/ui";
 import { StatsIcon } from "../../components/Icons";
-import { demoUrl, fetchWrStats } from "../../api/client";
+import { fetchWrStats } from "../../api/client";
 import { GAMES, MODE_LABELS } from "../../data/maps";
 import useApi from "../../hooks/useApi";
-import useCurrentUser, { isStaff } from "../../hooks/useCurrentUser";
 import { formatDate, formatLongScore, formatScore } from "../../lib/format";
 
-// The World record pages of the Stats section (Records, History, Race, Times), all from one
+// The World record pages of the Stats section (Records, History, Race), all from one
 // /stats/wr answer for the game.
 
 const number = (n) => Number(n).toLocaleString("en-US");
@@ -416,119 +415,5 @@ function Race({ frames, players }) {
         })}
       </div>
     </>
-  );
-}
-
-// --- Times -----------------------------------------------------------------------
-
-export function TimesPanel() {
-  const { game, params, set } = useGame();
-  const stats = useWrStats(game);
-  const user = useCurrentUser();
-  const modes = GAMES[game].modes;
-  const mode = modes.includes(params.get("mode")) ? params.get("mode") : modes[0];
-  return (
-    <Shell title="Time endings" stats={stats} actions={<Segmented value={mode} options={modes.map((m) => ({ value: m, label: label(m) }))} onChange={(m) => set({ mode: m === modes[0] ? "" : m })} />}>
-      {(s) => (
-        <>
-          <p className="muted st-intro">
-            How often each hundredths ending appears in verified times. A run’s time is its ticks ÷ 60 cut down to the hundredth, so times
-            end in 0, 1, 3, 5, 6 or 8. The rest are rare: <strong className="st-amber">…4 and …9</strong> are times that came out 0.01 low because of how some
-            setups (Linux among them) handle the timer, and <strong className="st-red">…2 and …7</strong> mostly the same, rounded the other way. Banned runs
-            from 2014–16 with these endings are from the <code>-tickrate</code> era and aren’t counted here.
-          </p>
-          <Endings counts={s.endings[mode] || []} />
-          {isStaff(user) && <Flagged data={s.flagged} />}
-        </>
-      )}
-    </Shell>
-  );
-}
-
-function Endings({ counts }) {
-  const max = Math.max(1, ...counts);
-  const total = counts.reduce((a, b) => a + b, 0) || 1;
-  return (
-    <div className="st-endings" role="img" aria-label="Runs per hundredths ending">
-      {counts.map((n, cs) => (
-        <span
-          key={cs}
-          className={`st-ending${cs % 5 === 2 ? " is-unlikely" : cs % 5 === 4 ? " is-low" : ""}`}
-          title={`.${String(cs).padStart(2, "0")}: ${number(n)} runs (${((n / total) * 100).toFixed(2)}%)`}
-        >
-          <span className="st-ending-bar" style={{ height: `${Math.max(1, (n / max) * 100)}%` }} />
-          {cs % 10 === 0 && <span className="st-ending-label num">.{String(cs).padStart(2, "0")}</span>}
-        </span>
-      ))}
-    </div>
-  );
-}
-
-const GROUPS = [
-  { kind: "mismatch", title: "Doesn’t match its demo", note: "More than 0.03 s from what the demo’s ticks say. The ones to check (a few are map-trigger quirks).", open: true },
-  { kind: "no_check", title: "Odd ending, no demo to check", note: "Times ending in …2 or …7 with no demo, or one whose splits haven’t been read.", open: true },
-  { kind: "low", title: "0.01 under its demo", note: "Timer rounding: the demo’s ticks give a time 0.01 higher. Not a different run.", open: false },
-  { kind: "rounded", title: "Rounded up instead of cut", note: "The same timer difference the other way. Not a different run.", open: false },
-];
-
-function Flagged({ data }) {
-  return (
-    <>
-      <h2 className="st-section-title">
-        Runs to check <span className="st-staff">staff only</span>
-      </h2>
-      <p className="muted st-intro">
-        Verified runs compared with their own demo. Not listed: {number(data.low49)} runs ending in …4 or …9 that are 0.01 under their demo
-        (timer rounding).
-      </p>
-      {GROUPS.map((g) => (
-        <FlaggedGroup key={g.kind} group={g} count={data.counts[g.kind] || 0} rows={data.runs.filter((r) => r.kind === g.kind)} />
-      ))}
-    </>
-  );
-}
-
-function FlaggedGroup({ group, count, rows }) {
-  const [open, setOpen] = useState(group.open);
-  return (
-    <section className={`st-flag${group.kind === "mismatch" ? " is-alert" : ""}`}>
-      <button type="button" className="st-flag-head" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
-        <span className="st-flag-title">
-          {group.title} <span className="num st-flag-count">{number(count)}</span>
-        </span>
-        <span className="muted st-flag-note">{group.note}</span>
-        <span className="st-flag-caret">{open ? "▴" : "▾"}</span>
-      </button>
-      {open &&
-        (rows.length ? (
-          <div className="st-table st-unlikely" role="table">
-            <div className="st-row st-head" role="row">
-              <span>Map</span>
-              <span className="end">Time</span>
-              <span className="end">Demo</span>
-              <span>Player</span>
-              <span className="end">Rank</span>
-              <span>Date</span>
-              <span>File</span>
-            </div>
-            {rows.map((r) => (
-              <div className="st-row" role="row" key={r.id}>
-                <span className="st-map">{mapLink(r)}</span>
-                <span className="end num st-strong">{formatScore(r.score)}</span>
-                <span className={`end num${r.demoScore != null && r.demoScore > r.score + 3 ? " st-bad" : ""}`}>{r.demoScore != null ? formatScore(r.demoScore) : <span className="muted">–</span>}</span>
-                <span className="st-player">
-                  <Avatar src={r.player.avatar} name={r.player.name} size={22} />
-                  <PlayerLink player={r.player} />
-                </span>
-                <span className="end num">{r.postRank ?? "–"}</span>
-                <span className="num st-date">{r.timestamp ? formatDate(r.timestamp) : <span className="muted">no date</span>}</span>
-                <span>{r.demoId ? <a href={demoUrl(r.demoId)} download>Demo</a> : <span className="muted">none</span>}</span>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="muted">None.</p>
-        ))}
-    </section>
   );
 }

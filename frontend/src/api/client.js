@@ -773,12 +773,6 @@ export async function fetchWrStats(game = "portal2") {
     improvements: s.improvements.map((r) => ({ ...where(r), fromScore: r.from_score, toScore: r.to_score, delta: r.delta, date: r.date, teams: teams(r.teams), previous: teams(r.previous), previousDays: r.previous_days })),
     race: Object.fromEntries(Object.entries(s.race).map(([k, r]) => [k, { frames: r.frames.map((f) => ({ date: f.date, top: f.top.map(([pn, n]) => ({ profileNumber: pn, held: n })) })) }])),
     racePlayers: Object.fromEntries(Object.entries(s.race_players).map(([k, p]) => [k, pl(p)])),
-    endings: s.endings,
-    flagged: {
-      runs: (s.flagged?.runs || []).map((r) => ({ id: r.id, mapId: r.map_id, map: lookupMap(r.map_id, game), mapName: r.map_name, score: r.score, timestamp: r.timestamp, player: pl(r), postRank: r.post_rank, demoId: r.demo_id, demoScore: r.demo_score, kind: r.kind })),
-      counts: s.flagged?.counts || {},
-      low49: s.flagged?.low_4_9 || 0,
-    },
   };
 }
 
