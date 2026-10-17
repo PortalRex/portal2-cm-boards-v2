@@ -392,6 +392,10 @@ export function applyCatalog(catalog) {
       endsAt: g.ends_at,
       gameDir: (BUILTIN_KEYS[g.id] === "mel" || (base && BUILTIN_KEYS[base.id] === "mel")) ? "portal_stories" : "portal2",
       modes,
+      // Header branding from the games editor (null: the site's built-in ones).
+      shortName: g.short_name || null,
+      logo: g.logo_version ? `${API_BASE}/games/${g.id}/images/logo?v=${g.logo_version}` : null,
+      background: g.background_version ? `${API_BASE}/games/${g.id}/images/background?v=${g.background_version}` : null,
     };
     modes.forEach((mk) => {
       const group = groups.get(mk);

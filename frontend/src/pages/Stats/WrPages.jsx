@@ -5,6 +5,7 @@ import { StatsIcon } from "../../components/Icons";
 import { fetchWrStats } from "../../api/client";
 import { GAMES, MODE_LABELS } from "../../data/maps";
 import useApi from "../../hooks/useApi";
+import useGame from "../../hooks/useGame";
 import { formatDate, formatLongScore, formatScore } from "../../lib/format";
 
 // The World record pages of the Stats section (Records, History, Race), all from one
@@ -13,11 +14,10 @@ import { formatDate, formatLongScore, formatScore } from "../../lib/format";
 const number = (n) => Number(n).toLocaleString("en-US");
 const days = (d) => `${number(Math.round(d))} day${Math.round(d) === 1 ? "" : "s"}`;
 
-// The game picked with ?game= (Portal 2 by default) and its boards.
-function useGame() {
+// The game picked under the logo, and the page's parameters.
+function useGameParams() {
   const [params, setParams] = useSearchParams();
-  const raw = params.get("game");
-  const game = GAMES[raw] && GAMES[raw].kind !== "season" ? raw : "portal2";
+  const game = useGame();
   const set = (changes) => {
     const next = new URLSearchParams(params);
     Object.entries(changes).forEach(([k, v]) => (v ? next.set(k, v) : next.delete(k)));
@@ -76,7 +76,7 @@ function Shell({ title, actions, children, stats }) {
 // --- Records ---------------------------------------------------------------------
 
 export function RecordsPanel() {
-  const { game, params, set } = useGame();
+  const { game, params, set } = useGameParams();
   const stats = useWrStats(game);
   const modes = GAMES[game].modes;
   const mode = modes.includes(params.get("mode")) ? params.get("mode") : modes[0];
@@ -165,7 +165,7 @@ const HISTORY = [
 ];
 
 export function HistoryPanel() {
-  const { game, params, set } = useGame();
+  const { game, params, set } = useGameParams();
   const stats = useWrStats(game);
   const view = HISTORY.some((h) => h.value === params.get("view")) ? params.get("view") : "longest";
   return (
@@ -332,7 +332,7 @@ const hue = (id) => [...id].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 360, 7
 const ROW = 40;
 
 export function RacePanel() {
-  const { game, params, set } = useGame();
+  const { game, params, set } = useGameParams();
   const stats = useWrStats(game);
   const boards = [...GAMES[game].modes, "overall"];
   const board = boards.includes(params.get("board")) ? params.get("board") : "overall";

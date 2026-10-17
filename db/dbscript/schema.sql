@@ -1519,3 +1519,11 @@ ALTER TABLE changelog ADD COLUMN IF NOT EXISTS date_estimated boolean NOT NULL D
 -- Players choose their own name and picture (Settings). A name of their own goes in users.board_name like before;
 -- a picture of their own is marked here so Steam sign-ins and avatar refreshes keep it (staff-set ones use users.avatar_locked).
 ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_custom boolean NOT NULL DEFAULT false;
+
+-- Each game's header branding, set in the games editor: the name beside the logo (NULL = the site's default)
+-- and uploaded logo / background files in IMAGES.STORAGE (NULL = the site's built-in ones).
+ALTER TABLE games ADD COLUMN IF NOT EXISTS short_name character varying(16);
+ALTER TABLE games ADD COLUMN IF NOT EXISTS logo_file character varying(200);
+ALTER TABLE games ADD COLUMN IF NOT EXISTS logo_updated timestamp without time zone;
+ALTER TABLE games ADD COLUMN IF NOT EXISTS background_file character varying(200);
+ALTER TABLE games ADD COLUMN IF NOT EXISTS background_updated timestamp without time zone;

@@ -20,12 +20,16 @@ import {
   adminUpdateMap,
   adminSetMapImage,
   adminRemoveMapImage,
+  adminSetGameImage,
+  adminRemoveGameImage,
   mapImageUrl,
+  gameImageUrl,
   fetchCatalog,
 } from "../../api/client";
 import { applyCatalog, builtInImage, defaultModeLabel, gameKey } from "../../data/maps";
 import { GAME_IDS } from "../../api/config";
 import { bumpDataVersion } from "../../lib/dataVersion";
+import { builtInBranding } from "../../hooks/useGame";
 import "./GamesEditor.css";
 
 // Admin editor for games, seasons, chapters, maps, categories and linked leaderboards. Maps
@@ -231,6 +235,7 @@ function GamePanel({ game, catalog, allMaps, onChanged, onDeleted }) {
   const base = catalog.find((g) => g.id === game.base_game_id);
   const [name, setName] = useState(game.name);
   const [slug, setSlug] = useState(game.slug);
+  const [shortName, setShortName] = useState(game.short_name || "");
   const [starts, setStarts] = useState(toInput(game.starts_at));
   const [ends, setEnds] = useState(toInput(game.ends_at));
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -242,6 +247,7 @@ function GamePanel({ game, catalog, allMaps, onChanged, onDeleted }) {
     const changes = {};
     if (name !== game.name) changes.name = name;
     if (slug !== game.slug) changes.slug = slug;
+    if (!season && shortName.trim() !== (game.short_name || "")) changes.short_name = shortName.trim() || null;
     if (season && starts !== toInput(game.starts_at)) changes.starts_at = fromInput(starts);
     if (season && ends !== toInput(game.ends_at)) changes.ends_at = fromInput(ends);
     if (!Object.keys(changes).length) return;
@@ -264,7 +270,14 @@ function GamePanel({ game, catalog, allMaps, onChanged, onDeleted }) {
             <span>Link name</span>
             <input value={slug} onChange={(e) => setSlug(e.target.value)} disabled={builtin} />
           </label>
+          {!season && (
+            <label>
+              <span>Header name</span>
+              <input value={shortName} onChange={(e) => setShortName(e.target.value)} maxLength={16} placeholder={builtInBranding(gameKey(game)).brand} />
+            </label>
+          )}
         </div>
+        {!season && <p className="ge-hint">The header name is shown beside the logo while this game is picked (empty: {builtInBranding(gameKey(game)).brand}).</p>}
         {season && (
           <div className="ge-row">
             <label>
@@ -308,10 +321,65 @@ function GamePanel({ game, catalog, allMaps, onChanged, onDeleted }) {
           </button>
         </div>
       </form>
+      {!season && <GameBranding game={game} onChanged={onChanged} />}
       <GameModes game={game} onChanged={onChanged} />
       <GameLinks game={game} catalog={catalog} allMaps={allMaps} onChanged={onChanged} />
       {season ? <SeasonPool game={game} base={base} /> : <LayoutEditor game={game} allMaps={allMaps} onChanged={onChanged} />}
     </>
+  );
+}
+
+// The logo in the header and the background behind the pages while the game is picked: an
+// uploaded one, else the site's built-in one.
+function GameBranding({ game, onChanged }) {
+  const builtIn = builtInBranding(gameKey(game));
+  return (
+    <section className="ge-card">
+      <div className="ge-card-head">
+        <h3>Logo &amp; background</h3>
+      </div>
+      <GameImage game={game} kind="logo" label="Logo" builtIn={builtIn.logo} onChanged={onChanged} />
+      <GameImage game={game} kind="background" label="Background" builtIn={builtIn.background} onChanged={onChanged} />
+      <p className="ge-hint">The logo sits beside the header name and in the game list under it. The background replaces the site's usual one (map pages and profiles keep their own pictures). PNG, JPEG or WebP, up to 5 MB.</p>
+    </section>
+  );
+}
+
+function GameImage({ game, kind, label, builtIn, onChanged }) {
+  const [state, run] = useAction();
+  const version = game[`${kind}_version`];
+  const src = version ? gameImageUrl(game.id, kind, version) : builtIn;
+  return (
+    <div className="ge-cats ge-image-row">
+      <span className="ge-hint ge-image-label">{label}</span>
+      {src ? <img className={kind === "logo" ? "ge-logo-thumb" : "ge-map-thumb"} src={src} alt="" /> : <span className="ge-hint">The site's usual one</span>}
+      <label className="ge-upload">
+        {state.busy ? "Uploading…" : version ? `Replace ${label.toLowerCase()}` : `Upload ${label.toLowerCase()}`}
+        <input
+          type="file"
+          accept="image/png,image/jpeg,image/webp"
+          disabled={state.busy}
+          onChange={async (e) => {
+            const file = e.target.files?.[0];
+            e.target.value = "";
+            if (file && (await run(() => adminSetGameImage(game.id, kind, file))) !== undefined) onChanged();
+          }}
+        />
+      </label>
+      {version && (
+        <button
+          type="button"
+          className="ge-link is-danger"
+          disabled={state.busy}
+          onClick={async () => {
+            if ((await run(() => adminRemoveGameImage(game.id, kind))) !== undefined) onChanged();
+          }}
+        >
+          {builtIn ? `Use the built-in ${label.toLowerCase()}` : `Remove ${label.toLowerCase()}`}
+        </button>
+      )}
+      {state.error && <span className="ge-error">{state.error}</span>}
+    </div>
   );
 }
 

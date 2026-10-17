@@ -44,6 +44,7 @@ New databases get everything from `db/dbscript/schema.sql`. An existing database
 | `20261025000000_drop_fullgame.sql` | Drops the full-game `fg_*` tables from databases that had the earlier full-game migration (the feature was removed). |
 | `20261026000000_empty_chapters.sql` | Deletes Mel chapters without maps (the Mel board's empty Advanced "1952" chapter, imported as a second Story chapter). The importer now skips them. |
 | `20261107000000_own_display.sql` | `users.avatar_custom`: a picture the player chose in Settings, kept through sign-ins. |
+| `20261108000000_game_branding.sql` | `games.short_name` (the name beside the logo) and uploaded `logo_file` / `background_file` with their times. |
 
 `import_boards.py` builds a fresh database from the old boards' MySQL dumps and runs the BSP-name step itself (see
 [§10](#10-import-and-maintenance-scripts)).
@@ -392,6 +393,12 @@ The admin tier can give any map its own image in the games editor (`POST /admin/
 `image`: PNG, JPEG or WebP up to 5 MB; `DELETE` goes back to the site's built-in image). Files are kept in
 `IMAGES.STORAGE` (migration `20261101000000_map_images.sql`), served at `GET /maps/{steam_id}/image?v=` and cached for
 good since the catalog's `image_version` changes with each upload. Uploads and removals are in the audit log.
+
+Games have the same for their header branding: `POST /admin/games/{id}/images/logo` or `.../images/background`
+(form field `image`, same limits; `DELETE` goes back to the site's built-in one), served at
+`GET /games/{id}/images/{logo|background}?v=`. `PUT /admin/games/{id}` takes `short_name` (the name beside the logo,
+up to 16 characters; null or empty = the site's default), and the catalog gives `short_name`, `logo_version` and
+`background_version` for each game.
 
 ### Staff-only mode
 

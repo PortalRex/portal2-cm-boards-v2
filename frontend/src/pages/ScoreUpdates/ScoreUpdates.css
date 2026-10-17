@@ -168,16 +168,6 @@
   margin-bottom: 22px;
 }
 
-.su-game {
-  min-width: 200px;
-  height: 32px;
-  margin-right: auto;
-}
-
-.su-game select {
-  font-size: 16px;
-}
-
 .su-toolbar-bottom {
   justify-content: flex-end;
   margin: 22px 0 0;
@@ -549,18 +539,12 @@
     display: none;
   }
 
-  /* Phones: search, then game; the page buttons are at the bottom of the list. */
+  /* Phones: the search; the page buttons are at the bottom of the list. */
   .su-toolbar {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     gap: 10px;
     margin-bottom: 10px;
-  }
-
-  .su-toolbar .su-game {
-    width: 100%;
-    min-width: 0;
-    margin: 0;
   }
 
   .su-toolbar:not(.su-toolbar-bottom) .pagination {

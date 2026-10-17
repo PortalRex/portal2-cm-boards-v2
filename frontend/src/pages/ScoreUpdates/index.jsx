@@ -13,6 +13,7 @@ import useApi from "../../hooks/useApi";
 import { useDataVersion } from "../../lib/dataVersion";
 import useDebounced from "../../hooks/useDebounced";
 import useFollows from "../../hooks/useFollows";
+import useGame from "../../hooks/useGame";
 import { timeAgo, formatDate, formatDateTime, formatDelta } from "../../lib/format";
 import { ACTIVITY_VIEWS, activityWindow } from "../../lib/activity";
 import background from "../../scenes/global/img/Background.png";
@@ -22,15 +23,9 @@ import { BANNED_OPTIONS, RANK_OPTIONS, RUN_LIMITS, RUN_TOGGLES, TIME_OPTIONS } f
 import "./ScoreUpdates.css";
 
 const PAGE_SIZE = 20;
-// Built when rendering: the game list comes from the server's catalog at startup.
-// Games only (a season's runs are its game's runs); an old ?game=<season> link keeps its entry.
-const gameOptions = (current) =>
-  Object.values(GAMES)
-    .filter((g) => g.kind !== "season" || g.id === current)
-    .map((g) => ({ value: g.id, label: g.label }));
 const LIMITS = RUN_LIMITS;
 const TOGGLES = RUN_TOGGLES;
-const DEFAULTS = { game: "portal2", mode: "", map: "", q: "", limit: "200", banned: "hide", page: "0" };
+const DEFAULTS = { mode: "", map: "", q: "", limit: "200", banned: "hide", page: "0" };
 
 // Filters live in the URL so a filtered feed can be shared or bookmarked.
 function useFilters() {
@@ -53,7 +48,8 @@ function useFilters() {
 
 export default function ScoreUpdates() {
   const [get, set] = useFilters();
-  const game = GAMES[get("game")] ? get("game") : "portal2";
+  // The game picked under the logo (a season's runs are its game's runs).
+  const game = useGame();
   const mode = GAMES[game].modes.includes(get("mode")) ? get("mode") : "";
   const filters = {
     game,
@@ -106,7 +102,6 @@ export default function ScoreUpdates() {
       <Panel icon={HistoryIcon} title="Score Updates" bodyClassName="su-body">
         <div className="su-toolbar">
           <SearchBox value={get("q")} onChange={(v) => set({ q: v })} placeholder="Search players" showFilter={false} />
-          <Select value={game} onChange={(g) => set({ game: g, mode: "", map: "" })} options={gameOptions(game)} label="Game" className="su-game" />
           <Pagination page={page} pageCount={pageCount} onChange={setPage} />
         </div>
 

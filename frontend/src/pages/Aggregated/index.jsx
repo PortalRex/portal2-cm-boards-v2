@@ -11,6 +11,7 @@ import background from "../../scenes/global/img/OverallOpaque.png";
 import { countryName } from "../../data/countries";
 import { baseBoardOf, currentSeason, seasonBoard, withSeason } from "../../data/seasons";
 import SeasonSelect from "../../components/SeasonSelect";
+import { gameBoardPath, gameBoardsPath } from "../../hooks/useGame";
 import "./Aggregated.css";
 
 // Route segment -> [title, API kind] per game.
@@ -28,14 +29,8 @@ const KINDS = {
 };
 
 const BASE = { portal2: "/leaderboard", mel: "/leaderboard/mel" };
-// A board of a game: built-in games keep their old addresses.
-const boardPath = (game, board) => (BASE[game] ? `${BASE[game]}/${board}` : `/leaderboard/game/${game}/${board}`);
-export const gameBoardsPath = (game) => boardPath(game, "overall");
-// Games only: seasons are picked on their game's page (SeasonSelect).
-const categories = () =>
-  Object.values(GAMES)
-    .filter((g) => g.kind !== "season")
-    .map((g) => ({ value: g.id, label: g.id === "portal2" ? "Portal 2 Challenge Mode" : g.label }));
+// A board of a game (the game itself is picked under the logo in the header).
+const boardPath = gameBoardPath;
 
 // Season dates are UTC; shown as entered.
 const seasonKicker = (season) => {
@@ -130,7 +125,6 @@ function AggregatedContent({ game, kind, title, apiKind, season = null, kicker =
         <p className="agg-kicker">{kicker}</p>
         <h1 className="agg-title">{title}</h1>
         <div className="agg-selects">
-          <Select value={game} onChange={(g) => navigate(keep(gameBoardsPath(g), null))} options={categories()} label="Games" className="agg-select" />
           <SeasonSelect base={game} season={season} onChange={(s) => navigate(keep(s && pathname.includes("/chapter/") ? boardPath(game, kind) : pathname, s))} className="agg-select" />
           {!season && game === "portal2" && (kind === "sp" || kind === "coop") && (
             <Select value={pathname} onChange={(to) => navigate(keep(to))} options={chapterBoards(kind)} label="Chapter" className="agg-select" />

@@ -875,6 +875,15 @@ export function adminSetMapImage(steamId, file) {
   return postForm(`/admin/maps/${encodeURIComponent(steamId)}/image`, form);
 }
 export const adminRemoveMapImage = (steamId) => sendJson("DELETE", `/admin/maps/${encodeURIComponent(steamId)}/image`);
+// A game's header logo or page background (`kind`: "logo" or "background"; PNG, JPEG or WebP, up
+// to 5 MB), replacing the site's built-in one; or back to it.
+export function adminSetGameImage(gameId, kind, file) {
+  const form = new FormData();
+  form.append("image", file);
+  return postForm(`/admin/games/${gameId}/images/${kind}`, form);
+}
+export const adminRemoveGameImage = (gameId, kind) => sendJson("DELETE", `/admin/games/${gameId}/images/${kind}`);
+export const gameImageUrl = (gameId, kind, version) => apiUrl(`/games/${gameId}/images/${kind}?v=${version}`);
 export const mapImageUrl = (steamId, version) => apiUrl(`/maps/${encodeURIComponent(steamId)}/image?v=${version}`);
 export const adminCreateCategory = (steamId, name) => sendJson("POST", `/admin/maps/${encodeURIComponent(steamId)}/categories`, { name });
 export const adminUpdateCategory = (id, name) => sendJson("PUT", `/admin/categories/${id}`, { name });

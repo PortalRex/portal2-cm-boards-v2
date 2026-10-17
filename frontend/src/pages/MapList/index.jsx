@@ -1,7 +1,8 @@
 import { Link, useSearchParams } from "react-router-dom";
 import Layout from "../../components/Layout";
-import { Panel, Select, PlayerLink, Loading } from "../../components/ui";
+import { Panel, PlayerLink, Loading } from "../../components/ui";
 import useCurrentUser from "../../hooks/useCurrentUser";
+import useGame from "../../hooks/useGame";
 import { PinIcon, TrophyIcon } from "../../components/Icons";
 import { AutorenderLink, YouTubeLink, DemoLink } from "../../components/RunMedia";
 import { fetchPreviews } from "../../api/boards";
@@ -13,19 +14,13 @@ import { TimeButton } from "../../components/RunHistory";
 import SeasonSelect from "../../components/SeasonSelect";
 import { mapLink, seasonBoard, seasonsOf, useSeason } from "../../data/seasons";
 
-// Built when rendering: the game list comes from the server's catalog at startup. Seasons are
-// picked on their game (SeasonSelect), not listed as games.
-const gameOptions = () =>
-  Object.values(GAMES)
-    .filter((g) => g.kind !== "season")
-    .map((g) => ({ value: g.id, label: g.label }));
-
 export default function MapList() {
   const [params, setParams] = useSearchParams();
   const raw = params.get("game");
   // An old ?game=<season> link: its game with the season picked.
   const oldSeason = GAMES[raw]?.kind === "season" && GAMES[GAMES[raw].base] ? raw : null;
-  const game = oldSeason ? GAMES[raw].base : GAMES[raw] ? raw : "portal2";
+  // The game picked under the logo (an old ?game= link picks it).
+  const game = useGame();
   const picked = useSeason(game);
   const season = oldSeason || picked;
   const modes = GAMES[game].modes;
@@ -35,11 +30,10 @@ export default function MapList() {
   const previews = useApi(() => (board ? fetchPreviews(board) : Promise.resolve({})), [board]);
   const chapters = board ? chaptersFor(board) : [];
 
-  const update = (nextGame, nextMode, nextSeason = season) => {
+  const update = (nextMode, nextSeason = season) => {
     const next = {};
-    if (nextGame !== "portal2") next.game = nextGame;
-    if (nextMode !== GAMES[nextGame].modes[0]) next.mode = nextMode;
-    if (nextSeason && nextGame === game) next.season = nextSeason;
+    if (nextMode !== modes[0]) next.mode = nextMode;
+    if (nextSeason) next.season = nextSeason;
     setParams(next, { replace: true });
   };
 
@@ -47,16 +41,12 @@ export default function MapList() {
     <Layout background={background} tint="mono">
       <Panel icon={PinIcon} title="Leaderboards" bodyClassName="ml-body">
         <div className="ml-controls">
-          <div className="ml-control">
-            <span className="ml-label">Games</span>
-            <Select value={game} onChange={(g) => update(g, GAMES[g].modes[0], null)} options={gameOptions()} label="Games" className="ml-select" />
-          </div>
-          <SeasonControl game={game} season={season} onChange={(s) => update(game, mode, s)} />
+          <SeasonControl game={game} season={season} onChange={(s) => update(mode, s)} />
           <div className="ml-control">
             <span className="ml-label">Mode</span>
             <div className="segmented" role="tablist">
               {modes.map((m) => (
-                <button key={m} type="button" role="tab" aria-selected={mode === m} className={mode === m ? "is-active" : ""} onClick={() => update(game, m)}>
+                <button key={m} type="button" role="tab" aria-selected={mode === m} className={mode === m ? "is-active" : ""} onClick={() => update(m)}>
                   {MODE_LABELS[m]}
                 </button>
               ))}

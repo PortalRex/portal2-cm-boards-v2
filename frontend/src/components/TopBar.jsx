@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, NavLink, useLocation } from "react-router-dom";
-import logo from "../scenes/global/img/portal2logo.png";
+import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { HistoryIcon, PinIcon, BarsIcon, MoreIcon, TrophyIcon, PersonIcon, PeopleIcon, MenuIcon, CloseIcon, LightModeIcon, DarkModeIcon, SteamIcon, UploadIcon, DiscordIcon, GitHubIcon, DonateIcon, GavelIcon, InfoIcon, StarIcon, TriangleRight, TriangleDown, StatsIcon } from "./Icons";
 import { Avatar, Flag } from "./ui";
 import { GAMES, MODE_LABELS, chapterDbId, coopChapters, spChapters } from "../data/maps";
@@ -11,11 +10,13 @@ import { useDataVersion } from "../lib/dataVersion";
 import SubmitRun from "./SubmitRun";
 import StaffInbox from "./StaffInbox";
 import { currentSeason, isLive, seasonsOf, withSeason } from "../data/seasons";
+import useGame, { gameBoardsPath, gameBrand, gameLogo, pickableGames, setGame } from "../hooks/useGame";
 import "./TopBar.css";
 
-// The Aggregate menu, like the old boards' but with a game level: game → board (Overall, a mode)
-// → Total and each chapter (Portal 2's chapter boards). Added games come from the catalog. A
-// game's seasons sit under it: "Current season" while one runs, and "Seasons" listing them all.
+// The Aggregate menu for each game: board (Overall, a mode) → Total and each chapter (Portal 2's
+// chapter boards). Added games come from the catalog. A game's seasons sit with its boards:
+// "Current season" while one runs, and "Seasons" listing them all. Only the game picked under the
+// logo is shown.
 const chapterItems = (chapters) => chapters.map((c) => ({ number: c.number, label: c.name, to: `/leaderboard/chapter/${chapterDbId(c)}` }));
 // A game's season entries: the running one highlighted, then the list (no "Total" row).
 const seasonBoards = (base, overallPath) => {
@@ -106,32 +107,90 @@ function ExpandButton({ open, onToggle, label, className }) {
 }
 
 function AggregateMenu() {
-  const [open, setOpen] = useState({});
+  const current = useGame();
   // Re-read the games after an edit in the games editor (names, boards, new games).
   useDataVersion();
+  const games = aggregateMenu();
+  const game = games.find((g) => g.id === current) || games[0];
   return (
     <div className="nav-menu nav-menu-tree" role="menu">
-      {aggregateMenu().map((game) => (
-        <div className={`menu-group${open[game.id] ? " is-expanded" : ""}`} key={game.id}>
-          <MenuLink item={game} caret />
-          <ExpandButton className="menu-expand" open={Boolean(open[game.id])} label={game.label} onToggle={() => setOpen((o) => ({ ...o, [game.id]: !o[game.id] }))} />
-          <div className="menu-sub">
-            {game.boards.map((board) => (
-              <div className="menu-group" key={board.label}>
-                <MenuLink item={board} caret={Boolean(board.chapters)} />
-                {board.chapters && (
-                  <div className="menu-sub menu-sub-chapters">
-                    {!board.noTotal && <MenuLink item={{ label: "Total", icon: StarIcon, to: board.to }} />}
-                    {board.chapters.map((c) => (
-                      <MenuLink key={c.to} item={c} />
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
+      {game.boards.map((board) => (
+        <div className="menu-group" key={board.label}>
+          <MenuLink item={board} caret={Boolean(board.chapters)} />
+          {board.chapters && (
+            <div className="menu-sub menu-sub-chapters">
+              {!board.noTotal && <MenuLink item={{ label: "Total", icon: StarIcon, to: board.to }} />}
+              {board.chapters.map((c) => (
+                <MenuLink key={c.to} item={c} />
+              ))}
+            </div>
+          )}
         </div>
       ))}
+    </div>
+  );
+}
+
+// Where switching game goes from the page you're on: a board or map of the old game opens the
+// new game's boards or map list; other pages stay, without the old game's filters.
+const GAME_PARAMS = ["game", "season", "mode", "map", "board", "page"];
+function pathForGame(game, pathname, search) {
+  if (pathname.startsWith("/leaderboard")) return gameBoardsPath(game);
+  if (pathname.startsWith("/map/")) return "/maps";
+  const params = new URLSearchParams(search);
+  GAME_PARAMS.forEach((k) => params.delete(k));
+  const rest = params.toString();
+  return rest ? `${pathname}?${rest}` : pathname;
+}
+
+// The logo (P2CM, PSM:CM for Mel): home on click; on hover (or its arrow on touch screens) the games, by logo,
+// to switch the whole site to.
+function Brand({ pathname, search }) {
+  const game = useGame();
+  const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+  // After a pick the list stays shut while the pointer is still over it (it opens on hover).
+  const [picked, setPicked] = useState(false);
+  useDataVersion();
+  const games = pickableGames();
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname, game]);
+  const choose = (id) => {
+    setOpen(false);
+    setPicked(true);
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+    if (id === game) return;
+    setGame(id);
+    navigate(pathForGame(id, pathname, search));
+  };
+  return (
+    <div className={`brand-menu${open ? " is-open" : ""}${picked ? " is-picked" : ""}`} onMouseLeave={() => setPicked(false)}>
+      <Link to="/" className="brand" aria-label={`${GAMES[game]?.label || "Portal 2"} Challenge Mode boards home`} title={GAMES[game]?.label}>
+        <img src={gameLogo(game)} alt="" />
+        <span>{gameBrand(game)}</span>
+      </Link>
+      {games.length > 1 && (
+        <>
+          <ExpandButton
+            className="brand-expand"
+            open={open}
+            label="games"
+            onToggle={() => {
+              setPicked(false);
+              setOpen((o) => !o);
+            }}
+          />
+          <div className="brand-games" role="menu" aria-label="Game">
+            {games.map((g) => (
+              <button key={g.id} type="button" role="menuitemradio" aria-checked={g.id === game} className={`brand-game${g.id === game ? " is-active" : ""}`} onClick={() => choose(g.id)}>
+                <img src={gameLogo(g.id)} alt="" />
+                <span>{g.label}</span>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -174,12 +233,15 @@ function MenuItem({ item }) {
 
 function NavItem({ item, pathname }) {
   const Icon = item.icon;
+  const game = useGame();
+  // Aggregate opens the picked game's boards.
+  const to = item.menu === "leaderboard" ? gameBoardsPath(game) : item.to;
   const active = item.end ? pathname === item.to : (item.match || [item.to]).some((m) => pathname.startsWith(m));
   // Phones: a menu stays closed until its arrow is tapped.
   const [expanded, setExpanded] = useState(false);
   return (
     <li className={`nav-item${item.menu ? " has-menu" : ""}${expanded ? " is-expanded" : ""}`}>
-      <NavLink to={item.to} className={`nav-link${active ? " is-active" : ""}`} end={item.end}>
+      <NavLink to={to} className={`nav-link${active ? " is-active" : ""}`} end={item.end}>
         <Icon className="nav-icon" />
         <span>{item.label}</span>
       </NavLink>
@@ -246,10 +308,7 @@ export default function TopBar() {
   return (
     <header className={`topbar${open ? " is-open" : ""}`}>
       <div className="topbar-inner">
-        <Link to="/" className="brand" aria-label="Portal 2 Challenge Mode boards home">
-          <img src={logo} alt="" />
-          <span>P2CM</span>
-        </Link>
+        <Brand pathname={pathname} search={search} />
 
         <nav className="topbar-nav" aria-label="Main">
           <ul>

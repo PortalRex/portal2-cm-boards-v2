@@ -89,6 +89,9 @@ pub struct GameUpdateBody {
     #[serde(default, deserialize_with = "nullable")]
     pub ends_at: Option<Option<NaiveDateTime>>,
     pub hidden: Option<bool>,
+    /// The name beside the logo in the header (null or empty = the site's default).
+    #[serde(default, deserialize_with = "nullable")]
+    pub short_name: Option<Option<String>>,
     /// Add or rename one of the game's modes: `{"mode": "sp", "name": "No hair"}` (empty name =
     /// default name, or remove a mode no chapter uses).
     pub mode_name: Option<ModeNameBody>,
@@ -100,13 +103,21 @@ pub struct ModeNameBody {
     pub name: String,
 }
 
-/// **PUT** Rename a game, add or rename one of its modes, change its link name, hide it, or move a season's dates.
+/// **PUT** Rename a game, add or rename one of its modes, change its link name or header name, hide it, or move a season's dates.
 #[put("/admin/games/{id}")]
 async fn admin_game_update(auth: AdminOrService, pool: web::Data<PgPool>, id: web::Path<i32>, body: web::Json<GameUpdateBody>) -> Result<impl Responder> {
     if let Some(r) = admin_only(&auth) {
         return Ok(r);
     }
-    let update = GameUpdate { name: body.name.as_deref(), slug: body.slug.as_deref(), starts_at: body.starts_at, ends_at: body.ends_at, hidden: body.hidden, mode_name: body.mode_name.as_ref().map(|m| (m.mode.as_str(), m.name.as_str())) };
+    let update = GameUpdate {
+        name: body.name.as_deref(),
+        slug: body.slug.as_deref(),
+        starts_at: body.starts_at,
+        ends_at: body.ends_at,
+        hidden: body.hidden,
+        short_name: body.short_name.as_ref().map(|s| s.as_deref()),
+        mode_name: body.mode_name.as_ref().map(|m| (m.mode.as_str(), m.name.as_str())),
+    };
     reply(catalog::update_game(pool.get_ref(), &auth, id.into_inner(), update).await).await
 }
 
@@ -224,6 +235,65 @@ fn image_kind(bytes: &[u8]) -> Option<(&'static str, &'static str)> {
     }
 }
 
+/// Reads the form field `image` of an upload: a PNG, JPEG or WebP up to [MAX_IMAGE_BYTES], with
+/// its extension. Err is the answer to give.
+async fn read_image(payload: &mut Multipart) -> std::result::Result<(Vec<u8>, &'static str), HttpResponse> {
+    let mut bytes: Vec<u8> = Vec::new();
+    while let Some(field) = payload.next().await {
+        let Ok(mut field) = field else {
+            return Err(HttpResponse::BadRequest().body("Upload failed."));
+        };
+        let is_image = field.name() == Some("image");
+        while let Some(chunk) = field.next().await {
+            let Ok(chunk) = chunk else {
+                return Err(HttpResponse::BadRequest().body("Upload failed."));
+            };
+            if is_image {
+                if bytes.len() + chunk.len() > MAX_IMAGE_BYTES {
+                    return Err(HttpResponse::BadRequest().body("That image is too large (5 MB max)."));
+                }
+                bytes.extend_from_slice(&chunk);
+            }
+        }
+    }
+    match image_kind(&bytes) {
+        Some((ext, _)) => Ok((bytes, ext)),
+        None => Err(HttpResponse::BadRequest().body("Upload a PNG, JPEG or WebP image.")),
+    }
+}
+
+/// Saves an uploaded image in IMAGES.STORAGE as `<prefix>-<random>.<ext>`; returns the file name.
+async fn save_image(config: &crate::tools::config::Config, prefix: &str, bytes: &[u8], ext: &str) -> std::result::Result<String, HttpResponse> {
+    let dir = config.images.storage();
+    let name = format!("{}-{}.{ext}", sanitize_filename::sanitize(prefix), &crate::tools::auth::random_token()[..10]);
+    let saved = match tokio::fs::create_dir_all(dir).await {
+        Ok(()) => tokio::fs::write(Path::new(dir).join(&name), bytes).await,
+        Err(e) => Err(e),
+    };
+    match saved {
+        Ok(()) => Ok(name),
+        Err(e) => {
+            log::error!("images: {e}");
+            Err(HttpResponse::InternalServerError().body("Images can't be saved right now."))
+        }
+    }
+}
+
+/// Answers with a stored image (its address changes with each upload, so it's cached for good).
+async fn send_image(config: &crate::tools::config::Config, file: Option<String>, missing: &'static str) -> HttpResponse {
+    let Some(file) = file else {
+        return HttpResponse::NotFound().body(missing);
+    };
+    let Ok(bytes) = tokio::fs::read(Path::new(config.images.storage()).join(&file)).await else {
+        return HttpResponse::NotFound().body(missing);
+    };
+    let mime = image_kind(&bytes).map(|(_, m)| m).unwrap_or("application/octet-stream");
+    HttpResponse::Ok()
+        .insert_header((header::CONTENT_TYPE, mime))
+        .insert_header((header::CACHE_CONTROL, "public, max-age=31536000, immutable"))
+        .body(bytes)
+}
+
 /// **POST** Set a map's image (admin tier; form field `image`: PNG, JPEG or WebP, up to 5 MB). It
 /// replaces the site's built-in image for the map everywhere it's shown. Answers `{ "image_version" }`.
 #[post("/admin/maps/{steam_id}/image")]
@@ -246,37 +316,15 @@ async fn admin_map_image_set(
     let Some(old) = old else {
         return Ok(HttpResponse::NotFound().body("No such map."));
     };
-    let mut bytes: Vec<u8> = Vec::new();
-    while let Some(field) = payload.next().await {
-        let Ok(mut field) = field else {
-            return Ok(HttpResponse::BadRequest().body("Upload failed."));
-        };
-        let is_image = field.name() == Some("image");
-        while let Some(chunk) = field.next().await {
-            let Ok(chunk) = chunk else {
-                return Ok(HttpResponse::BadRequest().body("Upload failed."));
-            };
-            if is_image {
-                if bytes.len() + chunk.len() > MAX_IMAGE_BYTES {
-                    return Ok(HttpResponse::BadRequest().body("That image is too large (5 MB max)."));
-                }
-                bytes.extend_from_slice(&chunk);
-            }
-        }
-    }
-    let Some((ext, _)) = image_kind(&bytes) else {
-        return Ok(HttpResponse::BadRequest().body("Upload a PNG, JPEG or WebP image."));
+    let (bytes, ext) = match read_image(&mut payload).await {
+        Ok(v) => v,
+        Err(r) => return Ok(r),
+    };
+    let name = match save_image(&config, &steam_id, &bytes, ext).await {
+        Ok(n) => n,
+        Err(r) => return Ok(r),
     };
     let dir = config.images.storage();
-    let name = format!("{}-{}.{ext}", sanitize_filename::sanitize(&steam_id), &crate::tools::auth::random_token()[..10]);
-    if let Err(e) = tokio::fs::create_dir_all(dir).await {
-        log::error!("map images: {e}");
-        return Ok(HttpResponse::InternalServerError().body("Images can't be saved right now."));
-    }
-    if let Err(e) = tokio::fs::write(Path::new(dir).join(&name), &bytes).await {
-        log::error!("map images: {e}");
-        return Ok(HttpResponse::InternalServerError().body("Images can't be saved right now."));
-    }
     let version: i64 = sqlx::query_scalar(
         "UPDATE maps SET image_file = $2, image_updated = now() AT TIME ZONE 'utc' WHERE steam_id = $1 RETURNING extract(epoch FROM image_updated)::bigint",
     )
@@ -318,21 +366,98 @@ async fn admin_map_image_delete(
 #[get("/maps/{steam_id}/image")]
 async fn map_image(req: HttpRequest, pool: web::Data<PgPool>, config: web::Data<crate::tools::config::Config>, steam_id: web::Path<String>) -> Result<impl Responder> {
     let file: Option<Option<String>> = sqlx::query_scalar("SELECT image_file FROM maps WHERE steam_id = $1").bind(steam_id.as_str()).fetch_optional(pool.get_ref()).await?;
-    let Some(Some(file)) = file else {
-        return Ok(HttpResponse::NotFound().body("No image for this map."));
-    };
-    let path = Path::new(config.images.storage()).join(&file);
-    let bytes = match tokio::fs::read(&path).await {
-        Ok(b) => b,
-        Err(_) => return Ok(HttpResponse::NotFound().body("No image for this map.")),
-    };
-    let mime = image_kind(&bytes).map(|(_, m)| m).unwrap_or("application/octet-stream");
     let _ = req;
-    Ok(HttpResponse::Ok()
-        .insert_header((header::CONTENT_TYPE, mime))
-        // The address changes with each upload, so a copy can be kept for good.
-        .insert_header((header::CACHE_CONTROL, "public, max-age=31536000, immutable"))
-        .body(bytes))
+    Ok(send_image(&config, file.flatten(), "No image for this map.").await)
+}
+
+/// A game's pictures: its logo in the header and its page background, as (file column, time
+/// column). Fixed names, so they can go into the SQL.
+fn game_picture(kind: &str) -> Option<(&'static str, &'static str)> {
+    match kind {
+        "logo" => Some(("logo_file", "logo_updated")),
+        "background" => Some(("background_file", "background_updated")),
+        _ => None,
+    }
+}
+
+/// **POST** Set a game's logo or background (`/admin/games/{id}/images/logo|background`, admin
+/// tier; form field `image`: PNG, JPEG or WebP, up to 5 MB). Answers `{ "version" }`.
+#[post("/admin/games/{id}/images/{kind}")]
+async fn admin_game_image_set(
+    req: HttpRequest,
+    auth: AdminOrService,
+    pool: web::Data<PgPool>,
+    config: web::Data<crate::tools::config::Config>,
+    path: web::Path<(i32, String)>,
+    mut payload: Multipart,
+) -> Result<impl Responder> {
+    if let Some(r) = admin_only(&auth) {
+        return Ok(r);
+    }
+    let (id, kind) = path.into_inner();
+    let Some((file_col, time_col)) = game_picture(&kind) else {
+        return Ok(HttpResponse::NotFound().body("A game has a logo and a background."));
+    };
+    if let Err(limited) = crate::tools::ratelimit::check(&req, &config, "upload", 10, std::time::Duration::from_secs(60)) {
+        return Ok(limited);
+    }
+    let old: Option<Option<String>> = sqlx::query_scalar(&format!("SELECT {file_col} FROM games WHERE id = $1")).bind(id).fetch_optional(pool.get_ref()).await?;
+    let Some(old) = old else {
+        return Ok(HttpResponse::NotFound().body("No such game."));
+    };
+    let (bytes, ext) = match read_image(&mut payload).await {
+        Ok(v) => v,
+        Err(r) => return Ok(r),
+    };
+    let name = match save_image(&config, &format!("game{id}-{kind}"), &bytes, ext).await {
+        Ok(n) => n,
+        Err(r) => return Ok(r),
+    };
+    let version: i64 = sqlx::query_scalar(&format!(
+        "UPDATE games SET {file_col} = $2, {time_col} = clock_timestamp() AT TIME ZONE 'utc' WHERE id = $1 RETURNING extract(epoch FROM {time_col})::bigint"
+    ))
+    .bind(id)
+    .bind(&name)
+    .fetch_one(pool.get_ref())
+    .await?;
+    if let Some(old) = old {
+        let _ = tokio::fs::remove_file(Path::new(config.images.storage()).join(old)).await;
+    }
+    crate::controllers::moderation::log_admin(pool.get_ref(), &auth, &format!("game.{kind}"), "game", &id.to_string(), json!({ "file": name, "bytes": bytes.len() })).await?;
+    Ok(HttpResponse::Ok().json(json!({ "version": version })))
+}
+
+/// **DELETE** Remove a game's uploaded logo or background (admin tier); the site's built-in one is used again.
+#[delete("/admin/games/{id}/images/{kind}")]
+async fn admin_game_image_delete(auth: AdminOrService, pool: web::Data<PgPool>, config: web::Data<crate::tools::config::Config>, path: web::Path<(i32, String)>) -> Result<impl Responder> {
+    if let Some(r) = admin_only(&auth) {
+        return Ok(r);
+    }
+    let (id, kind) = path.into_inner();
+    let Some((file_col, time_col)) = game_picture(&kind) else {
+        return Ok(HttpResponse::NotFound().body("A game has a logo and a background."));
+    };
+    let old: Option<Option<String>> = sqlx::query_scalar(&format!("SELECT {file_col} FROM games WHERE id = $1")).bind(id).fetch_optional(pool.get_ref()).await?;
+    let Some(old) = old else {
+        return Ok(HttpResponse::NotFound().body("No such game."));
+    };
+    sqlx::query(&format!("UPDATE games SET {file_col} = NULL, {time_col} = NULL WHERE id = $1")).bind(id).execute(pool.get_ref()).await?;
+    if let Some(old) = old {
+        let _ = tokio::fs::remove_file(Path::new(config.images.storage()).join(old)).await;
+        crate::controllers::moderation::log_admin(pool.get_ref(), &auth, &format!("game.{kind}_remove"), "game", &id.to_string(), json!({})).await?;
+    }
+    Ok(HttpResponse::NoContent().finish())
+}
+
+/// **GET** A game's uploaded logo or background (the address the catalog gives, `?v=` changes with each upload).
+#[get("/games/{id}/images/{kind}")]
+async fn game_image(pool: web::Data<PgPool>, config: web::Data<crate::tools::config::Config>, path: web::Path<(i32, String)>) -> Result<impl Responder> {
+    let (id, kind) = path.into_inner();
+    let Some((file_col, _)) = game_picture(&kind) else {
+        return Ok(HttpResponse::NotFound().body("A game has a logo and a background."));
+    };
+    let file: Option<Option<String>> = sqlx::query_scalar(&format!("SELECT {file_col} FROM games WHERE id = $1")).bind(id).fetch_optional(pool.get_ref()).await?;
+    Ok(send_image(&config, file.flatten(), "No such image for this game.").await)
 }
 
 /// **DELETE** Delete a map without runs.

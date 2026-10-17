@@ -23,6 +23,12 @@ pub struct CatalogGame {
     pub ends_at: Option<NaiveDateTime>,
     pub sort_order: i32,
     pub hidden: bool,
+    /// The name beside the logo in the header (e.g. P2CM); None = the site's default.
+    pub short_name: Option<String>,
+    /// Uploaded logo and background, at `/games/{id}/logo?v={logo_version}` (and `background`);
+    /// None = the site's built-in ones.
+    pub logo_version: Option<i64>,
+    pub background_version: Option<i64>,
     #[serde(skip)]
     pub mode_names_json: String,
     /// The game's own names for its boards, by chapter `game_mode` ({"sp": "No hair"}); other
@@ -78,7 +84,13 @@ pub struct CatalogCategory {
 /// when `include_hidden` (staff).
 pub async fn catalog(pool: &PgPool, include_hidden: bool) -> Result<Vec<CatalogGame>, sqlx::Error> {
     let mut games = sqlx::query_as::<_, CatalogGame>(
-        "SELECT id, game_name AS name, slug, kind, base_game_id, starts_at, ends_at, sort_order, hidden, mode_names::text AS mode_names_json FROM games WHERE $1 OR NOT hidden ORDER BY sort_order, id",
+        r#"
+            SELECT id, game_name AS name, slug, kind, base_game_id, starts_at, ends_at, sort_order, hidden, short_name,
+                CASE WHEN logo_file IS NOT NULL THEN extract(epoch FROM logo_updated)::bigint END AS logo_version,
+                CASE WHEN background_file IS NOT NULL THEN extract(epoch FROM background_updated)::bigint END AS background_version,
+                mode_names::text AS mode_names_json
+            FROM games WHERE $1 OR NOT hidden ORDER BY sort_order, id
+        "#,
     )
     .bind(include_hidden)
     .fetch_all(pool)
@@ -309,6 +321,8 @@ pub struct GameUpdate<'a> {
     pub starts_at: Option<Option<NaiveDateTime>>,
     pub ends_at: Option<Option<NaiveDateTime>>,
     pub hidden: Option<bool>,
+    /// The name beside the logo; Some(None) (or empty) = the site's default.
+    pub short_name: Option<Option<&'a str>>,
     /// Adds or renames one of the game's modes (boards): (`game_mode`, name). An empty name goes
     /// back to the default name, or removes a mode no chapter uses.
     pub mode_name: Option<(&'a str, &'a str)>,
@@ -338,6 +352,13 @@ pub async fn update_game(pool: &PgPool, actor: &AdminOrService, id: i32, update:
     }
     if let Some(hidden) = update.hidden {
         sqlx::query("UPDATE games SET hidden = $2 WHERE id = $1").bind(id).bind(hidden).execute(&mut *tx).await?;
+    }
+    if let Some(short) = update.short_name {
+        let short = match short.map(str::trim).filter(|s| !s.is_empty()) {
+            Some(s) => Some(check!(clean_name(s, 16))),
+            None => None,
+        };
+        sqlx::query("UPDATE games SET short_name = $2 WHERE id = $1").bind(id).bind(short).execute(&mut *tx).await?;
     }
     if let Some((mode, name)) = update.mode_name {
         if !valid_mode(mode) {
@@ -373,7 +394,7 @@ pub async fn update_game(pool: &PgPool, actor: &AdminOrService, id: i32, update:
         "game",
         &id.to_string(),
         None,
-        json!({ "name": update.name, "slug": update.slug, "hidden": update.hidden, "starts_at": new_starts, "ends_at": new_ends, "window_moved": window_moved, "mode_name": update.mode_name }),
+        json!({ "name": update.name, "slug": update.slug, "short_name": update.short_name, "hidden": update.hidden, "starts_at": new_starts, "ends_at": new_ends, "window_moved": window_moved, "mode_name": update.mode_name }),
     )
     .await?;
     tx.commit().await?;

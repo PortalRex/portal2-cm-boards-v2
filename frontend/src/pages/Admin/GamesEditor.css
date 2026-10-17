@@ -388,6 +388,17 @@
   border: 1px solid var(--border);
 }
 
+.ge-logo-thumb {
+  height: 52px;
+  width: auto;
+  max-width: 120px;
+  object-fit: contain;
+}
+
+.ge-image-label {
+  min-width: 90px;
+}
+
 .ge-upload {
   display: inline-flex;
   align-items: center;

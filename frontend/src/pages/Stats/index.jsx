@@ -1,6 +1,6 @@
 import { Link, NavLink, useSearchParams } from "react-router-dom";
 import Layout from "../../components/Layout";
-import { Avatar, EmptyState, Loading, Panel, PlayerLink, Select } from "../../components/ui";
+import { Avatar, EmptyState, Loading, Panel, PlayerLink } from "../../components/ui";
 import { StatsIcon } from "../../components/Icons";
 import { ComparePanel } from "../Compare";
 import { CountriesPanel } from "../Countries";
@@ -8,6 +8,7 @@ import { fetchSiteStats } from "../../api/client";
 import { HistoryPanel, RacePanel, RecordsPanel, useWrStats } from "./WrPages";
 import { GAMES, MODE_LABELS } from "../../data/maps";
 import useApi from "../../hooks/useApi";
+import useGame from "../../hooks/useGame";
 import { formatDate, formatLongScore, formatPoints, formatScore, timeAgo } from "../../lib/format";
 import background from "../../scenes/global/img/Background.png";
 import "./Stats.css";
@@ -58,8 +59,8 @@ const LEADERS = [
 
 function RunnersPanel() {
   const [params, setParams] = useSearchParams();
-  const raw = params.get("game");
-  const game = GAMES[raw] && GAMES[raw].kind !== "season" ? raw : "portal2";
+  // The game picked under the logo.
+  const game = useGame();
   const boards = [...GAMES[game].modes, "overall"];
   const board = boards.includes(params.get("board")) ? params.get("board") : "overall";
   const set = (changes) => {
@@ -76,19 +77,6 @@ function RunnersPanel() {
       icon={StatsIcon}
       title="Runners"
       bodyClassName="st-body"
-      actions={
-        Object.keys(GAMES).filter((g) => GAMES[g].kind !== "season").length > 1 ? (
-          <Select
-            value={game}
-            onChange={(g) => set({ game: g === "portal2" ? "" : g, board: "" })}
-            options={Object.values(GAMES)
-              .filter((g) => g.kind !== "season")
-              .map((g) => ({ value: g.id, label: g.label }))}
-            label="Game"
-            className="st-select"
-          />
-        ) : null
-      }
     >
       {stats.loading && !s ? (
         <Loading label="Working out the stats" />

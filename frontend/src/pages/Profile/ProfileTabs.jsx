@@ -8,6 +8,7 @@ import { scrollToCentre } from "../../lib/scroll";
 import { toggleOnRowClick } from "../../lib/rows";
 import { fetchGameProfile, fetchProfileStats } from "../../api/client";
 import useApi from "../../hooks/useApi";
+import useGame from "../../hooks/useGame";
 import { useDataVersion } from "../../lib/dataVersion";
 import { GAMES, chapterDbId, chaptersFor, isMultiplayerMode, mapPath, MODE_LABELS } from "../../data/maps";
 import { rankVars } from "../../lib/ranks";
@@ -18,16 +19,18 @@ import { TimeButton } from "../../components/RunHistory";
 import SeasonSelect from "../../components/SeasonSelect";
 import { seasonBoard, useSeason } from "../../data/seasons";
 
-// Portal 2's boards, then a tab per other game (Mel, ...), then Legacy and Info. Seasons are
-// picked inside their game's tabs (SeasonSelect), not tabs of their own.
-const profileTabs = () => [
-  { key: "sp", label: "Singleplayer" },
-  { key: "coop", label: "Cooperative" },
-  ...Object.values(GAMES)
-    .filter((g) => g.id !== "portal2" && g.kind !== "season")
-    .map((g) => ({ key: `game:${g.id}`, label: g.label })),
+// The tabs for the game picked under the logo: Portal 2's two boards (and its old board's Legacy
+// view), or another game's results in one tab; then Stats and Info. Seasons are picked inside the
+// game's tabs (SeasonSelect), not tabs of their own.
+const profileTabs = (game) => [
+  ...(game === "portal2"
+    ? [
+        { key: "sp", label: "Singleplayer" },
+        { key: "coop", label: "Cooperative" },
+      ]
+    : [{ key: `game:${game}`, label: GAMES[game]?.label || game }]),
   { key: "stats", label: "Stats" },
-  { key: "legacy", label: "Legacy" },
+  ...(game === "portal2" ? [{ key: "legacy", label: "Legacy" }] : []),
   { key: "info", label: "Info" },
 ];
 const CATEGORIES = [{ value: "p2cm", label: "Portal 2 Challenge Mode" }];
@@ -55,12 +58,19 @@ function SortSelect({ sort, onSort }) {
   return <Select value={sort} onChange={onSort} options={SORTS} label="Sort maps" className="pf-category pf-sort" />;
 }
 
+// A fresh set of tabs (and season, sort, selection) for each game.
 export default function ProfileTabs({ profile }) {
-  const [tab, setTab] = useState("sp");
+  const game = useGame();
+  return <GameProfileTabs key={game} game={game} profile={profile} />;
+}
+
+function GameProfileTabs({ game, profile }) {
+  const tabs = profileTabs(game);
+  const [tab, setTab] = useState(tabs[0].key);
   const [sort, setSort] = useState("default");
   const [selectedMap, setSelectedMap] = useState(null);
-  // The season picked in the current tab (a ?season= link opens Portal 2's tabs on it).
-  const linked = useSeason("portal2");
+  // The season picked in the current tab (a ?season= link opens the game's tabs on it).
+  const linked = useSeason(game);
   const [season, setSeason] = useState(linked);
   const pickSeason = (s) => {
     setSeason(s);
@@ -70,7 +80,7 @@ export default function ProfileTabs({ profile }) {
   return (
     <section className="pf-tabs">
       <div className="pf-tablist" role="tablist">
-        {profileTabs().map((t) => (
+        {tabs.map((t) => (
           <button
             key={t.key}
             type="button"
@@ -120,7 +130,7 @@ export default function ProfileTabs({ profile }) {
             onSort={setSort}
           />
         ) : tab === "stats" ? (
-          <StatsTab profileNumber={profile.player.profileNumber} />
+          <StatsTab profileNumber={profile.player.profileNumber} game={game} />
         ) : tab === "legacy" ? (
           <LegacyTab scores={profile.scores} player={profile.player} />
         ) : (
@@ -485,31 +495,15 @@ function LegacyTab({ scores, player }) {
 const pct = (n, of) => (of ? `${Math.round((n / of) * 100)}%` : "–");
 
 // Activity, co-op partners and demo stats for one game.
-function StatsTab({ profileNumber }) {
-  const [game, setGame] = useState("portal2");
+function StatsTab({ profileNumber, game }) {
   const [season, setSeason] = useState(null);
   const source = season || game;
   const version = useDataVersion();
   const stats = useApi(() => fetchProfileStats(profileNumber, source), [profileNumber, source, version]);
-  const games = Object.values(GAMES)
-    .filter((g) => g.kind !== "season")
-    .map((g) => ({ value: g.id, label: g.label }));
   const s = stats.data?.summary;
   return (
     <div className="pf-stats">
       <div className="pf-controls">
-        {games.length > 1 && (
-          <Select
-            value={game}
-            onChange={(g) => {
-              setGame(g);
-              setSeason(null);
-            }}
-            options={games}
-            label="Game"
-            className="pf-category"
-          />
-        )}
         <SeasonSelect base={game} season={season} onChange={setSeason} className="pf-category" />
       </div>
       {stats.loading && !stats.data ? (

@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import Layout from "../../components/Layout";
-import { Avatar, EmptyState, Loading, Panel, PlayerLink, RankNumber, Select } from "../../components/ui";
+import { Avatar, EmptyState, Loading, Panel, PlayerLink, RankNumber } from "../../components/ui";
 import { PeopleIcon, SwapIcon } from "../../components/Icons";
 import { fetchCompareSide, searchUsers } from "../../api/client";
 import { GAMES, MODE_LABELS, chaptersFor, isMultiplayerMode } from "../../data/maps";
 import useApi from "../../hooks/useApi";
+import useGame from "../../hooks/useGame";
 import useDebounced from "../../hooks/useDebounced";
 import { formatDelta, formatLongScore, formatScore } from "../../lib/format";
 import background from "../../scenes/global/img/Background.png";
@@ -21,7 +22,8 @@ export function ComparePanel() {
   const raw = params.get("game");
   // An old ?game=<season> link: its game with the season picked.
   const oldSeason = GAMES[raw]?.kind === "season" && GAMES[GAMES[raw].base] ? raw : null;
-  const game = oldSeason ? GAMES[raw].base : GAMES[raw] ? raw : "portal2";
+  // The game picked under the logo (an old ?game= link picks it).
+  const game = useGame();
   const picked = useSeason(game);
   const season = oldSeason || picked;
   const modes = GAMES[game].modes;
@@ -47,18 +49,7 @@ export function ComparePanel() {
         <PlayerSlot side={right.data} loading={right.loading} onPick={(pn) => set({ b: pn })} label="Second player" />
       </div>
       <div className="cmp-controls">
-        {Object.keys(GAMES).length > 1 && (
-          <Select
-            value={game}
-            onChange={(g) => set({ game: g === "portal2" ? "" : g, mode: "", season: "" })}
-            options={Object.values(GAMES)
-              .filter((g) => g.kind !== "season")
-              .map((g) => ({ value: g.id, label: g.label }))}
-            label="Game"
-            className="cmp-select"
-          />
-        )}
-        <SeasonSelect base={game} season={season} onChange={(s) => set({ game: game === "portal2" ? "" : game, season: s || "" })} className="cmp-select" />
+        <SeasonSelect base={game} season={season} onChange={(s) => set({ game: "", season: s || "" })} className="cmp-select" />
         <div className="segmented">
           {modes.map((m) => (
             <button key={m} type="button" className={m === mode ? "is-active" : ""} onClick={() => set({ mode: m === modes[0] ? "" : m })}>
