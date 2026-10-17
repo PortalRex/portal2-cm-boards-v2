@@ -1054,6 +1054,8 @@ CREATE INDEX IF NOT EXISTS idx_changelog_map_score ON changelog (map_id, score);
 CREATE INDEX IF NOT EXISTS idx_changelog_profile ON changelog (profile_number);
 CREATE INDEX IF NOT EXISTS idx_changelog_coop ON changelog (coop_id) WHERE coop_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_changelog_timestamp ON changelog (timestamp);
+-- World record history (post_rank = 1, verified, not banned or hidden), newest first.
+CREATE INDEX IF NOT EXISTS idx_changelog_wr ON changelog (timestamp DESC NULLS LAST) WHERE post_rank = 1 AND verified IS TRUE AND banned = false AND wr_hidden = false;
 CREATE INDEX IF NOT EXISTS idx_coop_bundled_cl1 ON coop_bundled (cl_id1);
 CREATE INDEX IF NOT EXISTS idx_coop_bundled_cl2 ON coop_bundled (cl_id2);
 

@@ -1,4 +1,4 @@
-use crate::tools::auth::AdminOrService;
+use crate::tools::auth::ServiceOnly;
 use crate::{
     models::{changelog::*, demos::DemoOptions},
     tools::{
@@ -126,7 +126,7 @@ async fn changelog(
 /// ```
 #[post("/changelog")]
 pub async fn changelog_new(
-    _auth: AdminOrService,
+    _auth: ServiceOnly,
     pool: web::Data<PgPool>,
     cl: web::Json<SubmissionChangelog>,
     cache: web::Data<CacheState>,
@@ -282,7 +282,7 @@ pub async fn daily_chambers(pool: web::Data<PgPool>, query: web::Query<DailyQuer
 
 #[put("/changelog/demo")]
 pub async fn changelog_demo_update(
-    _auth: AdminOrService,
+    _auth: ServiceOnly,
     pool: web::Data<PgPool>,
     ids: web::Json<DemoOptions>,
     cache: web::Data<CacheState>,

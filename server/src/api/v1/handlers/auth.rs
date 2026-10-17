@@ -129,9 +129,7 @@ async fn confirmed_by_steam(params: &HashMap<String, String>) -> bool {
         .map(|(k, v)| (k.as_str(), v.as_str()))
         .collect();
     form.push(("openid.mode", "check_authentication"));
-    let client = reqwest::Client::builder().timeout(std::time::Duration::from_secs(10)).build();
-    let Ok(client) = client else { return false };
-    match client.post(STEAM_OPENID).form(&form).send().await {
+    match crate::tools::helpers::http_client().post(STEAM_OPENID).form(&form).send().await {
         Ok(res) => res.text().await.map(|body| body.lines().any(|l| l.trim() == "is_valid:true")).unwrap_or(false),
         Err(e) => {
             log::warn!("Steam check_authentication failed: {e}");

@@ -1,3 +1,4 @@
+use crate::tools::auth::{AdminOrService, MaybeUser};
 use crate::{
     models::{admin::*, changelog::ChangelogQueryParams, users::Users},
     tools::error::Result,
@@ -71,6 +72,7 @@ use sqlx::PgPool;
 /// ```
 #[get("/admin/changelog")]
 pub async fn admin_changelog(
+    _auth: AdminOrService,
     pool: web::Data<PgPool>,
     query_params: web::Query<ChangelogQueryParams>,
 ) -> Result<impl Responder> {
@@ -102,7 +104,7 @@ pub async fn admin_changelog(
 ///     },...]
 /// ```
 #[get("/admin/banned_stats")]
-pub async fn admin_banned_stats(pool: web::Data<PgPool>) -> Result<impl Responder> {
+pub async fn admin_banned_stats(_auth: AdminOrService, pool: web::Data<PgPool>) -> Result<impl Responder> {
     Ok(web::Json(
         Admin::get_user_banned_time_stats(pool.get_ref()).await?,
     ))
@@ -148,14 +150,12 @@ pub async fn admin_banned_stats(pool: web::Data<PgPool>) -> Result<impl Responde
 /// ```
 #[get("/admins")]
 pub async fn admins_list(
+    user: MaybeUser,
     pool: web::Data<PgPool>,
     admin_level: web::Query<AdminLevel>,
 ) -> Result<impl Responder> {
-    Ok(web::Json(
-        Users::get_all_admins(
-            pool.get_ref(),
-            admin_level.into_inner().admin_level.unwrap_or(1),
-        )
-        .await?,
-    ))
+    // Only the public list (level 1) for everyone else: shadow admins aren't listed publicly.
+    let staff = user.0.as_ref().is_some_and(|u| u.is_admin());
+    let level = admin_level.into_inner().admin_level.filter(|_| staff).unwrap_or(1);
+    Ok(web::Json(Users::get_all_admins(pool.get_ref(), level).await?))
 }

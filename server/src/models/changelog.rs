@@ -125,7 +125,8 @@ pub struct Graph {
 pub struct BannedTimeDetails {
     pub profile_number: String,
     pub user_name: String,
-    pub avatar: String,
+    /// None for players the old board stored without a picture.
+    pub avatar: Option<String>,
     pub total_runs: i64,
     pub banned_runs: Option<i64>,
     pub non_verified_runs: Option<i64>,

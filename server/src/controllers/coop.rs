@@ -77,22 +77,21 @@ impl CoopMap {
                     c1.category_id, p1.avatar AS avatar1, p2.avatar AS avatar2,
                     c1.autorender_id AS autorender_id1, c2.autorender_id AS autorender_id2,
                     c1.portals AS portals1, c2.portals AS portals2,
-                    (SELECT d.sar_version FROM demos AS d WHERE d.id = c1.demo_id) AS sar_version1,
-                    (SELECT d.sar_version FROM demos AS d WHERE d.id = c2.demo_id) AS sar_version2
-                FROM (SELECT * FROM 
-                coop_bundled 
-                WHERE id IN 
-                    (SELECT coop_id
-                    FROM changelog
-                    WHERE map_id = $1
-                    AND coop_id IS NOT NULL)) as cb 
-                INNER JOIN changelog AS c1 ON (c1.id = cb.cl_id1)
+                    d1.sar_version AS sar_version1, d2.sar_version AS sar_version2
+                -- The map's runs come from changelog (map_id, score) and are joined to their
+                -- bundle, rather than filtering coop_bundled by a sub-select (a scan of every bundle).
+                FROM changelog AS c1
+                INNER JOIN coop_bundled AS cb ON (cb.cl_id1 = c1.id)
                 INNER JOIN changelog AS c2 ON (c2.id = cb.cl_id2)
                 INNER JOIN users AS p1 ON (p1.profile_number = cb.p_id1)
                 INNER JOIN users AS p2 ON (p2.profile_number = cb.p_id2)
                 INNER JOIN maps ON (c1.map_id = maps.steam_id)
                 INNER JOIN chapters ON (maps.chapter_id = chapters.id)
-                WHERE p1.banned=False
+                LEFT JOIN demos AS d1 ON (d1.id = c1.demo_id)
+                LEFT JOIN demos AS d2 ON (d2.id = c2.demo_id)
+                WHERE c1.map_id = $1
+                    AND c1.coop_id IS NOT NULL
+                    AND p1.banned=False
                     AND p2.banned = False
                     AND c1.banned = False
                     AND c2.banned = False
@@ -102,7 +101,8 @@ impl CoopMap {
                     AND chapters.game_id = $3
                     -- As of a moment: set when its first half was logged (undated runs count from release).
                     AND ($4::timestamp IS NULL OR COALESCE(LEAST(c1.timestamp, c2.timestamp), TIMESTAMP '2011-04-19 00:00:00') <= $4)
-                ORDER BY score ASC
+                -- Equal times: the earlier run first (the order was otherwise left to the planner).
+                ORDER BY score ASC, c1.timestamp ASC NULLS LAST, cb.id ASC
                 "#,
         )
         .bind(map_id)

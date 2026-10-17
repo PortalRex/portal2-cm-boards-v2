@@ -232,3 +232,16 @@ pub async fn map_game_id(pool: &PgPool, map_id: &str) -> i32 {
         .flatten()
         .unwrap_or(1)
 }
+
+/// One HTTP client for calls to Steam and the like (connection pool and TLS set-up are shared,
+/// rather than built per request).
+pub fn http_client() -> &'static reqwest::Client {
+    static CLIENT: std::sync::OnceLock<reqwest::Client> = std::sync::OnceLock::new();
+    CLIENT.get_or_init(|| {
+        reqwest::Client::builder()
+            .timeout(std::time::Duration::from_secs(10))
+            .user_agent("p2cm-boards")
+            .build()
+            .expect("http client")
+    })
+}
