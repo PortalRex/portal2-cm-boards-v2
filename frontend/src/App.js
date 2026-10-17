@@ -51,6 +51,10 @@ function App() {
         <Route path="/more/countries" element={<Moved to="/stats/countries" />} />
         <Route path="/admin" element={<Admin />} />
         <Route path="/stats" element={<Stats />} />
+        <Route path="/stats/records" element={<Stats tab="records" />} />
+        <Route path="/stats/history" element={<Stats tab="history" />} />
+        <Route path="/stats/race" element={<Stats tab="race" />} />
+        <Route path="/stats/times" element={<Stats tab="times" />} />
         <Route path="/stats/compare" element={<Stats tab="compare" />} />
         <Route path="/stats/countries" element={<Stats tab="countries" />} />
         <Route path="/compare" element={<Moved to="/stats/compare" />} />

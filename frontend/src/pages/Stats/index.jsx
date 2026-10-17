@@ -5,6 +5,7 @@ import { StatsIcon } from "../../components/Icons";
 import { ComparePanel } from "../Compare";
 import { CountriesPanel } from "../Countries";
 import { fetchSiteStats } from "../../api/client";
+import { HistoryPanel, RacePanel, RecordsPanel, TimesPanel, useWrStats } from "./WrPages";
 import { GAMES, MODE_LABELS } from "../../data/maps";
 import useApi from "../../hooks/useApi";
 import { formatDate, formatLongScore, formatPoints, formatScore, timeAgo } from "../../lib/format";
@@ -13,9 +14,14 @@ import "./Stats.css";
 
 const TABS = [
   { path: "/stats", label: "Runners" },
-  { path: "/stats/compare", label: "Compare players" },
+  { path: "/stats/records", label: "Records" },
+  { path: "/stats/history", label: "History" },
+  { path: "/stats/race", label: "Race" },
+  { path: "/stats/times", label: "Times" },
+  { path: "/stats/compare", label: "Compare" },
   { path: "/stats/countries", label: "Countries" },
 ];
+const PANELS = { records: RecordsPanel, history: HistoryPanel, race: RacePanel, times: TimesPanel, compare: ComparePanel, countries: CountriesPanel };
 
 // The Stats section: site-wide runner stats, with Compare players and Countries as its other tabs.
 export default function Stats({ tab = "runners" }) {
@@ -28,7 +34,10 @@ export default function Stats({ tab = "runners" }) {
           </NavLink>
         ))}
       </nav>
-      {tab === "compare" ? <ComparePanel /> : tab === "countries" ? <CountriesPanel /> : <RunnersPanel />}
+      {(() => {
+        const Tab = PANELS[tab] || RunnersPanel;
+        return <Tab />;
+      })()}
     </Layout>
   );
 }
@@ -45,6 +54,7 @@ const LEADERS = [
   { key: "demos", title: "Most demos", note: "runs submitted with a demo", format: number },
   { key: "portals", title: "Most portals placed", note: "counted from demos", format: number },
   { key: "time_saved", title: "Most time saved", note: "taken off personal bests", format: (v) => formatLongScore(v) },
+  { key: "record_days", title: "Most days holding records", note: "every map added together", format: (v) => number(Math.round(v)) },
 ];
 
 function RunnersPanel() {
@@ -59,7 +69,8 @@ function RunnersPanel() {
     setParams(next, { replace: true });
   };
   const stats = useApi(() => fetchSiteStats(game), [game]);
-  const s = stats.data;
+  const wr = useWrStats(game);
+  const s = stats.data && { ...stats.data, leaders: { ...stats.data.leaders, record_days: (wr.data?.holders || []).slice(0, 10).map((h) => ({ player: h.player, value: h.days })) } };
 
   return (
     <Panel

@@ -72,6 +72,7 @@ pub async fn clear() {
     c.peaks.lock().await.clear();
     c.all_peaks.lock().await.clear();
     crate::controllers::site_stats::clear();
+    crate::controllers::wr_stats::clear();
 }
 
 async fn timeline(pool: &PgPool, game_id: i32) -> Result<Arc<Timeline>, sqlx::Error> {

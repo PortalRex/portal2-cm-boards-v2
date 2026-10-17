@@ -234,6 +234,250 @@
   font-weight: 600;
 }
 
+/* World record pages */
+.st-seg {
+  height: 40px;
+}
+
+.st-seg button {
+  min-width: 0;
+  padding: 0 18px;
+  font-size: 17px;
+}
+
+.st-seg-wrap {
+  flex-wrap: wrap;
+  height: auto;
+}
+
+.st-seg-wrap button {
+  height: 40px;
+}
+
+.st-seg-body {
+  margin-bottom: 14px;
+}
+
+.st-map {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.st-date {
+  white-space: nowrap;
+}
+
+.st-live {
+  color: var(--positive, #6be38a);
+}
+
+.st-good {
+  color: var(--positive, #6be38a);
+}
+
+.st-teams {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  min-width: 0;
+}
+
+.st-team {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+}
+
+.st-records .st-row {
+  grid-template-columns: minmax(140px, 1fr) 90px minmax(0, 1.6fr) 120px 110px 80px;
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+
+.st-hist .st-row {
+  grid-template-columns: 40px minmax(120px, 1fr) 80px minmax(0, 1.2fr) 100px 220px minmax(0, 1.2fr);
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+
+.st-dom .st-row {
+  grid-template-columns: 40px minmax(120px, 1fr) minmax(0, 1fr) 80px 100px 220px 150px;
+}
+
+.st-imp .st-row {
+  grid-template-columns: 40px minmax(120px, 1fr) 90px 150px minmax(0, 1fr) 110px minmax(0, 1.3fr);
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+
+.st-days .st-row {
+  grid-template-columns: 40px minmax(0, 1fr) 130px 80px 120px 100px;
+}
+
+.st-unlikely .st-row {
+  grid-template-columns: minmax(120px, 1fr) 90px minmax(0, 1fr) 70px 120px 100px;
+}
+
+.st-staff {
+  display: inline-block;
+  white-space: nowrap;
+  margin-left: 10px;
+  padding: 2px 10px;
+  border-radius: 4px;
+  background: #b0352e;
+  color: #fff;
+  font-size: 14px;
+  vertical-align: middle;
+  letter-spacing: 0.04em;
+}
+
+/* Share of current records */
+.st-share {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.st-share-row {
+  display: grid;
+  grid-template-columns: minmax(150px, 240px) minmax(0, 1fr) 40px 60px;
+  align-items: center;
+  gap: 12px;
+  min-height: 32px;
+}
+
+.st-share-bar {
+  height: 14px;
+  border-radius: 7px;
+  background: var(--row);
+  overflow: hidden;
+}
+
+.st-share-bar span {
+  display: block;
+  height: 100%;
+  border-radius: 7px;
+  background: linear-gradient(90deg, #ff7b1a, #3b9bff);
+}
+
+.st-share-pct {
+  text-align: right;
+}
+
+/* Race */
+.st-race-controls {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.st-race-controls input[type="range"] {
+  flex: 1;
+  accent-color: #3b9bff;
+}
+
+.st-play {
+  width: 46px;
+  height: 46px;
+  border: 0;
+  border-radius: 50%;
+  background: #3b9bff;
+  color: #fff;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.st-race-date {
+  min-width: 96px;
+  font-size: 26px;
+  font-weight: 600;
+  text-align: right;
+}
+
+.st-race {
+  position: relative;
+  overflow: hidden;
+}
+
+.st-race-row {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  height: 36px;
+  transition: transform 0.2s linear, opacity 0.2s linear;
+}
+
+.st-race-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.st-race-track {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.st-race-bar {
+  height: 26px;
+  border-radius: 4px;
+  transition: width 0.2s linear;
+}
+
+.st-race-count {
+  font-weight: 600;
+}
+
+/* Hundredths endings */
+.st-endings {
+  display: grid;
+  grid-template-columns: repeat(100, minmax(0, 1fr));
+  align-items: end;
+  gap: 2px;
+  height: 260px;
+  padding-bottom: 22px;
+  margin-bottom: 10px;
+}
+
+.st-ending {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  height: 100%;
+}
+
+.st-ending-bar {
+  width: 100%;
+  border-radius: 2px 2px 0 0;
+  background: #3b9bff;
+}
+
+.st-ending.is-unlikely .st-ending-bar {
+  background: #e05a4f;
+}
+
+.st-ending-label {
+  position: absolute;
+  bottom: -22px;
+  left: 0;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
 @media (max-width: 900px) {
   .st-peaks .st-row {
     grid-template-columns: 36px minmax(0, 1fr) 90px 110px;
@@ -257,5 +501,118 @@
     min-width: 0;
     padding: 0 16px;
     font-size: 16px;
+  }
+
+  .st-records .st-row {
+    grid-template-columns: minmax(0, 1fr) 76px;
+  }
+
+  .st-records .st-row > :nth-child(3) {
+    grid-column: 1 / -1;
+  }
+
+  .st-records .st-row > :nth-child(n + 4),
+  .st-hist .st-row > :nth-child(6),
+  .st-hist .st-row > :nth-child(7),
+  .st-dom .st-row > :nth-child(6),
+  .st-dom .st-row > :nth-child(7),
+  .st-imp .st-row > :nth-child(4),
+  .st-imp .st-row > :nth-child(6),
+  .st-imp .st-row > :nth-child(7),
+  .st-days .st-row > :nth-child(4),
+  .st-days .st-row > :nth-child(5),
+  .st-unlikely .st-row > :nth-child(5),
+  .st-unlikely .st-row > :nth-child(6) {
+    display: none;
+  }
+
+  .st-hist .st-row {
+    grid-template-columns: 28px minmax(0, 1fr) 70px 84px;
+  }
+
+  .st-hist .st-row > :nth-child(4) {
+    grid-column: 2 / -1;
+    grid-row: 2;
+  }
+
+  .st-dom .st-row {
+    grid-template-columns: 28px minmax(0, 1fr) 30px 84px;
+    padding-top: 6px;
+    padding-bottom: 6px;
+  }
+
+  .st-dom .st-row > :nth-child(3) {
+    grid-column: 2 / -1;
+    grid-row: 2;
+  }
+
+  .st-map {
+    white-space: normal;
+  }
+
+  .st-boards {
+    flex-wrap: wrap;
+    height: auto;
+  }
+
+  .st-boards button {
+    min-width: 0;
+    height: 38px;
+    padding: 0 12px;
+    font-size: 15px;
+  }
+
+  .st-seg-body button {
+    flex: 1 1 auto;
+  }
+
+  .st-imp .st-row {
+    grid-template-columns: 28px minmax(0, 1fr) 70px;
+  }
+
+  .st-imp .st-row > :nth-child(5) {
+    grid-column: 2 / -1;
+    grid-row: 2;
+  }
+
+  .st-days .st-row {
+    grid-template-columns: 28px minmax(0, 1fr) 90px 50px;
+  }
+
+  .st-unlikely .st-row {
+    grid-template-columns: minmax(0, 1fr) 70px minmax(0, 1fr) 40px;
+  }
+
+  .st-share-row {
+    grid-template-columns: minmax(0, 140px) minmax(0, 1fr) 30px 46px;
+    gap: 8px;
+  }
+
+  .st-race-row {
+    grid-template-columns: 120px minmax(0, 1fr);
+  }
+
+  .st-race-name > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .st-race-date {
+    font-size: 18px;
+    min-width: 70px;
+  }
+
+  .st-endings {
+    height: 180px;
+    gap: 1px;
+  }
+
+  .st-figures {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .st-seg button {
+    padding: 0 12px;
+    font-size: 15px;
   }
 }

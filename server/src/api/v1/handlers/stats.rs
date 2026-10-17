@@ -198,3 +198,33 @@ async fn site_stats(
     let stats = crate::controllers::site_stats::for_game(pool.get_ref(), &points_cache, game_id).await?;
     Ok(actix_web::HttpResponse::Ok().json(&*stats))
 }
+
+/// **GET** World record statistics for a game (default Portal 2): every map's current record
+/// (`records`, `total_time`), `holders` (maps held now, days holding records, record runs set),
+/// `longest` (longest-lasting records), `domination` (one player holding a map through several
+/// record times), `improvements`, the `race` (records held per player at the start of each month,
+/// per board and overall, with `race_players`), and `endings` (verified runs per hundredths
+/// ending). Staff (and the service token) also get `unlikely`: runs ending in 2 or 7, which a
+/// normal 60-tick run can't produce.
+///
+/// - `/api/v1/stats/wr`
+#[get("/stats/wr")]
+async fn wr_stats(
+    req: actix_web::HttpRequest,
+    config: web::Data<crate::tools::config::Config>,
+    pool: web::Data<PgPool>,
+    user: crate::tools::auth::MaybeUser,
+    query: web::Query<SiteStatsQuery>,
+) -> Result<impl Responder> {
+    if let Err(limited) = crate::tools::ratelimit::check(&req, &config, "stats", 30, std::time::Duration::from_secs(60)) {
+        return Ok(limited);
+    }
+    let stats = crate::controllers::wr_stats::wr_stats(pool.get_ref(), query.game_id.unwrap_or(1)).await?;
+    let staff = crate::tools::auth::service_token_ok(&req, &config) || user.0.as_ref().is_some_and(|u| u.is_admin());
+    if staff {
+        return Ok(actix_web::HttpResponse::Ok().json(&*stats));
+    }
+    let mut public = (*stats).clone();
+    public.unlikely.clear();
+    Ok(actix_web::HttpResponse::Ok().json(public))
+}

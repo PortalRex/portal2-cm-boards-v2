@@ -460,6 +460,15 @@ profile shows, and "now" comes from the points boards, so the page and profiles 
 the background after the points boards (startup and after each change); an out-of-date copy is served while a new
 one is built, so no request waits for it.
 
+`GET /stats/wr?game_id=` (`controllers/wr_stats.rs`) feeds the Records, History, Race and Times tabs. From the world
+record history, each map's records are split into reigns (each faster record time until a faster one; players who tie
+join from their own run). It answers every map's current record with how long it has stood and the total time per
+board; per player the maps held now, days spent holding records and record runs set; the longest-lasting records
+(standing ones included, with who beat them); the longest streaks one player held a map through several record times;
+the biggest improvements; how many records each player held at the start of every month since 2012 (the race, per
+board and overall); and verified runs per hundredths ending. Staff and the service token also get the runs ending in
+…2 or …7, which a normal 60-tick run can't produce. Cached ten minutes; cleared with the points cache.
+
 ## 12. Known gaps
 
 - `server/src/tests/db_tests.rs` doesn't compile: it calls three `Changelog::transaction_*` functions that don't exist

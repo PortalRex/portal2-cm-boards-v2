@@ -47,6 +47,7 @@ pub fn init(cfg: &mut web::ServiceConfig) {
             .service(catalog_get)
             .service(profile_stats)
             .service(site_stats)
+            .service(wr_stats)
             .service(profile_points_history)
             .service(profile_points_peak)
             .service(profile_at)

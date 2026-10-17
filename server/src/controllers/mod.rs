@@ -94,6 +94,8 @@ pub mod catalog;
 pub mod profile_stats;
 /// Site-wide runner statistics (the Stats page).
 pub mod site_stats;
+/// World record statistics (the Stats page's records, history, race and times).
+pub mod wr_stats;
 /// Anonymous run reports
 pub mod reports;
 /// Staff-only notes on runs

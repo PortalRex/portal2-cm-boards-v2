@@ -758,6 +758,27 @@ export async function fetchSiteStats(game = "portal2") {
   };
 }
 
+// World record stats for the Stats page (see the server's /stats/wr).
+export async function fetchWrStats(game = "portal2") {
+  const s = await getJson("/stats/wr", gameParam(game));
+  const pl = (p) => player(p.profile_number, p.user_name, p.avatar);
+  const teams = (ts) => (ts || []).map((t) => ({ players: t.players.map(pl), since: t.since }));
+  const where = (r) => ({ mapId: r.map_id, map: lookupMap(r.map_id, game), mapName: r.map_name, isCoop: r.is_coop });
+  return {
+    records: s.records.map((r) => ({ ...where(r), mode: r.mode, score: r.score, since: r.since, days: r.days, teams: teams(r.teams), records: r.records })),
+    totalTime: s.total_time,
+    holders: s.holders.map((h) => ({ player: pl(h.player), held: h.held, days: h.days, set: h.set })),
+    longest: s.longest.map((r) => ({ ...where(r), score: r.score, start: r.start, end: r.end, days: r.days, teams: teams(r.teams), beatenBy: teams(r.beaten_by), beatenWith: r.beaten_with })),
+    domination: s.domination.map((r) => ({ ...where(r), player: pl(r.player), start: r.start, end: r.end, days: r.days, records: r.records, fromScore: r.from_score, toScore: r.to_score })),
+    improvements: s.improvements.map((r) => ({ ...where(r), fromScore: r.from_score, toScore: r.to_score, delta: r.delta, date: r.date, teams: teams(r.teams), previous: teams(r.previous), previousDays: r.previous_days })),
+    race: Object.fromEntries(Object.entries(s.race).map(([k, r]) => [k, { frames: r.frames.map((f) => ({ date: f.date, top: f.top.map(([pn, n]) => ({ profileNumber: pn, held: n })) })) }])),
+    racePlayers: Object.fromEntries(Object.entries(s.race_players).map(([k, p]) => [k, pl(p)])),
+    endings: s.endings,
+    unlikely: (s.unlikely || []).map((r) => ({ id: r.id, mapId: r.map_id, map: lookupMap(r.map_id, game), mapName: r.map_name, score: r.score, timestamp: r.timestamp, player: pl(r), postRank: r.post_rank, demoId: r.demo_id })),
+    unlikelyCount: s.unlikely_count,
+  };
+}
+
 // --- weekly recap ---------------------------------------------------------------
 
 // The top 5 runs of the week containing `day` (a Date; weeks start Monday, UTC).
