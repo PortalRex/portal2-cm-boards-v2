@@ -1,10 +1,11 @@
 //! Site-wide runner statistics for the Stats page, for one game: the site's totals, who leads
 //! various counts, the longest-standing world records, and everyone's peak points (from the run
 //! timeline, [crate::tools::points_history::all_peaks]). Cached for ten minutes, and dropped
-//! with the points cache whenever runs change.
+//! with the points cache whenever runs change; rebuilt in the background with the points cache's
+//! warm boards (startup, and shortly after each change).
 use crate::{
     controllers::game_boards::PbRank,
-    tools::points_history::{all_peaks, PlayerPeaks},
+    tools::points_history::{all_peaks, points_peak},
 };
 use chrono::{NaiveDate, NaiveDateTime};
 use sqlx::{FromRow, PgPool};
@@ -101,22 +102,79 @@ fn cache() -> &'static Mutex<HashMap<i32, (Instant, Arc<SiteStats>)>> {
     CACHE.get_or_init(|| Mutex::new(HashMap::new()))
 }
 
-/// Drops every game's stats (called with the points cache's invalidation).
+/// Marks every game's stats out of date (called with the points cache's invalidation): they're
+/// still served until the rebuild that follows replaces them.
 pub fn clear() {
     if let Ok(mut c) = cache().lock() {
-        c.clear();
+        let old = Instant::now().checked_sub(MAX_AGE * 2);
+        for (built, _) in c.values_mut() {
+            if let Some(old) = old {
+                *built = old;
+            }
+        }
     }
+}
+
+/// One build at a time: concurrent requests (and the background warm-up) wait for it rather
+/// than each working the stats out.
+static BUILDING: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
+
+/// The game's stats from the points cache's data (its current personal bests, and everyone's
+/// points now per board). Used by the endpoint and by the warm-up after the boards are built.
+pub async fn for_game(pool: &PgPool, points: &crate::tools::points_cache::PointsCache, game_id: i32) -> Result<Arc<SiteStats>, sqlx::Error> {
+    if let Some(hit) = fresh(game_id) {
+        return Ok(hit);
+    }
+    // Expired: answer with the old numbers and refresh them in the background.
+    if let Some(stale) = cache().lock().ok().and_then(|c| c.get(&game_id).map(|(_, s)| s.clone())) {
+        if let (Ok(_guard), Some(points)) = (BUILDING.try_lock(), crate::tools::points_cache::POINTS.get().cloned()) {
+            drop(_guard);
+            let pool = pool.clone();
+            tokio::spawn(async move {
+                if let Err(e) = Box::pin(for_game_fresh(&pool, &points, game_id)).await {
+                    log::warn!("site stats: refresh failed: {e}");
+                }
+            });
+        }
+        return Ok(stale);
+    }
+    for_game_fresh(pool, points, game_id).await
+}
+
+async fn for_game_fresh(pool: &PgPool, points: &crate::tools::points_cache::PointsCache, game_id: i32) -> Result<Arc<SiteStats>, sqlx::Error> {
+    let _building = BUILDING.lock().await;
+    if let Some(hit) = fresh(game_id) {
+        return Ok(hit);
+    }
+    use crate::tools::points_cache::Scope;
+    let pbs = points.pbs(pool, game_id).await?;
+    let mut modes: Vec<String> = pbs.iter().filter_map(|pb| pb.game_mode.clone()).collect();
+    modes.sort();
+    modes.dedup();
+    let mut current = HashMap::new();
+    for mode in &modes {
+        let only = [mode.as_str()];
+        let board = points.board(pool, game_id, mode, Scope::Modes(&only)).await?;
+        current.insert(mode.clone(), board.points.iter().map(|(pn, p)| (pn.clone(), p.points as f64)).collect());
+    }
+    let board = points.board(pool, game_id, "overall", Scope::All).await?;
+    current.insert("overall".to_string(), board.points.iter().map(|(pn, p)| (pn.clone(), p.points as f64)).collect());
+    site_stats(pool, game_id, &pbs, &current).await
+}
+
+fn fresh(game_id: i32) -> Option<Arc<SiteStats>> {
+    cache().lock().ok()?.get(&game_id).filter(|(built, _)| built.elapsed() < MAX_AGE).map(|(_, s)| s.clone())
 }
 
 /// The game's stats, worked out when missing or older than [MAX_AGE]. `pbs` are the game's
 /// current personal bests with ranks (from the points cache), for the records held now.
-pub async fn site_stats(pool: &PgPool, game_id: i32, pbs: &[PbRank]) -> Result<Arc<SiteStats>, sqlx::Error> {
+pub async fn site_stats(pool: &PgPool, game_id: i32, pbs: &[PbRank], current: &HashMap<String, HashMap<String, f64>>) -> Result<Arc<SiteStats>, sqlx::Error> {
     if let Some((built, stats)) = cache().lock().ok().and_then(|c| c.get(&game_id).cloned()) {
         if built.elapsed() < MAX_AGE {
             return Ok(stats);
         }
     }
-    let stats = Arc::new(compute(pool, game_id, pbs).await?);
+    let stats = Arc::new(compute(pool, game_id, pbs, current).await?);
     if let Ok(mut c) = cache().lock() {
         c.insert(game_id, (Instant::now(), stats.clone()));
     }
@@ -138,7 +196,7 @@ async fn leaders(pool: &PgPool, game_id: i32, aggregate: &str, filter: &str) -> 
     sqlx::query_as::<_, Leader>(&sql).bind(game_id).bind(LEADERS).fetch_all(pool).await
 }
 
-async fn compute(pool: &PgPool, game_id: i32, pbs: &[PbRank]) -> Result<SiteStats, sqlx::Error> {
+async fn compute(pool: &PgPool, game_id: i32, pbs: &[PbRank], current: &HashMap<String, HashMap<String, f64>>) -> Result<SiteStats, sqlx::Error> {
     let totals = sqlx::query_as::<_, Totals>(&format!(
         r#"{RUNS}
         SELECT COUNT(DISTINCT profile_number) AS runners,
@@ -233,7 +291,7 @@ async fn compute(pool: &PgPool, game_id: i32, pbs: &[PbRank]) -> Result<SiteStat
     .fetch_all(pool)
     .await?;
 
-    let peaks = peak_lists(pool, &all_peaks(pool, game_id).await?).await?;
+    let peaks = peak_lists(pool, game_id, current).await?;
     Ok(SiteStats { totals, leaders: leaders_by, longest_wrs, peaks })
 }
 
@@ -250,34 +308,45 @@ async fn labels(pool: &PgPool, ids: Vec<String>) -> Result<HashMap<String, (Stri
     Ok(rows.into_iter().map(|(p, n, a)| (p, (n, a))).collect())
 }
 
-/// The top players by peak per board key, with their points now.
-async fn peak_lists(pool: &PgPool, all: &[PlayerPeaks]) -> Result<BTreeMap<String, Vec<PeakEntry>>, sqlx::Error> {
-    let keys: Vec<String> = {
-        let mut k: Vec<String> = all.iter().flat_map(|p| p.peaks.keys().cloned()).collect();
-        k.sort();
-        k.dedup();
-        k
-    };
-    let mut lists: BTreeMap<String, Vec<(&PlayerPeaks, f64, NaiveDate)>> = BTreeMap::new();
+/// Candidates per list from the timeline sweep before each is confirmed (the sweep can be a few
+/// points off where runs share an instant, so more are taken than are listed).
+const CANDIDATES: usize = 160;
+
+/// The top players by peak per board key, with their points now (`current`, from the points
+/// boards). Candidates come from one sweep over every run ([all_peaks]); each listed peak is then
+/// the per-player peak the profile shows ([points_peak]), so the two always agree.
+async fn peak_lists(pool: &PgPool, game_id: i32, current: &HashMap<String, HashMap<String, f64>>) -> Result<BTreeMap<String, Vec<PeakEntry>>, sqlx::Error> {
+    let all = all_peaks(pool, game_id).await?;
+    let mut keys: Vec<String> = all.iter().flat_map(|p| p.peaks.keys().cloned()).collect();
+    keys.sort();
+    keys.dedup();
+    let mut candidates: Vec<String> = Vec::new();
     for key in &keys {
-        let mut l: Vec<(&PlayerPeaks, f64, NaiveDate)> = all.iter().filter_map(|p| p.peaks.get(key).map(|pk| (p, pk.points, pk.date))).collect();
-        l.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal).then(a.2.cmp(&b.2)));
-        l.truncate(PEAKS);
-        lists.insert(key.clone(), l);
+        let mut l: Vec<(&str, f64)> = all.iter().filter_map(|p| p.peaks.get(key).map(|pk| (p.profile_number.as_str(), pk.points))).collect();
+        l.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+        candidates.extend(l.into_iter().take(CANDIDATES).map(|(p, _)| p.to_string()));
     }
-    let ids: Vec<String> = lists.values().flatten().map(|(p, _, _)| p.profile_number.clone()).collect();
-    let names = labels(pool, ids).await?;
-    Ok(lists
-        .into_iter()
-        .map(|(key, l)| {
-            let entries = l
-                .into_iter()
-                .map(|(p, points, date)| {
-                    let (user_name, avatar) = names.get(&p.profile_number).cloned().unwrap_or((p.profile_number.clone(), None));
-                    PeakEntry { profile_number: p.profile_number.clone(), user_name, avatar, points, date, current: p.current.get(&key).copied().unwrap_or(0.0) }
-                })
-                .collect();
-            (key, entries)
-        })
-        .collect())
+    candidates.sort();
+    candidates.dedup();
+    let mut exact = HashMap::new();
+    for pn in &candidates {
+        exact.insert(pn.clone(), points_peak(pool, game_id, pn).await?);
+    }
+    let names = labels(pool, candidates.clone()).await?;
+    let mut lists = BTreeMap::new();
+    for key in keys {
+        let mut l: Vec<PeakEntry> = exact
+            .iter()
+            .filter_map(|(pn, peaks)| {
+                let pk = peaks.get(&key)?;
+                let (user_name, avatar) = names.get(pn).cloned().unwrap_or((pn.clone(), None));
+                let now = current.get(&key).and_then(|c| c.get(pn)).copied().unwrap_or(0.0);
+                Some(PeakEntry { profile_number: pn.clone(), user_name, avatar, points: pk.points, date: pk.date, current: (now * 10.0).round() / 10.0 })
+            })
+            .collect();
+        l.sort_by(|a, b| b.points.partial_cmp(&a.points).unwrap_or(std::cmp::Ordering::Equal).then(a.date.cmp(&b.date)));
+        l.truncate(PEAKS);
+        lists.insert(key, l);
+    }
+    Ok(lists)
 }

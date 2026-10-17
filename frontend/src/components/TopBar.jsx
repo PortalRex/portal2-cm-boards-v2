@@ -140,7 +140,6 @@ const MORE_MENU = [
   { href: "https://discord.gg/hRwE4Zr", label: "Discord", icon: DiscordIcon },
   { href: "https://github.com/p2sr/portal2-cm-boards-v2", label: "GitHub", icon: GitHubIcon },
   { to: "/more/donators", label: "Donators", icon: DonateIcon },
-  { to: "/stats", label: "Stats", icon: StatsIcon },
   { to: "/more/wall-of-shame", label: "Wall Of Shame", icon: GavelIcon },
   { to: "/more/about", label: "About", icon: InfoIcon },
 ];
@@ -149,7 +148,8 @@ const NAV = [
   { to: "/", label: "Score Updates", icon: HistoryIcon, end: true },
   { to: "/maps", label: "Leaderboard", icon: PinIcon, match: ["/maps", "/map/"] },
   { to: "/leaderboard/overall", label: "Aggregate", icon: BarsIcon, menu: "leaderboard", match: ["/leaderboard"] },
-  { to: "/more/about", label: "More", icon: MoreIcon, menu: MORE_MENU, match: ["/more", "/stats"] },
+  { to: "/stats", label: "Stats", icon: StatsIcon, match: ["/stats"] },
+  { to: "/more/about", label: "More", icon: MoreIcon, menu: MORE_MENU, match: ["/more"] },
 ];
 
 function MenuItem({ item }) {

@@ -448,6 +448,18 @@ If the old board adds it later, the next pull links it and shows it again.
 `?game=1` / `?game=2` limits it to one board. Times on the site are shown in each viewer's own time zone, with the full
 date and time on hover (as the old boards showed them).
 
+## 15. Stats page
+
+`GET /stats/site?game_id=` (`controllers/site_stats.rs`) feeds the site's Stats page (`/stats`, in the top bar; Compare
+players and Countries are its other tabs at `/stats/compare` and `/stats/countries`, and the old `/compare` and
+`/more/countries` addresses redirect). It answers the game's totals, leader lists (world records held and set, runs,
+runs this year, co-op partners, demos, portals, time saved), the longest-standing current world records, and the top
+100 peak points per board with the date reached and the player's points now. Peaks: one sweep over every run in time
+order picks the candidates (`points_history::all_peaks`); each listed peak is then the same per-player peak the
+profile shows, and "now" comes from the points boards, so the page and profiles always agree. The stats are built in
+the background after the points boards (startup and after each change); an out-of-date copy is served while a new
+one is built, so no request waits for it.
+
 ## 12. Known gaps
 
 - `server/src/tests/db_tests.rs` doesn't compile: it calls three `Changelog::transaction_*` functions that don't exist

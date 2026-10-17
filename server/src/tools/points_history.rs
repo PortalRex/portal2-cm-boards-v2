@@ -502,7 +502,33 @@ fn compute_all_peaks(t: &Timeline) -> Vec<PlayerPeaks> {
             below += st.counts.get(&x).copied().unwrap_or(0);
         }
     };
+    // Peaks are checked once everything at an instant is applied (runs can share a timestamp:
+    // co-op halves, imports), as the per-player peak sees them.
+    let check = |totals: &[f64], peaks: &mut Vec<BTreeMap<String, Peak>>, players: &mut Vec<u32>, at: NaiveDateTime| {
+        if at != release {
+            for &p in players.iter() {
+                let mine = &totals[p as usize * modes..(p as usize + 1) * modes];
+                for (key, mode) in &keys {
+                    let value = match mode {
+                        Some(m) => mine[*m],
+                        None => mine.iter().sum(),
+                    };
+                    let value = (value * 10.0).round() / 10.0;
+                    if value > 0.0 && peaks[p as usize].get(key).map_or(true, |pk| value > pk.points) {
+                        peaks[p as usize].insert(key.clone(), Peak { points: value, date: at.date() });
+                    }
+                }
+            }
+        }
+        players.clear();
+    };
+    let mut pending: Vec<u32> = Vec::new();
+    let mut instant: Option<NaiveDateTime> = None;
     for (ts, _, mi, ri) in events {
+        if instant.is_some_and(|i| i != ts) {
+            check(&totals, &mut peaks, &mut pending, instant.unwrap());
+        }
+        instant = Some(ts);
         let (_, p, s, run) = t.maps[mi].runs[ri];
         let mode = t.maps[mi].mode;
         let st = &mut maps[mi];
@@ -551,21 +577,12 @@ fn compute_all_peaks(t: &Timeline) -> Vec<PlayerPeaks> {
         }
         st.holders.entry(s).or_default().push(p);
         totals[p as usize * modes + mode] += score(rank_of(&st.counts, s)) as f64;
-        // Only the runner gained; check their peaks (undated runs count from release, which
-        // isn't a candidate, as on the chart).
-        if ts != release {
-            let mine = &totals[p as usize * modes..(p as usize + 1) * modes];
-            for (key, mode) in &keys {
-                let value = match mode {
-                    Some(m) => mine[*m],
-                    None => mine.iter().sum(),
-                };
-                let value = (value * 10.0).round() / 10.0;
-                if value > 0.0 && peaks[p as usize].get(key).map_or(true, |pk| value > pk.points) {
-                    peaks[p as usize].insert(key.clone(), Peak { points: value, date: ts.date() });
-                }
-            }
+        if !pending.contains(&p) {
+            pending.push(p);
         }
+    }
+    if let Some(at) = instant {
+        check(&totals, &mut peaks, &mut pending, at);
     }
     let mut names = vec![String::new(); np];
     for (name, &i) in &t.players {

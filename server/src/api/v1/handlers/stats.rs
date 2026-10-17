@@ -195,7 +195,6 @@ async fn site_stats(
         return Ok(limited);
     }
     let game_id = query.game_id.unwrap_or(1);
-    let pbs = points_cache.pbs(pool.get_ref(), game_id).await?;
-    let stats = crate::controllers::site_stats::site_stats(pool.get_ref(), game_id, &pbs).await?;
+    let stats = crate::controllers::site_stats::for_game(pool.get_ref(), &points_cache, game_id).await?;
     Ok(actix_web::HttpResponse::Ok().json(&*stats))
 }

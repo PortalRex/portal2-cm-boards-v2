@@ -132,6 +132,14 @@ impl PointsCache {
             }
             log::info!("points cache: game {game_id} ready in {:?}", started.elapsed());
         }
+        // Then the Stats page's numbers, so no visitor waits for them.
+        for (game_id, _) in WARM {
+            let started = Instant::now();
+            match crate::controllers::site_stats::for_game(pool, self, *game_id).await {
+                Ok(_) => log::info!("site stats: game {game_id} ready in {:?}", started.elapsed()),
+                Err(e) => log::warn!("site stats: game {game_id} failed to build: {e}"),
+            }
+        }
     }
 
     async fn build(pool: &PgPool, game_id: i32) -> Result<GameData, sqlx::Error> {
