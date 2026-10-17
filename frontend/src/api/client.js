@@ -200,6 +200,8 @@ export const steamLoginUrl = (returnTo) => `${apiUrl("/auth/steam/login")}?retur
 export const fetchUser = (profileNumber) => getJson(`/user/${profileNumber}`);
 export const setMyCountry = (countryId) => sendJson("PUT", "/user/country", { country_id: countryId });
 export const setMyCountryFromSteam = () => sendJson("POST", "/user/country/steam");
+// Your own name (null = your Steam name) and/or picture ("default", "steam" or an https address).
+export const setMyDisplay = (changes) => sendJson("PUT", "/user/display", changes);
 export const adminSetCountry = (profileNumber, countryId, reason) => sendJson("PUT", `/admin/users/${profileNumber}/country`, { country_id: countryId, reason });
 export const fetchCountryStats = (board = "overall") =>
   getJson("/countries/stats", { board }).then((rows) =>
@@ -691,6 +693,7 @@ function adaptProfile(profileNumber, page, user, history, pbs) {
       steamName: user.steam_name || null,
       nameLocked: !!user.name_locked,
       avatarLocked: !!user.avatar_locked,
+      avatarCustom: !!user.avatar_custom,
       // When their peak points reached Legends (a role kept for good), if they have.
       legendsAt: user.legends_at || null,
       frozen: !!user.frozen,

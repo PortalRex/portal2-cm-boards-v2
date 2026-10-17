@@ -35,6 +35,7 @@ pub fn init(cfg: &mut web::ServiceConfig) {
             .service(admin_steam_sync)
             .service(site_info)
             .service(my_country)
+            .service(my_display)
             .service(my_country_from_steam)
             .service(admin_user_country)
             .service(countries_stats)

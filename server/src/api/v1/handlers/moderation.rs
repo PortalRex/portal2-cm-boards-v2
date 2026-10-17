@@ -4,7 +4,7 @@ use crate::{
     controllers::moderation::{self, AuditQuery, Refused, Touched},
     models::users::Users,
     tools::{
-        auth::AdminOrService,
+        auth::{AdminOrService, SignedIn},
         cache::{CacheState, COOP_PREVIEWS, SP_PREVIEWS},
         points_cache::invalidate_points,
         config::Config,
@@ -304,6 +304,35 @@ fn nullable<'de, D: serde::Deserializer<'de>>(d: D) -> std::result::Result<Optio
     serde::Deserialize::deserialize(d).map(Some)
 }
 
+/// The picture change asked for, fetching the player's current Steam picture for "steam".
+async fn avatar_change(body: &DisplayBody, config: &Config, profile_number: &str) -> Option<moderation::AvatarChange> {
+    match body.avatar.as_deref().map(str::trim) {
+        None | Some("") => None,
+        Some("default") => Some(moderation::AvatarChange::Default),
+        Some("steam") => {
+            let fresh = Users::new_from_steam(&config.steam.api_key, profile_number).await.ok().and_then(|u| u.avatar);
+            Some(moderation::AvatarChange::Steam(fresh))
+        }
+        Some(url) => Some(moderation::AvatarChange::Url(url.to_string())),
+    }
+}
+
+/// **PUT** Set your own name and/or picture (`{ "name": "…" | null, "avatar": "default" | "steam" |
+/// "https://…" }`; null name = your Steam name). Refused for what staff have set.
+#[put("/user/display")]
+async fn my_display(user: SignedIn, pool: web::Data<PgPool>, config: web::Data<Config>, body: web::Json<DisplayBody>) -> Result<impl Responder> {
+    let profile_number = &user.0.profile_number;
+    let avatar = avatar_change(&body, &config, profile_number).await;
+    let name = body.name.as_ref().map(|n| n.as_deref());
+    Ok(match moderation::set_own_display(pool.get_ref(), profile_number, name, avatar).await? {
+        Ok(()) => {
+            invalidate_points().await;
+            HttpResponse::NoContent().finish()
+        }
+        Err(r) => refused(r),
+    })
+}
+
 /// **PUT** Set the name and/or picture shown for a profile (moderators and admins).
 #[put("/admin/users/{profile_number}/display")]
 async fn admin_user_display(
@@ -318,15 +347,7 @@ async fn admin_user_display(
             return Ok(HttpResponse::Forbidden().body("Only moderators and admins can change profiles."));
         }
     }
-    let avatar = match body.avatar.as_deref().map(str::trim) {
-        None | Some("") => None,
-        Some("default") => Some(moderation::AvatarChange::Default),
-        Some("steam") => {
-            let fresh = Users::new_from_steam(&config.steam.api_key, &profile_number).await.ok().and_then(|u| u.avatar);
-            Some(moderation::AvatarChange::Steam(fresh))
-        }
-        Some(url) => Some(moderation::AvatarChange::Url(url.to_string())),
-    };
+    let avatar = avatar_change(&body, &config, &profile_number).await;
     let name = body.name.as_ref().map(|n| n.as_deref());
     Ok(match moderation::set_profile_display(pool.get_ref(), &auth, &profile_number, name, avatar, reason(&body.reason)).await? {
         Ok(()) => {

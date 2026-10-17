@@ -35,6 +35,10 @@ pub struct Users {
     #[sqlx(default)]
     #[serde(default)]
     pub avatar_locked: bool,
+    /// The player chose their own picture (kept through sign-ins).
+    #[sqlx(default)]
+    #[serde(default)]
+    pub avatar_custom: bool,
     /// When the player's peak points first reached Legends (kept for good), if they have.
     #[sqlx(default)]
     #[serde(default)]

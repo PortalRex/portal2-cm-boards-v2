@@ -1515,3 +1515,7 @@ CREATE TRIGGER admin_actions_notify AFTER INSERT ON admin_actions FOR EACH ROW E
 -- date of the last dated run before them in the same game (runs were added in id order). Marked
 -- here so they can be told apart (and put back: SET timestamp = NULL, date_estimated = false).
 ALTER TABLE changelog ADD COLUMN IF NOT EXISTS date_estimated boolean NOT NULL DEFAULT false;
+
+-- Players choose their own name and picture (Settings). A name of their own goes in users.board_name like before;
+-- a picture of their own is marked here so Steam sign-ins and avatar refreshes keep it (staff-set ones use users.avatar_locked).
+ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_custom boolean NOT NULL DEFAULT false;

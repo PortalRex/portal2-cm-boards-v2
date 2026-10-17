@@ -307,7 +307,7 @@ impl Users {
             r#"WITH old AS (
                 SELECT avatar FROM users WHERE profile_number = $2
             )
-            UPDATE users SET avatar = CASE WHEN avatar_locked THEN avatar ELSE $1 END
+            UPDATE users SET avatar = CASE WHEN avatar_locked OR avatar_custom THEN avatar ELSE $1 END
                 WHERE profile_number = $2 RETURNING (SELECT avatar FROM old)"#,
         )
         .bind(avatar)

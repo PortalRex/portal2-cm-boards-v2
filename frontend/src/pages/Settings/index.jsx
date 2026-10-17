@@ -1,9 +1,9 @@
 import Layout from "../../components/Layout";
-import { Panel } from "../../components/ui";
+import { Avatar, Panel } from "../../components/ui";
 import { MoreIcon } from "../../components/Icons";
-import useCurrentUser, { clearCurrentUser, ROLE_LABELS } from "../../hooks/useCurrentUser";
+import useCurrentUser, { clearCurrentUser, reloadCurrentUser, ROLE_LABELS } from "../../hooks/useCurrentUser";
 import { useEffect, useState } from "react";
-import { fetchUser, logout, setMyCountry, setMyCountryFromSteam, steamLoginUrl } from "../../api/client";
+import { fetchUser, logout, setMyCountry, setMyCountryFromSteam, setMyDisplay, steamLoginUrl } from "../../api/client";
 import { COUNTRY_LIST } from "../../data/countries";
 import { bumpDataVersion } from "../../lib/dataVersion";
 import useTheme from "../../hooks/useTheme";
@@ -57,6 +57,76 @@ function CountrySetting({ user }) {
   );
 }
 
+// Your name and picture: your own, or back to your Steam ones. Whatever staff have set stays
+// until they reset it.
+function DisplaySetting({ user }) {
+  const [me, setMe] = useState(null);
+  const [name, setName] = useState("");
+  const [url, setUrl] = useState("");
+  const [state, setState] = useState({ busy: false, message: null, error: null });
+  const load = () =>
+    fetchUser(user.profileNumber)
+      .then((u) => {
+        setMe(u);
+        setName(u?.board_name || u?.steam_name || "");
+      })
+      .catch(() => {});
+  useEffect(() => {
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user.profileNumber]);
+  const save = async (changes, message) => {
+    setState({ busy: true, message: null, error: null });
+    try {
+      await setMyDisplay(changes);
+      setState({ busy: false, message, error: null });
+      setUrl("");
+      await load();
+      reloadCurrentUser();
+      bumpDataVersion();
+    } catch (e) {
+      setState({ busy: false, message: null, error: e.message });
+    }
+  };
+  if (!me) return null;
+  const shownName = me.board_name || me.steam_name;
+  return (
+    <section className="settings-section">
+      <h2>Name &amp; picture</h2>
+      <div className="settings-row settings-display">
+        <Avatar src={me.avatar} name={shownName} size={82} />
+        <div className="settings-display-fields">
+          <div className="settings-row settings-country">
+            <input value={name} onChange={(e) => setName(e.target.value)} maxLength={32} aria-label="Name" placeholder={me.steam_name || "Name"} disabled={state.busy || me.name_locked} />
+            <button type="button" className="outline-button" disabled={state.busy || me.name_locked || !name.trim() || name.trim() === shownName} onClick={() => save({ name: name.trim() }, "Name saved.")}>
+              Save name
+            </button>
+            <button type="button" className="outline-button" disabled={state.busy || me.name_locked || !me.board_name} onClick={() => save({ name: null }, "Back to your Steam name.")} title={me.board_name ? undefined : "Already your Steam name"}>
+              Use my Steam name
+            </button>
+          </div>
+          <div className="settings-row settings-country">
+            <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="Picture address (https://…)" aria-label="Picture address" disabled={state.busy || me.avatar_locked} />
+            <button type="button" className="outline-button" disabled={state.busy || me.avatar_locked || !url.trim()} onClick={() => save({ avatar: url.trim() }, "Picture saved.")}>
+              Save picture
+            </button>
+            <button type="button" className="outline-button" disabled={state.busy || me.avatar_locked} onClick={() => save({ avatar: "steam" }, "Set to your current Steam picture.")} title="Use your current Steam picture">
+              Use my Steam picture
+            </button>
+          </div>
+        </div>
+      </div>
+      <p className="muted settings-note">
+        {me.name_locked || me.avatar_locked
+          ? `Your ${me.name_locked && me.avatar_locked ? "name and picture were" : me.name_locked ? "name was" : "picture was"} set by staff, so ${me.name_locked && me.avatar_locked ? "they" : "it"} can't be changed here.`
+          : "Shown on the boards instead of your Steam name and picture. They stay when you sign in again."}
+      </p>
+      {state.message && <p className="settings-ok">{state.message}</p>}
+      {state.error && <p className="settings-error">{state.error}</p>}
+    </section>
+  );
+}
+
 export default function Settings() {
   const { theme, toggleTheme } = useTheme();
   const [pbStyle, setPbStyle] = useCoopPbStyle();
@@ -85,6 +155,7 @@ export default function Settings() {
           <p className="muted settings-note">How a co-op run marks which player set a personal best: a trophy by their name, or their name in their portal colour.</p>
         </section>
 
+        {user && !user.sample && <DisplaySetting user={user} />}
         {user && !user.sample && <CountrySetting user={user} />}
 
         <section className="settings-section">

@@ -124,7 +124,7 @@
   min-width: 0;
 }
 
-/* Follow / compare and the staff tools, in the band (kept out of the layout's height). */
+/* Follow / compare / edit / staff, in the band (kept out of the layout's height). */
 .pf-head-top {
   position: absolute;
   top: 0;
@@ -133,15 +133,6 @@
   align-items: center;
   gap: 8px;
   height: var(--pf-band);
-}
-
-/* While the name & picture form is open: under the band, across the header. */
-.pf-head-top:has(.pf-display-form) {
-  position: static;
-  grid-column: 1 / -1;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  height: auto;
 }
 
 .pf-head-bottom {
@@ -211,24 +202,6 @@
 
 .pf-badges:empty {
   display: none;
-}
-
-.pf-staff-tools {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 10px;
-}
-
-.pf-staff-tools:empty {
-  display: none;
-}
-
-/* The edit form gets its own full-width line under follow / compare. */
-.pf-staff-tools:has(.pf-display-form) {
-  flex-basis: 100%;
-  justify-content: flex-start;
 }
 
 .pf-badge {
@@ -952,16 +925,14 @@
 }
 
 @media (max-width: 800px) {
-  /* Name and badges beside the picture; follow / compare and the links under them; staff tools
-     last. The row wrappers step aside (display: contents) so their parts can be placed here. */
+  /* Name and badges beside the picture; follow / compare / staff and the links under them. The row wrappers step aside (display: contents) so their parts can be placed here. */
   .pf-header {
     display: grid;
     background: var(--card);
     grid-template-columns: auto minmax(0, 1fr) auto;
     grid-template-areas:
       "avatar identity identity"
-      "actions actions links"
-      "staff staff staff";
+      "actions actions links";
     gap: 16px;
     padding: 20px;
   }
@@ -1000,11 +971,6 @@
 
   .pf-name-row {
     gap: 6px 12px;
-  }
-
-  .pf-staff-tools {
-    grid-area: staff;
-    justify-content: flex-start;
   }
 
   /* Phones: the caption on its own line, the three series together under it. */
@@ -1320,19 +1286,12 @@ a.pf-summary-avg:hover {
   max-width: 820px;
 }
 
-.pf-display-form {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  flex-basis: 100%;
-}
-
-/* Edit name & picture: a dot marks a name or picture set by staff. */
-.pf-edit-button {
+/* Staff tools: a dot marks a name or picture set by staff. */
+.pf-staff-button {
   position: relative;
 }
 
-.pf-edit-button.is-locked::after {
+.pf-staff-button.is-locked::after {
   content: "";
   position: absolute;
   top: 0;
@@ -1576,4 +1535,110 @@ a.pf-summary-avg:hover {
 
 .stat-link:hover .stat-label {
   text-decoration: underline;
+}
+
+/* Staff tools dialog (over the page, like run history). */
+.pf-staff-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 72px 16px 16px;
+  background: rgba(0, 0, 0, 0.6);
+  overflow-y: auto;
+}
+
+.pf-staff-dialog {
+  width: 100%;
+  max-width: 640px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--card);
+  color: var(--text);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+}
+
+.pf-staff-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: var(--card-head);
+  border-radius: 6px 6px 0 0;
+}
+
+.pf-staff-head h2 {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  font-size: 18px;
+  font-weight: 500;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.pf-staff-close {
+  display: inline-flex;
+  padding: 4px;
+  border: 0;
+  background: none;
+  color: var(--text-2);
+  cursor: pointer;
+}
+
+.pf-staff-body {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 16px;
+}
+
+.pf-staff-reason {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.pf-staff-reason input,
+.pf-staff-section .pf-freeze-form input {
+  width: 100%;
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--control);
+  color: var(--text);
+  font: inherit;
+}
+
+.pf-staff-section .pf-freeze-form input {
+  flex: 1 1 200px;
+  width: auto;
+  min-width: 0;
+}
+
+.pf-staff-section h3 {
+  margin: 0 0 8px;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-2);
+}
+
+.pf-staff-locked {
+  color: var(--accent);
+  font-weight: 400;
+}
+
+.pf-staff-ok {
+  margin: 0;
+  color: var(--green);
+}
+
+.pf-staff-body .pf-freeze-error {
+  margin: 0;
 }

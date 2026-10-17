@@ -46,6 +46,7 @@ export { default as PendingIcon } from "@mui/icons-material/HourglassEmptyRounde
 export { default as BannedIcon } from "@mui/icons-material/Block";
 export { default as SwapIcon } from "@mui/icons-material/SwapHoriz";
 export { default as EditIcon } from "@mui/icons-material/EditOutlined";
+export { default as ShieldIcon } from "@mui/icons-material/AdminPanelSettingsOutlined";
 
 const svgProps = (size) => ({ width: size, height: size, viewBox: "0 0 24 24", fill: "currentColor", "aria-hidden": true });
 

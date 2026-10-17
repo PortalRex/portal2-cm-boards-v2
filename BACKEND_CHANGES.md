@@ -43,6 +43,7 @@ New databases get everything from `db/dbscript/schema.sql`. An existing database
 | `20261024000000_profile_overrides.sql` | `users.name_locked` / `avatar_locked` (staff-set names and pictures). |
 | `20261025000000_drop_fullgame.sql` | Drops the full-game `fg_*` tables from databases that had the earlier full-game migration (the feature was removed). |
 | `20261026000000_empty_chapters.sql` | Deletes Mel chapters without maps (the Mel board's empty Advanced "1952" chapter, imported as a second Story chapter). The importer now skips them. |
+| `20261107000000_own_display.sql` | `users.avatar_custom`: a picture the player chose in Settings, kept through sign-ins. |
 
 `import_boards.py` builds a fresh database from the old boards' MySQL dumps and runs the BSP-name step itself (see
 [§10](#10-import-and-maintenance-scripts)).
@@ -163,7 +164,7 @@ All under `/api/v1`. Auth: **public**, **signed in**, **staff** (any tier or ser
 | `GET /admin/reports/count` | staff | Open report count. |
 | `PUT /admin/reports/{id}` | staff | Resolve, dismiss or reopen a report (optionally every report on the run). |
 | `PUT /admin/users/{id}/banned` | mod | Ban / unban a profile (hides all runs, ends sessions; staff must lose their role first). |
-| `PUT /admin/users/{id}/display` | mod | Set the shown name and/or picture (`default`, `steam` or an https address); locked against sign-in. |
+| `PUT /admin/users/{id}/display` | mod | Set the shown name and/or picture (`default`, `steam` or an https address); locked against sign-in and the player's own changes. |
 | `PUT /admin/users/{id}/role` | admin | Set a staff tier. |
 | `DELETE /admin/runs/{id}` | admin | Delete a run permanently (both halves, its demo rows, pairing). |
 | `DELETE /admin/runs/{id}/demo` | admin | Remove a run's demo. |
@@ -338,6 +339,9 @@ for that player. Rules:
   the old Mel board, below). The old `backend/` fetcher service is no longer needed for this.
 
 ### Countries
+
+Players set their own name and picture in Settings (`PUT /user/display`: `name` or null for their Steam name, `avatar` as
+`default`, `steam` or an https address); refused for whatever staff have set and for a name another player goes by.
 
 Players set their own country (`PUT /user/country`, or `POST /user/country/steam` to take it from their public Steam
 profile); staff can set anyone's (`PUT /admin/users/{steam_id}/country`, in the audit log). The points boards carry

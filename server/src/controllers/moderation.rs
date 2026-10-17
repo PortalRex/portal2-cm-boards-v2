@@ -426,6 +426,88 @@ pub enum AvatarChange {
     Steam(Option<String>),
 }
 
+/// A name to show (None = the player's Steam name), trimmed; refused when too long.
+fn clean_name(name: Option<&str>) -> Result<Option<&str>, Refused> {
+    let name = name.map(str::trim).filter(|n| !n.is_empty());
+    if name.is_some_and(|n| n.chars().count() > 32) {
+        return Err(Refused::Invalid("Names can be at most 32 characters.".into()));
+    }
+    Ok(name)
+}
+
+/// The picture address for a change, and whether it replaces the player's Steam picture (false
+/// for going back to it).
+fn avatar_url(avatar: AvatarChange, old_avatar: &Option<String>) -> Result<(Option<String>, bool), Refused> {
+    Ok(match avatar {
+        AvatarChange::Default => (Some(DEFAULT_AVATAR.to_string()), true),
+        AvatarChange::Url(u) => {
+            let u = u.trim().to_string();
+            if !u.starts_with("https://") || u.len() > 500 || u.contains(char::is_whitespace) {
+                return Err(Refused::Invalid("The picture has to be an https:// address.".into()));
+            }
+            (Some(u), true)
+        }
+        AvatarChange::Steam(u) => (u.or(old_avatar.clone()), false),
+    })
+}
+
+/// A player sets their own name and/or picture, or goes back to their Steam ones. Refused for
+/// whatever staff have set (until staff reset it) and for a name another player goes by. A
+/// picture of their own is kept through sign-ins, like a staff-set one.
+pub async fn set_own_display(pool: &PgPool, profile_number: &str, name: Option<Option<&str>>, avatar: Option<AvatarChange>) -> ActionResult<()> {
+    let mut tx = pool.begin().await?;
+    let before: Option<(bool, bool, Option<String>)> =
+        sqlx::query_as("SELECT name_locked, avatar_locked, avatar FROM users WHERE profile_number = $1 FOR UPDATE")
+            .bind(profile_number)
+            .fetch_optional(&mut *tx)
+            .await?;
+    let Some((name_locked, avatar_locked, old_avatar)) = before else {
+        return Ok(Err(Refused::NotFound("No such player.")));
+    };
+    if name.is_none() && avatar.is_none() {
+        return Ok(Err(Refused::Invalid("Nothing to change.".into())));
+    }
+    if let Some(name) = name {
+        if name_locked {
+            return Ok(Err(Refused::Invalid("Your name was set by staff, so it can't be changed here.".into())));
+        }
+        let name = match clean_name(name) {
+            Ok(n) => n,
+            Err(r) => return Ok(Err(r)),
+        };
+        if let Some(n) = name {
+            let taken: bool = sqlx::query_scalar(
+                "SELECT EXISTS (SELECT 1 FROM users WHERE profile_number <> $1 AND lower(COALESCE(board_name, steam_name)) = lower($2))",
+            )
+            .bind(profile_number)
+            .bind(n)
+            .fetch_one(&mut *tx)
+            .await?;
+            if taken {
+                return Ok(Err(Refused::Invalid("Another player already goes by that name.".into())));
+            }
+        }
+        sqlx::query("UPDATE users SET board_name = $2 WHERE profile_number = $1").bind(profile_number).bind(name).execute(&mut *tx).await?;
+    }
+    if let Some(avatar) = avatar {
+        if avatar_locked {
+            return Ok(Err(Refused::Invalid("Your picture was set by staff, so it can't be changed here.".into())));
+        }
+        let (url, custom) = match avatar_url(avatar, &old_avatar) {
+            Ok(v) => v,
+            Err(r) => return Ok(Err(r)),
+        };
+        sqlx::query("UPDATE users SET avatar = $2, avatar_custom = $3 WHERE profile_number = $1")
+            .bind(profile_number)
+            .bind(&url)
+            .bind(custom)
+            .execute(&mut *tx)
+            .await?;
+    }
+    tx.commit().await?;
+    Ok(Ok(()))
+}
+
 /// Sets the name and/or picture shown for a profile, overriding the player's own (a bad name or
 /// picture), or resets them to the player's Steam ones. Staff-set values are locked so sign-ins
 /// don't replace them.
@@ -442,10 +524,10 @@ pub async fn set_profile_display(pool: &PgPool, actor: &AdminOrService, profile_
     };
     let mut details = serde_json::Map::new();
     if let Some(name) = name {
-        let name = name.map(str::trim).filter(|n| !n.is_empty());
-        if name.is_some_and(|n| n.chars().count() > 32) {
-            return Ok(Err(Refused::Invalid("Names can be at most 32 characters.".into())));
-        }
+        let name = match clean_name(name) {
+            Ok(n) => n,
+            Err(r) => return Ok(Err(r)),
+        };
         sqlx::query("UPDATE users SET board_name = $2, name_locked = $3 WHERE profile_number = $1")
             .bind(profile_number)
             .bind(name)
@@ -455,18 +537,12 @@ pub async fn set_profile_display(pool: &PgPool, actor: &AdminOrService, profile_
         details.insert("name".into(), json!({ "before": old_board.clone().or(steam_name.clone()), "after": name.map(str::to_string).or(steam_name.clone()) }));
     }
     if let Some(avatar) = avatar {
-        let (url, locked) = match avatar {
-            AvatarChange::Default => (Some(DEFAULT_AVATAR.to_string()), true),
-            AvatarChange::Url(u) => {
-                let u = u.trim().to_string();
-                if !u.starts_with("https://") || u.len() > 500 || u.contains(char::is_whitespace) {
-                    return Ok(Err(Refused::Invalid("The picture has to be an https:// address.".into())));
-                }
-                (Some(u), true)
-            }
-            AvatarChange::Steam(u) => (u.or(old_avatar.clone()), false),
+        let (url, locked) = match avatar_url(avatar, &old_avatar) {
+            Ok(v) => v,
+            Err(r) => return Ok(Err(r)),
         };
-        sqlx::query("UPDATE users SET avatar = $2, avatar_locked = $3 WHERE profile_number = $1")
+        // A staff lock replaces the player's own choice of picture.
+        sqlx::query("UPDATE users SET avatar = $2, avatar_locked = $3, avatar_custom = false WHERE profile_number = $1")
             .bind(profile_number)
             .bind(&url)
             .bind(locked)

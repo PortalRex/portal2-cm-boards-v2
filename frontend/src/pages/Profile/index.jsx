@@ -1,10 +1,10 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { Line, LineChart, ReferenceDot, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import Layout from "../../components/Layout";
 import { Card, Avatar, Flag, Loading, EmptyState } from "../../components/ui";
-import { GlobeIcon, HistoryIcon, PeakIcon, SparkleIcon, TrophyIcon, SteamIcon, TwitchIcon, YouTubeIcon, StarIcon, StarOutlineIcon, SwapIcon, EditIcon, TriangleDown } from "../../components/Icons";
+import { GlobeIcon, HistoryIcon, PeakIcon, SparkleIcon, TrophyIcon, SteamIcon, TwitchIcon, YouTubeIcon, StarIcon, StarOutlineIcon, SwapIcon, EditIcon, ShieldIcon, CloseIcon, TriangleDown } from "../../components/Icons";
 import { fetchPointsHistory, fetchPointsPeak, fetchProfile, fetchProfileAt, profileAsOf, adminSetCountry } from "../../api/client";
 import useWheelZoom from "../../hooks/useWheelZoom";
 import { useCollapsedGroup } from "../../hooks/useCollapsed";
@@ -366,13 +366,8 @@ function ProfileHeader({ player, role }) {
           <div className="pf-actions">
             <FollowButton player={player} />
             <CompareLink player={player} />
-          </div>
-          {/* Staff only, after follow / compare. */}
-          <div className="pf-staff-tools">
-            <RoleControl player={player} />
-            <FreezeControl player={player} />
-            <BanControl player={player} />
-            <DisplayControl player={player} />
+            <EditLink player={player} />
+            <StaffButton player={player} />
           </div>
         </div>
       </div>
@@ -380,226 +375,224 @@ function ProfileHeader({ player, role }) {
   );
 }
 
-// Admins: set the player's staff tier (saved immediately, recorded in the audit log).
-function RoleControl({ player }) {
+// Your own profile: name, picture and country are changed in Settings.
+function EditLink({ player }) {
   const user = useCurrentUser();
-  const [state, setState] = useState({ busy: false, error: null });
-  if (!isRoleAdmin(user) || user.profileNumber === player.profileNumber) return null;
-  const change = async (role) => {
-    setState({ busy: true, error: null });
-    try {
-      await setProfileRole(player.profileNumber, role || null);
-      setState({ busy: false, error: null });
-      bumpDataVersion();
-    } catch (e) {
-      setState({ busy: false, error: e.message });
-    }
-  };
+  if (!user || user.sample || user.profileNumber !== player.profileNumber) return null;
   return (
-    <label className="pf-role" title={state.error || "Staff tier"}>
-      <span>Role</span>
-      <select value={player.role || ""} disabled={state.busy} onChange={(e) => change(e.target.value)}>
-        <option value="">None</option>
-        {Object.entries(ROLE_LABELS).map(([value, label]) => (
-          <option key={value} value={value}>
-            {label}
-          </option>
-        ))}
-      </select>
-    </label>
+    <Link to="/more/settings" className="pf-icon-button" title="Change your name, picture and country in Settings" aria-label="Edit profile">
+      <EditIcon />
+    </Link>
   );
 }
 
-// Moderators and admins: replace a bad name or picture (locked against Steam sign-ins until
-// reset), or go back to the player's Steam name / picture.
-function DisplayControl({ player }) {
+// What a staff member can do to this profile (null: no staff button).
+function staffPowers(user, player) {
+  if (!isStaff(user)) return null;
+  const self = user.profileNumber === player.profileNumber;
+  const mod = user.role === "moderator" || user.role === "admin";
+  return {
+    role: isRoleAdmin(user) && !self,
+    freeze: !self,
+    ban: mod && !self && (!player.role || player.banned),
+    display: mod,
+  };
+}
+
+// Staff: a shield button opening the staff tools for this profile. A dot marks a name or picture
+// set by staff.
+function StaffButton({ player }) {
   const user = useCurrentUser();
   const [open, setOpen] = useState(false);
-  const [name, setName] = useState(player.name);
-  const [url, setUrl] = useState("");
-  const [country, setCountry] = useState(player.country ? String(countryIdByCode(player.country) ?? "") : "");
-  const [reason, setReason] = useState("");
-  const [state, setState] = useState({ busy: false, error: null });
-  if (!isStaff(user) || !(user.role === "moderator" || user.role === "admin")) return null;
-  const saveCountry = async () => {
-    setState({ busy: true, error: null });
-    try {
-      await adminSetCountry(player.profileNumber, country ? Number(country) : null, reason.trim() || undefined);
-      setState({ busy: false, error: null });
-      bumpDataVersion();
-    } catch (e) {
-      setState({ busy: false, error: e.message });
-    }
-  };
-  const save = async (changes) => {
-    setState({ busy: true, error: null });
-    try {
-      await setProfileDisplay(player.profileNumber, changes, reason.trim() || undefined);
-      setState({ busy: false, error: null });
-      setUrl("");
-      bumpDataVersion();
-    } catch (e) {
-      setState({ busy: false, error: e.message });
-    }
-  };
-  if (!open) {
-    const locked = player.nameLocked || player.avatarLocked;
-    const label = `Edit name & picture${locked ? " (set by staff)" : ""}`;
-    return (
-      <button type="button" className={`pf-icon-button pf-edit-button${locked ? " is-locked" : ""}`} onClick={() => setOpen(true)} title={label} aria-label={label}>
-        <EditIcon />
-      </button>
-    );
-  }
+  const powers = staffPowers(user, player);
+  if (!powers || !Object.values(powers).some(Boolean)) return null;
+  const locked = player.nameLocked || player.avatarLocked;
+  const label = `Staff tools${locked ? " (name or picture set by staff)" : ""}`;
   return (
-    <div className="pf-display-form">
-      <div className="pf-freeze-form">
-        <input value={name} onChange={(e) => setName(e.target.value)} maxLength={32} aria-label="Name" placeholder="Name" />
-        <button type="button" className="pf-admin-button" disabled={state.busy || !name.trim()} onClick={() => save({ name: name.trim() })}>
-          Set name
-        </button>
-        {player.nameLocked && (
-          <button type="button" className="pf-admin-button" disabled={state.busy} onClick={() => save({ name: null })} title={player.steamName ? `Back to “${player.steamName}”` : undefined}>
-            Use Steam name
+    <>
+      <button type="button" className={`pf-icon-button pf-staff-button${locked ? " is-locked" : ""}`} onClick={() => setOpen(true)} title={label} aria-label={label}>
+        <ShieldIcon />
+      </button>
+      {open && createPortal(<StaffDialog player={player} powers={powers} onClose={() => setOpen(false)} />, document.body)}
+    </>
+  );
+}
+
+function StaffDialog({ player, powers, onClose }) {
+  const [reason, setReason] = useState("");
+  const [state, setState] = useState({ busy: false, message: null, error: null });
+  useEffect(() => {
+    const key = (e) => e.key === "Escape" && !state.busy && onClose();
+    document.addEventListener("keydown", key);
+    return () => document.removeEventListener("keydown", key);
+  }, [onClose, state.busy]);
+  // Runs a staff action with the shared reason; the profile reloads with the result.
+  const act = async (fn, message) => {
+    setState({ busy: true, message: null, error: null });
+    try {
+      await fn(reason.trim() || undefined);
+      setState({ busy: false, message, error: null });
+      bumpDataVersion();
+      return true;
+    } catch (e) {
+      setState({ busy: false, message: null, error: e.message });
+      return false;
+    }
+  };
+  const props = { player, act, busy: state.busy };
+  return (
+    <div className="pf-staff-backdrop" onMouseDown={(e) => e.target === e.currentTarget && !state.busy && onClose()}>
+      <div className="pf-staff-dialog" role="dialog" aria-modal="true" aria-labelledby="pf-staff-title">
+        <header className="pf-staff-head">
+          <ShieldIcon />
+          <h2 id="pf-staff-title">Staff tools: {player.name}</h2>
+          <button type="button" className="pf-staff-close" onClick={onClose} aria-label="Close" disabled={state.busy}>
+            <CloseIcon />
           </button>
-        )}
+        </header>
+        <div className="pf-staff-body">
+          <label className="pf-staff-reason">
+            <span>Reason (audit log)</span>
+            <input value={reason} onChange={(e) => setReason(e.target.value)} maxLength={500} placeholder="Why, for the audit log" autoFocus />
+          </label>
+          {powers.display && <DisplayTools {...props} />}
+          {powers.role && <RoleTools {...props} />}
+          {(powers.freeze || powers.ban) && (
+            <section className="pf-staff-section">
+              <h3>Restrictions</h3>
+              <div className="pf-freeze-form">
+                {powers.freeze && <FreezeTools {...props} />}
+                {powers.ban && <BanTools {...props} />}
+              </div>
+            </section>
+          )}
+          {state.message && <p className="pf-staff-ok">{state.message}</p>}
+          {state.error && <p className="pf-freeze-error">{state.error}</p>}
+        </div>
       </div>
-      <div className="pf-freeze-form">
-        <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="Picture address (https://…)" aria-label="Picture address" />
-        <button type="button" className="pf-admin-button" disabled={state.busy || !url.trim()} onClick={() => save({ avatar: url.trim() })}>
-          Set picture
-        </button>
-        <button type="button" className="pf-admin-button" disabled={state.busy} onClick={() => save({ avatar: "default" })}>
-          Default picture
-        </button>
-        {player.avatarLocked && (
-          <button type="button" className="pf-admin-button" disabled={state.busy} onClick={() => save({ avatar: "steam" })}>
-            Use Steam picture
-          </button>
-        )}
-      </div>
-      <div className="pf-freeze-form">
-        <select value={country} onChange={(e) => setCountry(e.target.value)} aria-label="Country" className="pf-country-select">
-          <option value="">No country</option>
-          {COUNTRY_LIST.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-        <button type="button" className="pf-admin-button" disabled={state.busy} onClick={saveCountry}>
-          Set country
-        </button>
-      </div>
-      <div className="pf-freeze-form">
-        <input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Reason (audit log)" maxLength={500} />
-        <button type="button" className="pf-admin-button" onClick={() => setOpen(false)}>
-          Done
-        </button>
-      </div>
-      {state.error && <span className="pf-freeze-error">{state.error}</span>}
     </div>
   );
 }
 
-// Moderators and admins: ban a profile (all its runs leave the boards and the player is signed
-// out) or unban it. Staff have to lose their role before they can be banned.
-function BanControl({ player }) {
-  const user = useCurrentUser();
-  const [open, setOpen] = useState(false);
-  const [reason, setReason] = useState("");
-  const [state, setState] = useState({ busy: false, error: null });
-  const canBan = isStaff(user) && (user.role === "moderator" || user.role === "admin");
-  if (!canBan || user.profileNumber === player.profileNumber || (player.role && !player.banned)) return null;
-  const save = async (banned) => {
-    setState({ busy: true, error: null });
-    try {
-      await setProfileBanned(player.profileNumber, banned, reason.trim() || undefined);
-      setOpen(false);
-      setReason("");
-      setState({ busy: false, error: null });
-      bumpDataVersion();
-    } catch (e) {
-      setState({ busy: false, error: e.message });
-    }
+// Moderators and admins: replace a bad name or picture (locked against Steam sign-ins and the
+// player's own changes until reset), go back to the player's Steam ones, or set their country.
+function DisplayTools({ player, act, busy }) {
+  const [name, setName] = useState(player.name);
+  const [url, setUrl] = useState("");
+  const [country, setCountry] = useState(player.country ? String(countryIdByCode(player.country) ?? "") : "");
+  const display = async (changes, message) => {
+    if (await act((reason) => setProfileDisplay(player.profileNumber, changes, reason), message)) setUrl("");
   };
-  if (player.banned) {
-    return (
-      <button type="button" className="pf-admin-button" disabled={state.busy} onClick={() => save(false)} title={state.error || "Put this player's runs back on the boards"}>
-        Unban
-      </button>
-    );
-  }
-  return open ? (
-    <form
-      className="pf-freeze-form"
-      onSubmit={(e) => {
-        e.preventDefault();
-        save(true);
-      }}
-    >
-      <input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Reason (audit log)" maxLength={500} autoFocus />
-      <button type="submit" className="pf-admin-button is-danger" disabled={state.busy}>
-        Ban
-      </button>
-      <button type="button" className="pf-admin-button" onClick={() => setOpen(false)}>
-        Cancel
-      </button>
-      {state.error && <span className="pf-freeze-error">{state.error}</span>}
-    </form>
-  ) : (
-    <button type="button" className="pf-admin-button is-danger" onClick={() => setOpen(true)} title="Hide all of this player's runs and list them on the Wall of Shame">
-      Ban profile
-    </button>
+  return (
+    <>
+      <section className="pf-staff-section">
+        <h3>Name{player.nameLocked && <span className="pf-staff-locked"> (set by staff)</span>}</h3>
+        <div className="pf-freeze-form">
+          <input value={name} onChange={(e) => setName(e.target.value)} maxLength={32} aria-label="Name" placeholder="Name" />
+          <button type="button" className="pf-admin-button" disabled={busy || !name.trim()} onClick={() => display({ name: name.trim() }, "Name set.")}>
+            Set name
+          </button>
+          {player.nameLocked && (
+            <button type="button" className="pf-admin-button" disabled={busy} onClick={() => display({ name: null }, "Back to the Steam name.")} title={player.steamName ? `Back to “${player.steamName}”` : undefined}>
+              Use Steam name
+            </button>
+          )}
+        </div>
+      </section>
+      <section className="pf-staff-section">
+        <h3>Picture{player.avatarLocked && <span className="pf-staff-locked"> (set by staff)</span>}</h3>
+        <div className="pf-freeze-form">
+          <Avatar src={player.avatar} name={player.name} size={34} />
+          <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="Picture address (https://…)" aria-label="Picture address" />
+          <button type="button" className="pf-admin-button" disabled={busy || !url.trim()} onClick={() => display({ avatar: url.trim() }, "Picture set.")}>
+            Set picture
+          </button>
+          <button type="button" className="pf-admin-button" disabled={busy} onClick={() => display({ avatar: "default" }, "Default picture set.")}>
+            Default picture
+          </button>
+          {(player.avatarLocked || player.avatarCustom) && (
+            <button type="button" className="pf-admin-button" disabled={busy} onClick={() => display({ avatar: "steam" }, "Back to the Steam picture.")}>
+              Use Steam picture
+            </button>
+          )}
+        </div>
+      </section>
+      <section className="pf-staff-section">
+        <h3>Country</h3>
+        <div className="pf-freeze-form">
+          <select value={country} onChange={(e) => setCountry(e.target.value)} aria-label="Country" className="pf-country-select">
+            <option value="">No country</option>
+            {COUNTRY_LIST.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+          <button type="button" className="pf-admin-button" disabled={busy} onClick={() => act((reason) => adminSetCountry(player.profileNumber, country ? Number(country) : null, reason), "Country set.")}>
+            Set country
+          </button>
+        </div>
+      </section>
+    </>
+  );
+}
+
+// Admins: the player's staff tier (saved on change).
+function RoleTools({ player, act, busy }) {
+  return (
+    <section className="pf-staff-section">
+      <h3>Staff tier</h3>
+      <label className="pf-role">
+        <span>Role</span>
+        <select value={player.role || ""} disabled={busy} onChange={(e) => act(() => setProfileRole(player.profileNumber, e.target.value || null), "Role saved.")}>
+          <option value="">None</option>
+          {Object.entries(ROLE_LABELS).map(([value, label]) => (
+            <option key={value} value={value}>
+              {label}
+            </option>
+          ))}
+        </select>
+      </label>
+    </section>
   );
 }
 
 // Staff: freeze (existing times stay, new ones are refused) or unfreeze the profile.
-function FreezeControl({ player }) {
-  const user = useCurrentUser();
-  const [open, setOpen] = useState(false);
-  const [reason, setReason] = useState("");
-  const [state, setState] = useState({ busy: false, error: null });
-  if (!isStaff(user) || user.profileNumber === player.profileNumber) return null;
-  const save = async (frozen) => {
-    setState({ busy: true, error: null });
-    try {
-      await setProfileFrozen(player.profileNumber, frozen, reason.trim() || undefined);
-      setOpen(false);
-      setReason("");
-      setState({ busy: false, error: null });
-      bumpDataVersion();
-    } catch (e) {
-      setState({ busy: false, error: e.message });
-    }
-  };
-  if (player.frozen) {
+function FreezeTools({ player, act, busy }) {
+  return player.frozen ? (
+    <button type="button" className="pf-admin-button" disabled={busy} onClick={() => act((reason) => setProfileFrozen(player.profileNumber, false, reason), "Unfrozen.")} title="Allow new times again">
+      Unfreeze
+    </button>
+  ) : (
+    <button type="button" className="pf-admin-button" disabled={busy} onClick={() => act((reason) => setProfileFrozen(player.profileNumber, true, reason), "Frozen.")} title="Keep this player's times but refuse new ones">
+      Freeze profile
+    </button>
+  );
+}
+
+// Moderators and admins: ban a profile (all its runs leave the boards and the player is signed
+// out) after a second click, or unban it. Staff have to lose their role before they can be banned.
+function BanTools({ player, act, busy }) {
+  const [confirm, setConfirm] = useState(false);
+  if (player.banned) {
     return (
-      <button type="button" className="pf-admin-button" disabled={state.busy} onClick={() => save(false)} title={state.error || "Allow new times again"}>
-        Unfreeze
+      <button type="button" className="pf-admin-button" disabled={busy} onClick={() => act((reason) => setProfileBanned(player.profileNumber, false, reason), "Unbanned.")} title="Put this player's runs back on the boards">
+        Unban
       </button>
     );
   }
-  return open ? (
-    <form
-      className="pf-freeze-form"
-      onSubmit={(e) => {
-        e.preventDefault();
-        save(true);
-      }}
-    >
-      <input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Reason (audit log)" maxLength={500} autoFocus />
-      <button type="submit" className="pf-admin-button is-danger" disabled={state.busy}>
-        Freeze
+  return confirm ? (
+    <>
+      <button type="button" className="pf-admin-button is-danger" disabled={busy} onClick={() => act((reason) => setProfileBanned(player.profileNumber, true, reason), "Banned.").then(() => setConfirm(false))}>
+        Confirm ban
       </button>
-      <button type="button" className="pf-admin-button" onClick={() => setOpen(false)}>
+      <button type="button" className="pf-admin-button" onClick={() => setConfirm(false)}>
         Cancel
       </button>
-      {state.error && <span className="pf-freeze-error">{state.error}</span>}
-    </form>
+    </>
   ) : (
-    <button type="button" className="pf-admin-button" onClick={() => setOpen(true)} title="Keep this player's times but refuse new ones">
-      Freeze profile
+    <button type="button" className="pf-admin-button is-danger" disabled={busy} onClick={() => setConfirm(true)} title="Hide all of this player's runs and list them on the Wall of Shame">
+      Ban profile
     </button>
   );
 }
