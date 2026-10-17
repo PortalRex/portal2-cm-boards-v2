@@ -92,6 +92,8 @@ pub mod submissions;
 pub mod catalog;
 /// Player stats (activity, partners, demo stats)
 pub mod profile_stats;
+/// Site-wide runner statistics (the Stats page).
+pub mod site_stats;
 /// Anonymous run reports
 pub mod reports;
 /// Staff-only notes on runs

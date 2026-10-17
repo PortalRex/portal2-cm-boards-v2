@@ -187,6 +187,11 @@ impl PointsCache {
         .await
     }
 
+    /// The game's current personal bests with ranks (a copy).
+    pub async fn pbs(&self, pool: &PgPool, game_id: i32) -> Result<Vec<PbRank>, sqlx::Error> {
+        self.with_game(pool, game_id, |g| g.pbs.clone()).await
+    }
+
     /// A player's current rank on every map of the game (`{ map_id: rank }`).
     pub async fn ranks(&self, pool: &PgPool, game_id: i32, profile_number: &str) -> Result<HashMap<String, i32>, sqlx::Error> {
         self.with_game(pool, game_id, |g| {

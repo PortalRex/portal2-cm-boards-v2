@@ -1,0 +1,261 @@
+/* Stats section: tabs above the panel (Runners, Compare players, Countries). */
+.st-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 0;
+  overflow-x: auto;
+}
+
+.st-tabs a {
+  flex: none;
+  display: flex;
+  align-items: center;
+  min-width: 124px;
+  height: 46px;
+  padding: 0 28px;
+  border-radius: 10px 10px 0 0;
+  background: var(--control-raised);
+  color: var(--text-2);
+  font-size: 18px;
+  font-weight: 300;
+  text-transform: uppercase;
+  text-decoration: none;
+}
+
+.st-tabs a.is-active {
+  background: rgb(var(--panel-rgb) / 0.97);
+  color: var(--text);
+}
+
+/* The panel under the tabs joins them. */
+.st-tabs + .panel {
+  border-top-left-radius: 0;
+}
+
+.st-body {
+  padding-bottom: 36px;
+}
+
+.st-select {
+  min-width: 220px;
+}
+
+.st-intro {
+  margin: 0 0 16px;
+  max-width: 900px;
+}
+
+/* Totals */
+.st-figures {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.st-figure {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 14px 16px;
+  border-radius: 6px;
+  background: var(--row);
+}
+
+.st-figure-label {
+  color: var(--text-muted);
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.st-figure-value {
+  font-size: 28px;
+  font-weight: 600;
+}
+
+.st-figure-note {
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+/* Sections */
+.st-section-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.st-section-title {
+  margin: 28px 0 12px;
+  padding-bottom: 4px;
+  border-bottom: 2px solid var(--text-muted);
+  font-size: 30px;
+  font-weight: 300;
+  text-transform: uppercase;
+}
+
+.st-section-head .st-section-title {
+  flex: 1 1 300px;
+}
+
+.st-boards {
+  height: 40px;
+  margin-bottom: 12px;
+}
+
+.st-boards button {
+  min-width: 120px;
+  font-size: 17px;
+}
+
+/* Tables */
+.st-table {
+  display: flex;
+  flex-direction: column;
+}
+
+.st-row {
+  display: grid;
+  align-items: center;
+  gap: 14px;
+  min-height: 42px;
+  padding: 0 12px;
+  border-radius: 4px;
+}
+
+.st-row:nth-child(even) {
+  background: var(--row);
+}
+
+.st-head {
+  min-height: 34px;
+  color: var(--text-muted);
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.st-peaks .st-row {
+  grid-template-columns: 44px minmax(0, 1fr) 110px 150px 110px 110px;
+}
+
+.st-longest .st-row {
+  grid-template-columns: 44px minmax(0, 1fr) minmax(0, 1.2fr) 110px 240px;
+}
+
+.st-rank {
+  color: var(--text-muted);
+}
+
+.st-player {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.st-holders {
+  flex-wrap: wrap;
+  gap: 6px 18px;
+}
+
+.st-holder {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.st-strong {
+  font-weight: 600;
+}
+
+.st-down {
+  color: var(--negative, #e36b6b);
+}
+
+.st-same {
+  color: var(--text-muted);
+}
+
+/* Leader cards */
+.st-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 14px;
+}
+
+.st-card {
+  padding: 14px 16px 10px;
+  border-radius: 8px;
+  background: var(--row);
+}
+
+.st-card-title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0 0 10px;
+  font-size: 19px;
+  font-weight: 600;
+}
+
+.st-card-note {
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.st-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.st-list-row {
+  display: grid;
+  grid-template-columns: 30px 24px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 34px;
+}
+
+.st-list-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.st-list-value {
+  font-weight: 600;
+}
+
+@media (max-width: 900px) {
+  .st-peaks .st-row {
+    grid-template-columns: 36px minmax(0, 1fr) 90px 110px;
+  }
+
+  .st-peaks .st-row > :nth-child(5),
+  .st-peaks .st-row > :nth-child(6) {
+    display: none;
+  }
+
+  .st-longest .st-row {
+    grid-template-columns: 36px minmax(0, 1fr) 90px;
+  }
+
+  .st-longest .st-row > :nth-child(3),
+  .st-longest .st-row > :nth-child(5) {
+    display: none;
+  }
+
+  .st-tabs a {
+    min-width: 0;
+    padding: 0 16px;
+    font-size: 16px;
+  }
+}

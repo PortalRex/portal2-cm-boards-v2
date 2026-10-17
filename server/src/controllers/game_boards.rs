@@ -6,7 +6,7 @@ use sqlx::{FromRow, PgPool};
 use std::collections::HashMap;
 
 /// A player's personal best on one map and its rank on that map.
-#[derive(Debug, FromRow)]
+#[derive(Debug, Clone, FromRow)]
 pub struct PbRank {
     pub profile_number: String,
     pub map_id: String,

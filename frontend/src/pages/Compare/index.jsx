@@ -14,7 +14,7 @@ import { mapLink, seasonBoard, useSeason } from "../../data/seasons";
 import "./Compare.css";
 
 // Two players' best times side by side, map by map, for one game and board.
-export default function Compare() {
+export function ComparePanel() {
   const [params, setParams] = useSearchParams();
   const a = params.get("a") || "";
   const b = params.get("b") || "";
@@ -38,43 +38,41 @@ export default function Compare() {
   const right = useApi(() => (b ? fetchCompareSide(b, source) : Promise.resolve(null)), [b, source]);
 
   return (
-    <Layout background={background} tint="mono">
-      <Panel icon={PeopleIcon} title="Compare players" bodyClassName="cmp-body">
-        <div className="cmp-players">
-          <PlayerSlot side={left.data} loading={left.loading} onPick={(pn) => set({ a: pn })} label="First player" />
-          <button type="button" className="cmp-swap" onClick={() => set({ a: b, b: a })} disabled={!a && !b} title="Swap players" aria-label="Swap players">
-            <SwapIcon />
-          </button>
-          <PlayerSlot side={right.data} loading={right.loading} onPick={(pn) => set({ b: pn })} label="Second player" />
-        </div>
-        <div className="cmp-controls">
-          {Object.keys(GAMES).length > 1 && (
-            <Select
-              value={game}
-              onChange={(g) => set({ game: g === "portal2" ? "" : g, mode: "", season: "" })}
-              options={Object.values(GAMES)
-                .filter((g) => g.kind !== "season")
-                .map((g) => ({ value: g.id, label: g.label }))}
-              label="Game"
-              className="cmp-select"
-            />
-          )}
-          <SeasonSelect base={game} season={season} onChange={(s) => set({ game: game === "portal2" ? "" : game, season: s || "" })} className="cmp-select" />
-          <div className="segmented">
-            {modes.map((m) => (
-              <button key={m} type="button" className={m === mode ? "is-active" : ""} onClick={() => set({ mode: m === modes[0] ? "" : m })}>
-                {MODE_LABELS[m] || m}
-              </button>
-            ))}
-          </div>
-        </div>
-        {left.data && right.data ? (
-          board ? <Comparison mode={board} left={left.data} right={right.data} /> : <EmptyState>{GAMES[season].label} has no {MODE_LABELS[mode]} maps.</EmptyState>
-        ) : (
-          !left.loading && !right.loading && <EmptyState>Pick two players to compare their times.</EmptyState>
+    <Panel icon={PeopleIcon} title="Compare players" bodyClassName="cmp-body">
+      <div className="cmp-players">
+        <PlayerSlot side={left.data} loading={left.loading} onPick={(pn) => set({ a: pn })} label="First player" />
+        <button type="button" className="cmp-swap" onClick={() => set({ a: b, b: a })} disabled={!a && !b} title="Swap players" aria-label="Swap players">
+          <SwapIcon />
+        </button>
+        <PlayerSlot side={right.data} loading={right.loading} onPick={(pn) => set({ b: pn })} label="Second player" />
+      </div>
+      <div className="cmp-controls">
+        {Object.keys(GAMES).length > 1 && (
+          <Select
+            value={game}
+            onChange={(g) => set({ game: g === "portal2" ? "" : g, mode: "", season: "" })}
+            options={Object.values(GAMES)
+              .filter((g) => g.kind !== "season")
+              .map((g) => ({ value: g.id, label: g.label }))}
+            label="Game"
+            className="cmp-select"
+          />
         )}
-      </Panel>
-    </Layout>
+        <SeasonSelect base={game} season={season} onChange={(s) => set({ game: game === "portal2" ? "" : game, season: s || "" })} className="cmp-select" />
+        <div className="segmented">
+          {modes.map((m) => (
+            <button key={m} type="button" className={m === mode ? "is-active" : ""} onClick={() => set({ mode: m === modes[0] ? "" : m })}>
+              {MODE_LABELS[m] || m}
+            </button>
+          ))}
+        </div>
+      </div>
+      {left.data && right.data ? (
+        board ? <Comparison mode={board} left={left.data} right={right.data} /> : <EmptyState>{GAMES[season].label} has no {MODE_LABELS[mode]} maps.</EmptyState>
+      ) : (
+        !left.loading && !right.loading && <EmptyState>Pick two players to compare their times.</EmptyState>
+      )}
+    </Panel>
   );
 }
 
@@ -225,5 +223,14 @@ function Side({ score, win, right }) {
         <span className="muted">–</span>
       )}
     </span>
+  );
+}
+
+// The page on its own (the Stats page shows the panel under its tabs).
+export default function Compare() {
+  return (
+    <Layout background={background} tint="mono">
+      <ComparePanel />
+    </Layout>
   );
 }

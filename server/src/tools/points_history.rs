@@ -51,6 +51,8 @@ struct HistoryCache {
     games: Mutex<HashMap<i32, Arc<Timeline>>>,
     histories: Mutex<HashMap<(i32, String, NaiveDate), Arc<Vec<HistoryPoint>>>>,
     peaks: Mutex<HashMap<(i32, String, NaiveDate), Arc<BTreeMap<String, Peak>>>>,
+    /// Everyone's peaks per game ([all_peaks]).
+    all_peaks: Mutex<HashMap<i32, Arc<Vec<PlayerPeaks>>>>,
 }
 
 /// Results kept per table before it's emptied (a few hundred bytes to a few KB each).
@@ -68,6 +70,8 @@ pub async fn clear() {
     c.games.lock().await.clear();
     c.histories.lock().await.clear();
     c.peaks.lock().await.clear();
+    c.all_peaks.lock().await.clear();
+    crate::controllers::site_stats::clear();
 }
 
 async fn timeline(pool: &PgPool, game_id: i32) -> Result<Arc<Timeline>, sqlx::Error> {
@@ -373,7 +377,7 @@ async fn legends_candidates(pool: &PgPool) -> Result<Vec<String>, sqlx::Error> {
 }
 
 /// A player's highest points total, with when it was reached.
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct Peak {
     pub points: f64,
     pub date: NaiveDate,
@@ -426,6 +430,166 @@ async fn compute_peak(pool: &PgPool, game_id: i32, profile_number: &str) -> Resu
         consider("overall", per_mode.iter().sum(), *at);
     }
     Ok(peaks)
+}
+
+/// A player's peak points per board key and their points now (from [all_peaks]).
+#[derive(Debug, Clone, Serialize)]
+pub struct PlayerPeaks {
+    pub profile_number: String,
+    pub peaks: BTreeMap<String, Peak>,
+    pub current: BTreeMap<String, f64>,
+}
+
+/// Everyone's peak points in a game, from one pass over the run timeline in time order. The
+/// same rules as [points_peak] (which checks one player at each of their runs): here every run
+/// is applied in turn, adjusting the points of the players it passes, and the runner's own
+/// totals are checked against their peaks after each of their runs. Cached with the timeline.
+pub async fn all_peaks(pool: &PgPool, game_id: i32) -> Result<Arc<Vec<PlayerPeaks>>, sqlx::Error> {
+    if let Some(hit) = cache().all_peaks.lock().await.get(&game_id) {
+        return Ok(hit.clone());
+    }
+    let t = timeline(pool, game_id).await?;
+    let started = std::time::Instant::now();
+    let timeline = t.clone();
+    let result = Arc::new(tokio::task::spawn_blocking(move || compute_all_peaks(&timeline)).await.unwrap_or_default());
+    log::info!("peak points for game {game_id}: {} players in {:?}", result.len(), started.elapsed());
+    cache().all_peaks.lock().await.insert(game_id, result.clone());
+    Ok(result)
+}
+
+fn compute_all_peaks(t: &Timeline) -> Vec<PlayerPeaks> {
+    let by_run = crate::tools::config::coop_by_run();
+    let release = NaiveDate::from_ymd_opt(2011, 4, 19).unwrap().and_hms_opt(0, 0, 0).unwrap();
+    let modes = t.modes.len();
+    let np = t.players.len();
+    // Every run in time order (then changelog id, as the timeline was read).
+    let mut events: Vec<(NaiveDateTime, i64, usize, usize)> = Vec::new();
+    for (mi, map) in t.maps.iter().enumerate() {
+        for (ri, r) in map.runs.iter().enumerate() {
+            events.push((r.0, map.ids[ri], mi, ri));
+        }
+    }
+    events.sort_unstable();
+    // Per map: each player's best (score, run); references per run (co-op by run: a run stays
+    // ranked while either player has it as their best); entries per time and who holds it.
+    struct MapState {
+        best: HashMap<u32, (i32, i64)>,
+        refs: HashMap<i64, u32>,
+        counts: BTreeMap<i32, u32>,
+        holders: BTreeMap<i32, Vec<u32>>,
+    }
+    let mut maps: Vec<MapState> = (0..t.maps.len()).map(|_| MapState { best: HashMap::new(), refs: HashMap::new(), counts: BTreeMap::new(), holders: BTreeMap::new() }).collect();
+    let mut totals = vec![0.0f64; np * modes];
+    let mut peaks: Vec<BTreeMap<String, Peak>> = vec![BTreeMap::new(); np];
+    let keys = board_keys(t);
+    let rank_of = |counts: &BTreeMap<i32, u32>, s: i32| counts.range(..s).map(|(_, c)| *c).sum::<u32>() as i32 + 1;
+    // After an entry at `s` was added (dir +1) or removed (dir -1), the players at slower times
+    // moved one rank: give them the difference. Ranks past 200 score nothing, so it stops there.
+    let shift = |st: &MapState, s: i32, dir: i32, mode: usize, totals: &mut Vec<f64>| {
+        let mut below: u32 = st.counts.range(..=s).map(|(_, c)| *c).sum();
+        for (&x, players) in st.holders.range((std::ops::Bound::Excluded(s), std::ops::Bound::Unbounded)) {
+            let new_rank = below as i32 + 1;
+            let old_rank = new_rank - dir;
+            if new_rank.min(old_rank) > 200 {
+                break;
+            }
+            let delta = score(new_rank) as f64 - score(old_rank) as f64;
+            if delta != 0.0 {
+                for &q in players {
+                    totals[q as usize * modes + mode] += delta;
+                }
+            }
+            below += st.counts.get(&x).copied().unwrap_or(0);
+        }
+    };
+    for (ts, _, mi, ri) in events {
+        let (_, p, s, run) = t.maps[mi].runs[ri];
+        let mode = t.maps[mi].mode;
+        let st = &mut maps[mi];
+        if st.best.get(&p).is_some_and(|&(old, _)| old <= s) {
+            continue; // not an improvement
+        }
+        // The player's old best goes.
+        if let Some(&(o, orun)) = st.best.get(&p) {
+            totals[p as usize * modes + mode] -= score(rank_of(&st.counts, o)) as f64;
+            if let Some(h) = st.holders.get_mut(&o) {
+                h.retain(|&q| q != p);
+                if h.is_empty() {
+                    st.holders.remove(&o);
+                }
+            }
+            let gone = if by_run {
+                let r = st.refs.entry(orun).or_insert(1);
+                *r -= 1;
+                *r == 0
+            } else {
+                true
+            };
+            if gone {
+                st.refs.remove(&orun);
+                if let Some(c) = st.counts.get_mut(&o) {
+                    *c -= 1;
+                    if *c == 0 {
+                        st.counts.remove(&o);
+                    }
+                }
+                shift(st, o, -1, mode, &mut totals);
+            }
+        }
+        // The new best comes in.
+        st.best.insert(p, (s, run));
+        let new = if by_run {
+            let r = st.refs.entry(run).or_insert(0);
+            *r += 1;
+            *r == 1
+        } else {
+            true
+        };
+        if new {
+            *st.counts.entry(s).or_insert(0) += 1;
+            shift(st, s, 1, mode, &mut totals);
+        }
+        st.holders.entry(s).or_default().push(p);
+        totals[p as usize * modes + mode] += score(rank_of(&st.counts, s)) as f64;
+        // Only the runner gained; check their peaks (undated runs count from release, which
+        // isn't a candidate, as on the chart).
+        if ts != release {
+            let mine = &totals[p as usize * modes..(p as usize + 1) * modes];
+            for (key, mode) in &keys {
+                let value = match mode {
+                    Some(m) => mine[*m],
+                    None => mine.iter().sum(),
+                };
+                let value = (value * 10.0).round() / 10.0;
+                if value > 0.0 && peaks[p as usize].get(key).map_or(true, |pk| value > pk.points) {
+                    peaks[p as usize].insert(key.clone(), Peak { points: value, date: ts.date() });
+                }
+            }
+        }
+    }
+    let mut names = vec![String::new(); np];
+    for (name, &i) in &t.players {
+        names[i as usize] = name.clone();
+    }
+    let mut out = Vec::new();
+    for p in 0..np {
+        if peaks[p].is_empty() {
+            continue;
+        }
+        let mine = &totals[p * modes..(p + 1) * modes];
+        let current = keys
+            .iter()
+            .map(|(key, mode)| {
+                let v = match mode {
+                    Some(m) => mine[*m],
+                    None => mine.iter().sum(),
+                };
+                (key.clone(), (v * 10.0).round() / 10.0)
+            })
+            .collect();
+        out.push(PlayerPeaks { profile_number: names[p].clone(), peaks: std::mem::take(&mut peaks[p]), current });
+    }
+    out
 }
 
 /// One chart point: the date and the player's points per board key (`sp`, `coop`, ...), with

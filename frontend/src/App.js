@@ -11,9 +11,14 @@ import Settings from "./pages/Settings";
 import WallOfShame from "./pages/WallOfShame";
 import Donators from "./pages/Donators";
 import Admin from "./pages/Admin";
-import Compare from "./pages/Compare";
-import Countries from "./pages/Countries";
+import Stats from "./pages/Stats";
 import PrivateGate from "./components/PrivateGate";
+
+// An old address sent to its new one, keeping the query string (e.g. /compare?a=..&b=..).
+function Moved({ to }) {
+  const { search } = useLocation();
+  return <Navigate to={to + search} replace />;
+}
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -43,9 +48,12 @@ function App() {
         <Route path="/more/settings" element={<Settings />} />
         <Route path="/more/wall-of-shame" element={<WallOfShame />} />
         <Route path="/more/donators" element={<Donators />} />
-        <Route path="/more/countries" element={<Countries />} />
+        <Route path="/more/countries" element={<Moved to="/stats/countries" />} />
         <Route path="/admin" element={<Admin />} />
-        <Route path="/compare" element={<Compare />} />
+        <Route path="/stats" element={<Stats />} />
+        <Route path="/stats/compare" element={<Stats tab="compare" />} />
+        <Route path="/stats/countries" element={<Stats tab="countries" />} />
+        <Route path="/compare" element={<Moved to="/stats/compare" />} />
         <Route path="/more/about" element={<About />} />
         <Route path="/more/:page" element={<Placeholder />} />
         <Route path="*" element={<Placeholder />} />

@@ -38,6 +38,7 @@ export { default as CloseIcon } from "@mui/icons-material/Close";
 export { default as GitHubIcon } from "@mui/icons-material/GitHub";
 export { default as DonateIcon } from "@mui/icons-material/VolunteerActivism";
 export { default as CompareIcon } from "@mui/icons-material/CompareArrows";
+export { default as StatsIcon } from "@mui/icons-material/QueryStats";
 export { default as GavelIcon } from "@mui/icons-material/Gavel";
 export { default as InfoIcon } from "@mui/icons-material/InfoOutlined";
 export { default as InboxIcon } from "@mui/icons-material/InboxOutlined";

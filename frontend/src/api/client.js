@@ -726,6 +726,38 @@ export async function fetchProfileStats(profileNumber, game = "portal2") {
   };
 }
 
+// Site-wide runner stats for the Stats page (see the server's /stats/site).
+export async function fetchSiteStats(game = "portal2") {
+  const s = await getJson("/stats/site", gameParam(game));
+  const entry = (r) => ({ player: player(r.profile_number, r.user_name, r.avatar), value: r.value });
+  return {
+    totals: {
+      runners: s.totals.runners,
+      runs: s.totals.runs,
+      worldRecords: s.totals.world_records,
+      demos: s.totals.demos,
+      rendered: s.totals.rendered,
+      maps: s.totals.maps,
+      countries: s.totals.countries,
+      runsYear: s.totals.runs_year,
+      runnersYear: s.totals.runners_year,
+    },
+    leaders: Object.fromEntries(Object.entries(s.leaders).map(([k, rows]) => [k, rows.map(entry)])),
+    longestWrs: s.longest_wrs.map((w) => ({
+      mapId: w.map_id,
+      map: lookupMap(w.map_id, game),
+      mapName: w.map_name,
+      isCoop: w.is_coop,
+      score: w.score,
+      since: w.since,
+      players: [player(w.profile_number, w.user_name, w.avatar), w.partner_number ? player(w.partner_number, w.partner_name, w.partner_avatar) : null].filter(Boolean),
+    })),
+    peaks: Object.fromEntries(
+      Object.entries(s.peaks).map(([k, rows]) => [k, rows.map((r) => ({ player: player(r.profile_number, r.user_name, r.avatar), points: r.points, date: r.date, current: r.current }))]),
+    ),
+  };
+}
+
 // --- weekly recap ---------------------------------------------------------------
 
 // The top 5 runs of the week containing `day` (a Date; weeks start Monday, UTC).

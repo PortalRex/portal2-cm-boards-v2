@@ -1,10 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import logo from "../scenes/global/img/portal2logo.png";
-import {
-  HistoryIcon, PinIcon, BarsIcon, MoreIcon, TrophyIcon, PersonIcon, PeopleIcon, MenuIcon, CloseIcon, LightModeIcon, DarkModeIcon, SteamIcon, UploadIcon,
-  DiscordIcon, GitHubIcon, DonateIcon, CompareIcon, GavelIcon, InfoIcon, StarIcon, TriangleRight, TriangleDown, GlobeIcon,
-} from "./Icons";
+import { HistoryIcon, PinIcon, BarsIcon, MoreIcon, TrophyIcon, PersonIcon, PeopleIcon, MenuIcon, CloseIcon, LightModeIcon, DarkModeIcon, SteamIcon, UploadIcon, DiscordIcon, GitHubIcon, DonateIcon, GavelIcon, InfoIcon, StarIcon, TriangleRight, TriangleDown, StatsIcon } from "./Icons";
 import { Avatar, Flag } from "./ui";
 import { GAMES, MODE_LABELS, chapterDbId, coopChapters, spChapters } from "../data/maps";
 import useCurrentUser, { clearCurrentUser, isStaff } from "../hooks/useCurrentUser";
@@ -143,8 +140,7 @@ const MORE_MENU = [
   { href: "https://discord.gg/hRwE4Zr", label: "Discord", icon: DiscordIcon },
   { href: "https://github.com/p2sr/portal2-cm-boards-v2", label: "GitHub", icon: GitHubIcon },
   { to: "/more/donators", label: "Donators", icon: DonateIcon },
-  { to: "/compare", label: "Compare Players", icon: CompareIcon },
-  { to: "/more/countries", label: "Countries", icon: GlobeIcon },
+  { to: "/stats", label: "Stats", icon: StatsIcon },
   { to: "/more/wall-of-shame", label: "Wall Of Shame", icon: GavelIcon },
   { to: "/more/about", label: "About", icon: InfoIcon },
 ];
@@ -153,7 +149,7 @@ const NAV = [
   { to: "/", label: "Score Updates", icon: HistoryIcon, end: true },
   { to: "/maps", label: "Leaderboard", icon: PinIcon, match: ["/maps", "/map/"] },
   { to: "/leaderboard/overall", label: "Aggregate", icon: BarsIcon, menu: "leaderboard", match: ["/leaderboard"] },
-  { to: "/more/about", label: "More", icon: MoreIcon, menu: MORE_MENU, match: ["/more"] },
+  { to: "/more/about", label: "More", icon: MoreIcon, menu: MORE_MENU, match: ["/more", "/stats"] },
 ];
 
 function MenuItem({ item }) {
