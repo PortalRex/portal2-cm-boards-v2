@@ -1,4 +1,4 @@
-use crate::tools::auth::AdminOrService;
+use crate::tools::auth::ServiceOnly;
 use crate::{
     models::{
         points::{Points, PointsProfileWrapper, ProfilePage},
@@ -92,14 +92,14 @@ async fn banned_users_all(pool: web::Data<PgPool>) -> Result<impl Responder> {
 /// ``` json
 /// true
 /// ```
+#[derive(Deserialize)]
+pub struct BannedQuery {
+    pub profile_number: String,
+}
+
 #[get("/banned_user")]
-async fn banned_user(
-    profile_number: web::Query<String>,
-    pool: web::Data<PgPool>,
-) -> Result<impl Responder> {
-    Ok(web::Json(
-        Users::check_banned(pool.get_ref(), &profile_number).await?,
-    ))
+async fn banned_user(query: web::Query<BannedQuery>, pool: web::Data<PgPool>) -> Result<impl Responder> {
+    Ok(web::Json(Users::check_banned(pool.get_ref(), &query.profile_number).await?))
 }
 
 /// **POST** method to upload a new user to the boards.
@@ -155,7 +155,7 @@ async fn banned_user(
 /// ```
 // TODO: Just return whole user, not boolean.
 #[post("/user")]
-async fn user_add(_auth: AdminOrService, pool: web::Data<PgPool>, new_user: web::Json<Users>) -> Result<impl Responder> {
+async fn user_add(_auth: ServiceOnly, pool: web::Data<PgPool>, new_user: web::Json<Users>) -> Result<impl Responder> {
     Ok(web::Json(
         Users::insert_new_users(pool.get_ref(), new_user.0.clone()).await?,
     ))
@@ -186,7 +186,7 @@ async fn user_add(_auth: AdminOrService, pool: web::Data<PgPool>, new_user: web:
 /// ```
 #[put("/user/avatar/{profile_number}")]
 async fn avatar_update(
-    _auth: AdminOrService,
+    _auth: ServiceOnly,
     pool: web::Data<PgPool>,
     profile_number: web::Path<String>,
     data: web::Json<AvatarInsert>,

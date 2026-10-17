@@ -12,7 +12,9 @@ impl Users {
             "https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/?key={}&steamids={}",
             steam_api_key, profile_number
         );
-        let user = reqwest::get(&steam_api_url)
+        let user = crate::tools::helpers::http_client()
+            .get(&steam_api_url)
+            .send()
             .await?
             .json::<GetPlayerSummariesWrapper>()
             .await?;

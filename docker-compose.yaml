@@ -7,6 +7,9 @@ services:
   db:
     image: postgres:16-bookworm
     restart: unless-stopped
+    # The hot data (changelog and its indexes, ~300 MB) fits in memory with these; the image's
+    # defaults (128 MB shared buffers, 4 MB work_mem) spill the bigger sorts and joins to disk.
+    command: postgres -c shared_buffers=512MB -c work_mem=16MB -c effective_cache_size=2GB
     environment:
       POSTGRES_DB: p2boards
       POSTGRES_USER: docker

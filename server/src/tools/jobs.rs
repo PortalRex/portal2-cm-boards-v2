@@ -9,6 +9,11 @@ use std::{
     sync::{Mutex, OnceLock},
 };
 
+/// The pool the background jobs run on: separate from the API's, with no statement timeout, so a
+/// long sync can't hold up (or be cut short by) ordinary requests. Registered as app data for
+/// the "run now" endpoints.
+pub struct JobsPool(pub sqlx::PgPool);
+
 pub const STEAM_SYNC: &str = "steam_sync";
 pub const OLD_BOARDS: &str = "old_boards_sync";
 pub const DEMO_PARSE: &str = "demo_parse";

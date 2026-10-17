@@ -4,6 +4,7 @@
 //! Handlers take one of the extractors below:
 //! - [MaybeUser]: the signed-in user, if any (never rejects).
 //! - [SignedIn]: rejects with 401 unless a non-banned user is signed in.
+//! - [ServiceOnly]: rejects with 403 unless the request carries the service token.
 //! - [AdminOrService]: rejects with 403 unless the request comes from the service token or a
 //!   signed-in, non-banned staff member (`users.role`: verifier, moderator or admin). For now
 //!   every staff tier has the same tools; [AuthUser::is_role_admin] gates role management.
@@ -193,6 +194,27 @@ impl FromRequest for SignedIn {
                 Some(user) if !user.banned => Ok(SignedIn(user)),
                 Some(_) => Err(error::ErrorForbidden("This account is banned.")),
                 None => Err(error::ErrorUnauthorized("Sign in required.")),
+            }
+        })
+    }
+}
+
+/// The board's own services only (the service token). For the raw insert/update endpoints the
+/// backend service uses, which bypass the validated, audit-logged moderation paths; staff
+/// accounts, whatever their tier, get 403.
+pub struct ServiceOnly;
+
+impl FromRequest for ServiceOnly {
+    type Error = actix_web::Error;
+    type Future = Fut<Self>;
+    fn from_request(req: &HttpRequest, _: &mut Payload) -> Self::Future {
+        let req = req.clone();
+        Box::pin(async move {
+            let (_, config) = app_data(&req)?;
+            if service_token_ok(&req, &config) {
+                Ok(ServiceOnly)
+            } else {
+                Err(error::ErrorForbidden("This endpoint is for the board's services."))
             }
         })
     }

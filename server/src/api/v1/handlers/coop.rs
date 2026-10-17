@@ -1,4 +1,4 @@
-use crate::tools::auth::AdminOrService;
+use crate::tools::auth::{AdminOrService, ServiceOnly};
 use crate::{
     models::{
         changelog::{Changelog, ScoreLookup, ScoreParams},
@@ -295,7 +295,7 @@ async fn coop_temp(pool: web::Data<PgPool>, map_id: web::Path<String>) -> impl R
 /// ```
 #[post("/coop/post_score")]
 async fn coop_add(
-    _auth: AdminOrService,
+    _auth: ServiceOnly,
     params: web::Json<CoopBundledInsert>,
     pool: web::Data<PgPool>,
     cache: web::Data<CacheState>,
@@ -347,7 +347,7 @@ async fn coop_add(
 /// ```
 #[put("/coop/update_changelog/{cl_id}/{coop_id}")]
 async fn coop_update_changelog(
-    _auth: AdminOrService,
+    _auth: ServiceOnly,
     pool: web::Data<PgPool>,
     path: web::Path<(i64, i64)>,
     cache: web::Data<CacheState>,

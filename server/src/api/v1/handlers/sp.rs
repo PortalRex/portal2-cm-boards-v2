@@ -1,4 +1,4 @@
-use crate::tools::auth::AdminOrService;
+use crate::tools::auth::ServiceOnly;
 use crate::{
     models::{
         changelog::{
@@ -404,7 +404,7 @@ pub async fn sp_validate(
 /// Receives a new score to add to the DB.
 #[post("/sp/post_score")]
 async fn sp_post_score(
-    _auth: AdminOrService,
+    _auth: ServiceOnly,
     params: web::Json<ChangelogInsert>,
     pool: web::Data<PgPool>,
     cache: web::Data<CacheState>,
@@ -481,7 +481,7 @@ async fn sp_post_score(
 /// ```
 #[put("/sp/update")]
 async fn sp_update(
-    _auth: AdminOrService,
+    _auth: ServiceOnly,
     params: web::Json<Changelog>,
     pool: web::Data<PgPool>,
     cache: web::Data<CacheState>,
