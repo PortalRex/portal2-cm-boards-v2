@@ -434,3 +434,68 @@
     flex-shrink: 0;
   }
 }
+
+/* World records: a rich trophy fill with a bright edge and an inner glow (a cell inside a row);
+   .is-raised squares glow outwards too. On hover the glow grows and a sheen sweeps across once. */
+.wr-glow {
+  position: relative;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--trophy) 46%, var(--track)) !important;
+  color: #f6dcff !important;
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--trophy) 85%, white),
+    inset 0 0 14px color-mix(in srgb, var(--trophy) 60%, transparent) !important;
+  transition: box-shadow 0.2s;
+}
+
+.wr-glow.is-raised {
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--trophy) 85%, white),
+    0 0 10px 1px color-mix(in srgb, var(--trophy) 55%, transparent) !important;
+}
+
+.wr-glow svg {
+  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--trophy) 90%, white));
+}
+
+.wr-glow::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 35%, rgb(255 255 255 / 0.35) 50%, transparent 65%);
+  transform: translateX(-120%);
+  pointer-events: none;
+}
+
+.wr-glow:hover,
+*:hover > .wr-glow {
+  outline: none;
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--trophy) 70%, white),
+    inset 0 0 20px color-mix(in srgb, var(--trophy) 75%, transparent) !important;
+}
+
+.wr-glow.is-raised:hover {
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--trophy) 70%, white),
+    0 0 16px 3px color-mix(in srgb, var(--trophy) 70%, transparent) !important;
+}
+
+.wr-glow:hover::after,
+*:hover > .wr-glow::after {
+  transform: translateX(120%);
+  transition: transform 0.6s ease-out;
+}
+
+:root[data-theme="light"] .wr-glow {
+  background: color-mix(in srgb, var(--trophy) 30%, var(--track)) !important;
+  color: #5b1480 !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wr-glow:hover::after,
+  *:hover > .wr-glow::after {
+    transition: none;
+    transform: translateX(-120%);
+  }
+}

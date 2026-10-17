@@ -173,11 +173,11 @@ export function RankNumber({ rank, empty = "–", inherit = false, colored = fal
 export function RankChange({ pre, post }) {
   return (
     <div className="rank-change num">
-      <span className="rank-change-prev" style={rankStyle(pre)}>
+      <span className={`rank-change-prev${pre === 1 ? " wr-glow" : ""}`} style={rankStyle(pre)}>
         <RankNumber rank={pre} inherit />
       </span>
       <TriangleRight size={12} />
-      <span className="rank-change-new" style={rankStyle(post)}>
+      <span className={`rank-change-new${post === 1 ? " wr-glow" : ""}`} style={rankStyle(post)}>
         <RankNumber rank={post} inherit />
       </span>
     </div>

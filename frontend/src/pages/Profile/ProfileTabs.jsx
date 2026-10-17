@@ -11,13 +11,17 @@ import useApi from "../../hooks/useApi";
 import useGame from "../../hooks/useGame";
 import { useDataVersion } from "../../lib/dataVersion";
 import { GAMES, chapterDbId, chaptersFor, isMultiplayerMode, mapPath, MODE_LABELS } from "../../data/maps";
-import { rankVars } from "../../lib/ranks";
+import { rankTileVars } from "../../lib/ranks";
 import { formatScore, formatDelta, formatDate, formatDateTime, timeAgo } from "../../lib/format";
 import { youtubeChannelLabel, youtubeChannelUrl } from "../../lib/youtube";
 import { ROLE_LABELS } from "../../hooks/useCurrentUser";
 import { TimeButton } from "../../components/RunHistory";
 import SeasonSelect from "../../components/SeasonSelect";
 import { seasonBoard, useSeason } from "../../data/seasons";
+
+// A rank cell's colouring: the rainbow tint, or the world record glow (`raised`: a free-standing
+// square, glowing outwards; otherwise a cell inside a row, glowing inwards).
+const rankClass = (rank, raised = false) => (rank === 1 ? ` wr-glow${raised ? " is-raised" : ""}` : rank ? " rank-tint" : "");
 
 // The tabs for the game picked under the logo: Portal 2's two boards (and its old board's Legacy
 // view), or another game's results in one tab; then Stats and Info. Seasons are picked inside the
@@ -265,7 +269,7 @@ function Summary({ chapters, scores, onSelectMap, chapterLink }) {
           <div className="pf-summary-row" key={chapter.dbId ?? `${chapter.mode}-${chapter.name}`}>
             {chapterLink ? (
               <>
-                <Link to={chapterLink(chapter)} className={`pf-summary-avg num${avg ? " rank-tint" : ""}`} style={rankVars(avg)} title={`Average rank · ${chapter.name} board`}>
+                <Link to={chapterLink(chapter)} className={`pf-summary-avg num${avg ? " rank-tint" : ""}`} style={rankTileVars(avg)} title={`Average rank · ${chapter.name} board`}>
                   {avg ?? "–"}
                 </Link>
                 <Link to={chapterLink(chapter)} className="pf-summary-chapter is-link" title={`${chapter.name} board`}>
@@ -275,7 +279,7 @@ function Summary({ chapters, scores, onSelectMap, chapterLink }) {
               </>
             ) : (
               <>
-                <span className={`pf-summary-avg num${avg ? " rank-tint" : ""}`} style={rankVars(avg)} title="Average rank">
+                <span className={`pf-summary-avg num${avg ? " rank-tint" : ""}`} style={rankTileVars(avg)} title="Average rank">
                   {avg ?? "–"}
                 </span>
                 <span className="pf-summary-chapter">
@@ -289,7 +293,7 @@ function Summary({ chapters, scores, onSelectMap, chapterLink }) {
                 const rank = scores[m.id]?.rank;
                 const title = `${m.title}${rank ? ` — rank ${rank}` : ""}`;
                 return scores[m.id] ? (
-                  <button key={m.id} type="button" onClick={() => openRun(m)} className={`pf-tile num${rank ? " rank-tint" : ""}`} style={rankVars(rank)} title={title}>
+                  <button key={m.id} type="button" onClick={() => openRun(m)} className={`pf-tile num${rankClass(rank, true)}`} style={rankTileVars(rank)} title={title}>
                     <RankNumber rank={rank} inherit />
                   </button>
                 ) : (
@@ -329,11 +333,11 @@ function ChapterTable({ chapter, scores, coop, game, rendered, selectedMap, onSe
           <div key={m.id} id={runRowId(m)} className={`pf-centry${open ? " is-open" : ""}`}>
             <div
               className={`pf-crow${coop ? " is-coop" : ""}${selected ? " is-selected" : ""}${s ? " is-expandable" : ""}`}
-              style={s ? rankVars(s.rank) : undefined}
+              style={s ? rankTileVars(s.rank) : undefined}
               aria-expanded={s ? open : undefined}
               onClick={s ? toggleOnRowClick(toggle) : undefined}
             >
-              <span className={`pf-crank num${s?.rank ? " rank-tint" : ""}`}>
+              <span className={`pf-crank num${rankClass(s?.rank)}`}>
                 <RankNumber rank={s?.rank} inherit />
               </span>
               {/* Only the name links to the map; the rest of the row opens the run. */}
@@ -407,11 +411,11 @@ function History({ history, game, map }) {
       {rows.length ? (
         rows.map((h) => (
           <div className="pf-hrow" key={h.id}>
-            <span className={`pf-hrank is-old num${h.preRank ? " rank-tint" : ""}`} style={rankVars(h.preRank)}>
+            <span className={`pf-hrank is-old num${rankClass(h.preRank, true)}`} style={rankTileVars(h.preRank)}>
               <RankNumber rank={h.preRank} inherit />
             </span>
             <TriangleRight size={14} />
-            <span className={`pf-hrank is-new num${h.postRank ? " rank-tint" : ""}`} style={rankVars(h.postRank)}>
+            <span className={`pf-hrank is-new num${rankClass(h.postRank, true)}`} style={rankTileVars(h.postRank)}>
               <RankNumber rank={h.postRank} inherit />
             </span>
             <span className="muted pf-hwhen" title={formatDateTime(h.timestamp)}>{map ? timeAgo(h.timestamp) : `${h.map.title} · ${timeAgo(h.timestamp)}`}</span>
@@ -460,7 +464,7 @@ function LegacyTab({ scores, player }) {
                       aria-expanded={s ? open : undefined}
                       onKeyDown={s ? (e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), toggle()) : undefined}
                     >
-                      <span className={`pf-legacy-rank num${s?.rank ? " rank-tint" : ""}`} style={rankVars(s?.rank)}>
+                      <span className={`pf-legacy-rank num${rankClass(s?.rank)}`} style={rankTileVars(s?.rank)}>
                         <RankNumber rank={s?.rank} inherit />
                       </span>
                       {s ? (

@@ -1321,15 +1321,16 @@ a.pf-summary-avg:hover {
 /* Rank tiles (summary, chapter averages, chapter tables, legacy): a dark tile tinted with
    the rank's colour and the number in that colour, the same scale as score updates. */
 .rank-tint {
-  background: color-mix(in srgb, var(--rank-color-dark) 24%, var(--track)) !important;
+  background: color-mix(in srgb, var(--rank-color-dark) 32%, var(--track)) !important;
   color: var(--rank-color-dark) !important;
   font-weight: 600;
 }
 
 :root[data-theme="light"] .rank-tint {
-  background: color-mix(in srgb, var(--rank-color) 16%, var(--track)) !important;
+  background: color-mix(in srgb, var(--rank-color) 20%, var(--track)) !important;
   color: var(--rank-color) !important;
 }
+
 
 /* Activity calendar (GitHub-style) */
 .pf-activity-card {
