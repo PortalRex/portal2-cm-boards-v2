@@ -1,7 +1,7 @@
 import Layout from "../../components/Layout";
 import { Avatar, Panel } from "../../components/ui";
 import { MoreIcon } from "../../components/Icons";
-import useCurrentUser, { clearCurrentUser, reloadCurrentUser, ROLE_LABELS } from "../../hooks/useCurrentUser";
+import useCurrentUser, { clearCurrentUser, reloadCurrentUser, setViewAsPlayer, ROLE_LABELS } from "../../hooks/useCurrentUser";
 import { useEffect, useState } from "react";
 import { fetchUser, logout, setMyCountry, setMyCountryFromSteam, setMyDisplay, steamLoginUrl } from "../../api/client";
 import { COUNTRY_LIST } from "../../data/countries";
@@ -131,6 +131,8 @@ export default function Settings() {
   const { theme, toggleTheme } = useTheme();
   const [pbStyle, setPbStyle] = useCoopPbStyle();
   const user = useCurrentUser();
+  // The real staff tier, also while viewing as a player.
+  const staffRole = user && !user.sample ? user.staffRole || user.role : null;
 
   return (
     <Layout background={background} tint="mono" narrow>
@@ -158,13 +160,30 @@ export default function Settings() {
         {user && !user.sample && <DisplaySetting user={user} />}
         {user && !user.sample && <CountrySetting user={user} />}
 
+        {staffRole && (
+          <section className="settings-section">
+            <h2>Staff</h2>
+            <div className="segmented settings-theme">
+              {[
+                [false, `As ${ROLE_LABELS[staffRole].toLowerCase()}`],
+                [true, "As a player"],
+              ].map(([asPlayer, label]) => (
+                <button key={label} type="button" className={Boolean(user.staffRole) === asPlayer ? "is-active" : ""} onClick={() => setViewAsPlayer(asPlayer)}>
+                  {label}
+                </button>
+              ))}
+            </div>
+            <p className="muted settings-note">See the site as a regular player would: staff tools, links and menus are hidden until you switch back (saved in this browser).</p>
+          </section>
+        )}
+
         <section className="settings-section">
           <h2>Account</h2>
           {user && !user.sample ? (
             <div className="settings-row">
               <span>
                 Signed in through Steam as <b>{user.name}</b>
-                {user.role ? ` (${ROLE_LABELS[user.role]})` : ""}.
+                {staffRole ? ` (${ROLE_LABELS[staffRole]})` : ""}.
               </span>
               <button
                 type="button"
