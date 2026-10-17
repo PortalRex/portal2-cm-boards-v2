@@ -574,7 +574,9 @@
   background: var(--control-raised);
 }
 
-.brand-game.is-active {
+.brand-game.is-active,
+.menu-item.is-active,
+.profile-hover a.is-active {
   box-shadow: inset 3px 0 0 var(--accent);
 }
 

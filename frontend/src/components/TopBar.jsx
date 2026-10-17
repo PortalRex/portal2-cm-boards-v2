@@ -81,10 +81,23 @@ function gameEntry(g, icon, highlight) {
   };
 }
 
-function MenuLink({ item, caret = false }) {
+// Whether a menu entry is the page you're on: same path and season (a board without ?season= is
+// its all-time board). `also`: other entries under it (a board's chapters).
+function useIsHere(to, also = []) {
+  const { pathname, search } = useLocation();
+  const season = new URLSearchParams(search).get("season");
+  return [to, ...also].some((t) => {
+    if (!t) return false;
+    const url = new URL(t, window.location.origin);
+    return url.pathname === pathname && url.searchParams.get("season") === season;
+  });
+}
+
+function MenuLink({ item, caret = false, also }) {
   const Icon = item.icon;
+  const here = useIsHere(item.to, also);
   return (
-    <Link className={`menu-item${item.highlight ? " is-highlight" : ""}`} to={item.to}>
+    <Link className={`menu-item${item.highlight ? " is-highlight" : ""}${here ? " is-active" : ""}`} to={item.to} aria-current={here ? "page" : undefined}>
       {item.number != null ? <span className="menu-num num">{item.number}</span> : Icon ? <Icon className="menu-item-icon" /> : null}
       <span className="menu-label">{item.label}</span>
       {caret && (
@@ -116,7 +129,7 @@ function AggregateMenu() {
     <div className="nav-menu nav-menu-tree" role="menu">
       {game.boards.map((board) => (
         <div className="menu-group" key={board.label}>
-          <MenuLink item={board} caret={Boolean(board.chapters)} />
+          <MenuLink item={board} caret={Boolean(board.chapters)} also={(board.chapters || []).map((c) => c.to)} />
           {board.chapters && (
             <div className="menu-sub menu-sub-chapters">
               {!board.noTotal && <MenuLink item={{ label: "Total", icon: StarIcon, to: board.to }} />}
@@ -213,19 +226,20 @@ const NAV = [
 
 function MenuItem({ item }) {
   const Icon = item.icon || BarsIcon;
+  const here = useIsHere(item.to);
   const body = (
     <>
       <Icon className="menu-item-icon" />
       <span>{item.label}</span>
     </>
   );
-  const className = `menu-item${item.highlight ? " is-highlight" : ""}`;
+  const className = `menu-item${item.highlight ? " is-highlight" : ""}${here ? " is-active" : ""}`;
   return item.href ? (
     <a className={className} href={item.href} target="_blank" rel="noreferrer">
       {body}
     </a>
   ) : (
-    <Link className={className} to={item.to}>
+    <Link className={className} to={item.to} aria-current={here ? "page" : undefined}>
       {body}
     </Link>
   );
@@ -282,9 +296,17 @@ function ProfileMenu({ user, pathname, search }) {
         <Link to={`/profile/${user.profileNumber}`} className="profile-hover-banner" style={user.avatar ? { "--banner": `url("${user.avatar}")` } : undefined}>
           <span className="profile-hover-name">{user.name}</span>
         </Link>
-        <Link to={`/profile/${user.profileNumber}`}>My Profile</Link>
-        <Link to="/more/settings">Settings</Link>
-        {isStaff(user) && <Link to="/admin">Staff</Link>}
+        <Link to={`/profile/${user.profileNumber}`} className={pathname === `/profile/${user.profileNumber}` ? "is-active" : undefined}>
+          My Profile
+        </Link>
+        <Link to="/more/settings" className={pathname === "/more/settings" ? "is-active" : undefined}>
+          Settings
+        </Link>
+        {isStaff(user) && (
+          <Link to="/admin" className={pathname === "/admin" ? "is-active" : undefined}>
+            Staff
+          </Link>
+        )}
         <button type="button" onClick={signOut} disabled={user.sample} title={user.sample ? "Sample data: not signed in" : undefined}>
           Sign out
         </button>
