@@ -5,7 +5,7 @@ import viteConfig from './vite.config.ts'
 process.env.TZ = 'UTC'
 
 export default mergeConfig(
-  viteConfig,
+  viteConfig({ mode: 'test', command: 'serve' }),
   defineConfig({
     test: {
       environment: 'jsdom',

@@ -26,8 +26,8 @@
   - [x] 3.8 `lib/query-keys.ts` and `lib/invalidate.ts`: cfb9afe
   - [x] 3.9 `lib/auth` (`/auth/me`, roles, view-as-player) + `hooks/use-current-user`: 2e3b835
   - [x] 3.10 `hooks/use-game` (URL wins, saved choice, branding): cf15221
-  - [x] 3.11 Shared run model: `types/runs.ts` + adapters with captured fixtures: (pending)
-  - [ ] 3.12 Sample data mode: MSW handlers + factories, browser worker behind `VITE_USE_MOCK`, indicator
+  - [x] 3.11 Shared run model: `types/runs.ts` + adapters with captured fixtures: 5fff31a
+  - [x] 3.12 Sample data mode: MSW handlers + factories, browser worker behind `VITE_USE_MOCK`, indicator: (pending)
   - [ ] 3.13 Shared UI on shadcn (panels, tabs, selects, toggles, avatars, flags, score cells, icons)
   - [ ] 3.14 Layout + TopBar (nav, dropdowns, Aggregate menu per game, More menu, account area, theme toggle)
   - [ ] 3.15 Private mode gate in the root route
@@ -68,6 +68,14 @@
 
 ## Log
 <!-- Newest first. One entry per finished item: date, what was done, commit, tests added. -->
+- 2026-10-17: 3.12 Sample data mode. `src/testing/data/sample.ts` ports the legacy generators (players, boards,
+  previews, changelog, activity) to raw API JSON, so sample data goes through the real adapters.
+  `src/testing/mocks/sample-handlers.ts` serves them (built-in catalog, a signed-in sample player marked `sample`, 404
+  for endpoints without sample data); `browser.ts` starts the worker. `main.tsx` loads it only when
+  `import.meta.env.VITE_USE_MOCK === 'true'` and MSW's Vite plugin (worker script) is only added in that mode: a normal
+  build was checked to contain neither the mock code nor `mockServiceWorker.js`, while a mock build emits the worker.
+  `components/sample-data-notice.tsx` is the corner notice. Commit (pending). Tests: 8. Still to check in a browser
+  once the layout exists (3.14).
 - 2026-10-17: 3.11 `types/runs.ts` (raw changelog / sp + coop board / preview / co-op half types from the Rust
   models, and the UI `Run`, `RankedRun`, `PreviewRun`, `CoopHalf`, `Player`) and `lib/adapters/runs.ts`. Fixtures
   captured from the local API, one row per edge case (improvement, first run, banned, pending, co-op roles known and
@@ -164,6 +172,9 @@
 - `adaptPoints` (aggregated boards) and the profile adapters aren't shared run rows; they move with their features.
 - Checked while porting: `/changelog` returns `admin_note`, but the server selects `NULL` for it, so no staff note
   reaches the browser.
+- Sample data covers the endpoints the early features use; aggregated, profile, stats and the rest get sample data
+  with their features. Until then those pages show their error state in sample mode.
+- The notice keeps the legacy text "Sample data · API offline", which legacy also showed with `REACT_APP_USE_MOCK`.
 - `cn` in `lib/utils.ts` is shadcn's own package (github.com/shadcn-ui/cn), the replacement for clsx + tailwind-merge.
 - The hardening merge added a CSP in `security-headers.conf` (no inline scripts) and `public/theme.js` (sets the
   theme before first paint without an inline script). The new app keeps both: nginx includes the same headers file,

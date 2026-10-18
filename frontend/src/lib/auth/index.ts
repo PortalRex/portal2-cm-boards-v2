@@ -1,4 +1,5 @@
 import { queryOptions, type QueryClient } from '@tanstack/react-query'
+import { env } from '@/config/env'
 import { api, apiUrl } from '@/lib/api-client'
 import { queryKeys } from '@/lib/query-keys'
 
@@ -63,12 +64,17 @@ export const adaptMe = (me: MeRaw | null): CurrentUser | null =>
 export const asViewed = (user: CurrentUser | null, asPlayer: boolean): CurrentUser | null =>
   asPlayer && user?.role ? { ...user, role: null, staffRole: user.role } : user
 
+/** The signed-in user, marked as the sample stand-in when the site shows sample data. */
+export async function getMe(signal?: AbortSignal, sample = env.VITE_USE_MOCK): Promise<CurrentUser | null> {
+  // Like legacy: if the check fails, the visitor counts as signed out.
+  const user = adaptMe(await api.get<MeRaw | null>('/auth/me', { signal }).catch(() => null))
+  return user && sample ? { ...user, sample: true } : user
+}
+
 export const meQueryOptions = () =>
   queryOptions({
     queryKey: queryKeys.me(),
-    // Like legacy: if the check fails, the visitor counts as signed out.
-    queryFn: async ({ signal }) =>
-      adaptMe(await api.get<MeRaw | null>('/auth/me', { signal }).catch(() => null)),
+    queryFn: ({ signal }) => getMe(signal),
     staleTime: Infinity,
   })
 
