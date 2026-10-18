@@ -6,15 +6,15 @@
 ## Checklist
 <!-- Every step and Step 5 feature item from FRONTEND_REWRITE.md, as checkboxes. -->
 - [x] 1. Rename old frontend to `frontend-legacy` (compose, README, CLAUDE.md, this log): 269197e
-- [ ] 2. Scaffold
-  - [x] 2a. Vite + React + TS strict (`noUncheckedIndexedAccess`) + `@/` alias: (pending)
-  - [x] 2b. Tailwind + shadcn init (CSS-variable theming, light/dark): (pending)
-  - [x] 2c. TanStack Query + Router (file routes in `src/app/routes/`), zod, recharts: (pending)
-  - [x] 2d. ESLint (typescript-eslint, react-hooks, import/no-restricted-paths zones) + Prettier: (pending)
-  - [x] 2e. Vitest + RTL + MSW setup, `renderWithProviders`, smoke test: (pending)
-  - [x] 2f. Dev proxy, validated env (`src/config/env.ts`): (pending)
-  - [x] 2g. Public assets and images (`public/`, `src/assets/`, Mel NOTICE.md, `theme.js`): (pending)
-  - [ ] 2h. Docker: Dockerfile, nginx.conf (`/assets/`), security headers, compose back to `./frontend`
+- [x] 2. Scaffold
+  - [x] 2a. Vite + React + TS strict (`noUncheckedIndexedAccess`) + `@/` alias: 535adf2
+  - [x] 2b. Tailwind + shadcn init (CSS-variable theming, light/dark): 535adf2
+  - [x] 2c. TanStack Query + Router (file routes in `src/app/routes/`), zod, recharts: 535adf2
+  - [x] 2d. ESLint (typescript-eslint, react-hooks, import/no-restricted-paths zones) + Prettier: 535adf2
+  - [x] 2e. Vitest + RTL + MSW setup, `renderWithProviders`, smoke test: 535adf2
+  - [x] 2f. Dev proxy, validated env (`src/config/env.ts`): 535adf2
+  - [x] 2g. Public assets and images (`public/`, `src/assets/`, Mel NOTICE.md, `theme.js`): 535adf2
+  - [x] 2h. Docker: Dockerfile, nginx.conf (`/assets/`), security headers, compose back to `./frontend`: (pending)
 - [ ] 3. Foundation
   - [ ] 3.1 `lib/api-client.ts` (`api.*`, `ApiError`, `apiUrl`, param dropping, FormData)
   - [ ] 3.2 Pure helpers: `format`
@@ -68,6 +68,9 @@
 
 ## Log
 <!-- Newest first. One entry per finished item: date, what was done, commit, tests added. -->
+- 2026-10-17: Step 2h. Dockerfile (Node 24, `VITE_API_URL`, copies `dist/`), nginx.conf copied with `/static/` ->
+  `/assets/`, security headers copied, compose back on `./frontend`, dev compose runs `npm run dev -- --port 3000`.
+  Built the image and ran it: SPA fallback, CSP and the immutable `/assets/` cache all as before. Commit (pending).
 - 2026-10-17: Steps 2a-2g. Vite 8 + React 19 + TS 6 (strict, `noUncheckedIndexedAccess`, `@/` alias), Tailwind 4 +
   shadcn (radix-nova) with the legacy Figma palette as theme tokens, TanStack Query + Router (file routes in
   `src/app/routes/`, tree generated to `src/app/routeTree.gen.ts`), zod-validated env (`src/config/env.ts`), ESLint
@@ -89,6 +92,8 @@
   no third-party request.
 - Tooling versions: ESLint is pinned to 9 because `eslint-plugin-import` doesn't support 10 yet. MSW 3 renamed
   `onUnhandledRequest` to `onUnhandledFrame`. Tests fail on any request without a handler.
+- Node: Vitest 5, jsdom and MSW 3 need Node 22.12+, so the Docker images use `node:24-bookworm` (legacy used 20) and
+  `package.json` declares `engines`.
 - `cn` in `lib/utils.ts` is shadcn's own package (github.com/shadcn-ui/cn), the replacement for clsx + tailwind-merge.
 - The hardening merge added a CSP in `security-headers.conf` (no inline scripts) and `public/theme.js` (sets the
   theme before first paint without an inline script). The new app keeps both: nginx includes the same headers file,

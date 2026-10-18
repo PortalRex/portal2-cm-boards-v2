@@ -153,7 +153,7 @@ docker compose exec db psql -U docker p2boards   # database shell
 
 The site is being rewritten (React + Vite + TypeScript, see [FRONTEND_REWRITE.md](FRONTEND_REWRITE.md)). The new app lives in `./frontend`; the old Create React App site is in `./frontend-legacy`, kept only as a reference until the rewrite reaches parity. Don't modify it.
 
-Until the new app builds, `docker-compose.dev.yaml` runs the legacy site on React's dev server from `./frontend-legacy` instead of the nginx build, so changes reload in the browser as you save:
+`docker-compose.dev.yaml` runs the site on Vite's dev server from `./frontend` instead of the nginx build, so changes reload in the browser as you save:
 
 ```bash
 docker compose -f docker-compose.yaml -f docker-compose.dev.yaml up -d
