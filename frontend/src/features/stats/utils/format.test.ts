@@ -31,7 +31,7 @@ describe('stats formatting', () => {
 
 describe('adaptWrStats', () => {
   it('reads records, teams and the race frames', () => {
-    const s = adaptWrStats(catalog, 'portal2', wrRaw as WrStatsRaw)
+    const s = adaptWrStats(catalog, 'portal2', wrRaw as unknown as WrStatsRaw)
     expect(s.records[3]).toMatchObject({ mapName: 'Doors', mode: 'coop', isCoop: true, map: { id: '47741' } })
     expect(s.records[3]!.teams[0]!.players.map((p) => p.name)).toEqual(['RealCreative', 'Suola'])
     expect(s.longest[1]!.beatenBy).toEqual([])

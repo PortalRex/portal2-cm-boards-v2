@@ -46,8 +46,8 @@
   - [x] 5.5b Profiles: points history chart with wheel zoom: 3a825eb
   - [x] 5.5c Profiles: activity heatmap, demo stats, co-op partners: 050a21b
   - [x] 5.5d Profiles: follows; staff tools slot: 4f233b0
-  - [x] 5.6a Stats: Runners tab: (pending)
-  - [ ] 5.6b Stats: Records, History, Race tabs
+  - [x] 5.6a Stats: Runners tab: a2459af
+  - [x] 5.6b Stats: Records, History, Race tabs: f31bed9 (fixed in the next commit)
   - [ ] 5.6c Compare (`?a=&b=`, debounced player search)
   - [ ] 5.6d Countries
   - [ ] 5.3a Run Details: media (autorender, YouTube)
@@ -68,13 +68,22 @@
 
 ## Log
 <!-- Newest first. One entry per finished item: date, what was done, commit, tests added. -->
+- 2026-10-18: 5.6b Stats Records / History / Race (`features/stats/components/wr-panels.tsx`, `race.tsx`): records
+  per mode (`?mode=`) with totals and the share of records held now; history views (`?view=` longest, domination,
+  improvements, record-days); the race (`?board=`, play / pause, month slider, bars sliding between places). Routes
+  `/stats/records`, `/history`, `/race`. Below 900 px the tables keep every column, as legacy's (broken) phone rule
+  did; listed under Follow-ups. Commit f31bed9. Tests: 14 (+4 route rows).
+  Correction: f31bed9 was committed with three route-table tests failing (they still expected the placeholder's
+  "Stats" heading) and a type error in a test cast; the command chain didn't stop on them. Fixed in the next commit.
+  Commits now go through a gate script (format, tests, typecheck, lint; `set -e`, run in the web container) and
+  are made only after it prints "gate: ok".
 - 2026-10-18: 5.6a Stats Runners (`features/stats`): `api/stats.ts` (/stats/site and /stats/wr with their adapters,
   ports of fetchSiteStats / fetchWrStats), `RunnersPanel` (totals, peak points per board in `?board=`, leader cards
   with record-days from the WR stats, longest-standing records), `stats-ui.tsx` (figures, section titles, striped
   tables, teams, map names, the 40 px switches). Shared `components/stats-shell.tsx` (the Stats tabs above the
   panel), used by the Stats, Compare and Countries routes. Legacy had no sample data for the stats endpoints; sample
   mode shows "Couldn’t load the stats." as legacy did. Fixtures `stats-site.json` / `stats-wr.json` captured and
-  trimmed. Commit (pending). Tests: 7 (+2 route rows).
+  trimmed. Commit a2459af. Tests: 7 (+2 route rows).
 - 2026-10-18: 5.5d Profiles: `FollowButton` (p2cm.follows, filled star when following) in the header, and the staff
   tools through the header's slot: `features/admin` `ProfileStaffTools` (shield button with the staff-set dot, dialog
   with the shared reason: name / picture / country for moderators and admins, staff tier for admins, freeze, ban
@@ -259,6 +268,9 @@
 
 ## Decisions and findings
 <!-- Legacy behaviours discovered, choices made and why. -->
+- Stats phone layout: legacy Stats.css (lines 462-476) has a selector list with no body that runs into
+  `.st-hist .st-row { grid-template-columns: … }`, so below 900 px the columns it meant to hide still show and every
+  element in that list gets a grid template. Reproduced the visible result (columns kept, the grids changed).
 - Staff tier changes are sent without the reason, as legacy did (`act(() => setProfileRole(...))` dropped it); the
   other profile actions send it.
 - Profile rank tiles: legacy's `.rank-tint` in Profile.css is a tinted tile; the new `rank-tint` utility is legacy's

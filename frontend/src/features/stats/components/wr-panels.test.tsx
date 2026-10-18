@@ -83,9 +83,13 @@ describe('Stats: Race', () => {
       screen.getAllByTestId('race-row').filter((r) => r.getAttribute('aria-hidden') !== 'true')
     expect(shown()).toHaveLength(wr.race.overall.frames[2]!.top.length)
     fireEvent.change(screen.getByRole('slider', { name: 'Month' }), { target: { value: '0' } })
-    expect(
-      screen.getByText('Sept 2026', { exact: false }) ?? screen.getByText('Sep 2026'),
-    ).toBeInTheDocument()
+    // The first frame's month, in the page's own format ("Sep" or "Sept" depending on ICU).
+    const first = new Date(wr.race.overall.frames[0]!.date).toLocaleDateString('en-GB', {
+      month: 'short',
+      year: 'numeric',
+      timeZone: 'UTC',
+    })
+    expect(screen.getByText(first)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Play' })).toBeInTheDocument()
   })
 

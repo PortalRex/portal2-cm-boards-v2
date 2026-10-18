@@ -473,6 +473,8 @@ On top of the rules in CLAUDE.md, every feature needs:
 
 Ideas found during the rewrite that would change behaviour. List them here and don't build them yet.
 
+- Stats tables on phones: legacy's Stats.css rule hiding columns below 900 px lost its body (the selector list
+  runs into `.st-hist .st-row { … }`), so those columns still show. Kept; hiding them was clearly the intent.
 - Icons: polish the Lucide replacements for the legacy MUI icons once the port is done (D2).
 - Aggregated boards: picking a country drops `?season=` (legacy replaces the whole query), so a season board flips
   to all-time. Keeping the season would match what the tabs and chapter picker already do.
