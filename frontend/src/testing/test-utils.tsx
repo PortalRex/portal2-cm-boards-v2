@@ -7,6 +7,7 @@ import {
   RouterProvider,
 } from '@tanstack/react-router'
 import { render } from '@testing-library/react'
+import { http, HttpResponse } from 'msw'
 import type { ReactElement } from 'react'
 import type { RouterContext } from '@/app/routes/__root'
 import { routeTree } from '@/app/routeTree.gen'
@@ -15,6 +16,8 @@ import { queryKeys } from '@/lib/query-keys'
 import { parseSearch, stringifySearch } from '@/lib/search-params'
 import { STORAGE_KEYS } from '@/lib/storage'
 import { users, type TestUser } from './data/users'
+import { API } from './mocks/handlers'
+import { server } from './mocks/server'
 
 export function createTestQueryClient() {
   return new QueryClient({
@@ -34,7 +37,10 @@ interface Options {
 
 function prepare({ queryClient, user = null, viewAsPlayer = false }: Omit<Options, 'route'>) {
   const client = queryClient ?? createTestQueryClient()
-  client.setQueryData(queryKeys.me(), adaptMe(typeof user === 'string' ? users[user] : user))
+  const me = typeof user === 'string' ? users[user] : user
+  client.setQueryData(queryKeys.me(), adaptMe(me))
+  // A refetch (after a staff change invalidates it) finds the same user signed in.
+  if (me) server.use(http.get(`${API}/auth/me`, () => HttpResponse.json(me)))
   if (viewAsPlayer) localStorage.setItem(STORAGE_KEYS.viewAsPlayer, '1')
   return client
 }

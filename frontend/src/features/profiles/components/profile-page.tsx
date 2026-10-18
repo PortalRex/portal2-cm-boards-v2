@@ -11,9 +11,10 @@ import { useCatalog } from '@/lib/catalog'
 import { playerRole } from '@/lib/data/roles'
 import { formatDate } from '@/lib/format'
 import { pointsPeakQueryOptions, profileAtQueryOptions, profileQueryOptions } from '../api/profile'
-import type { Profile, RenderRunDetails } from '../types'
+import type { Profile, ProfilePlayer, RenderRunDetails } from '../types'
 import { profileAsOf, validDay } from '../utils/profile'
 import { ActivityHeatmap } from './activity-heatmap'
+import { FollowButton } from './follow-button'
 import { PointsChart } from './points-chart'
 import { ProfileHeader } from './profile-header'
 import { GlobalRankCard, PointsCard, SideCards, StatisticsCard } from './profile-stats'
@@ -50,6 +51,8 @@ function CollapseAll() {
 
 export interface ProfileSlots {
   renderRunDetails?: RenderRunDetails
+  /** Staff tools for the player (features/admin), at the end of the header's buttons. */
+  staffTools?: (player: ProfilePlayer) => ReactNode
 }
 
 /** A player's profile page; each player gets a fresh page (the route keys it by player). */
@@ -57,6 +60,7 @@ export function ProfilePage({
   profileId,
   at: atParam,
   renderRunDetails,
+  staffTools,
 }: { profileId: string; at?: string } & ProfileSlots) {
   const catalog = useCatalog()
   const navigate = useNavigate()
@@ -105,7 +109,12 @@ export function ProfilePage({
         )}
         <CollapseAll />
         <Row className="grid-cols-[minmax(0,2.55fr)_minmax(0,1fr)]">
-          <ProfileHeader player={p.player} role={role} />
+          <ProfileHeader
+            player={p.player}
+            role={role}
+            actions={<FollowButton player={p.player} />}
+            after={staffTools?.(p.player)}
+          />
           <PointsCard profile={view} />
         </Row>
         <Row className="grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)]">

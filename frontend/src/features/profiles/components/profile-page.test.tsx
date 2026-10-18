@@ -220,6 +220,20 @@ describe('Profile page', () => {
     expect(screen.getByRole('link', { name: 'Edit profile' })).toHaveAttribute('href', '/more/settings')
   })
 
+  it('follows the player in this browser', async () => {
+    serveProfile()
+    await renderProfile()
+    const follow = screen.getByRole('button', { name: 'Follow' })
+    expect(follow).toHaveAttribute('aria-pressed', 'false')
+    await userEvent.click(follow)
+    expect(follow).toHaveAttribute('aria-pressed', 'true')
+    expect(JSON.parse(localStorage.getItem('p2cm.follows')!)).toEqual([
+      { profileNumber: FIXTURE_PLAYER, name: 'hero', avatar: expect.any(String) as unknown },
+    ])
+    await userEvent.click(follow)
+    expect(JSON.parse(localStorage.getItem('p2cm.follows')!)).toEqual([])
+  })
+
   it("says so when the profile can't be loaded", async () => {
     serveProfile()
     server.use(http.get(`${API}/profile/:id`, () => HttpResponse.json({ error: 'nope' }, { status: 404 })))

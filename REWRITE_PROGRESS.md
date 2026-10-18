@@ -44,8 +44,8 @@
   - [x] 5.4b Aggregated: Mel, chapters, custom games and seasons: 25910a6
   - [x] 5.5a Profiles: header, tabs per game, seasons in tab: c1962ac
   - [x] 5.5b Profiles: points history chart with wheel zoom: 3a825eb
-  - [x] 5.5c Profiles: activity heatmap, demo stats, co-op partners: (pending)
-  - [ ] 5.5d Profiles: follows; staff tools slot
+  - [x] 5.5c Profiles: activity heatmap, demo stats, co-op partners: 050a21b
+  - [x] 5.5d Profiles: follows; staff tools slot: (pending)
   - [ ] 5.6a Stats: Runners tab
   - [ ] 5.6b Stats: Records, History, Race tabs
   - [ ] 5.6c Compare (`?a=&b=`, debounced player search)
@@ -68,12 +68,21 @@
 
 ## Log
 <!-- Newest first. One entry per finished item: date, what was done, commit, tests added. -->
+- 2026-10-18: 5.5d Profiles: `FollowButton` (p2cm.follows, filled star when following) in the header, and the staff
+  tools through the header's slot: `features/admin` `ProfileStaffTools` (shield button with the staff-set dot, dialog
+  with the shared reason: name / picture / country for moderators and admins, staff tier for admins, freeze, ban
+  with a confirm click, unban, unfreeze), `utils/staff-powers.ts` (legacy staffPowers) and `api/users.ts`; the route
+  passes `staffTools={(player) => <ProfileStaffTools player={player} />}`. Every change calls `invalidateUser`.
+  The admin feature takes its own structural `StaffProfile` type, so it doesn't import the profiles feature.
+  Shared `components/round-button.ts` for the header's round buttons. `renderWithProviders`/`renderRoute` now also
+  answer /auth/me for the test user (an invalidated "me" used to refetch as signed out). Commit (pending).
+  Tests: 21 (+1 follow).
 - 2026-10-18: 5.5c Profiles: `utils/heatmap.ts` (runs per UTC day, Sunday-first weeks with month labels, the
   all-time grid of multi-day squares, years to pick) and `ActivityHeatmap` (summary line, year picker, hover / tap
   card with the day's runs) in its own Activity card; `StatsTab` (/profile/stats with game_id: figures, co-op
   partners with "and N more", fewest portals; its own season picker). Legacy's Statistics card shared the Stats
   tab's `.pf-stats` class and so had a 24 px gap under its header; reproduced. Fixture `profile-stats.json`
-  (partners trimmed to 4 of 19). Commit (pending). Tests: 13.
+  (partners trimmed to 4 of 19). Commit 050a21b. Tests: 13.
 - 2026-10-18: 5.5b Points history chart (`features/profiles`): `utils/points-chart.ts` (samples plus each board's
   peak, what's in view, the shared scale from 0 and the per-line scales when zoomed, where a peak label goes),
   `PointsChart` (recharts lines, peak dots, the `?at=` day line, wheel zoom through the shared `useWheelZoom`, Reset
@@ -243,6 +252,8 @@
 
 ## Decisions and findings
 <!-- Legacy behaviours discovered, choices made and why. -->
+- Staff tier changes are sent without the reason, as legacy did (`act(() => setProfileRole(...))` dropped it); the
+  other profile actions send it.
 - Profile rank tiles: legacy's `.rank-tint` in Profile.css is a tinted tile; the new `rank-tint` utility is legacy's
   text-only `.rank-colored`. The tile is the new `rank-tile` utility.
 - Profile chapter tables hand the score to Run Details without players (legacy passed `run={s}`); only the Legacy

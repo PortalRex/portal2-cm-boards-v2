@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { z } from 'zod'
+import { ProfileStaffTools } from '@/features/admin/components/profile-staff-tools'
 import { ProfilePage } from '@/features/profiles/components/profile-page'
 import { RunDetails } from '@/features/runs/components/run-details'
 
@@ -22,6 +23,7 @@ function ProfileRoute() {
       renderRunDetails={(run, map, game, rendered) => (
         <RunDetails run={run} map={map} game={game} rendered={rendered} />
       )}
+      staffTools={(player) => <ProfileStaffTools player={player} />}
     />
   )
 }

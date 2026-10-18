@@ -3,6 +3,7 @@ import { cn } from 'cn'
 import type { ComponentType, CSSProperties, ReactNode, SVGProps } from 'react'
 import { AppLink } from '@/components/app-link'
 import { Avatar, Flag } from '@/components/avatar'
+import { roundButton } from '@/components/round-button'
 import { EditIcon, SteamIcon, SwapIcon, TwitchIcon, YouTubeIcon } from '@/components/icons'
 import { useCurrentUser } from '@/hooks/use-current-user'
 import { countryName } from '@/lib/data/countries'
@@ -11,10 +12,6 @@ import { youtubeChannelUrl } from '@/lib/youtube'
 import type { ProfileBadge, ProfilePlayer } from '../types'
 
 export type ProfileRole = (PointRole & { fromPeak?: boolean }) | null
-
-/** The header's small round icon buttons (follow, compare, edit, staff tools). */
-export const iconButton =
-  'inline-grid size-8 cursor-pointer place-items-center rounded-full border border-line-strong bg-control p-0 text-text-2 hover:border-text-muted hover:text-foreground [&_svg]:size-[18px]'
 
 const BADGE_TONES: Record<ProfileBadge['tone'] | 'frozen', string> = {
   teal: 'bg-[#3f7f7a]',
@@ -93,7 +90,7 @@ function CompareLink({ player }: { player: ProfilePlayer }) {
   return (
     <AppLink
       href={me ? `/compare?a=${me}&b=${player.profileNumber}` : `/compare?a=${player.profileNumber}`}
-      className={iconButton}
+      className={roundButton}
       title={me ? 'Compare your times with this player' : 'Compare this player with someone'}
       aria-label="Compare"
     >
@@ -109,7 +106,7 @@ function EditLink({ player }: { player: ProfilePlayer }) {
   return (
     <Link
       to="/more/settings"
-      className={iconButton}
+      className={roundButton}
       title="Change your name, picture and country in Settings"
       aria-label="Edit profile"
     >
