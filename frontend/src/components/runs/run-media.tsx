@@ -8,6 +8,9 @@ import { runVideo, type VideoRun } from '@/lib/runs/video'
 import { apiUrl } from '@/lib/api-client'
 
 const off = 'opacity-[0.18]'
+// Drawn a little under the requested slot size, filled rather than outlined.
+const shrink = 4
+const filled = 'fill-current'
 const iconLink = 'inline-flex [&_svg]:block'
 
 const youtubeUrl = (id: string) => `https://www.youtube.com/watch?v=${id.split('?')[0]}`
@@ -25,16 +28,18 @@ export function AutorenderLink({
   size?: number
 }) {
   const video = runVideo(run, game, rendered)
-  const icon = { width: size, height: size }
+  // The play triangle reads larger than the other icons, so it gets a little less.
+  const px = size - shrink - 2
+  const icon = { width: px, height: px }
   if (video.ready) {
     return (
       <a href={video.page} target="_blank" rel="noreferrer" className={iconLink} title="Watch autorender">
-        <PlayIcon style={icon} aria-hidden />
+        <PlayIcon className={filled} style={icon} aria-hidden />
         <span className="sr-only">Watch autorender</span>
       </a>
     )
   }
-  if (!video.render) return <PlayIcon className={off} style={icon} role="img" aria-label="No autorender" />
+  if (!video.render) return <PlayIcon className={cn(filled, off)} style={icon} role="img" aria-label="No autorender" />
   return (
     <a
       href={video.render}
@@ -43,17 +48,17 @@ export function AutorenderLink({
       className={cn(iconLink, 'opacity-55 hover:opacity-100')}
       title="Request an autorender"
     >
-      <VideocamIcon style={icon} aria-hidden />
+      <VideocamIcon className={filled} style={icon} aria-hidden />
       <span className="sr-only">Request an autorender</span>
     </a>
   )
 }
 
 export function YouTubeLink({ id, size = 22 }: { id: string | null | undefined; size?: number }) {
-  if (!id) return <YouTubeIcon size={size} className={off} role="img" aria-label="No video" />
+  if (!id) return <YouTubeIcon size={size - shrink} className={off} role="img" aria-label="No video" />
   return (
     <a href={youtubeUrl(id)} target="_blank" rel="noreferrer" className={iconLink} title="Watch on YouTube">
-      <YouTubeIcon size={size} />
+      <YouTubeIcon size={size - shrink} />
       <span className="sr-only">Watch on YouTube</span>
     </a>
   )
@@ -69,7 +74,7 @@ export function DemoLink({
   size?: number
   hideMissing?: boolean
 }) {
-  const icon = { width: size, height: size }
+  const icon = { width: size - shrink, height: size - shrink }
   if (!demoId) {
     return hideMissing ? null : <DownloadIcon className={off} style={icon} role="img" aria-label="No demo" />
   }
@@ -110,8 +115,8 @@ export function CommentButton({ note, size = 22 }: { note: string | null | undef
       window.removeEventListener('scroll', scroll, true)
     }
   }, [pinned])
-  const icon = { width: size, height: size }
-  if (!note) return <CommentIcon className={off} style={icon} role="img" aria-label="No comment" />
+  const icon = { width: size - shrink, height: size - shrink }
+  if (!note) return <CommentIcon className={cn(filled, off)} style={icon} role="img" aria-label="No comment" />
   // Centred over the icon, but kept inside the window (the bubble is up to 320px wide).
   const place = () => setPos(bubbleAnchor(ref.current, Math.min(160, window.innerWidth * 0.4)))
   return (
@@ -127,7 +132,7 @@ export function CommentButton({ note, size = 22 }: { note: string | null | undef
           setPinned((p) => !p)
         }}
       >
-        <CommentIcon style={icon} />
+        <CommentIcon className={filled} style={icon} />
       </button>
       {open && pos && <Bubble at={pos}>{note}</Bubble>}
     </span>

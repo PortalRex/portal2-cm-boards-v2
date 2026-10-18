@@ -22,7 +22,7 @@ export function RankNumber({
   if (rank === 1) {
     return (
       <TrophyIcon
-        className="inline-block size-[1.3em] align-middle"
+        className="inline-block size-[1.15em] fill-current align-middle"
         style={inherit ? undefined : { color: WR_COLOR }}
         role="img"
         aria-label="World record (rank 1)"

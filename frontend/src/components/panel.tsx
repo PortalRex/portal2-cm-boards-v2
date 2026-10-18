@@ -26,7 +26,7 @@ export function Panel({
     <section className={cn('overflow-hidden rounded-md bg-[rgb(var(--panel-rgb)/0.97)]', className)}>
       {title && (
         <header className="flex h-12 items-center gap-2.5 bg-panel-head px-5 upto700:h-auto upto700:min-h-12 upto700:flex-wrap upto700:gap-y-2 upto700:px-3.5 upto700:py-2.5">
-          {Icon && <Icon className="size-[22px] shrink-0" />}
+          {Icon && <Icon className="size-5 shrink-0 stroke-[1.5]" />}
           <h2 className="m-0 text-base font-normal tracking-[0.02em] uppercase">{title}</h2>
           {actions && (
             <div className="ml-auto flex items-center gap-3 upto700:ml-0 upto700:w-full upto700:overflow-x-auto upto700:[scrollbar-width:none] upto700:*:shrink-0">
@@ -65,7 +65,7 @@ export function Card({
   const [collapsed, toggle] = useCollapsed(collapseId)
   const head = (
     <>
-      {Icon && <Icon className="size-6 shrink-0" />}
+      {Icon && <Icon className="size-[22px] shrink-0 stroke-[1.5]" />}
       <h3 className="m-0 text-lg font-normal tracking-[0.02em] uppercase">{title}</h3>
     </>
   )

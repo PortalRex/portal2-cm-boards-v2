@@ -12,7 +12,7 @@ export {
   Ellipsis as MoreIcon,
   Trophy as TrophyIcon,
   Mountain as PeakIcon,
-  Download as DownloadIcon,
+  ArrowDownToLine as DownloadIcon,
   Flag as FlagIcon,
   Upload as UploadIcon,
   Play as PlayIcon,

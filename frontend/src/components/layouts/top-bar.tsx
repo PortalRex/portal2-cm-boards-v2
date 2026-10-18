@@ -51,7 +51,7 @@ function TopNavItem({ item }: { item: NavItem }) {
         aria-current={active ? 'page' : undefined}
         className="group/link flex h-[110px] items-center gap-3 text-xl font-medium whitespace-nowrap uppercase upto1320:h-[52px] upto1320:px-6"
       >
-        <Icon className="size-[30px]" />
+        <Icon className="size-[26px] stroke-[1.5]" />
         <span className="underline-offset-4 group-hover/link:underline group-data-[active]/link:underline">
           {item.label}
         </span>
@@ -115,7 +115,7 @@ export function TopBar() {
               title="Submit a run"
               className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-[4px] border border-line-strong bg-control px-4 text-lg whitespace-nowrap hover:bg-control-raised"
             >
-              <UploadIcon className="size-5" />
+              <UploadIcon className="size-[18px] stroke-[1.5]" />
               <span className="upto480:hidden">SUBMIT RUN</span>
             </button>
           )}
@@ -127,9 +127,9 @@ export function TopBar() {
             className="inline-flex cursor-pointer rounded-full border-0 bg-transparent p-1.5 text-text-2 hover:bg-control-raised hover:text-foreground"
           >
             {theme === 'light' ? (
-              <DarkModeIcon className="size-[26px]" />
+              <DarkModeIcon className="size-[22px] stroke-[1.5]" />
             ) : (
-              <LightModeIcon className="size-[26px]" />
+              <LightModeIcon className="size-[22px] stroke-[1.5]" />
             )}
           </button>
           <ProfileMenu user={user} />
@@ -141,7 +141,11 @@ export function TopBar() {
             aria-label="Menu"
             className="order-last hidden cursor-pointer border-0 bg-transparent p-1 upto1320:inline-flex"
           >
-            {open ? <CloseIcon className="size-[34px]" /> : <MenuIcon className="size-[34px]" />}
+            {open ? (
+              <CloseIcon className="size-[30px] stroke-[1.5]" />
+            ) : (
+              <MenuIcon className="size-[30px] stroke-[1.5]" />
+            )}
           </button>
         </div>
       </div>

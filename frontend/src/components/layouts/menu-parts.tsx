@@ -28,7 +28,7 @@ export function MenuLink({
       {item.number != null ? (
         <span className="num inline-block w-6 text-center text-text-muted">{item.number}</span>
       ) : Icon ? (
-        <Icon className="size-7 shrink-0" />
+        <Icon className="size-6 shrink-0 stroke-[1.5]" />
       ) : null}
       <span className="flex-1">{item.label}</span>
       {caret && (
@@ -46,7 +46,7 @@ export function MoreLink({ item }: { item: MoreEntry }) {
   const Icon = MENU_ICONS[item.icon]
   const body = (
     <>
-      <Icon className="size-7 shrink-0" />
+      <Icon className="size-6 shrink-0 stroke-[1.5]" />
       <span>{item.label}</span>
     </>
   )
