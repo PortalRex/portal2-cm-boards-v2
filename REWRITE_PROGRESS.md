@@ -24,8 +24,8 @@
   - [x] 3.6 Per-browser settings (localStorage keys, try/catch) and theme: f9c0072
   - [x] 3.7 `lib/catalog` (query options, selectors, built-in fallback, root loader): 74c99f5
   - [x] 3.8 `lib/query-keys.ts` and `lib/invalidate.ts`: cfb9afe
-  - [x] 3.9 `lib/auth` (`/auth/me`, roles, view-as-player) + `hooks/use-current-user`: (pending)
-  - [ ] 3.10 `hooks/use-game` (URL wins, saved choice, branding)
+  - [x] 3.9 `lib/auth` (`/auth/me`, roles, view-as-player) + `hooks/use-current-user`: 2e3b835
+  - [x] 3.10 `hooks/use-game` (URL wins, saved choice, branding): (pending)
   - [ ] 3.11 Shared run model: `types/runs.ts` + adapters with captured fixtures
   - [ ] 3.12 Sample data mode: MSW handlers + factories, browser worker behind `VITE_USE_MOCK`, indicator
   - [ ] 3.13 Shared UI on shadcn (panels, tabs, selects, toggles, avatars, flags, score cells, icons)
@@ -68,6 +68,10 @@
 
 ## Log
 <!-- Newest first. One entry per finished item: date, what was done, commit, tests added. -->
+- 2026-10-17: 3.10 `lib/catalog/games.ts` (`gameFromLocation`, `selectedGame`, `baseGame`, branding with the built-in
+  logos/background, board paths) and `hooks/use-game.ts` (`useGame`, `useGamePicker`, `setGame` on `p2cm.game`),
+  `hooks/use-season.ts`. Commit (pending). Tests: 27 (every address form, address beats saved choice, legacy saved
+  game, remembering the address's game, branding overrides).
 - 2026-10-17: 3.9 `lib/auth` (`/auth/me` + `/site` query options, `isStaff`, `isRoleAdmin`, `ROLE_LABELS`,
   `asViewed`, `steamLoginUrl`, `logout`), `hooks/use-current-user.ts`, `hooks/use-view-as-player.ts`. Test users for
   every role (`src/testing/data/users.ts`), `renderWithProviders`/`renderRoute` take `user` and `viewAsPlayer`, and

@@ -1,4 +1,5 @@
 export * from './build'
+export * from './games'
 export * from './query'
 export * from './seasons'
 export * from './selectors'
