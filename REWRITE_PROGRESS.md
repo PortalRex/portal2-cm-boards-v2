@@ -27,8 +27,8 @@
   - [x] 3.9 `lib/auth` (`/auth/me`, roles, view-as-player) + `hooks/use-current-user`: 2e3b835
   - [x] 3.10 `hooks/use-game` (URL wins, saved choice, branding): cf15221
   - [x] 3.11 Shared run model: `types/runs.ts` + adapters with captured fixtures: 5fff31a
-  - [x] 3.12 Sample data mode: MSW handlers + factories, browser worker behind `VITE_USE_MOCK`, indicator: (pending)
-  - [ ] 3.13 Shared UI on shadcn (panels, tabs, selects, toggles, avatars, flags, score cells, icons)
+  - [x] 3.12 Sample data mode: MSW handlers + factories, browser worker behind `VITE_USE_MOCK`, indicator: d2bead4
+  - [x] 3.13 Shared UI on shadcn (panels, tabs, selects, toggles, avatars, flags, score cells, icons): (pending)
   - [ ] 3.14 Layout + TopBar (nav, dropdowns, Aggregate menu per game, More menu, account area, theme toggle)
   - [ ] 3.15 Private mode gate in the root route
 - [ ] 4. Routes: every legacy URL and redirect, thin route files with zod search params
@@ -68,6 +68,13 @@
 
 ## Log
 <!-- Newest first. One entry per finished item: date, what was done, commit, tests added. -->
+- 2026-10-17: 3.13 Shared UI. shadcn primitives added (input, tabs, toggle(-group), dropdown-menu, dialog, sheet,
+  tooltip, popover, separator, skeleton, native-select); `button` (outline + lg) and `native-select` (lg) restyled to
+  the legacy controls. Shared components: `panel` (Panel, collapsible Card), `pagination`, `search-box`, `select`,
+  `segmented`, `avatar` (+ Flag), `player-link`, `youtube-embed`, `rank` (RankNumber, RankChange), `status` (Loading,
+  EmptyState, ErrorState), `icons`. Global utilities in index.css: `rank-tint`, `me-row`, `wr-glow`(`-raised`).
+  `renderWithProviders`/`renderRoute` are now async and wait for the router to load. Stub `/profile/$profileId`
+  route so links type-check. Commit (pending). Tests: 16.
 - 2026-10-17: 3.12 Sample data mode. `src/testing/data/sample.ts` ports the legacy generators (players, boards,
   previews, changelog, activity) to raw API JSON, so sample data goes through the real adapters.
   `src/testing/mocks/sample-handlers.ts` serves them (built-in catalog, a signed-in sample player marked `sample`, 404
@@ -175,6 +182,10 @@
 - Sample data covers the endpoints the early features use; aggregated, profile, stats and the rest get sample data
   with their features. Until then those pages show their error state in sample mode.
 - The notice keeps the legacy text "Sample data · API offline", which legacy also showed with `REACT_APP_USE_MOCK`.
+- Icons: legacy used `@mui/icons-material`, which the plan rules out. `components/icons.tsx` keeps the legacy names and
+  maps them to the closest lucide icons; lucide 1.x has no brand icons, so YouTube and GitHub are drawn as SVGs like
+  Steam, Discord and Twitch. The glyphs look slightly different (see Blocked / questions).
+- `ErrorState` is new: it is what pages show where legacy fell back to sample data (D1).
 - `cn` in `lib/utils.ts` is shadcn's own package (github.com/shadcn-ui/cn), the replacement for clsx + tailwind-merge.
 - The hardening merge added a CSP in `security-headers.conf` (no inline scripts) and `public/theme.js` (sets the
   theme before first paint without an inline script). The new app keeps both: nginx includes the same headers file,
@@ -185,3 +196,5 @@
 
 ## Blocked / questions
 <!-- Things waiting on the user. -->
+- Icons: MUI can't come back, so the icons are now lucide's closest matches (trophy, history, timer, thumbs, ...). Their
+  shapes differ a little from legacy's. Should this be listed as accepted difference D2? Work continues with lucide.

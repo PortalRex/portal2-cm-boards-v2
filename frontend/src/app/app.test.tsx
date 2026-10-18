@@ -4,7 +4,7 @@ import { renderRoute } from '@/testing/test-utils'
 
 describe('app shell', () => {
   it('renders the home route', async () => {
-    renderRoute('/')
+    await renderRoute('/')
     expect(await screen.findByRole('heading', { name: 'Score Updates' })).toBeInTheDocument()
   })
 })

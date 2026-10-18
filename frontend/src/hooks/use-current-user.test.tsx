@@ -20,18 +20,18 @@ function Probe() {
 
 describe('useCurrentUser', () => {
   it('is null when signed out', async () => {
-    renderWithProviders(<Probe />)
+    await renderWithProviders(<Probe />)
     expect(await screen.findByText('signed out')).toBeInTheDocument()
   })
 
   it('gives staff their role', async () => {
-    renderWithProviders(<Probe />, { user: 'moderator' })
+    await renderWithProviders(<Probe />, { user: 'moderator' })
     expect(await screen.findByText('Moderator moderator')).toBeInTheDocument()
     expect(screen.getByText('staff tools')).toBeInTheDocument()
   })
 
   it('hides the role while viewing as a player, saved as "1" in the legacy key', async () => {
-    renderWithProviders(<Probe />, { user: 'admin', viewAsPlayer: true })
+    await renderWithProviders(<Probe />, { user: 'admin', viewAsPlayer: true })
     expect(await screen.findByText('Admin player admin')).toBeInTheDocument()
     expect(screen.getByText('no staff tools')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'toggle' }))

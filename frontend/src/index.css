@@ -276,3 +276,78 @@
 @utility num {
   font-variant-numeric: tabular-nums;
 }
+
+/* A rank number in its colour (style={rankVars(rank)}): the bright scale on dark, the deeper one on light. */
+@utility rank-tint {
+  color: var(--rank-color-dark, inherit);
+  font-weight: 600;
+  :root[data-theme='light'] & {
+    color: var(--rank-color, inherit);
+  }
+}
+
+/* The signed-in player's own row on boards and lists. */
+@utility me-row {
+  background: color-mix(in srgb, var(--brand) 22%, transparent) !important;
+  box-shadow: inset 3px 0 0 var(--brand);
+}
+
+/*
+ * World records: a rich trophy fill with a bright edge and an inner glow (a cell inside a row);
+ * wr-glow-raised squares glow outwards too. On hover the glow grows and a sheen sweeps across once.
+ */
+@utility wr-glow {
+  position: relative;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--trophy) 46%, var(--track)) !important;
+  color: #f6dcff !important;
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--trophy) 85%, white),
+    inset 0 0 14px color-mix(in srgb, var(--trophy) 60%, transparent) !important;
+  transition: box-shadow 0.2s;
+  & svg {
+    filter: drop-shadow(0 0 4px color-mix(in srgb, var(--trophy) 90%, white));
+  }
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(105deg, transparent 35%, rgb(255 255 255 / 0.35) 50%, transparent 65%);
+    transform: translateX(-120%);
+    pointer-events: none;
+  }
+  &:hover,
+  *:hover > & {
+    outline: none;
+    box-shadow:
+      inset 0 0 0 1px color-mix(in srgb, var(--trophy) 70%, white),
+      inset 0 0 20px color-mix(in srgb, var(--trophy) 75%, transparent) !important;
+  }
+  &:hover::after,
+  *:hover > &::after {
+    transform: translateX(120%);
+    transition: transform 0.6s ease-out;
+  }
+  :root[data-theme='light'] & {
+    background: color-mix(in srgb, var(--trophy) 30%, var(--track)) !important;
+    color: #5b1480 !important;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    &:hover::after,
+    *:hover > &::after {
+      transition: none;
+      transform: translateX(-120%);
+    }
+  }
+}
+
+@utility wr-glow-raised {
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--trophy) 85%, white),
+    0 0 10px 1px color-mix(in srgb, var(--trophy) 55%, transparent) !important;
+  &:hover {
+    box-shadow:
+      inset 0 0 0 1px color-mix(in srgb, var(--trophy) 70%, white),
+      0 0 16px 3px color-mix(in srgb, var(--trophy) 70%, transparent) !important;
+  }
+}

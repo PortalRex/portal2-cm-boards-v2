@@ -40,9 +40,10 @@ function prepare({ queryClient, user = null, viewAsPlayer = false }: Omit<Option
 
 /**
  * Renders a component inside a fresh QueryClient and an in-memory router whose only route
- * renders `ui`, so router hooks (search params, links) work at `route`.
+ * renders `ui`, so router hooks (search params, links) work at `route`. The router has loaded
+ * before it renders, so the component is on screen when this resolves.
  */
-export function renderWithProviders(ui: ReactElement, { route = '/', ...options }: Options = {}) {
+export async function renderWithProviders(ui: ReactElement, { route = '/', ...options }: Options = {}) {
   const client = prepare(options)
   const rootRoute = createRootRouteWithContext<RouterContext>()({
     component: () => (
@@ -57,6 +58,7 @@ export function renderWithProviders(ui: ReactElement, { route = '/', ...options 
     context: { queryClient: client },
     history: createMemoryHistory({ initialEntries: [route] }),
   })
+  await router.load()
   const result = render(
     <QueryClientProvider client={client}>
       {/* The test router has its own tree, not the registered app one. */}
@@ -66,14 +68,18 @@ export function renderWithProviders(ui: ReactElement, { route = '/', ...options 
   return { ...result, router, queryClient: client }
 }
 
-/** Renders the real app routes at `route`, for route-level tests (redirects, guards, loaders). */
-export function renderRoute(route: string, options: Omit<Options, 'route'> = {}) {
+/**
+ * Renders the real app routes at `route`, for route-level tests (redirects, guards, loaders),
+ * once the router has loaded (loaders and redirects done).
+ */
+export async function renderRoute(route: string, options: Omit<Options, 'route'> = {}) {
   const client = prepare(options)
   const router = createRouter({
     routeTree,
     context: { queryClient: client },
     history: createMemoryHistory({ initialEntries: [route] }),
   })
+  await router.load()
   const result = render(
     <QueryClientProvider client={client}>
       <RouterProvider router={router} />
