@@ -51,8 +51,8 @@
   - [x] 5.6c Compare (`?a=&b=`, debounced player search): 2c31c0b
   - [x] 5.6d Countries: fc7d07b
   - [x] 5.3a Run Details: media (autorender, YouTube): 4b269c6
-  - [x] 5.3b Run Details: reactions, reports: (pending)
-  - [ ] 5.3c Run Details: staff actions with reasons + invalidation
+  - [x] 5.3b Run Details: reactions, reports: 62d30d3
+  - [x] 5.3c Run Details: staff actions with reasons + invalidation: (pending)
   - [ ] 5.3d Submit Run (upload preview, submit, admin manual entry)
   - [ ] 5.7 Settings (name/avatar locks, view-as-player for staff)
   - [ ] 5.8 About, Donators, Placeholder
@@ -68,11 +68,18 @@
 
 ## Log
 <!-- Newest first. One entry per finished item: date, what was done, commit, tests added. -->
+- 2026-10-18: 5.3c Staff tools in Run Details (`features/runs/api/staff.ts`, `components/staff-tools.tsx`), shown to
+  any staff tier and hidden while viewing as a player: optional reason (audit log), ban / unban, verify / mark pending,
+  admin-only remove demo and delete run (second click confirms, focus elsewhere cancels, the button keeps its size),
+  partner by SteamID64 for co-op outside Mel, the co-op host picker (PUT /coop/{id}/host, then the role override so
+  every row recolours), who reacted (loaded on open, with history) and staff notes (own notes deletable, admins any;
+  the old board's notes show "The board"). Each action calls `invalidateRun`. Default test handlers for notes and the
+  reaction record. Commit (pending). Tests: 15.
 - 2026-10-18: 5.3b Reactions and reports in Run Details: `ReactionsBar` (counts for everyone, react / clear when
   signed in, cache updated from the answer; left out in Score Updates rows via `showReactions={false}`, as legacy)
   and `ReportRun` (anonymous report, reason required, details required for "Something else", null when empty,
   server message shown). `REPORT_REASONS` and `reportRun` live in `lib/runs/reports.ts` for the staff reports page.
-  Default test handler for reaction counts. Commit (pending). Tests: 6.
+  Default test handler for reaction counts. Commit 62d30d3. Tests: 6.
 - 2026-10-18: 5.3a Run Details media. The pieces were already in place and wired on Score Updates, map boards and
   profiles (5.1a/5.1c and the profile work); this adds their own tests (`components/runs/run-media.test.tsx`: link
   states, share ids from the rendered set, demo/YouTube links, comment bubble, video source order and the
@@ -291,6 +298,10 @@
 
 ## Decisions and findings
 <!-- Legacy behaviours discovered, choices made and why. -->
+- Run Details staff tools: legacy's sample user is never staff (`isStaff` checks `!user.sample`), so the tools
+  can't be compared on sample data. The styling comes from reading RunDetails.css: it loads after ui.css, so
+  `.sd-admin button` outranks `.segmented button` and also styles the host picker (bordered, 32px tall in the 30px
+  row) and the note Delete button (a normal admin button pushed right, not the muted text link its own rule asks for).
 - Stats phone layout: legacy Stats.css (lines 462-476) has a selector list with no body that runs into
   `.st-hist .st-row { grid-template-columns: … }`, so below 900 px the columns it meant to hide still show and every
   element in that list gets a grid template. Reproduced the visible result (columns kept, the grids changed).

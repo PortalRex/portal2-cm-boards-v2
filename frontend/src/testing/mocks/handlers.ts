@@ -30,6 +30,9 @@ export const handlers: RequestHandler[] = [
   http.get(`${API}/wall_of_shame`, () => HttpResponse.json([])),
   // A run's reaction counts: none unless a test says otherwise.
   http.get(`${API}/runs/:id/reactions`, () => HttpResponse.json({ up: 0, down: 0, mine: null })),
+  // Staff: no notes on a run and nobody reacted, unless a test says otherwise.
+  http.get(`${API}/admin/runs/:id/notes`, () => HttpResponse.json([])),
+  http.get(`${API}/admin/runs/:id/reactions`, () => HttpResponse.json({ current: [], history: [] })),
   // No rendered videos unless a test says otherwise.
   http.post(`${AUTORENDER}/api/v1/check-videos-exist`, () => HttpResponse.json({ ids: [] })),
 ]

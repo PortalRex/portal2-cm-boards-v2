@@ -13,6 +13,7 @@ import { coopHalvesQueryOptions, segmentsQueryOptions } from '../api/details'
 import { timerNote } from '../utils/timer-note'
 import { ReactionsBar } from './reactions-bar'
 import { ReportRun } from './report-run'
+import { StaffTools } from './staff-tools'
 
 /**
  * The run a details panel shows: a score update, a map board row or a profile score (they share
@@ -23,6 +24,7 @@ export interface DetailsRun {
   changelogId?: number | null
   changelogIds?: (number | null)[]
   coopId?: number | null
+  rolesKnown?: boolean | null
   score?: number | null
   postRank?: number | null
   rank?: number | null
@@ -175,6 +177,7 @@ export function RunDetails({
           <TimerNote score={run.score} segments={segments.data ?? null} />
           {own != null && showReactions && <ReactionsBar changelogId={own} />}
           {own != null && <ReportRun changelogId={own} />}
+          {own != null && <StaffTools run={{ ...run, changelogId: own }} map={map} game={game} />}
           {children}
           <div className="mt-3.5 grid grid-cols-2 gap-[18px] @max-[640px]/run-details:grid-cols-1">
             {view.demoId ? (
