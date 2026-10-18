@@ -43,7 +43,7 @@ export interface DetailsRun {
 }
 
 const outlineButton =
-  'inline-flex h-9 cursor-pointer items-center justify-center gap-2.5 rounded-[4px] border border-line-strong bg-control px-3 text-lg whitespace-nowrap hover:bg-control-raised [&_svg]:size-5'
+  'inline-flex h-9 cursor-pointer items-center justify-center gap-2.5 rounded-[4px] border border-line-strong bg-control px-3 text-lg whitespace-nowrap hover:bg-control-raised [&_svg]:size-6'
 const disabled = 'pointer-events-none opacity-45'
 
 /**
@@ -110,7 +110,7 @@ export function RunDetails({
 
   return (
     <div className="@container/run-details">
-      <div className="grid grid-cols-[minmax(240px,345px)_minmax(0,1fr)_minmax(260px,380px)] gap-5 border-t-2 border-row bg-panel p-5 @max-[1150px]/run-details:grid-cols-[minmax(220px,320px)_minmax(0,1fr)] @max-[640px]/run-details:grid-cols-1 @max-[640px]/run-details:p-3">
+      <div className="grid grid-cols-[minmax(240px,345px)_minmax(0,1fr)_minmax(260px,380px)] gap-5 border-t-2 border-row bg-panel p-5 rd-upto1150:grid-cols-[minmax(220px,320px)_minmax(0,1fr)] rd-upto640:grid-cols-1 rd-upto640:p-3">
         <div>
           <RunVideo
             key={view.changelogId ?? view.id}
@@ -122,9 +122,12 @@ export function RunDetails({
           {list && <CoopToggle halves={list} index={index} onPick={setPicked} />}
         </div>
 
-        <Segments loading={segments.isPending && ids.length > 0} data={segments.data ?? null} />
+        {/* A plain cell, as legacy: the segments (or the note) keep their own height. */}
+        <div>
+          <Segments loading={segments.isPending && ids.length > 0} data={segments.data ?? null} />
+        </div>
 
-        <div className="flex min-w-0 flex-col text-lg @max-[1150px]/run-details:col-span-full">
+        <div className="flex min-w-0 flex-col text-lg rd-upto1150:col-span-full">
           <dl className="m-0 grid grid-cols-[auto_1fr] gap-x-[22px] gap-y-1">
             <dt className="text-text-2 uppercase">Comment:</dt>
             <dd className="m-0 text-text-2">{view.note || 'No comment'}</dd>
@@ -181,7 +184,7 @@ export function RunDetails({
           {own != null && <ReportRun changelogId={own} />}
           {own != null && <StaffTools run={{ ...run, changelogId: own }} map={map} game={game} />}
           {children}
-          <div className="mt-3.5 grid grid-cols-2 gap-[18px] @max-[640px]/run-details:grid-cols-1">
+          <div className="mt-3.5 grid grid-cols-2 gap-[18px] rd-upto640:grid-cols-1">
             {view.demoId ? (
               <a
                 href={apiUrl(`/demos/${view.demoId}/file`)}
@@ -247,9 +250,9 @@ function Segments({ loading, data }: { loading: boolean; data: FormattedSegment[
       </div>
     )
   }
-  const cell = 'h-[30px] text-center first:pl-6 first:text-left @max-[640px]/run-details:first:pl-2'
+  const cell = 'h-[30px] text-center first:pl-6 first:text-left rd-upto640:first:pl-2'
   return (
-    <table className="w-full border-collapse text-lg @max-[640px]/run-details:text-sm">
+    <table className="w-full border-collapse text-lg rd-upto640:text-sm">
       <thead>
         <tr className="[&>th]:font-normal [&>th]:text-text-muted [&>th]:uppercase">
           {['Segment', 'Seconds', 'Ticks', 'Total', 'Total ticks'].map((h) => (

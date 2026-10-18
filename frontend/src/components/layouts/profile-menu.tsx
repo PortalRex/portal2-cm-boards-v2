@@ -24,9 +24,9 @@ export function ProfileMenu({ user }: { user: CurrentUser | null }) {
       <a
         href={steamLoginUrl(back)}
         title="Sign in through Steam"
-        className="inline-flex h-10 items-center gap-2 rounded-[4px] border border-line-strong bg-control px-[18px] text-lg whitespace-nowrap hover:border-text-muted max-[480px]:px-2.5"
+        className="inline-flex h-10 items-center gap-2 rounded-[4px] border border-line-strong bg-control px-[18px] text-lg whitespace-nowrap hover:border-text-muted upto480:px-2.5"
       >
-        <SteamIcon size={20} /> <span className="max-[480px]:hidden">Sign in</span>
+        <SteamIcon size={20} /> <span className="upto480:hidden">Sign in</span>
       </a>
     )
   }
@@ -36,11 +36,11 @@ export function ProfileMenu({ user }: { user: CurrentUser | null }) {
   return (
     <div className="group/profile relative">
       <Link to="/profile/$profileId" params={{ profileId: user.profileNumber }} aria-label="Your profile">
-        <Avatar src={user.avatar} name={user.name} size={48} className="rounded-lg max-[1320px]:size-10!" />
+        <Avatar src={user.avatar} name={user.name} size={48} className="rounded-lg upto1320:size-10!" />
       </Link>
       <div
         role="menu"
-        className="invisible absolute top-[60px] right-0 flex w-[250px] flex-col items-stretch overflow-hidden rounded-lg bg-menu pb-3.5 opacity-0 shadow-[0_12px_30px_rgba(0,0,0,0.45)] transition-[opacity,visibility] duration-100 group-hover/profile:visible group-hover/profile:opacity-100 group-focus-within/profile:visible group-focus-within/profile:opacity-100 max-[1320px]:hidden"
+        className="invisible absolute top-[60px] right-0 flex w-[250px] flex-col items-stretch overflow-hidden rounded-lg bg-menu pb-3.5 opacity-0 shadow-[0_12px_30px_rgba(0,0,0,0.45)] transition-[opacity,visibility] duration-100 group-hover/profile:visible group-hover/profile:opacity-100 group-focus-within/profile:visible group-focus-within/profile:opacity-100 upto1320:hidden"
       >
         <Link
           to="/profile/$profileId"

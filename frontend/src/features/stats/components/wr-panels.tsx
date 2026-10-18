@@ -85,12 +85,12 @@ export function RecordsPanel({ mode: modeParam, onMode }: { mode?: string; onMod
             />
             <Table
               label="World records"
-              cols="[--st-cols:minmax(140px,1fr)_90px_minmax(0,1.6fr)_120px_110px_80px] max-[900px]:[--st-cols:minmax(0,1fr)_76px] *:py-1.5"
+              cols="[--st-cols:minmax(140px,1fr)_90px_minmax(0,1.6fr)_120px_110px_80px] upto900:[--st-cols:minmax(0,1fr)_76px] *:py-1.5"
               head={
                 <>
                   <span>Map</span>
                   <span className="text-right">Record</span>
-                  <span className="max-[900px]:col-span-full">Held by</span>
+                  <span className="upto900:col-span-full">Held by</span>
                   <span>Since</span>
                   <span className="text-right">Standing</span>
                   <span className="text-right" title="Record times the map has had">
@@ -101,11 +101,11 @@ export function RecordsPanel({ mode: modeParam, onMode }: { mode?: string; onMod
             >
               {rows.map((r) => (
                 <Row key={r.mapId}>
-                  <span className="min-w-0 truncate whitespace-nowrap max-[900px]:whitespace-normal">
+                  <span className="min-w-0 truncate whitespace-nowrap upto900:whitespace-normal">
                     <MapName where={r} />
                   </span>
                   <span className={strong}>{formatScore(r.score)}</span>
-                  <span className="max-[900px]:col-span-full">
+                  <span className="upto900:col-span-full">
                     <Teams teams={r.teams} />
                   </span>
                   <span className={stood}>{formatDate(r.since)}</span>
@@ -133,7 +133,7 @@ function ShareBars({ rows, total }: { rows: WrStats['holders']; total: number })
         <div
           key={h.player.profileNumber}
           role="listitem"
-          className="grid min-h-8 grid-cols-[minmax(150px,240px)_minmax(0,1fr)_40px_60px] items-center gap-3 max-[900px]:grid-cols-[minmax(0,140px)_minmax(0,1fr)_30px_46px] max-[900px]:gap-2"
+          className="grid min-h-8 grid-cols-[minmax(150px,240px)_minmax(0,1fr)_40px_60px] items-center gap-3 upto900:grid-cols-[minmax(0,140px)_minmax(0,1fr)_30px_46px] upto900:gap-2"
         >
           <PlayerCell player={h.player} />
           <span className="h-3.5 overflow-hidden rounded-[7px] bg-row">
@@ -187,7 +187,7 @@ export function HistoryPanel({ view: viewParam, onView }: { view?: string; onVie
 
 const rank = (i: number) => <span className="num text-text-muted">{i + 1}</span>
 const mapCell = (r: Parameters<typeof MapName>[0]['where']) => (
-  <span className="min-w-0 truncate whitespace-nowrap max-[900px]:whitespace-normal">
+  <span className="min-w-0 truncate whitespace-nowrap upto900:whitespace-normal">
     <MapName where={r} />
   </span>
 )
@@ -200,13 +200,13 @@ function Longest({ rows }: { rows: WrStats['longest'] }) {
       </Intro>
       <Table
         label="Longest lasting records"
-        cols="[--st-cols:40px_minmax(120px,1fr)_80px_minmax(0,1.2fr)_100px_220px_minmax(0,1.2fr)] max-[900px]:[--st-cols:28px_minmax(0,1fr)_70px_84px] *:py-1.5"
+        cols="[--st-cols:40px_minmax(120px,1fr)_80px_minmax(0,1.2fr)_100px_220px_minmax(0,1.2fr)] upto900:[--st-cols:28px_minmax(0,1fr)_70px_84px] *:py-1.5"
         head={
           <>
             <span className="text-text-muted">#</span>
             <span>Map</span>
             <span className="text-right">Time</span>
-            <span className="max-[900px]:col-[2/-1] max-[900px]:row-[2]">Set by</span>
+            <span className="upto900:col-[2/-1] upto900:row-[2]">Set by</span>
             <span className="text-right">Stood</span>
             <span>From – to</span>
             <span>Beaten by</span>
@@ -218,7 +218,7 @@ function Longest({ rows }: { rows: WrStats['longest'] }) {
             {rank(i)}
             {mapCell(r)}
             <span className={strong}>{formatScore(r.score)}</span>
-            <span className="max-[900px]:col-[2/-1] max-[900px]:row-[2]">
+            <span className="upto900:col-[2/-1] upto900:row-[2]">
               <Teams teams={r.teams} />
             </span>
             <span className="num text-right">{days(r.days)}</span>
@@ -251,12 +251,12 @@ function Domination({ rows }: { rows: WrStats['domination'] }) {
       </Intro>
       <Table
         label="Longest domination"
-        cols="[--st-cols:40px_minmax(120px,1fr)_minmax(0,1fr)_80px_100px_220px_150px] max-[900px]:[--st-cols:28px_minmax(0,1fr)_30px_84px] max-[900px]:*:py-1.5"
+        cols="[--st-cols:40px_minmax(120px,1fr)_minmax(0,1fr)_80px_100px_220px_150px] upto900:[--st-cols:28px_minmax(0,1fr)_30px_84px] upto900:*:py-1.5"
         head={
           <>
             <span className="text-text-muted">#</span>
             <span>Map</span>
-            <span className="max-[900px]:col-[2/-1] max-[900px]:row-[2]">Player</span>
+            <span className="upto900:col-[2/-1] upto900:row-[2]">Player</span>
             <span className="text-right">Records</span>
             <span className="text-right">Held</span>
             <span>From – to</span>
@@ -268,7 +268,7 @@ function Domination({ rows }: { rows: WrStats['domination'] }) {
           <Row key={`${r.mapId}-${r.player.profileNumber}-${r.start}`}>
             {rank(i)}
             {mapCell(r)}
-            <PlayerCell player={r.player} size={22} className="max-[900px]:col-[2/-1] max-[900px]:row-[2]" />
+            <PlayerCell player={r.player} size={22} className="upto900:col-[2/-1] upto900:row-[2]" />
             <span className={strong}>{r.records}</span>
             <span className="num text-right">{days(r.days)}</span>
             <span className={stood}>
@@ -291,14 +291,14 @@ function Improvements({ rows }: { rows: WrStats['improvements'] }) {
       <Intro>The biggest single cuts to a world record.</Intro>
       <Table
         label="Biggest improvements"
-        cols="[--st-cols:40px_minmax(120px,1fr)_90px_150px_minmax(0,1fr)_110px_minmax(0,1.3fr)] max-[900px]:[--st-cols:28px_minmax(0,1fr)_70px] *:py-1.5"
+        cols="[--st-cols:40px_minmax(120px,1fr)_90px_150px_minmax(0,1fr)_110px_minmax(0,1.3fr)] upto900:[--st-cols:28px_minmax(0,1fr)_70px] *:py-1.5"
         head={
           <>
             <span className="text-text-muted">#</span>
             <span>Map</span>
             <span className="text-right">Saved</span>
             <span className="text-right">Time</span>
-            <span className="max-[900px]:col-[2/-1] max-[900px]:row-[2]">By</span>
+            <span className="upto900:col-[2/-1] upto900:row-[2]">By</span>
             <span>Date</span>
             <span>Previous record</span>
           </>
@@ -312,7 +312,7 @@ function Improvements({ rows }: { rows: WrStats['improvements'] }) {
             <span className="num text-right">
               <span className="text-text-muted">{formatScore(r.fromScore)} →</span> {formatScore(r.toScore)}
             </span>
-            <span className="max-[900px]:col-[2/-1] max-[900px]:row-[2]">
+            <span className="upto900:col-[2/-1] upto900:row-[2]">
               <Teams teams={r.teams} />
             </span>
             <span className={stood}>{formatDate(r.date)}</span>
@@ -336,7 +336,7 @@ function DaysHolding({ rows }: { rows: WrStats['holders'] }) {
       </Intro>
       <Table
         label="Days holding"
-        cols="[--st-cols:40px_minmax(0,1fr)_130px_80px_120px_100px] max-[900px]:[--st-cols:28px_minmax(0,1fr)_90px_50px]"
+        cols="[--st-cols:40px_minmax(0,1fr)_130px_80px_120px_100px] upto900:[--st-cols:28px_minmax(0,1fr)_90px_50px]"
         head={
           <>
             <span className="text-text-muted">#</span>

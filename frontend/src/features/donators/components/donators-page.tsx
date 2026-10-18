@@ -22,7 +22,7 @@ export function DonatorsPage() {
       <Panel
         icon={DonateIcon}
         title="Donators"
-        bodyClassName="px-8 pt-6 pb-8 max-[760px]:px-3 max-[760px]:pt-4 max-[760px]:pb-5"
+        bodyClassName="px-8 pt-6 pb-8 upto760:px-3 upto760:pt-4 upto760:pb-5"
       >
         <p className="mt-0 mb-5 text-base">
           Thank you to everyone who has donated to keep the boards running.
@@ -40,7 +40,7 @@ export function DonatorsPage() {
         ) : !list.length ? (
           <EmptyState>No donations yet.</EmptyState>
         ) : (
-          <ol className="m-0 grid list-none grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-x-3 gap-y-2 p-0 max-[760px]:grid-cols-[minmax(0,1fr)]">
+          <ol className="m-0 grid list-none grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-x-3 gap-y-2 p-0 upto760:grid-cols-[minmax(0,1fr)]">
             {list.map((d, i) => (
               <li key={d.profileNumber}>
                 <Link

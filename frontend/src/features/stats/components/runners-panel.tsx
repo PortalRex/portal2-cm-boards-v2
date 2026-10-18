@@ -122,14 +122,14 @@ function Totals({ totals: t }: { totals: SiteStats['totals'] }) {
   )
 }
 
-const desktop = 'max-[900px]:hidden'
+const desktop = 'upto900:hidden'
 
 function PeakTable({ rows }: { rows: SiteStats['peaks'][string] }) {
   if (!rows.length) return <EmptyState>No points on this board yet.</EmptyState>
   return (
     <Table
       label="Peak points"
-      cols="[--st-cols:44px_minmax(0,1fr)_110px_150px_110px_110px] max-[900px]:[--st-cols:36px_minmax(0,1fr)_90px_110px]"
+      cols="[--st-cols:44px_minmax(0,1fr)_110px_150px_110px_110px] upto900:[--st-cols:36px_minmax(0,1fr)_90px_110px]"
       head={
         <>
           <span className="text-text-muted">#</span>
@@ -214,7 +214,7 @@ function LongestTable({ rows }: { rows: SiteStats['longestWrs'] }) {
   return (
     <Table
       label="Longest-standing world records"
-      cols="[--st-cols:44px_minmax(0,1fr)_minmax(0,1.2fr)_110px_240px] max-[900px]:[--st-cols:36px_minmax(0,1fr)_90px]"
+      cols="[--st-cols:44px_minmax(0,1fr)_minmax(0,1.2fr)_110px_240px] upto900:[--st-cols:36px_minmax(0,1fr)_90px]"
       head={
         <>
           <span className="text-text-muted">#</span>

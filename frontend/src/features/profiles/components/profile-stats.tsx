@@ -19,13 +19,13 @@ const statRow = 'grid h-full auto-cols-fr grid-flow-col items-center gap-3'
 const labelClass = (size: StatSize, className?: string) =>
   cn(
     'max-w-full truncate font-light whitespace-nowrap text-text-2 uppercase',
-    size === 'sm' ? 'text-[13px] leading-4' : 'text-lg max-[800px]:text-sm',
+    size === 'sm' ? 'text-[13px] leading-4' : 'text-lg upto800:text-sm',
     className,
   )
 const valueClass = (size: StatSize) =>
   cn(
     'num inline-flex items-baseline gap-0.5 font-medium [&_small]:text-[22px] [&_small]:font-normal',
-    size === 'sm' ? 'text-[28px] leading-[31px]' : 'text-4xl leading-[1.1] max-[800px]:text-[28px]',
+    size === 'sm' ? 'text-[28px] leading-[31px]' : 'text-4xl leading-[1.1] upto800:text-[28px]',
   )
 
 /** A number with its label; with `to`, a link (e.g. a rank to its leaderboard). */
@@ -139,7 +139,7 @@ export function PointsCard({ profile }: { profile: Profile }) {
       icon={SparkleIcon}
       title="Challenge Mode Points"
       collapseId="profile.points"
-      bodyClassName="flex items-center max-[800px]:justify-around"
+      bodyClassName="flex items-center upto800:justify-around"
     >
       <div className={cn(statRow, 'w-full')}>
         {BOARDS.map(({ key, label }) => (
@@ -160,12 +160,7 @@ export function GlobalRankCard({ profile, chart }: { profile: Profile; chart?: R
   const board = (b: PointsBoard) => (rank[b] ? `/leaderboard/${b}?player=${player.profileNumber}` : undefined)
   return (
     <Card icon={GlobeIcon} title="Global Rank" collapseId="profile.rank" className={TALL}>
-      <div
-        className={cn(
-          statRow,
-          'h-auto pt-2.5 max-[800px]:grid-flow-row max-[800px]:grid-cols-2 max-[800px]:gap-y-4',
-        )}
-      >
+      <div className={cn(statRow, 'h-auto pt-2.5 upto800:grid-flow-row upto800:grid-cols-2 upto800:gap-y-4')}>
         {BOARDS.map(({ key, label }) => (
           <Stat key={key} value={<Ordinal n={rank[key]} colored />} label={label} to={board(key)} />
         ))}
@@ -193,7 +188,7 @@ export function GlobalRankCard({ profile, chart }: { profile: Profile; chart?: R
 
 function StatHead({ label }: { label: string }) {
   return (
-    <span className={labelClass('md', 'text-xl max-[800px]:text-xl')} title={label}>
+    <span className={labelClass('md', 'text-xl upto800:text-xl')} title={label}>
       {label}
     </span>
   )
@@ -295,7 +290,7 @@ function SideCard({
 export function SideCards({ profile, peak }: { profile: Profile; peak: PointsPeak | null }) {
   const { averagePlace: avg, worldRecords: wrs } = profile
   return (
-    <div className="flex flex-col gap-3 max-[1200px]:grid max-[1200px]:grid-cols-2 max-[800px]:grid-cols-1">
+    <div className="flex flex-col gap-3 upto1200:grid upto1200:grid-cols-2 upto800:grid-cols-1">
       <SideCard icon={SparkleIcon} title="Average Place" collapseId="profile.average">
         {BOARDS.map(({ key, short }) => (
           <Stat key={key} size="sm" value={fmtAvg(avg[key])} label={short} />

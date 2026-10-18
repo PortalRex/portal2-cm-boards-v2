@@ -19,8 +19,8 @@ const BOARDS = [
 ]
 
 const row =
-  'grid min-h-11 grid-cols-[40px_minmax(160px,1fr)_80px_100px_minmax(0,3fr)] items-center gap-x-4 px-3 py-1.5 text-base max-[800px]:grid-cols-[30px_minmax(0,1fr)_60px]'
-const desktop = 'max-[800px]:hidden'
+  'grid min-h-11 grid-cols-[40px_minmax(160px,1fr)_80px_100px_minmax(0,3fr)] items-center gap-x-4 px-3 py-1.5 text-base upto800:grid-cols-[30px_minmax(0,1fr)_60px]'
+const desktop = 'upto800:hidden'
 
 /**
  * Countries on a Portal 2 points board: how many players each has, their points together and its
@@ -38,7 +38,7 @@ export function CountriesPanel() {
       icon={GlobeIcon}
       title="Countries"
       className="rounded-tl-none"
-      bodyClassName="px-7 pt-5 pb-7 max-[800px]:p-4"
+      bodyClassName="px-7 pt-5 pb-7 upto800:p-4"
       actions={<Segmented size="md" value={board} onChange={setBoard} label="Board" options={BOARDS} />}
     >
       <p className="mt-0 mb-4 text-base text-text-muted">

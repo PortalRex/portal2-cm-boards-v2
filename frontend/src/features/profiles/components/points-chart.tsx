@@ -166,8 +166,8 @@ export function PointsChart({
           </LineChart>
         </ResponsiveContainer>
       </div>
-      <div className="flex items-center justify-start gap-x-[18px] gap-y-1 px-5 pt-2 max-[800px]:flex-wrap max-[800px]:justify-center max-[800px]:gap-x-2.5 max-[800px]:gap-y-1.5 max-[800px]:px-0">
-        <span className="mr-auto text-sm whitespace-nowrap text-text-muted uppercase max-[800px]:mr-0 max-[800px]:basis-full max-[800px]:text-center">
+      <div className="flex items-center justify-start gap-x-[18px] gap-y-1 px-5 pt-2 upto800:flex-wrap upto800:justify-center upto800:gap-x-2.5 upto800:gap-y-1.5 upto800:px-0">
+        <span className="mr-auto text-sm whitespace-nowrap text-text-muted uppercase upto800:mr-0 upto800:basis-full upto800:text-center">
           Points over time
         </span>
         {SERIES.map((s) => (
@@ -176,12 +176,12 @@ export function PointsChart({
             type="button"
             aria-pressed={!hidden[s.key]}
             className={cn(
-              'inline-flex cursor-pointer items-center gap-2 border-0 bg-transparent text-base font-light whitespace-nowrap uppercase max-[800px]:gap-[5px] max-[800px]:p-0 max-[800px]:text-[15px]',
+              'inline-flex cursor-pointer items-center gap-2 border-0 bg-transparent px-1.5 py-px text-base font-light whitespace-nowrap uppercase upto800:gap-[5px] upto800:p-0 upto800:text-[15px]',
               hidden[s.key] && 'opacity-40',
             )}
             onClick={() => setHidden((h) => ({ ...h, [s.key]: !h[s.key] }))}
           >
-            <span className="size-3.5 rounded-full max-[800px]:size-[11px]" style={{ background: s.color }} />
+            <span className="size-3.5 rounded-full upto800:size-[11px]" style={{ background: s.color }} />
             {s.label}
           </button>
         ))}

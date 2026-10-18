@@ -82,11 +82,11 @@ const row = 'grid min-h-[52px] items-center gap-x-5 px-4 py-2 text-base [&_a:hov
 const runRow = cn(
   row,
   'grid-cols-[196px_minmax(0,1.1fr)_minmax(0,1.3fr)_56px_84px_120px_minmax(0,1.2fr)_110px]',
-  'max-[1100px]:grid-cols-[170px_minmax(0,1fr)_minmax(0,1fr)_70px] max-[1100px]:[&>:nth-child(4)]:hidden max-[1100px]:[&>:nth-child(6)]:hidden max-[1100px]:[&>:nth-child(8)]:hidden max-[1100px]:[&>:nth-child(7)]:col-span-full',
+  'upto1100:grid-cols-[170px_minmax(0,1fr)_minmax(0,1fr)_70px] upto1100:[&>:nth-child(4)]:hidden upto1100:[&>:nth-child(6)]:hidden upto1100:[&>:nth-child(8)]:hidden upto1100:[&>:nth-child(7)]:col-span-full',
 )
 const otherRow = cn(
   row,
-  'grid-cols-[196px_220px_160px_minmax(0,1fr)_110px] max-[1100px]:grid-cols-[170px_minmax(0,1fr)_minmax(0,1fr)]',
+  'grid-cols-[196px_220px_160px_minmax(0,1fr)_110px] upto1100:grid-cols-[170px_minmax(0,1fr)_minmax(0,1fr)]',
 )
 const head = 'min-h-8 text-sm text-text-muted uppercase'
 const actedBy = 'min-w-0 truncate pl-2'

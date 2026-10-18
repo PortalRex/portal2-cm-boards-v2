@@ -49,7 +49,7 @@ function TopNavItem({ item }: { item: NavItem }) {
         href={to}
         data-active={active || undefined}
         aria-current={active ? 'page' : undefined}
-        className="group/link flex h-[110px] items-center gap-3 text-xl font-medium whitespace-nowrap uppercase max-[1320px]:h-[52px] max-[1320px]:px-6"
+        className="group/link flex h-[110px] items-center gap-3 text-xl font-medium whitespace-nowrap uppercase upto1320:h-[52px] upto1320:px-6"
       >
         <Icon className="size-[30px]" />
         <span className="underline-offset-4 group-hover/link:underline group-data-[active]/link:underline">
@@ -90,24 +90,24 @@ export function TopBar() {
 
   return (
     <header className="relative z-20 bg-linear-to-b from-[rgb(var(--page-rgb)/0.55)] to-[rgb(var(--page-rgb)/0.25)]">
-      <div className="mx-auto flex h-[110px] max-w-content items-center justify-center gap-12 px-6 max-[1320px]:h-[72px] max-[1320px]:justify-between max-[1320px]:gap-4 max-[480px]:px-3.5">
+      <div className="mx-auto flex h-[110px] max-w-content items-center justify-center gap-12 px-6 upto1320:h-[72px] upto1320:justify-between upto1320:gap-4 upto480:px-3.5">
         <BrandMenu />
 
         <nav
           aria-label="Main"
           className={cn(
-            'max-[1320px]:absolute max-[1320px]:top-[72px] max-[1320px]:right-0 max-[1320px]:left-0 max-[1320px]:bg-menu max-[1320px]:shadow-[0_12px_30px_rgba(0,0,0,0.45)]',
-            !open && 'max-[1320px]:hidden',
+            'upto1320:absolute upto1320:top-[72px] upto1320:right-0 upto1320:left-0 upto1320:bg-menu upto1320:shadow-[0_12px_30px_rgba(0,0,0,0.45)]',
+            !open && 'upto1320:hidden',
           )}
         >
-          <ul className="m-0 flex list-none items-center gap-9 p-0 max-[1320px]:flex-col max-[1320px]:items-stretch max-[1320px]:gap-0 max-[1320px]:py-2">
+          <ul className="m-0 flex list-none items-center gap-9 p-0 upto1320:flex-col upto1320:items-stretch upto1320:gap-0 upto1320:py-2">
             {NAV.map((item) => (
               <TopNavItem key={item.label} item={item} />
             ))}
           </ul>
         </nav>
 
-        <div className="flex items-center gap-5 max-[1320px]:gap-3">
+        <div className="flex items-center gap-5 upto1320:gap-3">
           {user && !user.sample && slots.submitRun && (
             <button
               type="button"
@@ -116,7 +116,7 @@ export function TopBar() {
               className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-[4px] border border-line-strong bg-control px-4 text-lg whitespace-nowrap hover:bg-control-raised"
             >
               <UploadIcon className="size-5" />
-              <span className="max-[480px]:hidden">SUBMIT RUN</span>
+              <span className="upto480:hidden">SUBMIT RUN</span>
             </button>
           )}
           <button
@@ -139,7 +139,7 @@ export function TopBar() {
             onClick={() => setOpenOn(open ? null : pathname)}
             aria-expanded={open}
             aria-label="Menu"
-            className="order-last hidden cursor-pointer border-0 bg-transparent p-1 max-[1320px]:inline-flex"
+            className="order-last hidden cursor-pointer border-0 bg-transparent p-1 upto1320:inline-flex"
           >
             {open ? <CloseIcon className="size-[34px]" /> : <MenuIcon className="size-[34px]" />}
           </button>

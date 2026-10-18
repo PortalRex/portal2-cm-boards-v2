@@ -67,8 +67,8 @@ export function ScoreUpdatesList({
   const filtered = isFiltered(filters, query)
 
   return (
-    <Panel icon={HistoryIcon} title="Score Updates" bodyClassName="p-[26px] pb-[30px] max-[900px]:p-3">
-      <div className="mb-[22px] flex items-center justify-between gap-4 max-[900px]:mb-2.5 max-[900px]:grid max-[900px]:grid-cols-[minmax(0,1fr)] max-[900px]:gap-2.5 max-[900px]:[&>nav]:hidden">
+    <Panel icon={HistoryIcon} title="Score Updates" bodyClassName="p-[26px] pb-[30px] upto900:p-3">
+      <div className="mb-[22px] flex items-center justify-between gap-4 upto900:mb-2.5 upto900:grid upto900:grid-cols-[minmax(0,1fr)] upto900:gap-2.5 upto900:[&>nav]:hidden">
         <SearchBox
           value={filters.q}
           onChange={(v) => set({ q: v })}
@@ -83,13 +83,13 @@ export function ScoreUpdatesList({
       <div
         role="table"
         aria-label="Score updates"
-        className="[--su-cols:83px_83px_minmax(170px,1.2fr)_minmax(220px,2.3fr)_110px_100px_90px_150px_156px_44px] max-[1400px]:[--su-cols:70px_70px_minmax(150px,1.2fr)_minmax(180px,2fr)_96px_86px_76px_132px_124px_40px]"
+        className="[--su-cols:83px_83px_minmax(170px,1.2fr)_minmax(220px,2.3fr)_110px_100px_90px_150px_156px_44px] upto1400:[--su-cols:70px_70px_minmax(150px,1.2fr)_minmax(180px,2fr)_96px_86px_76px_132px_124px_40px]"
       >
         <div
           role="row"
           className={cn(
             SCORE_COLS,
-            'h-[30px] text-base text-text-muted uppercase max-[900px]:hidden [&>span]:px-2.5 [&>span:nth-child(-n+2)]:text-center',
+            'h-[30px] text-base text-text-muted uppercase upto900:hidden [&>span]:px-2.5 [&>span:nth-child(-n+2)]:text-center',
           )}
         >
           <span role="columnheader">Previous</span>
@@ -131,7 +131,7 @@ export function ScoreUpdatesList({
       </div>
 
       {pageCount > 1 && (
-        <div className="mt-[22px] flex justify-end max-[900px]:mb-2.5 max-[900px]:justify-center">
+        <div className="mt-[22px] flex justify-end upto900:mb-2.5 upto900:justify-center">
           <Pagination page={page} pageCount={pageCount} onChange={setPage} />
         </div>
       )}

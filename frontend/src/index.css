@@ -12,6 +12,34 @@
 @custom-variant light (&:where([data-theme="light"], [data-theme="light"] *));
 
 /*
+ * Legacy's breakpoints, inclusive like its `@media (max-width: Npx)` rules: `upto900:` applies at 900px
+ * and below. (Tailwind's own `max-[900px]:` is `width < 900px`, so it misses exactly 900px.)
+ */
+@custom-variant upto480 (@media (max-width: 480px));
+@custom-variant upto600 (@media (max-width: 600px));
+@custom-variant upto700 (@media (max-width: 700px));
+@custom-variant upto760 (@media (max-width: 760px));
+@custom-variant upto800 (@media (max-width: 800px));
+@custom-variant upto860 (@media (max-width: 860px));
+@custom-variant upto900 (@media (max-width: 900px));
+@custom-variant upto1000 (@media (max-width: 1000px));
+@custom-variant upto1100 (@media (max-width: 1100px));
+@custom-variant upto1200 (@media (max-width: 1200px));
+@custom-variant upto1320 (@media (max-width: 1320px));
+@custom-variant upto1400 (@media (max-width: 1400px));
+/* The same for the Run Details panel's container queries. */
+@custom-variant rd-upto640 {
+  @container run-details (max-width: 640px) {
+    @slot;
+  }
+}
+@custom-variant rd-upto1150 {
+  @container run-details (max-width: 1150px) {
+    @slot;
+  }
+}
+
+/*
  * Design tokens from the "Portal 2 Leaderboards 2" Figma file (the legacy site's index.css),
  * plus the shadcn token names mapped onto them so the copied primitives use the same palette.
  */

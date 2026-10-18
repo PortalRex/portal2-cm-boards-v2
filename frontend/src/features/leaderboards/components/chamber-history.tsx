@@ -69,7 +69,7 @@ export function ChamberHistory({ map }: { map: MapInfo }) {
   const pageCount = Math.ceil(rows.length / PAGE_SIZE)
   const visible = rows.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
   const filtered = JSON.stringify(f) !== JSON.stringify(DEFAULTS)
-  const selectClass = 'min-w-[132px] max-[900px]:w-full max-[900px]:min-w-0'
+  const selectClass = 'min-w-[132px] upto900:w-full upto900:min-w-0'
 
   return (
     <>
@@ -80,7 +80,7 @@ export function ChamberHistory({ map }: { map: MapInfo }) {
           placeholder="Search players"
           showFilter={false}
         />
-        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-2 max-[900px]:grid max-[900px]:grid-cols-2">
+        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-2 upto900:grid upto900:grid-cols-2">
           {RUN_TOGGLES.map(([k, label]) => (
             <button
               key={k}
@@ -88,7 +88,7 @@ export function ChamberHistory({ map }: { map: MapInfo }) {
               aria-pressed={f[k]}
               onClick={() => set({ [k]: !f[k] })}
               className={cn(
-                'h-8 cursor-pointer rounded-2xl border border-line bg-control px-3.5 text-[15px] text-text-2 hover:border-line-strong max-[900px]:px-2',
+                'h-8 cursor-pointer rounded-2xl border border-line bg-control px-3.5 text-[15px] text-text-2 hover:border-line-strong upto900:px-2',
                 f[k] && 'border-brand bg-brand text-white',
               )}
             >
@@ -131,7 +131,7 @@ export function ChamberHistory({ map }: { map: MapInfo }) {
             <button
               type="button"
               onClick={() => set(DEFAULTS)}
-              className="cursor-pointer border-0 bg-transparent text-[15px] text-brand-light hover:underline max-[900px]:col-span-full"
+              className="cursor-pointer border-0 bg-transparent text-[15px] text-brand-light hover:underline upto900:col-span-full"
             >
               Clear filters
             </button>
@@ -160,13 +160,13 @@ export function ChamberHistory({ map }: { map: MapInfo }) {
 }
 
 function HistoryTable({ rows, stale, map }: { rows: Run[]; stale: boolean; map: MapInfo }) {
-  const hideOnPhones = 'max-[900px]:[&>:nth-child(3)]:hidden max-[900px]:[&>:nth-child(5)]:hidden'
+  const hideOnPhones = 'upto900:[&>:nth-child(3)]:hidden upto900:[&>:nth-child(5)]:hidden'
   return (
     <div
       role="table"
       aria-label="Chamber history"
       className={cn(
-        '[--mp-cols:110px_minmax(0,1.6fr)_110px_90px_80px] max-[900px]:[--mp-cols:90px_minmax(0,1fr)_76px]',
+        '[--mp-cols:110px_minmax(0,1.6fr)_110px_90px_80px] upto900:[--mp-cols:90px_minmax(0,1fr)_76px]',
         stale && 'opacity-50',
       )}
     >

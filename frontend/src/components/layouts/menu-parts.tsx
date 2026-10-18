@@ -32,7 +32,7 @@ export function MenuLink({
       ) : null}
       <span className="flex-1">{item.label}</span>
       {caret && (
-        <span className="ml-3 inline-flex text-text-muted max-[1320px]:hidden">
+        <span className="ml-3 inline-flex text-text-muted upto1320:hidden">
           <TriangleRight size={10} />
         </span>
       )}
@@ -86,7 +86,7 @@ export function ExpandButton({
         'cursor-pointer items-center justify-center rounded-md border-0 bg-transparent text-text-2',
         touchOnly
           ? 'ml-0.5 hidden h-10 w-8 [@media(hover:none)]:inline-flex'
-          : 'absolute top-0 right-3 hidden w-11 max-[1320px]:inline-flex',
+          : 'absolute top-0 right-3 hidden w-11 upto1320:inline-flex',
         className,
       )}
       aria-expanded={open}
@@ -107,8 +107,8 @@ export function NavDropdown({ expanded, children }: { expanded: boolean; childre
         menuPanel,
         'invisible absolute top-[92px] -left-3 z-30 min-w-[220px] -translate-y-1 opacity-0 transition-[opacity,transform,visibility] duration-100',
         'group-hover/nav:visible group-hover/nav:translate-y-0 group-hover/nav:opacity-100 group-focus-within/nav:visible group-focus-within/nav:translate-y-0 group-focus-within/nav:opacity-100',
-        'max-[1320px]:visible max-[1320px]:static max-[1320px]:translate-y-0 max-[1320px]:bg-transparent max-[1320px]:pt-0 max-[1320px]:pb-2 max-[1320px]:pl-10 max-[1320px]:opacity-100 max-[1320px]:shadow-none',
-        !expanded && 'max-[1320px]:hidden',
+        'upto1320:visible upto1320:static upto1320:translate-y-0 upto1320:bg-transparent upto1320:pt-0 upto1320:pb-2 upto1320:pl-10 upto1320:opacity-100 upto1320:shadow-none',
+        !expanded && 'upto1320:hidden',
       )}
     >
       {children}

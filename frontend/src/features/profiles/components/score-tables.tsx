@@ -58,7 +58,7 @@ export function Summary({
     setTimeout(() => scrollToCentre(document.getElementById(runRowId(m))), 0)
   }
   return (
-    <div className="flex flex-col gap-2.5 max-[800px]:gap-[22px]">
+    <div className="flex flex-col gap-2.5 upto800:gap-[22px]">
       {chapters.map((chapter) => {
         const ranks = chapter.maps.map((m) => scores[m.id]?.rank).filter((r): r is number => Boolean(r))
         const avg = ranks.length ? Math.round(ranks.reduce((a, b) => a + b, 0) / ranks.length) : null
@@ -66,7 +66,7 @@ export function Summary({
         const nameClass = 'flex flex-col truncate text-lg leading-[1.1] whitespace-nowrap'
         const name = (
           <>
-            <small className="text-xs text-text-muted uppercase">
+            <small className="text-[12px] text-text-muted uppercase">
               {chapterKind(chapter)} {chapter.number}
             </small>
             {chapter.name}
@@ -76,7 +76,7 @@ export function Summary({
         return (
           <div
             key={chapterKey(chapter)}
-            className="grid min-h-[34px] grid-cols-[78px_190px_minmax(0,1fr)] items-center gap-3 max-[800px]:grid-cols-[48px_minmax(0,1fr)] max-[800px]:gap-y-2.5"
+            className="grid min-h-[34px] grid-cols-[78px_190px_minmax(0,1fr)] items-center gap-3 upto800:grid-cols-[48px_minmax(0,1fr)] upto800:gap-y-2.5"
           >
             {link ? (
               <>
@@ -104,12 +104,12 @@ export function Summary({
                 <span className={nameClass}>{name}</span>
               </>
             )}
-            <span className="flex flex-wrap gap-2.5 max-[800px]:col-span-full max-[800px]:gap-1.5">
+            <span className="flex flex-wrap gap-2.5 upto800:col-span-full upto800:gap-1.5">
               {chapter.maps.map((m) => {
                 const rank = scores[m.id]?.rank
                 const title = `${m.title}${rank ? ` — rank ${rank}` : ''}`
                 const tile =
-                  'num inline-flex h-[30px] w-[60px] cursor-pointer items-center justify-center rounded-[2px] border-0 bg-track p-0 text-base hover:outline hover:outline-foreground max-[800px]:w-11'
+                  'num inline-flex h-[30px] w-[60px] cursor-pointer items-center justify-center rounded-[2px] border-0 bg-track p-0 text-base hover:outline hover:outline-foreground upto800:w-11'
                 return scores[m.id] ? (
                   <button
                     key={m.id}
@@ -143,10 +143,10 @@ export function Summary({
 
 const COLS = 'grid-cols-[82px_minmax(0,1.6fr)_110px_100px_100px_100px_228px]'
 const COOP_COLS = 'grid-cols-[82px_minmax(0,1.4fr)_100px_90px_90px_90px_minmax(0,1fr)_228px]'
-const PHONE_COLS = 'max-[800px]:grid-cols-[44px_minmax(0,1fr)_68px_54px_30px]'
+const PHONE_COLS = 'upto800:grid-cols-[44px_minmax(0,1fr)_68px_54px_30px]'
 const row = (coop: boolean) =>
   cn('grid min-h-[37px] items-center text-lg *:px-2.5', coop ? COOP_COLS : COLS, PHONE_COLS)
-const desktopOnly = 'max-[800px]:hidden'
+const desktopOnly = 'upto800:hidden'
 const iconGap = <span className="w-6" />
 
 /** One chapter's maps: rank, time, deltas, points, partner (co-op) and links; a row opens its run. */
@@ -178,10 +178,10 @@ export function ChapterTable({
       <div
         className={cn(
           row(coop),
-          'mb-1 min-h-10 border-b-2 border-text-muted text-base font-light text-text-2 uppercase max-[800px]:text-sm',
+          'mb-1 min-h-10 border-b-2 border-text-muted text-base font-light text-text-2 uppercase upto800:text-sm',
         )}
       >
-        <h3 className="col-span-2 m-0 pl-[82px]! text-[30px] font-light text-foreground normal-case max-[800px]:pl-2.5! max-[800px]:text-[22px]">
+        <h3 className="col-span-2 m-0 pl-[82px]! text-[30px] font-light text-foreground upto800:pl-2.5! upto800:text-[22px]">
           {chapterLink ? (
             <AppLink href={chapterLink} className="hover:underline" title={`${chapter.name} board`}>
               {chapter.name}
@@ -270,7 +270,8 @@ function ChapterRow({
           <RankNumber rank={s?.rank} inherit />
         </span>
         {/* Only the name links to the map; the rest of the row opens the run. */}
-        <span className="flex min-w-0 flex-col truncate px-3.5! py-0.5 leading-[1.1] whitespace-nowrap">
+        {/* Legacy's own 2px 14px padding lost to the row's `> span` rule: the row's 0 10px applies. */}
+        <span className="flex min-w-0 flex-col truncate leading-[1.1] whitespace-nowrap">
           <AppLink href={mapPath(m)} className="max-w-full self-start truncate hover:underline">
             {m.title}
           </AppLink>
@@ -285,7 +286,7 @@ function ChapterRow({
         <span className="num text-right">
           {s?.score != null ? <TimeButton score={s.score} players={players} map={m} /> : ''}
         </span>
-        <span className="num text-right max-[800px]:text-[15px] max-[800px]:text-text-2">
+        <span className="num text-right upto800:text-[15px] upto800:text-text-2">
           {s?.deltaNext != null ? formatDelta(s.deltaNext) : ''}
         </span>
         <span className={cn('num text-right', desktopOnly)}>
@@ -306,8 +307,8 @@ function ChapterRow({
             )}
           </span>
         )}
-        <span className="flex items-center justify-end gap-3.5 pr-[18px]! max-[800px]:pr-1.5! [&_svg]:block">
-          <span className={cn('contents', 'max-[800px]:*:hidden')}>
+        <span className="flex items-center justify-end gap-3.5 pr-[18px]! upto800:pr-1.5! [&_svg]:block">
+          <span className={cn('contents', 'upto800:*:hidden')}>
             {s ? <CommentButton note={s.note} size={24} /> : iconGap}
             {s ? <AutorenderLink run={s} game={game} rendered={rendered} size={24} /> : iconGap}
             <YouTubeLink id={s?.youtubeId} size={24} />

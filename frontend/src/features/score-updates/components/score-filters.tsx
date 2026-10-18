@@ -13,7 +13,7 @@ import {
   type ScoreFilters as Filters,
 } from '../utils/filters'
 
-const selectClass = 'min-w-[150px] max-[900px]:w-full max-[900px]:min-w-0'
+const selectClass = 'min-w-[150px] upto900:w-full upto900:min-w-0'
 
 export function ScoreFilters({
   filters,
@@ -35,15 +35,15 @@ export function ScoreFilters({
     <div
       role="group"
       aria-label="Filters"
-      className="-mt-1.5 mb-[22px] flex flex-wrap items-center gap-x-3 gap-y-2.5 max-[900px]:m-0 max-[900px]:mb-4 max-[900px]:grid max-[900px]:grid-cols-[minmax(0,1fr)] max-[900px]:gap-2.5"
+      className="-mt-1.5 mb-[22px] flex flex-wrap items-center gap-x-3 gap-y-2.5 upto900:m-0 upto900:mb-4 upto900:grid upto900:grid-cols-[minmax(0,1fr)] upto900:gap-2.5"
     >
       <Segmented
         size="md"
         value={filters.mode}
         onChange={(m) => set({ mode: m, map: '' })}
         label="Board"
-        className="max-[900px]:w-full"
-        itemClassName="max-[900px]:flex-1 max-[900px]:px-1.5 max-[900px]:text-[15px] max-[700px]:px-3"
+        className="upto900:w-full"
+        itemClassName="upto900:flex-1 upto900:px-1.5 upto900:text-[15px] upto700:px-3"
         options={[
           { value: '', label: 'All' },
           ...modes.map((m) => ({ value: m, label: modeLabel(catalog, m) })),
@@ -65,7 +65,7 @@ export function ScoreFilters({
         type="button"
         aria-expanded={moreOpen}
         onClick={() => setMoreOpen((o) => !o)}
-        className="hidden h-8 cursor-pointer items-center justify-center gap-2 rounded-md border border-line bg-control text-[15px] text-foreground max-[900px]:flex"
+        className="hidden h-8 cursor-pointer items-center justify-center gap-2 rounded-md border border-line bg-control text-[15px] text-foreground upto900:flex"
       >
         More filters
         {extra > 0 && (
@@ -78,8 +78,8 @@ export function ScoreFilters({
       <div
         className={cn(
           'contents',
-          'max-[900px]:hidden',
-          moreOpen && 'max-[900px]:grid max-[900px]:grid-cols-2 max-[900px]:gap-2',
+          'upto900:hidden',
+          moreOpen && 'upto900:grid upto900:grid-cols-2 upto900:gap-2',
         )}
       >
         {RUN_TOGGLES.map(([k, label]) => (
@@ -89,7 +89,7 @@ export function ScoreFilters({
             aria-pressed={filters[k]}
             onClick={() => set({ [k]: !filters[k] })}
             className={cn(
-              'h-8 cursor-pointer rounded-2xl border border-line bg-control px-3.5 text-[15px] text-text-2 hover:border-line-strong max-[900px]:px-2',
+              'h-8 cursor-pointer rounded-2xl border border-line bg-control px-3.5 text-[15px] text-text-2 hover:border-line-strong upto900:px-2',
               filters[k] && 'border-brand bg-brand text-white',
             )}
           >
@@ -133,7 +133,7 @@ export function ScoreFilters({
         <button
           type="button"
           onClick={() => set(CLEARED)}
-          className="ml-auto cursor-pointer border-0 bg-transparent text-[15px] text-brand-light hover:underline max-[900px]:m-0 max-[900px]:justify-self-center"
+          className="ml-auto cursor-pointer border-0 bg-transparent text-[15px] text-brand-light hover:underline upto900:m-0 upto900:justify-self-center"
         >
           Clear filters
         </button>

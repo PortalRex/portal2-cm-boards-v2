@@ -65,9 +65,9 @@ export function ComparePanel({
       icon={PeopleIcon}
       title="Compare players"
       className="rounded-tl-none"
-      bodyClassName="flex flex-col gap-5 px-[26px] pt-6 pb-[30px] max-[760px]:px-2.5 max-[760px]:pt-3.5 max-[760px]:pb-5"
+      bodyClassName="flex flex-col gap-5 px-[26px] pt-6 pb-[30px] upto760:px-2.5 upto760:pt-3.5 upto760:pb-5"
     >
-      <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-4 max-[760px]:gap-2">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-4 upto760:gap-2">
         <PlayerSlot
           key={`a-${a}`}
           side={a ? left.data : undefined}
@@ -81,7 +81,7 @@ export function ComparePanel({
           disabled={!a && !b}
           title="Swap players"
           aria-label="Swap players"
-          className="inline-grid size-10 cursor-pointer place-items-center rounded-full border border-line-strong bg-control p-0 text-foreground disabled:cursor-default disabled:opacity-40 max-[760px]:size-[34px] [&_svg]:size-[22px]"
+          className="inline-grid size-10 cursor-pointer place-items-center rounded-full border border-line-strong bg-control p-0 text-foreground disabled:cursor-default disabled:opacity-40 upto760:size-[34px] [&_svg]:size-[22px]"
         >
           <SwapIcon />
         </button>
@@ -123,7 +123,7 @@ export function ComparePanel({
 }
 
 const slot =
-  'flex min-h-[72px] items-center gap-3.5 rounded-md bg-row px-3.5 py-2 max-[760px]:flex-col max-[760px]:gap-1.5 max-[760px]:px-1.5 max-[760px]:py-2.5 max-[760px]:text-center'
+  'flex min-h-[72px] items-center gap-3.5 rounded-md bg-row px-3.5 py-2 upto760:flex-col upto760:gap-1.5 upto760:px-1.5 upto760:py-2.5 upto760:text-center'
 
 function PlayerSlot({
   side,
@@ -147,13 +147,13 @@ function PlayerSlot({
   if (side && !changing) {
     return (
       <div className={slot}>
-        <Avatar src={side.player.avatar} name={side.player.name} size={64} className="max-[760px]:size-12!" />
-        <div className="flex flex-col gap-0.5 text-[22px] font-semibold max-[760px]:max-w-full max-[760px]:items-center max-[760px]:text-[17px] max-[760px]:[overflow-wrap:anywhere]">
+        <Avatar src={side.player.avatar} name={side.player.name} size={64} className="upto760:size-12!" />
+        <div className="flex flex-col gap-0.5 text-[22px] font-semibold upto760:max-w-full upto760:items-center upto760:text-[17px] upto760:[overflow-wrap:anywhere]">
           <PlayerLink player={side.player} />
           <button
             type="button"
             onClick={() => setChanging(true)}
-            className="cursor-pointer self-start border-0 bg-transparent p-0 text-sm font-normal text-brand-light max-[760px]:self-center"
+            className="cursor-pointer self-start border-0 bg-transparent p-0 text-sm font-normal text-brand-light upto760:self-center"
           >
             Change
           </button>
@@ -223,22 +223,20 @@ function Comparison({ board, left, right }: { board: string; left: CompareSide; 
   const summary = compareSummary(chapters, left.scores, right.scores)
   const score = (n: number, ahead: boolean) => (
     <div className="flex flex-col items-center text-text-muted">
-      <strong
-        className={cn('num text-[34px] max-[760px]:text-[26px]', ahead ? 'text-green' : 'text-foreground')}
-      >
+      <strong className={cn('num text-[34px] upto760:text-[26px]', ahead ? 'text-green' : 'text-foreground')}>
         {n}
       </strong>
-      <span className="max-[760px]:text-center max-[760px]:text-xs">maps faster</span>
+      <span className="upto760:text-center upto760:text-xs">maps faster</span>
     </div>
   )
   return (
     <>
       <div
         aria-label="Summary"
-        className="grid grid-cols-[160px_minmax(0,1fr)_160px] items-center gap-4 rounded-md bg-row px-[18px] py-3.5 max-[760px]:grid-cols-[70px_minmax(0,1fr)_70px] max-[760px]:gap-2 max-[760px]:px-2 max-[760px]:py-3"
+        className="grid grid-cols-[160px_minmax(0,1fr)_160px] items-center gap-4 rounded-md bg-row px-[18px] py-3.5 upto760:grid-cols-[70px_minmax(0,1fr)_70px] upto760:gap-2 upto760:px-2 upto760:py-3"
       >
         {score(summary.left, summary.left > summary.right)}
-        <div className="flex flex-col items-center gap-1 text-center text-[15px] max-[760px]:text-[13px]">
+        <div className="flex flex-col items-center gap-1 text-center text-[15px] upto760:text-[13px]">
           <span className="num">{summary.ties} tied</span>
           {summary.shared > 0 && (
             <span className="num">
@@ -273,12 +271,12 @@ function Comparison({ board, left, right }: { board: string; left: CompareSide; 
                 role="row"
                 aria-label={m.title}
                 className={cn(
-                  'grid min-h-[38px] grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_minmax(0,1fr)] items-center text-base max-[760px]:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)_minmax(0,1fr)] max-[760px]:text-sm',
+                  'grid min-h-[38px] grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_minmax(0,1fr)] items-center text-base upto760:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)_minmax(0,1fr)] upto760:text-sm',
                   i % 2 === 0 && 'bg-row',
                 )}
               >
                 <Side score={l} win={diff != null ? diff < 0 : Boolean(l)} />
-                <span className="flex flex-col items-center text-center max-[760px]:text-[13px]">
+                <span className="flex flex-col items-center text-center upto760:text-[13px]">
                   <AppLink href={mapLink(catalog, m)}>{m.title}</AppLink>
                   {diff != null && diff !== 0 && (
                     <small className="num text-[13px] text-text-muted">{formatDelta(Math.abs(diff))}</small>
@@ -306,14 +304,14 @@ function Side({
   return (
     <span
       className={cn(
-        'flex items-center gap-3 px-3 max-[760px]:gap-1.5 max-[760px]:px-1.5',
+        'flex items-center gap-3 px-3 upto760:gap-1.5 upto760:px-1.5',
         right && 'flex-row-reverse',
       )}
       data-win={win || undefined}
     >
       {score ? (
         <>
-          <span className="num min-w-[34px] text-center text-sm text-text-muted max-[760px]:min-w-[22px] max-[760px]:text-xs">
+          <span className="num min-w-[34px] text-center text-sm text-text-muted upto760:min-w-[22px] upto760:text-xs">
             <RankNumber rank={score.rank} />
           </span>
           <span className={cn('num', win && 'font-semibold text-green')}>{formatScore(score.score)}</span>

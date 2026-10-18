@@ -25,11 +25,11 @@ export function Panel({
   return (
     <section className={cn('overflow-hidden rounded-md bg-[rgb(var(--panel-rgb)/0.97)]', className)}>
       {title && (
-        <header className="flex h-12 items-center gap-2.5 bg-panel-head px-5 max-[700px]:h-auto max-[700px]:min-h-12 max-[700px]:flex-wrap max-[700px]:gap-y-2 max-[700px]:px-3.5 max-[700px]:py-2.5">
+        <header className="flex h-12 items-center gap-2.5 bg-panel-head px-5 upto700:h-auto upto700:min-h-12 upto700:flex-wrap upto700:gap-y-2 upto700:px-3.5 upto700:py-2.5">
           {Icon && <Icon className="size-[22px] shrink-0" />}
           <h2 className="m-0 text-base font-normal tracking-[0.02em] uppercase">{title}</h2>
           {actions && (
-            <div className="ml-auto flex items-center gap-3 max-[700px]:ml-0 max-[700px]:w-full max-[700px]:overflow-x-auto max-[700px]:[scrollbar-width:none] max-[700px]:*:shrink-0">
+            <div className="ml-auto flex items-center gap-3 upto700:ml-0 upto700:w-full upto700:overflow-x-auto upto700:[scrollbar-width:none] upto700:*:shrink-0">
               {actions}
             </div>
           )}

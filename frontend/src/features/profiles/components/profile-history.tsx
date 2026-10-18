@@ -13,8 +13,8 @@ import { rankClass } from '../utils/tables'
 import { SectionTitle } from './score-tables'
 
 const row =
-  'grid min-h-[33px] grid-cols-[60px_30px_60px_minmax(0,1fr)_90px_60px_76px] items-center gap-x-2 text-lg max-[800px]:grid-cols-[44px_18px_44px_minmax(0,1fr)_76px]'
-const desktopOnly = 'max-[800px]:hidden'
+  'grid min-h-[33px] grid-cols-[60px_30px_60px_minmax(0,1fr)_90px_60px_76px] items-center gap-x-2 text-lg upto800:grid-cols-[44px_18px_44px_minmax(0,1fr)_76px]'
+const desktopOnly = 'upto800:hidden'
 
 /** The player's latest ten runs (on the opened map, when a run is open). */
 export function ProfileHistory({

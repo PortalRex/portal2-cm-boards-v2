@@ -64,7 +64,7 @@ export function Race({ frames, players }: { frames: Frames; players: Record<stri
           aria-label="Month"
           className="flex-1 accent-[#3b9bff]"
         />
-        <span className="num min-w-24 text-right text-[26px] font-semibold max-[900px]:min-w-[70px] max-[900px]:text-lg">
+        <span className="num min-w-24 text-right text-[26px] font-semibold upto900:min-w-[70px] upto900:text-lg">
           {new Date(frame.date).toLocaleDateString('en-GB', {
             month: 'short',
             year: 'numeric',
@@ -82,7 +82,7 @@ export function Race({ frames, players }: { frames: Frames; players: Record<stri
               key={id}
               data-testid="race-row"
               aria-hidden={at == null}
-              className="absolute inset-x-0 top-0 grid h-9 grid-cols-[200px_minmax(0,1fr)] items-center gap-3 transition-[transform,opacity] duration-200 ease-linear max-[900px]:grid-cols-[120px_minmax(0,1fr)]"
+              className="absolute inset-x-0 top-0 grid h-9 grid-cols-[200px_minmax(0,1fr)] items-center gap-3 transition-[transform,opacity] duration-200 ease-linear upto900:grid-cols-[120px_minmax(0,1fr)]"
               style={{
                 transform: `translateY(${(at ?? frame.top.length) * ROW}px)`,
                 opacity: at == null ? 0 : 1,

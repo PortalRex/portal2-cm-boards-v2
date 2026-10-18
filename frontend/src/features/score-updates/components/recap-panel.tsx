@@ -87,7 +87,7 @@ export function RecapPanel({ game }: { game: string }) {
         : null
 
   const actions = (
-    <div className="flex items-center gap-3.5 normal-case max-[600px]:w-full max-[600px]:flex-wrap max-[600px]:justify-between max-[600px]:gap-y-2">
+    <div className="flex items-center gap-3.5 normal-case upto600:w-full upto600:flex-wrap upto600:justify-between upto600:gap-y-2">
       <PanelSwitch value={tab} onChange={setTab} options={TABS} label="Panel" />
       {pager ? (
         <Pager
@@ -137,25 +137,25 @@ const rowClass = (cols: string) => cn('grid h-7 items-center gap-2.5 text-sm odd
 
 // Recap rows: map, players, rank, time, improvement (phones drop the improvement and stack co-op names).
 const RECAP_COLS =
-  'grid-cols-[minmax(0,1fr)_minmax(0,2fr)_34px_64px_60px] max-[600px]:h-auto max-[600px]:min-h-[34px] max-[600px]:grid-cols-[minmax(0,0.9fr)_minmax(0,1.3fr)_30px_58px] max-[600px]:py-[3px] max-[600px]:[&>:nth-child(5)]:hidden'
+  'grid-cols-[minmax(0,1fr)_minmax(0,2fr)_34px_64px_60px] upto600:h-auto upto600:min-h-[34px] upto600:grid-cols-[minmax(0,0.9fr)_minmax(0,1.3fr)_30px_58px] upto600:py-[3px] upto600:[&>:nth-child(5)]:hidden'
 // Daily rows are recap rows too in legacy (same phone layout), with their own columns.
 const DAILY_COLS =
-  'grid-cols-[24px_minmax(0,2fr)_34px_64px_92px] max-[600px]:h-auto max-[600px]:min-h-[34px] max-[600px]:grid-cols-[20px_minmax(0,1fr)_30px_58px] max-[600px]:py-[3px] max-[600px]:[&>:nth-child(5)]:hidden'
+  'grid-cols-[24px_minmax(0,2fr)_34px_64px_92px] upto600:h-auto upto600:min-h-[34px] upto600:grid-cols-[20px_minmax(0,1fr)_30px_58px] upto600:py-[3px] upto600:[&>:nth-child(5)]:hidden'
 const FOLLOWING_COLS =
-  'grid-cols-[minmax(0,1.2fr)_minmax(0,1.4fr)_34px_92px_78px] max-[900px]:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_30px_auto] max-[900px]:[&>:nth-child(5)]:hidden'
+  'grid-cols-[minmax(0,1.2fr)_minmax(0,1.4fr)_34px_92px_78px] upto900:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_30px_auto] upto900:[&>:nth-child(5)]:hidden'
 
 const rankCell = 'flex items-center justify-center self-stretch bg-rank-new'
 
 function Players({ players }: { players: Player[] }) {
   return (
-    <span className="flex min-w-0 items-center gap-x-2 overflow-hidden whitespace-nowrap max-[600px]:flex-col max-[600px]:items-start max-[600px]:gap-0.5">
+    <span className="flex min-w-0 items-center gap-x-2 overflow-hidden whitespace-nowrap upto600:flex-col upto600:items-start upto600:gap-0.5">
       {players.map((p, j) => (
         <span
           key={p.profileNumber ?? j}
           className="inline-flex min-w-0 max-w-full items-center gap-1.5 overflow-hidden"
         >
-          {j > 0 && <span className="mr-0.5 text-text-muted max-[600px]:hidden">&amp;</span>}
-          <Avatar src={p.avatar} name={p.name} size={22} className="max-[600px]:size-[18px]!" />
+          {j > 0 && <span className="mr-0.5 text-text-muted upto600:hidden">&amp;</span>}
+          <Avatar src={p.avatar} name={p.name} size={22} className="upto600:size-[18px]!" />
           <PlayerLink player={p} className="min-w-0 truncate" />
         </span>
       ))}
@@ -191,7 +191,7 @@ function WeeklyRecap({ query }: { query: PanelQuery<RecapData> }) {
             <span className={cn('num', rankCell)}>
               <RankNumber rank={e.postRank} />
             </span>
-            <span className="num text-right max-[600px]:pr-1.5">
+            <span className="num text-right upto600:pr-1.5">
               <TimeButton score={e.score} players={e.players} map={e.map} />
             </span>
             <span
@@ -248,7 +248,7 @@ function DailyChambers({ query, today }: { query: PanelQuery<DailyData>; today: 
                     <span className={cn('num', rankCell)}>
                       <RankNumber rank={e.postRank} />
                     </span>
-                    <span className="num text-right max-[600px]:pr-1.5">
+                    <span className="num text-right upto600:pr-1.5">
                       <TimeButton score={e.score} players={e.players} map={e.map} />
                     </span>
                     <span

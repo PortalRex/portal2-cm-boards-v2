@@ -237,3 +237,32 @@ describe('Page', () => {
     expect(screen.getByRole('main')).toHaveClass('max-w-content')
   })
 })
+
+describe('Segmented with an empty choice', () => {
+  it('shows the "All" option ("") as chosen, and sends "" back', async () => {
+    const changes: string[] = []
+    function Switch() {
+      const [value, setValue] = useState('')
+      return (
+        <Segmented
+          label="Board"
+          value={value}
+          onChange={(v) => {
+            changes.push(v)
+            setValue(v)
+          }}
+          options={[
+            { value: '', label: 'All' },
+            { value: 'sp', label: 'Singleplayer' },
+          ]}
+        />
+      )
+    }
+    await renderWithProviders(<Switch />)
+    expect(screen.getByRole('radio', { name: 'All' })).toBeChecked()
+    await userEvent.click(screen.getByRole('radio', { name: 'Singleplayer' }))
+    await userEvent.click(screen.getByRole('radio', { name: 'All' }))
+    expect(screen.getByRole('radio', { name: 'All' })).toBeChecked()
+    expect(changes).toEqual(['sp', ''])
+  })
+})

@@ -112,7 +112,7 @@ function ReportCard({ report: r }: { report: RunReport }) {
           {timeAgo(`${r.created_at}Z`)}
         </span>
       </header>
-      <div className="grid grid-cols-[minmax(0,1.2fr)_minmax(0,1.6fr)_80px_44px_minmax(0,1.4fr)] items-center gap-3 text-base max-[900px]:grid-cols-[1fr_1fr]">
+      <div className="grid grid-cols-[minmax(0,1.2fr)_minmax(0,1.6fr)_80px_44px_minmax(0,1.4fr)] items-center gap-3 text-base upto900:grid-cols-[1fr_1fr]">
         <span>
           {map ? (
             <AppLink href={mapPath(map)} className="text-brand-light">

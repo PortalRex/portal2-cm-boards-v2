@@ -32,7 +32,7 @@ const PB_RGB: Record<CoopTint, string> = {
 
 /** The row grid: legacy --su-cols on wide screens, two lines with grid areas on phones. */
 export const SCORE_COLS =
-  'grid grid-cols-(--su-cols) items-center max-[900px]:grid-cols-[40px_minmax(0,1fr)_auto_28px] max-[900px]:gap-x-2 max-[900px]:[grid-template-areas:"rank_map_time_toggle""rank_players_players_toggle"]'
+  'grid grid-cols-(--su-cols) items-center upto900:grid-cols-[40px_minmax(0,1fr)_auto_28px] upto900:gap-x-2 upto900:[grid-template-areas:"rank_map_time_toggle""rank_players_players_toggle"]'
 
 export function ScoreRow({
   entry,
@@ -55,14 +55,14 @@ export function ScoreRow({
   return (
     <div className="group/row mt-0.5 bg-row" data-testid="score-row" data-open={open || undefined}>
       <div
-        className={cn(SCORE_COLS, 'min-h-[46px] cursor-pointer max-[900px]:min-h-10 max-[900px]:pb-1')}
+        className={cn(SCORE_COLS, 'min-h-[46px] cursor-pointer upto900:min-h-10 upto900:pb-1')}
         onClick={toggleOnRowClick(() => setOpen((o) => !o))}
       >
         <div
           className={cn(
-            'col-span-2 self-stretch max-[900px]:col-auto max-[900px]:[grid-area:rank]',
+            'col-span-2 self-stretch upto900:col-auto upto900:[grid-area:rank]',
             // Phones: only the new rank.
-            'max-[900px]:[&>div]:min-h-10 max-[900px]:[&>div]:grid-cols-1 max-[900px]:[&>div]:text-[15px] max-[900px]:[&>div>:nth-child(-n+2)]:hidden',
+            'upto900:[&>div]:min-h-10 upto900:[&>div]:grid-cols-1 upto900:[&>div]:text-[15px] upto900:[&>div>:nth-child(-n+2)]:hidden',
           )}
         >
           <RankChange pre={entry.preRank} post={entry.postRank} />
@@ -70,31 +70,28 @@ export function ScoreRow({
 
         {/* Only the name links to the map; the rest of the row opens the run. */}
         <div
-          className="relative flex flex-col justify-center self-stretch overflow-hidden px-5 [background:linear-gradient(90deg,rgb(var(--row-rgb)/0.55),var(--row)_95%),var(--map-image,none)_center/cover_no-repeat] max-[900px]:px-0 max-[900px]:py-0.5 max-[900px]:[background:none] max-[900px]:[grid-area:map]"
+          className="relative flex flex-col justify-center self-stretch overflow-hidden px-5 [background:linear-gradient(90deg,rgb(var(--row-rgb)/0.55),var(--row)_95%),var(--map-image,none)_center/cover_no-repeat] upto900:px-0 upto900:py-0.5 upto900:[background:none] upto900:[grid-area:map]"
           style={
             entry.map.image ? ({ '--map-image': `url("${entry.map.image}")` } as CSSProperties) : undefined
           }
         >
           <AppLink
             href={mapPath(entry.map)}
-            className="max-w-full self-start truncate text-lg leading-[1.1] hover:underline max-[900px]:text-[15px]"
+            className="max-w-full self-start truncate text-lg leading-[1.1] hover:underline upto900:text-[15px]"
           >
             {entry.map.title}
           </AppLink>
-          <span className="text-[13px] whitespace-nowrap text-text-2 uppercase max-[900px]:hidden">
+          <span className="text-[13px] whitespace-nowrap text-text-2 uppercase upto900:hidden">
             {entry.map.chapter}
           </span>
-          <span
-            className="hidden text-xs text-green max-[900px]:block"
-            title={formatDateTime(entry.timestamp)}
-          >
+          <span className="hidden text-xs text-green upto900:block" title={formatDateTime(entry.timestamp)}>
             {timeAgo(entry.timestamp)}
           </span>
         </div>
 
         <div
           className={cn(
-            'flex flex-col self-stretch max-[900px]:min-w-0 max-[900px]:flex-row max-[900px]:flex-wrap max-[900px]:items-center max-[900px]:gap-x-2.5 max-[900px]:gap-y-0.5 max-[900px]:[grid-area:players]',
+            'flex flex-col self-stretch upto900:min-w-0 upto900:flex-row upto900:flex-wrap upto900:items-center upto900:gap-x-2.5 upto900:gap-y-0.5 upto900:[grid-area:players]',
             coop && 'min-[1200px]:flex-row',
           )}
         >
@@ -123,14 +120,14 @@ export function ScoreRow({
                   'flex min-h-[46px] min-w-0 flex-1 items-center gap-4',
                   coop && TINT_BG[tint],
                   coop && 'min-[1200px]:flex-[1_1_0]',
-                  'max-[900px]:min-h-0 max-[900px]:max-w-full max-[900px]:flex-none max-[900px]:gap-[5px] max-[900px]:bg-none!',
+                  'upto900:min-h-0 upto900:max-w-full upto900:flex-none upto900:gap-[5px] upto900:bg-none!',
                 )}
               >
-                <Avatar src={p.avatar} name={p.name} size={46} className="max-[900px]:size-[18px]!" />
+                <Avatar src={p.avatar} name={p.name} size={46} className="upto900:size-[18px]!" />
                 <PlayerLink
                   player={p}
                   className={cn(
-                    'truncate text-lg max-[900px]:text-[13px]',
+                    'truncate text-lg upto900:text-[13px]',
                     coop && 'min-[1200px]:text-[17px]',
                     marked &&
                       'font-semibold text-[rgb(var(--pb-rgb))] [text-shadow:0_0_6px_rgb(var(--pb-rgb)/55%)]',
@@ -151,29 +148,29 @@ export function ScoreRow({
           })}
         </div>
 
-        <div className="num px-2.5 text-right text-lg font-semibold max-[900px]:p-0 max-[900px]:text-[15px] max-[900px]:[grid-area:time]">
+        <div className="num px-2.5 text-right text-lg font-semibold upto900:p-0 upto900:text-[15px] upto900:[grid-area:time]">
           <TimeButton score={entry.score} players={players} map={entry.map} />
           {entry.scoreDelta != null && (
-            <span className="hidden font-normal text-text-muted max-[900px]:inline">
+            <span className="hidden font-normal text-text-muted upto900:inline">
               {' '}
               ({formatDelta(entry.scoreDelta, 's')})
             </span>
           )}
         </div>
-        <div className="num px-2.5 text-right text-lg text-text-2 max-[900px]:hidden">
+        <div className="num px-2.5 text-right text-lg text-text-2 upto900:hidden">
           {entry.scoreDelta != null ? formatDelta(entry.scoreDelta, 's') : ''}
         </div>
-        <div className="num px-2.5 text-right text-lg text-text-2 max-[900px]:hidden">
+        <div className="num px-2.5 text-right text-lg text-text-2 upto900:hidden">
           {entry.pointsDelta != null ? `${entry.pointsDelta > 0 ? '+' : ''}${entry.pointsDelta}` : ''}
         </div>
-        <div className="flex flex-col items-end px-2.5 text-lg leading-[1.1] max-[900px]:hidden">
+        <div className="flex flex-col items-end px-2.5 text-lg leading-[1.1] upto900:hidden">
           <span className="text-green" title={formatDateTime(entry.timestamp)}>
             {timeAgo(entry.timestamp)}
           </span>
           <span className="num text-[13px] text-text-muted">{formatDate(entry.timestamp)}</span>
         </div>
         {/* Reactions, then a pending / banned icon in a fixed slot so the reactions line up. */}
-        <div className="grid grid-cols-[auto_24px] items-center justify-center gap-x-1.5 max-[1400px]:grid-cols-[auto_22px] max-[1400px]:gap-x-1 max-[900px]:hidden">
+        <div className="grid grid-cols-[auto_24px] items-center justify-center gap-x-1.5 upto1400:grid-cols-[auto_22px] upto1400:gap-x-1 upto900:hidden">
           <RowReactions entry={entry} myReaction={myReaction} />
           {entry.banned ? (
             <StatusIcon label="Banned" title="Banned" className="bg-banned text-banned-text">
@@ -196,7 +193,7 @@ export function ScoreRow({
           onClick={() => setOpen((o) => !o)}
           aria-expanded={open}
           aria-label={open ? 'Hide details' : 'Show details'}
-          className="inline-flex size-8 cursor-pointer items-center justify-center justify-self-center border-0 bg-transparent transition-transform group-data-[open]/row:rotate-180 max-[900px]:[grid-area:toggle]"
+          className="inline-flex size-8 cursor-pointer items-center justify-center justify-self-center border-0 bg-transparent transition-transform group-data-[open]/row:rotate-180 upto900:[grid-area:toggle]"
         >
           <TriangleDown size={14} />
         </button>
@@ -224,7 +221,7 @@ function StatusIcon({
       aria-label={label}
       title={title}
       className={cn(
-        'col-start-2 inline-grid size-6 place-items-center rounded-full max-[1400px]:size-[22px]',
+        'col-start-2 inline-grid size-6 place-items-center rounded-full upto1400:size-[22px]',
         className,
       )}
     >

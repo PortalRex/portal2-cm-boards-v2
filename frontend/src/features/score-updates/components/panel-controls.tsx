@@ -21,7 +21,7 @@ export function PanelSwitch<T extends string>({
       onChange={onChange}
       options={options}
       label={label}
-      itemClassName="max-[600px]:whitespace-nowrap"
+      itemClassName="upto600:whitespace-nowrap"
     />
   )
 }
@@ -51,7 +51,7 @@ export function Pager({
 }) {
   return (
     <div
-      className={cn('flex items-center gap-1.5 text-[15px] max-[600px]:ml-auto', placeholder && 'invisible')}
+      className={cn('flex items-center gap-1.5 text-[15px] upto600:ml-auto', placeholder && 'invisible')}
       aria-hidden={placeholder || undefined}
     >
       <button
@@ -66,7 +66,7 @@ export function Pager({
       </button>
       <span
         className={cn(
-          'min-w-[118px] text-center max-[600px]:min-w-0 max-[600px]:whitespace-nowrap',
+          'min-w-[118px] text-center upto600:min-w-0 upto600:whitespace-nowrap',
           numeric && 'num',
         )}
       >

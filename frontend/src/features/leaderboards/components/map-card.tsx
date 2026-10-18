@@ -26,7 +26,7 @@ function ScoreIcons({
 }) {
   const slot = 'inline-flex w-7 justify-center'
   return (
-    <span className="inline-flex items-center gap-0.5 max-[700px]:hidden [&_svg]:block">
+    <span className="inline-flex items-center gap-0.5 upto700:hidden [&_svg]:block">
       {demoColumn && (
         <span className={slot}>
           <DemoLink demoId={entry.demoId} size={size} hideMissing />
@@ -55,20 +55,20 @@ export function MapCard({ map, scores }: { map: MapInfo; scores: PreviewRun[] | 
     <article className="min-w-0 border-t-[3px] border-brand bg-panel">
       <AppLink
         href={mapLink(catalog, map)}
-        className="group/head relative flex h-[77px] items-center justify-center bg-cover bg-center px-2.5 before:absolute before:inset-0 before:bg-black/35 before:transition-colors before:content-[''] hover:before:bg-black/15 max-[700px]:h-[58px] max-[700px]:px-1.5"
+        className="group/head relative flex h-[77px] items-center justify-center bg-cover bg-center px-2.5 before:absolute before:inset-0 before:bg-black/35 before:transition-colors before:content-[''] hover:before:bg-black/15 upto700:h-[58px] upto700:px-1.5"
         style={{ backgroundImage: map.image ? `url("${map.image}")` : undefined }}
       >
-        <h3 className="relative m-0 text-center text-[27px] leading-none font-semibold text-white uppercase [text-shadow:0_1px_6px_rgba(0,0,0,0.6)] max-[700px]:text-base">
+        <h3 className="relative m-0 text-center text-[27px] leading-none font-semibold text-white uppercase [text-shadow:0_1px_6px_rgba(0,0,0,0.6)] upto700:text-base">
           {map.title}
         </h3>
       </AppLink>
       <div
         className={cn(
-          'flex min-h-10 items-center gap-2 bg-wr-row py-0.5 pr-2.5 pl-2 max-[700px]:min-h-9 max-[700px]:gap-1.5 max-[700px]:px-1.5',
+          'flex min-h-10 items-center gap-2 bg-wr-row py-0.5 pr-2.5 pl-2 upto700:min-h-9 upto700:gap-1.5 upto700:px-1.5',
           isMine(wr) && 'me-row',
         )}
       >
-        <TrophyIcon className="size-[26px] shrink-0 text-trophy max-[700px]:size-[18px]" />
+        <TrophyIcon className="size-[26px] shrink-0 text-trophy upto700:size-[18px]" />
         {wr ? (
           <>
             {/* Same order as the rows below: name, video / demo, time. */}
@@ -77,7 +77,7 @@ export function MapCard({ map, scores }: { map: MapInfo; scores: PreviewRun[] | 
                 <PlayerLink
                   key={i}
                   player={p}
-                  className="truncate text-[17px] leading-[1.3] max-[700px]:text-sm"
+                  className="truncate text-[17px] leading-[1.3] upto700:text-sm"
                 />
               ))}
             </div>
@@ -86,7 +86,7 @@ export function MapCard({ map, scores }: { map: MapInfo; scores: PreviewRun[] | 
               score={wr.score}
               players={wr.players}
               map={map}
-              className="min-w-[60px] shrink-0 text-right text-[17px] font-semibold text-foreground max-[700px]:text-[13px]"
+              className="min-w-[60px] shrink-0 text-right text-[17px] font-semibold text-foreground upto700:text-[13px]"
             />
           </>
         ) : (
@@ -98,7 +98,7 @@ export function MapCard({ map, scores }: { map: MapInfo; scores: PreviewRun[] | 
           <li
             key={i}
             className={cn(
-              'flex h-6 items-center gap-2 pr-2.5 pl-3 text-base odd:bg-row max-[700px]:h-[22px] max-[700px]:px-1.5 max-[700px]:text-[13px] max-[700px]:nth-[n+3]:hidden',
+              'flex h-6 items-center gap-2 pr-2.5 pl-3 text-base odd:bg-row upto700:h-[22px] upto700:px-1.5 upto700:text-[13px] upto700:nth-[n+3]:hidden',
               isMine(entry) && 'me-row',
             )}
           >

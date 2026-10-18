@@ -6,7 +6,7 @@ import { setReaction, type Reaction, type Reactions } from '@/lib/runs/reactions
 import type { Run } from '@/types/runs'
 
 const button =
-  'inline-flex h-[34px] cursor-pointer items-center gap-[5px] rounded-[17px] border border-line bg-[rgb(var(--panel-rgb)/0.6)] px-2.5 text-[15px] text-text-muted hover:not-disabled:border-line-strong hover:not-disabled:text-foreground disabled:cursor-default max-[1400px]:h-[30px] max-[1400px]:gap-[3px] max-[1400px]:px-1.5 max-[1400px]:text-sm'
+  'inline-flex h-[34px] cursor-pointer items-center gap-[5px] rounded-[17px] border border-line bg-[rgb(var(--panel-rgb)/0.6)] px-2.5 text-[15px] text-text-muted hover:not-disabled:border-line-strong hover:not-disabled:text-foreground disabled:cursor-default upto1400:h-[30px] upto1400:gap-[3px] upto1400:px-1.5 upto1400:text-sm'
 
 /** Thumbs up / down counts in the row; signed-in players can react (click again to clear). */
 export function RowReactions({ entry, myReaction }: { entry: Run; myReaction: Reaction | null | undefined }) {
@@ -30,9 +30,9 @@ export function RowReactions({ entry, myReaction }: { entry: Run; myReaction: Re
     }
   }
   const hint = signedIn ? undefined : 'Sign in to react'
-  const icon = 'size-[22px] max-[1400px]:size-[18px]'
+  const icon = 'size-[22px] upto1400:size-[18px]'
   return (
-    <span className="inline-flex gap-1 max-[1400px]:gap-[3px]">
+    <span className="inline-flex gap-1 upto1400:gap-[3px]">
       <button
         type="button"
         className={cn(button, r.mine === 1 && 'border-brand text-brand-light')}

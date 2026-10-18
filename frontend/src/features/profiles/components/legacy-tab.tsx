@@ -27,7 +27,7 @@ export function LegacyTab({
   const [openId, setOpenId] = useState<string | null>(null)
   const rendered = useRenderedSet(Object.values(scores), PORTAL2)
   return (
-    <div className="grid grid-cols-2 gap-[30px] max-[900px]:grid-cols-1">
+    <div className="grid grid-cols-2 gap-[30px] upto900:grid-cols-1">
       {['sp', 'coop'].map((mode) => (
         <section key={mode} className="min-w-0">
           <SectionTitle>{modeLabel(catalog, mode)}</SectionTitle>

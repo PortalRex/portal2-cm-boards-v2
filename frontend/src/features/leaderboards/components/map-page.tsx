@@ -80,7 +80,7 @@ export function MapPage({
 type View = 'board' | 'history' | 'wr'
 
 const outlineButton =
-  'inline-flex h-10 cursor-pointer items-center justify-center gap-2.5 rounded-[4px] border border-line-strong bg-control px-2.5 text-lg font-light whitespace-nowrap hover:bg-control-raised max-[900px]:min-w-0 max-[900px]:text-base [&_svg]:size-5'
+  'inline-flex h-10 cursor-pointer items-center justify-center gap-2.5 rounded-[4px] border border-line-strong bg-control px-2.5 text-lg font-light whitespace-nowrap hover:bg-control-raised upto900:min-w-0 upto900:text-base [&_svg]:size-6'
 
 /** `map` is the map shown (title, image); `data` the board shown: the map, or the season's copy. */
 function MapPageContent({
@@ -123,14 +123,12 @@ function MapPageContent({
   return (
     <Page background={map.image} blur narrow>
       <Panel icon={PinIcon} title="Map Info" className="mx-auto max-w-[980px]" bodyClassName="p-0">
-        <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,430px)] gap-10 px-[30px] pt-7 pb-[26px] max-[900px]:grid-cols-1 max-[900px]:px-4 max-[900px]:py-5">
+        <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,430px)] gap-10 px-[30px] pt-7 pb-[26px] upto900:grid-cols-1 upto900:px-4 upto900:py-5">
           <div className="min-w-0">
-            <h1 className="m-0 text-[64px] leading-none font-semibold uppercase max-[900px]:text-[44px]">
+            <h1 className="m-0 text-[64px] leading-none font-semibold uppercase upto900:text-[44px]">
               {map.title}
             </h1>
-            <p className="mt-0.5 mb-3.5 text-4xl font-light uppercase max-[900px]:text-[26px]">
-              {map.chapter}
-            </p>
+            <p className="mt-0.5 mb-3.5 text-4xl font-light uppercase upto900:text-[26px]">{map.chapter}</p>
             <WrHistoryChart points={history.data} loading={history.isPending} at={at} onPick={pickMoment} />
             <div className="flex flex-wrap gap-3">
               <Select
@@ -151,7 +149,7 @@ function MapPageContent({
                 No video
               </div>
             )}
-            <div className="grid grid-cols-2 gap-10 max-[900px]:gap-3">
+            <div className="grid grid-cols-2 gap-10 upto900:gap-3">
               {map.game === 'portal2' && (
                 <a
                   href={`https://wiki.portal2.sr/${encodeURIComponent(map.title.replace(/ /g, '_'))}`}
@@ -184,7 +182,7 @@ function MapPageContent({
           </div>
         </div>
 
-        <div className="bg-[rgb(var(--panel-rgb)/0.6)] px-[30px] pt-[22px] pb-[30px] max-[900px]:px-2.5 max-[900px]:py-4">
+        <div className="bg-[rgb(var(--panel-rgb)/0.6)] px-[30px] pt-[22px] pb-[30px] upto900:px-2.5 upto900:py-4">
           {view === 'board' ? (
             <MapLeaderboard
               map={data}

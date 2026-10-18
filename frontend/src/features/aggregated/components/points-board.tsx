@@ -10,7 +10,7 @@ import type { AggregatedRow } from '../types'
 const PAGE_SIZE = 20
 
 const rowClass =
-  'mx-5 grid min-h-[46px] grid-cols-[46px_40px_minmax(0,1fr)_auto] items-center gap-x-2 pr-2.5 text-lg max-[860px]:mx-2 max-[600px]:min-h-10 max-[600px]:grid-cols-[34px_30px_minmax(0,1fr)_auto] max-[600px]:pr-2 max-[600px]:pl-1 max-[600px]:text-base'
+  'mx-5 grid min-h-[46px] grid-cols-[46px_40px_minmax(0,1fr)_auto] items-center gap-x-2 pr-2.5 text-lg upto860:mx-2 upto600:min-h-10 upto600:grid-cols-[34px_30px_minmax(0,1fr)_auto] upto600:pr-2 upto600:pl-1 upto600:text-base'
 
 /** One ranking (Points or Time), 20 players a page; `focus` opens on that player's page, marked. */
 export function PointsBoard({
@@ -43,14 +43,11 @@ export function PointsBoard({
       <h2 className="mb-[18px] flex h-12 items-center bg-panel-head px-5 text-base font-normal tracking-[0.02em] uppercase">
         {title}
       </h2>
-      <div className="mx-5 mb-[18px] flex min-h-8 justify-center max-[860px]:mx-2">
+      <div className="mx-5 mb-[18px] flex min-h-8 justify-center upto860:mx-2">
         <Pagination page={page} pageCount={pageCount} onChange={setPage} />
       </div>
       <div
-        className={cn(
-          rowClass,
-          'min-h-[30px] text-[15px] text-text-muted uppercase max-[600px]:min-h-[30px]',
-        )}
+        className={cn(rowClass, 'min-h-[30px] text-[15px] text-text-muted uppercase upto600:min-h-[30px]')}
       >
         <span />
         <span className="text-center">#</span>
@@ -105,7 +102,7 @@ function BoardRow({
         src={row.player.avatar}
         name={row.player.name}
         size={46}
-        className="max-[600px]:size-[30px]! max-[600px]:rounded-[4px]"
+        className="upto600:size-[30px]! upto600:rounded-[4px]"
       />
       <span className="num text-center">{rank}</span>
       <span className="flex min-w-0 items-center gap-2.5 overflow-hidden font-medium whitespace-nowrap">

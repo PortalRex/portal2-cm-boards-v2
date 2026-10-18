@@ -12,7 +12,7 @@ import type { RecordWhere, Team } from '../api/stats'
 
 export function Figures({ items }: { items: { label: string; value: ReactNode; note: ReactNode }[] }) {
   return (
-    <div className="mb-2 grid grid-cols-[repeat(auto-fill,minmax(170px,1fr))] gap-3 max-[900px]:grid-cols-2">
+    <div className="mb-2 grid grid-cols-[repeat(auto-fill,minmax(170px,1fr))] gap-3 upto900:grid-cols-2">
       {items.map((f) => (
         <div key={f.label} className="flex flex-col gap-0.5 rounded-md bg-row px-4 py-3.5">
           <span className="text-sm tracking-[0.04em] text-text-muted uppercase">{f.label}</span>
@@ -143,10 +143,10 @@ export function StatsSwitch<T extends string>({
       onChange={onChange}
       label={label}
       size="md"
-      className={cn('h-10 max-[900px]:h-auto max-[900px]:flex-wrap', className)}
+      className={cn('h-10 upto900:h-auto upto900:flex-wrap', className)}
       itemClassName={cn(
-        'h-10 text-[17px] max-[900px]:h-[38px] max-[900px]:text-[15px]',
-        wide ? 'min-w-[120px] px-6 max-[900px]:min-w-0' : 'min-w-0 px-[18px]',
+        'h-10 text-[17px] upto900:h-[38px] upto900:text-[15px]',
+        wide ? 'min-w-[120px] px-6 upto900:min-w-0' : 'min-w-0 px-[18px]',
       )}
     />
   )

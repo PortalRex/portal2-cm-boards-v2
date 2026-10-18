@@ -23,7 +23,7 @@ const control = 'h-9 rounded-[4px] border border-line-strong bg-control px-2.5 t
 const note = 'mt-4 mb-0 max-w-[640px] text-[15px] text-text-muted'
 // The theme, co-op PB and staff switches.
 const switchProps = {
-  className: 'h-9 max-[700px]:w-full',
+  className: 'h-9 upto700:w-full',
   itemClassName: 'min-w-[110px] text-[17px]',
 } as const
 

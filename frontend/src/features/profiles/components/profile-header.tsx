@@ -134,20 +134,20 @@ export function ProfileHeader({
   after?: ReactNode
 }) {
   return (
-    <section className="relative grid grid-cols-[auto_minmax(0,1fr)] gap-7 rounded-lg bg-[linear-gradient(var(--card-head)_0_48px,var(--card-surface)_48px)] py-5 pr-7 pl-8 max-[800px]:grid-cols-[auto_minmax(0,1fr)_auto] max-[800px]:gap-4 max-[800px]:bg-card-surface max-[800px]:p-5 max-[800px]:[grid-template-areas:'avatar_identity_identity'_'actions_actions_links']">
+    <section className="relative grid grid-cols-[auto_minmax(0,1fr)] gap-7 rounded-lg bg-[linear-gradient(var(--card-head)_0_48px,var(--card-surface)_48px)] py-5 pr-7 pl-8 upto800:grid-cols-[auto_minmax(0,1fr)_auto] upto800:gap-4 upto800:bg-card-surface upto800:p-5 upto800:[grid-template-areas:'avatar_identity_identity'_'actions_actions_links']">
       <Avatar
         src={player.avatar}
         name={player.name}
         size={138}
-        className="rounded-[20px] shadow-[0_8px_24px_rgba(0,0,0,0.45)] max-[800px]:[grid-area:avatar] max-[800px]:size-24!"
+        className="rounded-[20px] shadow-[0_8px_24px_rgba(0,0,0,0.45)] upto800:[grid-area:avatar] upto800:size-24!"
       />
-      <div className="flex min-w-0 flex-col justify-end max-[800px]:contents">
-        <div className="flex items-end justify-between gap-4 max-[800px]:contents">
-          <div className="mb-1 min-w-0 max-[800px]:mb-0 max-[800px]:self-center max-[800px]:[grid-area:identity]">
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 max-[800px]:gap-x-3 max-[800px]:gap-y-1.5">
+      <div className="flex min-w-0 flex-col justify-end upto800:contents">
+        <div className="flex items-end justify-between gap-4 upto800:contents">
+          <div className="mb-1 min-w-0 upto800:mb-0 upto800:self-center upto800:[grid-area:identity]">
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 upto800:gap-x-3 upto800:gap-y-1.5">
               <h1
                 className={cn(
-                  'm-0 max-w-full min-w-0 text-[40px] leading-[1.1] font-bold [overflow-wrap:break-word] max-[800px]:text-[clamp(22px,7vw,30px)] max-[800px]:break-words',
+                  'm-0 max-w-full min-w-0 text-[40px] leading-[1.1] font-bold [overflow-wrap:break-word] upto800:text-[clamp(22px,7vw,30px)] upto800:break-words',
                   role && 'text-(--role) light:text-[color-mix(in_srgb,var(--role)_62%,#000)]',
                 )}
                 style={role ? ({ '--role': role.color } as CSSProperties) : undefined}
@@ -202,7 +202,7 @@ export function ProfileHeader({
               </div>
             )}
           </div>
-          <div className="flex flex-none gap-3.5 max-[800px]:self-center max-[800px]:[grid-area:links]">
+          <div className="flex flex-none gap-3.5 upto800:self-center upto800:[grid-area:links]">
             {siteLinks(player).map(({ href, icon: Icon, label, className, size }) => (
               <a
                 key={label}
@@ -219,8 +219,8 @@ export function ProfileHeader({
           </div>
         </div>
         {/* In the band, kept out of the layout's height. */}
-        <div className="absolute top-0 right-7 flex h-12 items-center gap-2 max-[800px]:contents">
-          <div className="flex items-center gap-2 max-[800px]:[grid-area:actions]">
+        <div className="absolute top-0 right-7 flex h-12 items-center gap-2 upto800:contents">
+          <div className="flex items-center gap-2 upto800:[grid-area:actions]">
             {actions}
             <CompareLink player={player} />
             <EditLink player={player} />

@@ -70,8 +70,8 @@ export function MapLeaderboard({
   }
 
   const cols = coop
-    ? '[--mp-cols:40px_minmax(0,1fr)_minmax(0,1fr)_minmax(90px,0.6fr)_80px_150px] max-[900px]:[--mp-cols:28px_minmax(0,1fr)_minmax(0,1fr)_58px]'
-    : '[--mp-cols:40px_minmax(0,1.4fr)_minmax(110px,0.8fr)_90px_150px] max-[900px]:[--mp-cols:32px_minmax(0,1fr)_76px]'
+    ? '[--mp-cols:40px_minmax(0,1fr)_minmax(0,1fr)_minmax(90px,0.6fr)_80px_150px] upto900:[--mp-cols:28px_minmax(0,1fr)_minmax(0,1fr)_58px]'
+    : '[--mp-cols:40px_minmax(0,1.4fr)_minmax(110px,0.8fr)_90px_150px] upto900:[--mp-cols:32px_minmax(0,1fr)_76px]'
 
   return (
     <>
@@ -91,7 +91,7 @@ export function MapLeaderboard({
       ) : (
         <YourBest map={map} board={board.data} onShow={showEntry} />
       )}
-      <div className="mb-[18px] flex items-center justify-between gap-4 max-[900px]:flex-col max-[900px]:items-stretch">
+      <div className="mb-[18px] flex items-center justify-between gap-4 upto900:flex-col upto900:items-stretch">
         <SearchBox
           value={search}
           onChange={(v) => {
@@ -110,11 +110,11 @@ export function MapLeaderboard({
           <span role="columnheader">{coop ? 'Blue' : 'Player'}</span>
           {coop && <span role="columnheader">Orange</span>}
           {/* Phones: only rank, player(s) and time (legacy hid the rest of the header). */}
-          <span role="columnheader" className="max-[900px]:hidden" />
+          <span role="columnheader" className="upto900:hidden" />
           <span role="columnheader" className="text-right">
             Time
           </span>
-          <span role="columnheader" className="max-[900px]:hidden" />
+          <span role="columnheader" className="upto900:hidden" />
         </div>
         {board.isPending ? (
           <Loading />
@@ -158,14 +158,14 @@ export function MapLeaderboard({
                         className={cn(
                           'flex min-w-0 items-center gap-3 self-stretch overflow-hidden whitespace-nowrap [&>a]:truncate [&>span]:truncate',
                           coop && TINT_BG[tintFor(rolesKnown && players.length > 1, j)],
-                          coop && 'max-[900px]:gap-1.5 max-[900px]:text-sm',
+                          coop && 'upto900:gap-1.5 upto900:text-sm',
                         )}
                       >
                         <Avatar
                           src={p.avatar}
                           name={p.name}
                           size={30}
-                          className={cn(coop && 'max-[900px]:size-6!')}
+                          className={cn(coop && 'upto900:size-6!')}
                         />
                         <PlayerLink player={p} />
                       </span>
@@ -177,7 +177,7 @@ export function MapLeaderboard({
                   )}
                   <span
                     role="cell"
-                    className="text-base font-light whitespace-nowrap text-text-muted max-[900px]:hidden"
+                    className="text-base font-light whitespace-nowrap text-text-muted upto900:hidden"
                     title={formatDateTime(e.timestamp)}
                   >
                     {timeAgo(e.timestamp)}
@@ -185,7 +185,7 @@ export function MapLeaderboard({
                   <span role="cell" className="num text-right font-semibold">
                     <TimeButton score={e.score} players={players} map={map} />
                   </span>
-                  <span role="cell" className="flex justify-end gap-2.5 max-[900px]:hidden">
+                  <span role="cell" className="flex justify-end gap-2.5 upto900:hidden">
                     <CommentButton note={e.note} />
                     <AutorenderLink run={e} game={map.game} rendered={rendered} />
                     <YouTubeLink id={e.youtubeId} />

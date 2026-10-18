@@ -23,7 +23,7 @@ export function ScoreUpdatesPage({
   const game = useGame()
   return (
     <Page background={siteBackground} tint="mono">
-      <div className="mb-[30px] grid grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] gap-[30px] max-[1000px]:grid-cols-1">
+      <div className="mb-[30px] grid grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] gap-[30px] upto1000:grid-cols-1">
         <RecapPanel game={game} />
         <ActivityPanel />
       </div>

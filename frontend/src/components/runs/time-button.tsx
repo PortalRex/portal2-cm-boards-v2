@@ -82,7 +82,7 @@ function RunHistoryDialog({
     <DialogPrimitive.Root open onOpenChange={(o) => !o && onClose()}>
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay
-          className="fixed inset-0 z-[1000] flex cursor-default items-start justify-center overflow-y-auto bg-black/60 px-4 pt-[72px] pb-4 max-[700px]:px-2 max-[700px]:py-4"
+          className="fixed inset-0 z-[1000] flex cursor-default items-start justify-center overflow-y-auto bg-black/60 px-4 pt-[72px] pb-4 upto700:px-2 upto700:py-4"
           onClick={(e) => e.stopPropagation()}
         >
           <DialogPrimitive.Content
@@ -143,7 +143,7 @@ function RunHistoryDialog({
 }
 
 const rowGrid =
-  'grid grid-cols-[minmax(0,1fr)_110px_90px_110px_130px] items-center gap-x-3 px-2 max-[700px]:grid-cols-[minmax(0,1fr)_76px_64px_72px] max-[700px]:gap-x-1.5 max-[700px]:text-[13px] max-[700px]:[&>:nth-child(5)]:hidden'
+  'grid grid-cols-[minmax(0,1fr)_110px_90px_110px_130px] items-center gap-x-3 px-2 upto700:grid-cols-[minmax(0,1fr)_76px_64px_72px] upto700:gap-x-1.5 upto700:text-[13px] upto700:[&>:nth-child(5)]:hidden'
 
 function HistoryTable({ rows, game }: { rows: Run[]; game: string }) {
   return (

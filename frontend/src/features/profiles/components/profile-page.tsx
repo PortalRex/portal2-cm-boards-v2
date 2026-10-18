@@ -139,7 +139,7 @@ export function ProfilePage({
 }
 
 function Row({ className, children }: { className: string; children: ReactNode }) {
-  return <div className={cn('mb-5 grid gap-5 max-[1200px]:grid-cols-1', className)}>{children}</div>
+  return <div className={cn('mb-5 grid gap-5 upto1200:grid-cols-1', className)}>{children}</div>
 }
 
 function AsOfBanner({

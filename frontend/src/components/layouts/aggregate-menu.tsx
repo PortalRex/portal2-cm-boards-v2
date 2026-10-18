@@ -30,7 +30,7 @@ function BoardGroup({ board }: { board: MenuEntry }) {
         item={board}
         caret={chapters.length > 0}
         also={chapters.map((c) => c.to)}
-        className="group-hover/board:bg-control-raised max-[1320px]:group-hover/board:bg-transparent"
+        className="group-hover/board:bg-control-raised upto1320:group-hover/board:bg-transparent"
       />
       {chapters.length > 0 && (
         <div
@@ -38,7 +38,7 @@ function BoardGroup({ board }: { board: MenuEntry }) {
             menuPanel,
             'invisible absolute -top-2.5 left-full min-w-[240px] opacity-0 transition-[opacity,visibility] duration-100',
             'group-hover/board:visible group-hover/board:opacity-100 group-focus-within/board:visible group-focus-within/board:opacity-100',
-            'max-[1320px]:hidden',
+            'upto1320:hidden',
           )}
         >
           {!board.noTotal && <MenuLink item={{ label: 'Total', icon: 'star', to: board.to }} />}

@@ -17,7 +17,7 @@ export function ActivityPanel() {
   const title = ACTIVITY_VIEWS.find((v) => v.value === view)!.title
 
   const actions = (
-    <div className="flex items-center gap-3.5 normal-case max-[600px]:w-full max-[600px]:flex-wrap max-[600px]:justify-between max-[600px]:gap-y-2">
+    <div className="flex items-center gap-3.5 normal-case upto600:w-full upto600:flex-wrap upto600:justify-between upto600:gap-y-2">
       <PanelSwitch
         value={view}
         onChange={(v) => {

@@ -146,7 +146,7 @@ function GameProfileTabs({
       </div>
 
       <div
-        className="rounded-[0_12px_12px_12px] bg-[rgb(var(--panel-rgb)/0.97)] px-9 pt-[26px] pb-10 max-[800px]:px-2.5 max-[800px]:pt-4 max-[800px]:pb-6"
+        className="rounded-[0_12px_12px_12px] bg-[rgb(var(--panel-rgb)/0.97)] px-9 pt-[26px] pb-10 upto800:px-2.5 upto800:pt-4 upto800:pb-6"
         role="tabpanel"
       >
         {P2_MODES.includes(tab) && season ? (

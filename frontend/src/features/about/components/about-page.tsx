@@ -14,7 +14,7 @@ const TEAM = [
   { role: 'Admins', names: ['Betsruner', 'Bexc'] },
 ]
 
-const grid = 'grid grid-cols-2 gap-[18px] max-[800px]:grid-cols-1'
+const grid = 'grid grid-cols-2 gap-[18px] upto800:grid-cols-1'
 const link = 'text-brand-light'
 const list = 'm-0 pl-[18px] text-text-2 [&>li+li]:mt-1.5'
 const code = 'rounded-[3px] bg-control px-[5px] py-px text-[15px]'
@@ -51,10 +51,10 @@ export function AboutPage() {
       <Panel
         icon={InfoIcon}
         title="About"
-        bodyClassName="flex flex-col gap-[18px] px-8 pt-7 pb-[34px] max-[800px]:px-3.5 max-[800px]:pt-[18px] max-[800px]:pb-6"
+        bodyClassName="flex flex-col gap-[18px] px-8 pt-7 pb-[34px] upto800:px-3.5 upto800:pt-[18px] upto800:pb-6"
       >
         <section>
-          <h1 className="mt-0 mb-2 text-[40px] leading-[1.1] font-bold max-[800px]:text-[30px]">
+          <h1 className="mt-0 mb-2 text-[40px] leading-[1.1] font-bold upto800:text-[30px]">
             Portal 2 Challenge Mode Leaderboards
           </h1>
           <p className="m-0 max-w-[760px] text-[19px] text-text-2">
@@ -113,7 +113,7 @@ export function AboutPage() {
           <div
             role="table"
             aria-label="Points by rank"
-            className="mt-3.5 grid grid-cols-9 gap-2 max-[800px]:grid-cols-3"
+            className="mt-3.5 grid grid-cols-9 gap-2 upto800:grid-cols-3"
           >
             {EXAMPLES.map((r) => (
               <div

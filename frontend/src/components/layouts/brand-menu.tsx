@@ -47,8 +47,8 @@ export function BrandMenu() {
         aria-label={`${label ?? 'Portal 2'} Challenge Mode boards home`}
         title={label}
       >
-        <img src={branding.logo} alt="" className="h-[46px] w-auto max-[1320px]:h-[34px]" />
-        <span className="text-[40px] font-bold tracking-[0.01em] max-[1320px]:text-[30px] max-[480px]:text-[26px]">
+        <img src={branding.logo} alt="" className="h-[46px] w-auto upto1320:h-[34px]" />
+        <span className="text-[40px] font-bold tracking-[0.01em] upto1320:text-[30px] upto480:text-[26px]">
           {branding.brand}
         </span>
       </Link>

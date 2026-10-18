@@ -13,7 +13,7 @@ const TABS = [
 ] as const
 
 const tab =
-  'flex h-[46px] min-w-[124px] flex-none items-center justify-center rounded-t-[10px] bg-control-raised px-7 text-lg font-light text-text-2 uppercase no-underline max-[900px]:min-w-0 max-[900px]:px-4 max-[900px]:text-base'
+  'flex h-[46px] min-w-[124px] flex-none items-center justify-center rounded-t-[10px] bg-control-raised px-7 text-lg font-light text-text-2 uppercase no-underline upto900:min-w-0 upto900:px-4 upto900:text-base'
 
 /**
  * The Stats section: its tabs (Runners, the world record pages, Compare and Countries) above the

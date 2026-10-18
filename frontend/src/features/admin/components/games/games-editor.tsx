@@ -43,7 +43,7 @@ export function GamesEditor() {
   )
 
   return (
-    <div className="grid grid-cols-[240px_minmax(0,1fr)] items-start gap-5 max-[900px]:grid-cols-1">
+    <div className="grid grid-cols-[240px_minmax(0,1fr)] items-start gap-5 upto900:grid-cols-1">
       <aside className="flex flex-col gap-1" aria-label="Games">
         {games.map((g) => (
           <button

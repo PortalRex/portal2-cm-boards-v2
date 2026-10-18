@@ -52,8 +52,8 @@ export function AggregatedPage({
 function Header({ kicker, title, children }: { kicker: string; title: string; children?: ReactNode }) {
   return (
     <header className="mt-1 mb-[34px] flex flex-col items-center text-center">
-      <p className="m-0 text-[40px] leading-none font-light uppercase max-[860px]:text-[26px]">{kicker}</p>
-      <h1 className="mt-0 mb-[22px] text-[64px] leading-[1.1] font-bold uppercase max-[860px]:text-[44px] max-[600px]:text-[38px]">
+      <p className="m-0 text-[40px] leading-none font-light uppercase upto860:text-[26px]">{kicker}</p>
+      <h1 className="mt-0 mb-[22px] text-[64px] leading-[1.1] font-bold uppercase upto860:text-[44px] upto600:text-[38px]">
         {title}
       </h1>
       {children}
@@ -151,7 +151,7 @@ function AggregatedBoards({ view, search }: { view: AggregatedView; search: Aggr
         ) : board && data.isError ? (
           <ErrorState error={data.error} onRetry={() => void data.refetch()} />
         ) : (
-          <div className="grid grid-cols-2 gap-[18px] max-[860px]:grid-cols-1 max-[860px]:gap-3.5">
+          <div className="grid grid-cols-2 gap-[18px] upto860:grid-cols-1 upto860:gap-3.5">
             <PointsBoard
               key={`points-${boardKey}`}
               focus={focus}
@@ -192,10 +192,7 @@ function BoardTabs({
   const tabs = boardTabs(catalog, game)
   if (!tabs) return null
   return (
-    <nav
-      aria-label={tabs.label}
-      className="mt-4 flex gap-1.5 max-[600px]:flex-wrap max-[600px]:justify-center"
-    >
+    <nav aria-label={tabs.label} className="mt-4 flex gap-1.5 upto600:flex-wrap upto600:justify-center">
       {tabs.items.map((t) => (
         <AppLink
           key={t.kind}
