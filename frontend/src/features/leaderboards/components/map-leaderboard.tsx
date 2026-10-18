@@ -136,7 +136,7 @@ export function MapLeaderboard({
                 key={key}
                 data-board-entry
                 data-open={open || undefined}
-                className={cn(mine(e) && '[&>[role=row]]:me-row')}
+                className={cn(mine(e) && '[&>[role=row]]:me-row [&>[role=row]]:me-row-outside')}
               >
                 <div
                   role="row"

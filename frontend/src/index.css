@@ -365,6 +365,22 @@
   box-shadow: inset 3px 0 0 var(--brand);
 }
 
+/* With me-row: the bar sits just outside the row, clear of a rank tag at its left edge. */
+@utility me-row-outside {
+  position: relative;
+  box-shadow: none !important;
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: -8px;
+    width: 3px;
+    border-radius: 2px;
+    background: var(--brand);
+  }
+}
+
 /*
  * World records: a rich trophy fill with a bright edge and an inner glow (a cell inside a row);
  * wr-glow-raised squares glow outwards too. On hover (of it or its parent, unless it has
