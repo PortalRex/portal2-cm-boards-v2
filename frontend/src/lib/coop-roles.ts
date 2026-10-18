@@ -24,7 +24,8 @@ export function coopRoles<P extends CoopPlayer>(
   overrides: RoleOverrides = new Map(),
 ): { players: P[]; rolesKnown: boolean } {
   const players = run.players
-  if (run.coopId == null || !overrides.has(run.coopId)) return { players, rolesKnown: run.rolesKnown !== false }
+  if (run.coopId == null || !overrides.has(run.coopId))
+    return { players, rolesKnown: run.rolesKnown !== false }
   const host = overrides.get(run.coopId)
   if (host == null) return { players, rolesKnown: false }
   const isHost = (p: P) => (p.profileNumber === host ? 1 : 0)

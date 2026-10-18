@@ -17,9 +17,9 @@
   - [x] 2h. Docker: Dockerfile, nginx.conf (`/assets/`), security headers, compose back to `./frontend`: d192cc9
 - [ ] 3. Foundation
   - [x] 3.1 `lib/api-client.ts` (`api.*`, `ApiError`, `apiUrl`, param dropping, FormData): 7419168
-  - [x] 3.2 Pure helpers: `format`: (pending)
-  - [x] 3.3 Pure helpers: `ranks`, `runFilters`, `coopRoles`: (pending)
-  - [ ] 3.4 Pure helpers: `activity`, `adminActions`, `youtube`, `scroll`, `pointsForRank`
+  - [x] 3.2 Pure helpers: `format`: 2384e56
+  - [x] 3.3 Pure helpers: `ranks`, `runFilters`, `coopRoles`: 2384e56
+  - [x] 3.4 Pure helpers: `activity`, `adminActions`, `youtube`, `scroll`, `pointsForRank`: (pending)
   - [ ] 3.5 Static data: `countries`, `roles`, built-in maps / bsp names / seasons
   - [ ] 3.6 Per-browser settings (localStorage keys, try/catch) and theme
   - [ ] 3.7 `lib/catalog` (query options, selectors, built-in fallback, root loader)
@@ -68,6 +68,9 @@
 
 ## Log
 <!-- Newest first. One entry per finished item: date, what was done, commit, tests added. -->
+- 2026-10-17: 3.4 `lib/activity.ts`, `lib/admin-actions.ts` (generated from the legacy tables), `lib/youtube.ts`,
+  `lib/scroll.ts`. `pointsForRank` was done in 3.2 (`lib/points.ts`). Commit (pending). Tests: 24 (activity
+  windows checked against legacy summaries, YouTube link forms, action labels/tones, scroll timing and jump).
 - 2026-10-17: 3.2-3.3 `lib/format.ts`, `lib/points.ts` (`pointsForRank`), `lib/ranks.ts`, `lib/run-filters.ts`,
   `lib/coop-roles.ts`. Expected values were produced by running the legacy functions in Node. Commit (pending). Tests:
   108 cases (scores, deltas, timestamps, time ago, dates, ordinals, points, rank colours on both scales, tile
