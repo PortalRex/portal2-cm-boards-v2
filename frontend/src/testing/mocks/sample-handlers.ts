@@ -7,6 +7,7 @@ import {
   sampleDaily,
   sampleGameRanks,
   samplePoints,
+  samplePointsHistory,
   sampleProfilePage,
   sampleProfileScores,
   sampleUser,
@@ -58,6 +59,9 @@ export function sampleHandlers(api: string): RequestHandler[] {
     ),
     // Profiles: no peak or past days in sample data (legacy's sample profile had neither).
     http.get(`${api}/profile/points_peak/:id`, () => HttpResponse.json({})),
+    http.get(`${api}/profile/points_history/:id`, ({ params }) =>
+      HttpResponse.json(samplePointsHistory(String(params.id))),
+    ),
     http.get(`${api}/profile/scores/:id`, ({ params }) =>
       HttpResponse.json(sampleProfileScores(String(params.id))),
     ),

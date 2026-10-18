@@ -384,6 +384,27 @@ export const sampleGameRanks = (game: string, profileNumber: string) =>
     placesOf(samplePlayer(profileNumber).profileNumber, game).map(({ map, entry }) => [map.id, entry.rank]),
   )
 
+/**
+ * GET /profile/points_history/{id}: rebuilt from the player's own sample runs, as legacy's sample
+ * mode did. Each run sets the player's points on that map from its rank then; one sample per day.
+ */
+export function samplePointsHistory(profileNumber: string) {
+  const current = new Map<string, { mode: string; points: number }>()
+  const byDay = new Map<string, { date: string; sp: number; coop: number; overall: number }>()
+  const runs = sampleChangelog({ profile_number: samplePlayer(profileNumber).profileNumber })
+    .filter((r) => r.timestamp && !r.banned && r.verified)
+    .sort((a, b) => a.timestamp!.localeCompare(b.timestamp!))
+  for (const r of runs) {
+    const mode = r.coop_id != null ? 'coop' : 'sp'
+    current.set(r.map_id, { mode, points: r.post_rank ? pointsForRank(r.post_rank) : 0 })
+    const totals = { sp: 0, coop: 0 }
+    for (const c of current.values()) totals[c.mode as 'sp' | 'coop'] += c.points
+    const date = r.timestamp!.slice(0, 10)
+    byDay.set(date, { date, sp: totals.sp, coop: totals.coop, overall: totals.sp + totals.coop })
+  }
+  return [...byDay.values()]
+}
+
 // --- changelog ------------------------------------------------------------------------
 
 function buildChangelog(game: string): ChangelogRaw[] {

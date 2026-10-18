@@ -12,6 +12,7 @@ import { formatDate } from '@/lib/format'
 import { pointsPeakQueryOptions, profileAtQueryOptions, profileQueryOptions } from '../api/profile'
 import type { Profile, RenderRunDetails } from '../types'
 import { profileAsOf, validDay } from '../utils/profile'
+import { PointsChart } from './points-chart'
 import { ProfileHeader } from './profile-header'
 import { GlobalRankCard, PointsCard, SideCards, StatisticsCard } from './profile-stats'
 import { ProfileTabs } from './profile-tabs'
@@ -106,7 +107,12 @@ export function ProfilePage({
           <PointsCard profile={view} />
         </Row>
         <Row className="grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)]">
-          <GlobalRankCard profile={view} />
+          <GlobalRankCard
+            profile={view}
+            chart={
+              <PointsChart profileNumber={p.player.profileNumber} peak={peakData} at={at} onPick={pickDay} />
+            }
+          />
           <StatisticsCard profile={view} />
           <SideCards profile={view} peak={peakData} />
         </Row>

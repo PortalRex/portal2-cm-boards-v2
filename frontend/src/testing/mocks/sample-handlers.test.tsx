@@ -82,6 +82,8 @@ describe('sample handlers', () => {
       board_name: SAMPLE_PLAYERS[3]!.name,
     })
     expect(Object.keys(await api.get<object>(`/ranks/game/2/${pn}`))).toHaveLength(40)
+    const history = await api.get<{ date: string; overall: number }[]>(`/profile/points_history/${pn}`)
+    expect(history.map((h) => h.date)).toEqual([...history.map((h) => h.date)].sort())
   })
 
   it('serve three banned players for the Wall of Shame, as legacy', async () => {

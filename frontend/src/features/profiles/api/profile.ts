@@ -6,6 +6,7 @@ import { queryKeys } from '@/lib/query-keys'
 import { getProfileScores } from '@/lib/runs/profile-scores'
 import type { ChangelogRaw } from '@/types/runs'
 import type { GameResults, PointsPeak, Profile, ProfileAtRaw, ProfilePageRaw, UserRaw } from '../types'
+import type { PointsSample } from '../utils/points-chart'
 import { adaptProfile, scoresFromRanks } from '../utils/profile'
 
 /** The player's runs as the profile lists them (legacy asked for them unfiltered, banned included). */
@@ -78,4 +79,26 @@ export const gameResultsQueryOptions = (c: Catalog, profileNumber: string, game:
   queryOptions({
     queryKey: [...queryKeys.profileGame(profileNumber, game), c.fromServer],
     queryFn: ({ signal }) => getGameResults(c, profileNumber, game, signal),
+  })
+
+/**
+ * A player's real points over time (ranks recomputed against everyone's bests at each date),
+ * rounded as legacy showed them.
+ */
+export async function getPointsHistory(profileNumber: string, signal?: AbortSignal): Promise<PointsSample[]> {
+  const rows = await api.get<
+    { date: string; sp?: number | null; coop?: number | null; overall?: number | null }[]
+  >(`/profile/points_history/${profileNumber}`, { signal })
+  return rows.map((p) => ({
+    date: p.date,
+    sp: Math.round(p.sp ?? 0),
+    coop: Math.round(p.coop ?? 0),
+    overall: Math.round(p.overall ?? 0),
+  }))
+}
+
+export const pointsHistoryQueryOptions = (profileNumber: string) =>
+  queryOptions({
+    queryKey: queryKeys.profilePointsHistory(profileNumber),
+    queryFn: ({ signal }) => getPointsHistory(profileNumber, signal),
   })

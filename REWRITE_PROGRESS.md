@@ -42,8 +42,8 @@
   - [x] 5.2d Wall of Shame: d2f476b
   - [x] 5.4a Aggregated: Portal 2 overall / sp / coop: cd183b1
   - [x] 5.4b Aggregated: Mel, chapters, custom games and seasons: 25910a6
-  - [x] 5.5a Profiles: header, tabs per game, seasons in tab: (pending)
-  - [ ] 5.5b Profiles: points history chart with wheel zoom
+  - [x] 5.5a Profiles: header, tabs per game, seasons in tab: c1962ac
+  - [x] 5.5b Profiles: points history chart with wheel zoom: (pending)
   - [ ] 5.5c Profiles: activity heatmap, demo stats, co-op partners
   - [ ] 5.5d Profiles: follows; staff tools slot
   - [ ] 5.6a Stats: Runners tab
@@ -68,6 +68,14 @@
 
 ## Log
 <!-- Newest first. One entry per finished item: date, what was done, commit, tests added. -->
+- 2026-10-18: 5.5b Points history chart (`features/profiles`): `utils/points-chart.ts` (samples plus each board's
+  peak, what's in view, the shared scale from 0 and the per-line scales when zoomed, where a peak label goes),
+  `PointsChart` (recharts lines, peak dots, the `?at=` day line, wheel zoom through the shared `useWheelZoom`, Reset
+  zoom, legend toggles; click a day for the profile as it was then) in the Global Rank card. Legacy fell back to a
+  history rebuilt from the player's runs when the endpoint failed; per D1 the chart now says it couldn't load, and
+  the rebuild only feeds sample mode (`samplePointsHistory`). Clicking a day isn't testable under jsdom (recharts
+  has no size there); the handler is the same `activeTooltipIndex` lookup as the WR chart's. Commit (pending).
+  Tests: 11.
 - 2026-10-18: 5.5a Profiles (`features/profiles`): `utils/profile.ts` (ports of adaptProfile, scoresFromRanks,
   mergePbs, profileAsOf), `api/profile.ts` (profile = /profile + /user + the player's changelog + personal bests in one
   query; points peak; /profile/at; another game's /ranks/game + changelog), `ProfilePage` (as-of banner with "Back to
@@ -80,7 +88,7 @@
   scores and Mel ranks (port of mockProfile). Fixtures `profile-*.json` captured from the local API, trimmed to 10
   personal bests. Still to come: points chart (5.5b, the Global Rank card's `chart` slot), activity heatmap and the
   Stats tab (5.5c, the tab shows nothing until then), follow and staff tools (5.5d). Not compared in a browser this
-  session. Commit (pending). Tests: 26 (+1 route, +1 sample data).
+  session. Commit c1962ac. Tests: 26 (+1 route, +1 sample data).
 - 2026-10-18: 5.4b Aggregated boards: `/leaderboard/mel/$kind`, `/leaderboard/chapter/$chapterId` (kicker
   "Singleplayer · Chapter 1" / "Cooperative · Course 1", the chapter picked in the list, a season pick opens the
   mode's season board), `/leaderboard/game/$gameId` and `/$board` (custom games asked for by the chapters' game_mode,
