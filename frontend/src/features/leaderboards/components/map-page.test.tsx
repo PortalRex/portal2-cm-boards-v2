@@ -60,6 +60,21 @@ describe('Map page', () => {
     expect(await within(board()).findByText('Unknown partner')).toBeInTheDocument()
   })
 
+  it('marks each co-op player whose PB the run is, as Score Updates does', async () => {
+    serveMap()
+    await renderRoute('/map/coop/47741')
+    // RealCreative is on the record (733) and again on the slower 736, where unity set their PB.
+    const notPb = await within(board()).findAllByTitle("Not RealCreative's PB")
+    expect(notPb).toHaveLength(1)
+    const pb = within(board()).getByTitle('unity set a PB')
+    expect(within(pb).getByRole('img', { name: 'PB' })).toBeInTheDocument()
+    // Both players on the record set their PB there.
+    expect(within(board()).getByTitle('RealCreative set a PB')).toBeInTheDocument()
+    expect(within(board()).getByTitle('Suola set a PB')).toBeInTheDocument()
+    // Everyone but the repeated RealCreative and the unknown partner: 6 of the 8 players.
+    expect(within(board()).getAllByRole('img', { name: 'PB' })).toHaveLength(6)
+  })
+
   it('searches the board by player name', async () => {
     serveMap()
     await renderRoute('/map/sp/47759')

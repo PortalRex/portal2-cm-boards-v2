@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 // Co-op players are shown blue (the host) first, orange second. Runs carry `players` in that
 // order plus `rolesKnown`; when nobody knows who hosted, rows use a neutral tint.
 //
@@ -37,3 +38,20 @@ export type CoopTint = 'blue' | 'orange' | 'neutral'
 /** The tint of the player at `index` (legacy `tint-blue` / `tint-orange` / `tint-neutral`). */
 export const tintFor = (rolesKnown: boolean, index: number): CoopTint =>
   rolesKnown ? (index === 0 ? 'blue' : 'orange') : 'neutral'
+
+// The PB player's colour (grey when it's unknown who was blue).
+const PB_RGB: Record<CoopTint, string> = {
+  blue: '127 188 255',
+  orange: '255 184 119',
+  neutral: '195 198 204',
+}
+
+/** The PB player's colour as CSS (for the PB trophy). */
+export const pbColor = (tint: CoopTint) => `rgb(${PB_RGB[tint]})`
+
+/** A PB player's name in their colour, glowing (the "Coloured name" PB style); give it `pbNameVars`. */
+export const PB_NAME = 'font-semibold text-[rgb(var(--pb-rgb))] [text-shadow:0_0_6px_rgb(var(--pb-rgb)/55%)]'
+export const pbNameVars = (tint: CoopTint) => ({ '--pb-rgb': PB_RGB[tint] }) as CSSProperties
+
+/** The other names next to a marked PB. */
+export const NOT_PB_NAME = 'opacity-55'

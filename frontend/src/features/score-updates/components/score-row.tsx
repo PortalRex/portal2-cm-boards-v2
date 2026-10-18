@@ -9,7 +9,15 @@ import { TimeButton } from '@/components/runs/time-button'
 import { useCoopPbStyle } from '@/hooks/use-coop-pb-style'
 import { useCoopRoleOverrides } from '@/hooks/use-coop-role-overrides'
 import { mapPath } from '@/lib/catalog'
-import { coopRoles, tintFor, type CoopTint } from '@/lib/coop-roles'
+import {
+  coopRoles,
+  NOT_PB_NAME,
+  PB_NAME,
+  pbColor,
+  pbNameVars,
+  tintFor,
+  type CoopTint,
+} from '@/lib/coop-roles'
 import { formatDate, formatDateTime, formatDelta, timeAgo } from '@/lib/format'
 import { toggleOnRowClick } from '@/lib/rows'
 import type { Reaction } from '@/lib/runs/reactions'
@@ -21,13 +29,6 @@ const TINT_BG: Record<CoopTint, string> = {
   blue: 'bg-[linear-gradient(90deg,transparent_46px,var(--portal-blue)_46px,transparent_70%)]',
   orange: 'bg-[linear-gradient(90deg,transparent_46px,var(--portal-orange)_46px,transparent_70%)]',
   neutral: 'bg-[linear-gradient(90deg,transparent_46px,var(--portal-neutral)_46px,transparent_70%)]',
-}
-
-// The PB player's colour (grey when it's unknown who was blue).
-const PB_RGB: Record<CoopTint, string> = {
-  blue: '127 188 255',
-  orange: '255 184 119',
-  neutral: '195 198 204',
 }
 
 /** The row grid: legacy --su-cols on wide screens, two lines with grid areas on phones. */
@@ -129,18 +130,17 @@ export function ScoreRow({
                   className={cn(
                     'truncate text-lg upto900:text-[13px]',
                     coop && 'min-[1200px]:text-[17px]',
-                    marked &&
-                      'font-semibold text-[rgb(var(--pb-rgb))] [text-shadow:0_0_6px_rgb(var(--pb-rgb)/55%)]',
-                    anyPbMarked && !pb && 'opacity-55',
+                    marked && PB_NAME,
+                    anyPbMarked && !pb && NOT_PB_NAME,
                   )}
-                  style={marked ? ({ '--pb-rgb': PB_RGB[tint] } as CSSProperties) : undefined}
+                  style={marked ? pbNameVars(tint) : undefined}
                 />
                 {pb && pbStyle === 'icon' && (
                   <TrophyIcon
                     role="img"
                     aria-label="PB"
                     className="mr-2.5 ml-auto size-[17px] shrink-0"
-                    style={{ color: `rgb(${PB_RGB[tint]})` }}
+                    style={{ color: pbColor(tint) }}
                   />
                 )}
               </div>

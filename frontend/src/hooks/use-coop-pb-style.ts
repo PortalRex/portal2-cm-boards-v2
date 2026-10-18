@@ -2,7 +2,7 @@ import { useCallback } from 'react'
 import { STORAGE_KEYS } from '@/lib/storage'
 import { setStored, useStored } from './use-stored'
 
-// How Score Updates marks who set a PB with a co-op run: "icon" (a trophy, the default) or
+// How Score Updates and co-op map boards mark who set a PB with a co-op run: "icon" (a trophy, the default) or
 // "border" (the player's name in their colour; the stored value is from when it was an outline).
 export type CoopPbStyle = 'icon' | 'border'
 

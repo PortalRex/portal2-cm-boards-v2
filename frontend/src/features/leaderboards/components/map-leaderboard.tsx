@@ -2,6 +2,7 @@ import { useQuery, type UseQueryResult } from '@tanstack/react-query'
 import { cn } from 'cn'
 import { useState, type ReactNode } from 'react'
 import { Avatar } from '@/components/avatar'
+import { TrophyIcon } from '@/components/icons'
 import { Pagination } from '@/components/pagination'
 import { PlayerLink } from '@/components/player-link'
 import { RankNumber, RankTag } from '@/components/rank'
@@ -9,17 +10,19 @@ import { AutorenderLink, CommentButton, DemoLink, YouTubeLink } from '@/componen
 import { TimeButton } from '@/components/runs/time-button'
 import { SearchBox } from '@/components/search-box'
 import { EmptyState, ErrorState, Loading } from '@/components/status'
+import { useCoopPbStyle } from '@/hooks/use-coop-pb-style'
 import { useCoopRoleOverrides } from '@/hooks/use-coop-role-overrides'
 import { useCurrentUser } from '@/hooks/use-current-user'
 import { useRenderedSet } from '@/hooks/use-rendered-set'
 import { isMultiplayerMode, useCatalog, type MapInfo } from '@/lib/catalog'
-import { coopRoles, tintFor } from '@/lib/coop-roles'
+import { coopRoles, NOT_PB_NAME, PB_NAME, pbColor, pbNameVars, tintFor } from '@/lib/coop-roles'
 import { formatDateTime, formatScore, timeAgo } from '@/lib/format'
+import { RANK_TAG_BASE } from '@/lib/ranks'
 import { toggleOnRowClick } from '@/lib/rows'
 import { profileScoresQueryOptions } from '@/lib/runs/profile-scores'
 import type { RankedRun } from '@/types/runs'
 import { headBase, PAGE_SIZE, rowBase, TINT_BG } from '../utils/board-styles'
-import { RANK_TAG_BASE } from '@/lib/ranks'
+import { nonPbPlayers } from '../utils/coop-pbs'
 
 // The rank tag's look, small enough for the board's narrow rank column.
 const BOARD_TAG = cn(RANK_TAG_BASE, 'h-6 w-9 text-sm upto900:w-7')
@@ -54,6 +57,10 @@ export function MapLeaderboard({
   const rendered = useRenderedSet(visible, map.game)
   const [openKey, setOpenKey] = useState<string | number | null>(null)
   const overrides = useCoopRoleOverrides()
+  // Co-op: each player whose PB the run is gets marked as on Score Updates (trophy, or glowing
+  // name with the others faded). A player repeats on slower runs when they carried partners to PBs.
+  const notPb = coop ? nonPbPlayers(all) : new Map<RankedRun, Set<string>>()
+  const [pbStyle] = useCoopPbStyle()
   const rowKey = (e: RankedRun) =>
     e.changelogId ?? `${e.rank}-${e.players.map((p) => p.profileNumber).join('-')}`
 
@@ -153,15 +160,38 @@ export function MapLeaderboard({
                   <span role="cell" className="num flex justify-center text-[15px]">
                     <RankTag rank={e.rank} className={BOARD_TAG} />
                   </span>
-                  {cells.map((p, j) =>
-                    p ? (
+                  {cells.map((p, j) => {
+                    if (!p) {
+                      return (
+                        <span
+                          key={j}
+                          role="cell"
+                          className="pl-3 text-text-muted"
+                          title="No partner on record"
+                        >
+                          —
+                        </span>
+                      )
+                    }
+                    const pb = Boolean(coop && p.profileNumber && !notPb.get(e)?.has(p.profileNumber))
+                    const tint = tintFor(rolesKnown && players.length > 1, j)
+                    const marked = pb && pbStyle === 'border'
+                    return (
                       <span
                         key={j}
                         role="cell"
-                        title={coop && !rolesKnown ? 'Unknown which player was blue' : undefined}
+                        title={
+                          [
+                            pb && `${p.name} set a PB`,
+                            coop && !pb && p.profileNumber && `Not ${p.name}'s PB`,
+                            coop && !rolesKnown && 'Unknown which player was blue',
+                          ]
+                            .filter(Boolean)
+                            .join('. ') || undefined
+                        }
                         className={cn(
                           'flex min-w-0 items-center gap-3 self-stretch overflow-hidden whitespace-nowrap [&>a]:truncate [&>span]:truncate',
-                          coop && TINT_BG[tintFor(rolesKnown && players.length > 1, j)],
+                          coop && TINT_BG[tint],
                           coop && 'upto900:gap-1.5 upto900:text-sm',
                         )}
                       >
@@ -171,14 +201,25 @@ export function MapLeaderboard({
                           size={30}
                           className={cn(coop && 'upto900:size-6!')}
                         />
-                        <PlayerLink player={p} />
+                        <PlayerLink
+                          player={p}
+                          className={cn(
+                            marked && PB_NAME,
+                            coop && pbStyle === 'border' && !pb && NOT_PB_NAME,
+                          )}
+                          style={marked ? pbNameVars(tint) : undefined}
+                        />
+                        {pb && pbStyle === 'icon' && (
+                          <TrophyIcon
+                            role="img"
+                            aria-label="PB"
+                            className="mr-2.5 ml-auto size-[17px] shrink-0"
+                            style={{ color: pbColor(tint) }}
+                          />
+                        )}
                       </span>
-                    ) : (
-                      <span key={j} role="cell" className="pl-3 text-text-muted" title="No partner on record">
-                        —
-                      </span>
-                    ),
-                  )}
+                    )
+                  })}
                   <span
                     role="cell"
                     className="text-base font-light whitespace-nowrap text-text-muted upto900:hidden"

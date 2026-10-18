@@ -66,17 +66,17 @@ export function SettingsPage() {
               { value: 'light', label: 'Light' },
             ]}
           />
-          <h3 className="mt-[18px] mb-2 text-[17px] font-normal text-text-2">Co-op PBs in Score Updates</h3>
+          <h3 className="mt-[18px] mb-2 text-[17px] font-normal text-text-2">Co-op PBs</h3>
           <Segmented
             {...switchProps}
-            label="Co-op PBs in Score Updates"
+            label="Co-op PBs"
             value={pbStyle}
             onChange={setPbStyle}
             options={COOP_PB_STYLES}
           />
           <p className={note}>
-            How a co-op run marks which player set a personal best: a trophy by their name, or their name in
-            their portal colour.
+            How a co-op run in Score Updates and on map boards marks which player set a personal best: a
+            trophy by their name, or their name in their portal colour.
           </p>
         </Section>
 
