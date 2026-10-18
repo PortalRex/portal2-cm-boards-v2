@@ -167,6 +167,24 @@
   color-scheme: light;
 }
 
+/*
+ * Legacy never set line heights: text uses the browser's "normal". Tailwind's preflight sets 1.5
+ * and each text-* size brings its own, which made every block taller than legacy's. These keep the
+ * legacy metrics; set leading-* where a different line height is wanted.
+ */
+@theme {
+  --text-xs--line-height: normal;
+  --text-sm--line-height: normal;
+  --text-base--line-height: normal;
+  --text-lg--line-height: normal;
+  --text-xl--line-height: normal;
+  --text-2xl--line-height: normal;
+  --text-3xl--line-height: normal;
+  --text-4xl--line-height: normal;
+  --text-5xl--line-height: normal;
+  --text-6xl--line-height: normal;
+}
+
 @theme inline {
   --font-sans: 'Barlow Semi Condensed', 'Arial Narrow', sans-serif;
   --font-heading: var(--font-sans);
@@ -257,6 +275,9 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+  }
+  html {
+    line-height: normal;
   }
   html,
   body,

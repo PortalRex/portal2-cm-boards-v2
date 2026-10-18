@@ -28,8 +28,8 @@
   - [x] 3.10 `hooks/use-game` (URL wins, saved choice, branding): cf15221
   - [x] 3.11 Shared run model: `types/runs.ts` + adapters with captured fixtures: 5fff31a
   - [x] 3.12 Sample data mode: MSW handlers + factories, browser worker behind `VITE_USE_MOCK`, indicator: d2bead4
-  - [x] 3.13 Shared UI on shadcn (panels, tabs, selects, toggles, avatars, flags, score cells, icons): (pending)
-  - [ ] 3.14 Layout + TopBar (nav, dropdowns, Aggregate menu per game, More menu, account area, theme toggle)
+  - [x] 3.13 Shared UI on shadcn (panels, tabs, selects, toggles, avatars, flags, score cells, icons): c058b8c
+  - [x] 3.14 Layout + TopBar (nav, dropdowns, Aggregate menu per game, More menu, account area, theme toggle): (pending)
   - [ ] 3.15 Private mode gate in the root route
 - [ ] 4. Routes: every legacy URL and redirect, thin route files with zod search params
 - [ ] 5. Features
@@ -68,6 +68,14 @@
 
 ## Log
 <!-- Newest first. One entry per finished item: date, what was done, commit, tests added. -->
+- 2026-10-17: 3.14 Layout and top bar (`components/layouts`): `nav-model.ts` (Aggregate menu per game with chapters
+  and seasons, active-page matching, game-switch paths, NAV and More), `top-bar.tsx`, `brand-menu.tsx` (game picker),
+  `aggregate-menu.tsx`, `profile-menu.tsx`, `menu-parts.tsx`, `page.tsx` (background, tint, content column),
+  `slots.ts` (Submit Run and staff inbox come from the app root, since layouts can't import features),
+  `components/app-link.tsx`. Root route renders the top bar, the page and the sample notice. `npm run dev:mock` added.
+  Checked side by side with the legacy site (both on sample data) by measuring layout in the browser: at 1440 px the
+  top bar, nav links and Aggregate menu match legacy to the pixel; at 375 px the bar, phone menu rows and expanders
+  match too, with no sideways scroll. Commit (pending). Tests: 22 (menu model, roles, slots, theme, game switch).
 - 2026-10-17: 3.13 Shared UI. shadcn primitives added (input, tabs, toggle(-group), dropdown-menu, dialog, sheet,
   tooltip, popover, separator, skeleton, native-select); `button` (outline + lg) and `native-select` (lg) restyled to
   the legacy controls. Shared components: `panel` (Panel, collapsible Card), `pagination`, `search-box`, `select`,
@@ -186,6 +194,14 @@
   maps them to the closest lucide icons; lucide 1.x has no brand icons, so YouTube and GitHub are drawn as SVGs like
   Steam, Discord and Twitch. The glyphs look slightly different (see Blocked / questions).
 - `ErrorState` is new: it is what pages show where legacy fell back to sample data (D1).
+- Line height: legacy never set one (browser `normal`); Tailwind's preflight uses 1.5 and every `text-*` size carries
+  its own. index.css sets `html { line-height: normal }` and the `--text-*--line-height` theme values to `normal`,
+  which brought the measured heights in line with legacy. Use `leading-*` where something needs a set line height.
+- Top bar flag: legacy shows `user.country`, but `/auth/me` has no country, so only the sample player (mock mode)
+  ever had a flag there. The new top bar leaves it out; on the real site that is the same as legacy.
+- Phone menu: legacy hides every Aggregate flyout (chapters and seasons) on narrow screens; kept so.
+- Menu state that legacy reset in an effect on route change (phone menu, game picker) is keyed to the page instead,
+  which the React hooks lint prefers; it closes on navigation as before.
 - `cn` in `lib/utils.ts` is shadcn's own package (github.com/shadcn-ui/cn), the replacement for clsx + tailwind-merge.
 - The hardening merge added a CSP in `security-headers.conf` (no inline scripts) and `public/theme.js` (sets the
   theme before first paint without an inline script). The new app keeps both: nginx includes the same headers file,
