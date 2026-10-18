@@ -40,10 +40,13 @@ export function RankNumber({
   )
 }
 
+/** A rank tag's shape, shared by the profile summary's tiles and RankChange. */
+export const RANK_TAG =
+  'num inline-flex h-[30px] w-[60px] items-center justify-center rounded-[2px] text-base upto800:w-11'
+
 // Ranks 2–500 sit in a tag of the rank's deeper colour (the light-theme scale), toned down with
 // grey so white numbers read on it; the box around it stays grey.
-const tag =
-  'min-w-[2.6em] rounded-md bg-[color-mix(in_oklab,var(--rank-color)_80%,#6b6b6b)] px-2 py-0.5 text-center text-white'
+const tag = cn(RANK_TAG, 'bg-[color-mix(in_oklab,var(--rank-color)_80%,#6b6b6b)] text-white')
 
 /** One side of a RankChange: a grey box with the rank as a coloured tag (a glowing one for a record). */
 function RankCell({ rank, testId }: { rank: number | null; testId: string }) {
@@ -55,7 +58,7 @@ function RankCell({ rank, testId }: { rank: number | null; testId: string }) {
       data-testid={testId}
     >
       {tagged ? (
-        <span className={cn(tag, rank === 1 && 'wr-glow')}>
+        <span className={cn(tag, rank === 1 && 'wr-glow wr-glow-raised')}>
           <RankNumber rank={rank} inherit />
         </span>
       ) : (

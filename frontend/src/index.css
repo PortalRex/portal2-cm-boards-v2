@@ -367,7 +367,8 @@
 
 /*
  * World records: a rich trophy fill with a bright edge and an inner glow (a cell inside a row);
- * wr-glow-raised squares glow outwards too. On hover the glow grows and a sheen sweeps across once.
+ * wr-glow-raised squares glow outwards too. On hover (of it or its parent, unless it has
+ * wr-glow-self) the glow grows and a sheen sweeps across once.
  */
 @utility wr-glow {
   position: relative;
@@ -390,14 +391,14 @@
     pointer-events: none;
   }
   &:hover,
-  *:hover > & {
+  *:hover > &:not(.wr-glow-self) {
     outline: none;
     box-shadow:
       inset 0 0 0 1px color-mix(in srgb, var(--trophy) 70%, white),
       inset 0 0 20px color-mix(in srgb, var(--trophy) 75%, transparent) !important;
   }
   &:hover::after,
-  *:hover > &::after {
+  *:hover > &:not(.wr-glow-self)::after {
     transform: translateX(120%);
     transition: transform 0.6s ease-out;
   }
@@ -407,7 +408,7 @@
   }
   @media (prefers-reduced-motion: reduce) {
     &:hover::after,
-    *:hover > &::after {
+    *:hover > &:not(.wr-glow-self)::after {
       transition: none;
       transform: translateX(-120%);
     }

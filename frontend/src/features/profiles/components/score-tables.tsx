@@ -5,7 +5,7 @@ import { AppLink } from '@/components/app-link'
 import { Avatar } from '@/components/avatar'
 import { ChevronDownIcon } from '@/components/icons'
 import { PlayerLink } from '@/components/player-link'
-import { RankNumber } from '@/components/rank'
+import { RANK_TAG, RankNumber } from '@/components/rank'
 import { AutorenderLink, CommentButton, DemoLink, YouTubeLink } from '@/components/runs/run-media'
 import { TimeButton } from '@/components/runs/time-button'
 import { mapPath, type Chapter, type MapInfo } from '@/lib/catalog'
@@ -108,14 +108,17 @@ export function Summary({
               {chapter.maps.map((m) => {
                 const rank = scores[m.id]?.rank
                 const title = `${m.title}${rank ? ` — rank ${rank}` : ''}`
-                const tile =
-                  'num inline-flex h-[30px] w-[60px] cursor-pointer items-center justify-center rounded-[2px] border-0 bg-track p-0 text-base hover:outline hover:outline-foreground upto800:w-11'
+                const tile = cn(
+                  RANK_TAG,
+                  'cursor-pointer border-0 bg-track p-0 hover:outline hover:outline-foreground',
+                )
                 return scores[m.id] ? (
                   <button
                     key={m.id}
                     type="button"
                     onClick={() => openRun(m)}
-                    className={cn(tile, rankClass(rank, true))}
+                    // Its own hover only: the tiles share a parent, so a row hover would shine them all.
+                    className={cn(tile, rankClass(rank, true), 'wr-glow-self')}
                     style={rankTileVars(rank)}
                     title={title}
                   >
