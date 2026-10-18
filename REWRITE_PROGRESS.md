@@ -15,7 +15,7 @@
   - [x] 2f. Dev proxy, validated env (`src/config/env.ts`): 535adf2
   - [x] 2g. Public assets and images (`public/`, `src/assets/`, Mel NOTICE.md, `theme.js`): 535adf2
   - [x] 2h. Docker: Dockerfile, nginx.conf (`/assets/`), security headers, compose back to `./frontend`: d192cc9
-- [ ] 3. Foundation
+- [x] 3. Foundation
   - [x] 3.1 `lib/api-client.ts` (`api.*`, `ApiError`, `apiUrl`, param dropping, FormData): 7419168
   - [x] 3.2 Pure helpers: `format`: 2384e56
   - [x] 3.3 Pure helpers: `ranks`, `runFilters`, `coopRoles`: 2384e56
@@ -29,8 +29,8 @@
   - [x] 3.11 Shared run model: `types/runs.ts` + adapters with captured fixtures: 5fff31a
   - [x] 3.12 Sample data mode: MSW handlers + factories, browser worker behind `VITE_USE_MOCK`, indicator: d2bead4
   - [x] 3.13 Shared UI on shadcn (panels, tabs, selects, toggles, avatars, flags, score cells, icons): c058b8c
-  - [x] 3.14 Layout + TopBar (nav, dropdowns, Aggregate menu per game, More menu, account area, theme toggle): (pending)
-  - [ ] 3.15 Private mode gate in the root route
+  - [x] 3.14 Layout + TopBar (nav, dropdowns, Aggregate menu per game, More menu, account area, theme toggle): 128c893
+  - [x] 3.15 Private mode gate in the root route: (pending)
 - [ ] 4. Routes: every legacy URL and redirect, thin route files with zod search params
 - [ ] 5. Features
   - [ ] 5.1a Score Updates: list, filters/limits/toggles in search params
@@ -68,6 +68,11 @@
 
 ## Log
 <!-- Newest first. One entry per finished item: date, what was done, commit, tests added. -->
+- 2026-10-17: 3.15 Private mode: `components/layouts/private-gate.tsx` (port of PrivateGate: "Coming soon" with
+  Steam sign-in back to the page, or "signed in as a non-staff account" with sign-out). The root loader now also
+  loads `/site` and `/auth/me`. Like legacy, the gate checks the real role, so staff viewing as a player get in.
+  `isStaff` returns a plain boolean (its type-guard form narrowed the false branch wrongly). Step 3 done.
+  Commit (pending). Tests: 8 (public site, anonymous, player + sign-out, each staff role, view-as-player, banned).
 - 2026-10-17: 3.14 Layout and top bar (`components/layouts`): `nav-model.ts` (Aggregate menu per game with chapters
   and seasons, active-page matching, game-switch paths, NAV and More), `top-bar.tsx`, `brand-menu.tsx` (game picker),
   `aggregate-menu.tsx`, `profile-menu.tsx`, `menu-parts.tsx`, `page.tsx` (background, tint, content column),

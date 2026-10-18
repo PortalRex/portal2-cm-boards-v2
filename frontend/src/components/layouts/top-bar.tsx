@@ -133,7 +133,7 @@ export function TopBar() {
             )}
           </button>
           <ProfileMenu user={user} />
-          {isStaff(user) && !user.sample && slots.staffInbox}
+          {isStaff(user) && slots.staffInbox}
           <button
             type="button"
             onClick={() => setOpenOn(open ? null : pathname)}

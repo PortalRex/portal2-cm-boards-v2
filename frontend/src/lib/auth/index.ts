@@ -39,12 +39,12 @@ export const ROLE_LABELS: Record<Role, string> = {
 }
 
 /** Staff (any tier: verifier, moderator, admin) can use the staff tools. Sample and banned users never can. */
-export const isStaff = (user: CurrentUser | null | undefined): user is CurrentUser =>
+export const isStaff = (user: CurrentUser | null | undefined): boolean =>
   Boolean(user?.role) && !user!.sample && !user!.banned
 
 /** Admins also manage roles and the game catalog. */
 export const isRoleAdmin = (user: CurrentUser | null | undefined): boolean =>
-  isStaff(user) && user.role === 'admin'
+  isStaff(user) && user?.role === 'admin'
 
 export const adaptMe = (me: MeRaw | null): CurrentUser | null =>
   me && {
