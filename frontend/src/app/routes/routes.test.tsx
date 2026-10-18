@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react'
+import { screen, waitFor } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { http, HttpResponse } from 'msw'
 import { API } from '@/testing/mocks/handlers'
@@ -15,10 +15,12 @@ const pages: [string, string][] = [
   ['/leaderboard/overall?season=portal-2-season-1&country=hu', 'Overall'],
   ['/leaderboard/sp', 'Single Player'],
   ['/leaderboard/coop', 'Cooperative'],
-  ['/leaderboard/mel/story', 'Aggregated'],
-  ['/leaderboard/chapter/7', 'Aggregated'],
-  ['/leaderboard/game/custom-game', 'Aggregated'],
-  ['/leaderboard/game/custom-game/custom-game-sp', 'Aggregated'],
+  ['/leaderboard/mel/story', 'Story Mode'],
+  ['/leaderboard/mel/advanced?season=x', 'Advanced Mode'],
+  ['/leaderboard/chapter/7', 'The Courtesy Call'],
+  ['/leaderboard/chapter/1?country=hu', 'Team Building'],
+  ['/leaderboard/game/custom-game/overall', 'Overall'],
+  ['/leaderboard/game/custom-game/custom-game-sp', 'Main Board'],
   ['/profile/76561198000000001', 'Profile'],
   ['/stats', 'Stats'],
   ['/stats/records', 'Stats'],
@@ -65,6 +67,26 @@ describe('routes', () => {
   ])('%s redirects to %s', async (from, to) => {
     const { router } = await renderRoute(from)
     expect(router.state.location.href).toBe(to)
+  })
+
+  // Aggregated addresses that only the catalog can resolve redirect from the page.
+  it.each([
+    ['/leaderboard/season', '/leaderboard/overall?season=portal-2-season-1'],
+    ['/leaderboard/nope', '/leaderboard/overall'],
+    ['/leaderboard/mel/sp', '/leaderboard/mel/overall'],
+    ['/leaderboard/chapter/99', '/leaderboard/overall'],
+    ['/leaderboard/game/custom-game', '/leaderboard/game/custom-game/overall'],
+    ['/leaderboard/game/custom-game/nope', '/leaderboard/game/custom-game/overall'],
+    ['/leaderboard/game/nope/overall', '/leaderboard/overall'],
+    ['/leaderboard/game/mel/story', '/leaderboard/mel/overall'],
+    ['/leaderboard/game/portal-2-season-1', '/leaderboard/overall?season=portal-2-season-1'],
+    [
+      '/leaderboard/game/portal-2-season-1/portal-2-season-1-coop?country=hu',
+      '/leaderboard/coop?country=hu&season=portal-2-season-1',
+    ],
+  ])('%s opens %s', async (from, to) => {
+    const { router } = await renderRoute(from)
+    await waitFor(() => expect(router.state.location.href).toBe(to))
   })
 
   it('shows the placeholder for More pages without a design', async () => {

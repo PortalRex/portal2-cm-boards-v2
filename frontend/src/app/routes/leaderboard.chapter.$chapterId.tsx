@@ -1,7 +1,15 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { NotBuiltYet } from '@/components/placeholder-page'
+import { AggregatedPage } from '@/features/aggregated/components/aggregated-page'
+import { chapterTarget } from '@/features/aggregated/utils/pages'
+import { aggregatedSearchSchema } from '@/features/aggregated/utils/search'
 
-// A Portal 2 chapter's board (5.4).
+// A Portal 2 chapter's (or co-op course's) board.
 export const Route = createFileRoute('/leaderboard/chapter/$chapterId')({
-  component: () => <NotBuiltYet title="Aggregated" />,
+  validateSearch: aggregatedSearchSchema,
+  component: ChapterBoardRoute,
 })
+
+function ChapterBoardRoute() {
+  const { chapterId } = Route.useParams()
+  return <AggregatedPage resolve={(c) => chapterTarget(c, chapterId)} search={Route.useSearch()} />
+}

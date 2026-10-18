@@ -199,3 +199,67 @@ describe('Aggregated boards (Portal 2)', () => {
     expect(screen.queryByRole('region', { name: 'Points' })).not.toBeInTheDocument()
   })
 })
+
+describe('Aggregated boards (Mel, chapters, other games)', () => {
+  it("shows Mel's boards with Mel's tabs", async () => {
+    const asked = servePoints()
+    await renderRoute('/leaderboard/mel/story')
+    expect(await screen.findByRole('heading', { name: 'Story Mode', level: 1 })).toBeInTheDocument()
+    const tabs = screen.getByRole('navigation', { name: 'Mel boards' })
+    expect(
+      within(tabs)
+        .getAllByRole('link')
+        .map((a) => a.getAttribute('href')),
+    ).toEqual(['/leaderboard/mel/overall', '/leaderboard/mel/story', '/leaderboard/mel/advanced'])
+    expect(screen.queryByRole('combobox', { name: 'Chapter' })).not.toBeInTheDocument()
+    await screen.findAllByRole('link', { name: 'hero' })
+    expect(asked).toEqual(['2/story'])
+  })
+
+  it("shows a Portal 2 chapter's board, with the chapter picked in the list", async () => {
+    const asked = servePoints()
+    await renderRoute('/leaderboard/chapter/7')
+    expect(await screen.findByRole('heading', { name: 'The Courtesy Call', level: 1 })).toBeInTheDocument()
+    expect(screen.getByText('Singleplayer · Chapter 1')).toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: 'Chapter' })).toHaveValue('/leaderboard/chapter/7')
+    const tabs = screen.getByRole('navigation', { name: 'Portal 2 boards' })
+    expect(within(tabs).getByRole('link', { name: 'Single Player' })).toHaveAttribute('aria-current', 'page')
+    // A chapter needs a time on its 9 maps.
+    await screen.findAllByRole('link', { name: 'hero' })
+    // The same rows served for a 9-map chapter: Rex's 57 times now count, with the lowest total.
+    expect(names('Time')).toEqual(['Rex', 'hero', 'AngerySnek', 'Flaming Bag', 'Super82553'])
+    expect(asked).toEqual(['1/chapter-7'])
+  })
+
+  it('names co-op courses as courses', async () => {
+    servePoints()
+    await renderRoute('/leaderboard/chapter/1')
+    expect(await screen.findByText('Cooperative · Course 1')).toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: 'Chapter' })).toHaveDisplayValue('Course 1: Team Building')
+  })
+
+  it("picking a season on a chapter opens the season's copy of the mode's board", async () => {
+    servePoints()
+    const { router } = await renderRoute('/leaderboard/chapter/7')
+    await userEvent.selectOptions(await screen.findByRole('combobox', { name: 'Season' }), SEASON)
+    await waitFor(() => expect(router.state.location.href).toBe(`/leaderboard/sp?season=${SEASON}`))
+  })
+
+  it("shows another game's boards, asked for by the chapters' game_mode", async () => {
+    const asked = servePoints()
+    await renderRoute('/leaderboard/game/custom-game/custom-game-sp')
+    expect(await screen.findByRole('heading', { name: 'Main Board', level: 1 })).toBeInTheDocument()
+    expect(screen.getByText('Custom Game', { selector: 'header p' })).toBeInTheDocument()
+    const tabs = screen.getByRole('navigation', { name: 'Custom Game boards' })
+    expect(
+      within(tabs)
+        .getAllByRole('link')
+        .map((a) => a.textContent),
+    ).toEqual(['Overall', 'Main Board'])
+    await screen.findAllByRole('link', { name: 'hero' })
+    expect(asked).toEqual(['3/sp'])
+    // The game has 3 maps: everyone in the fixture but the one-time player has a total.
+    expect(names('Time')).not.toContain('Unknown')
+    expect(names('Time')).toHaveLength(5)
+  })
+})

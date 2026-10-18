@@ -1,9 +1,11 @@
 import {
+  baseBoardOf,
   currentSeason,
   gameBoardPath,
   gameBoardsPath,
   MEL,
   modeLabel,
+  p2ChapterByDbId,
   PORTAL2,
   seasonBoard,
   seasonFor,
@@ -83,6 +85,46 @@ export function builtInTarget(
   const title = BUILT_IN_KINDS[game]?.[kind]
   if (!title) return { redirect: gameBoardsPath(game) }
   return boardView(c, game, kind, title, picked)
+}
+
+/** /leaderboard/chapter/{id}: one Portal 2 chapter or co-op course (all-time only). */
+export function chapterTarget(c: Catalog, chapterId: string): AggregatedTarget {
+  const chapter = p2ChapterByDbId(c, chapterId)
+  if (!chapter) return { redirect: gameBoardsPath(PORTAL2) }
+  const kicker = `${modeLabel(c, chapter.mode)} · ${chapter.multiplayer ? 'Course' : 'Chapter'} ${chapter.number}`
+  return {
+    view: {
+      game: PORTAL2,
+      kind: chapter.mode,
+      title: chapter.name,
+      kicker,
+      season: null,
+      board: { game: PORTAL2, board: `chapter-${chapterId}` },
+    },
+  }
+}
+
+/**
+ * /leaderboard/game/{game}/{board}: another game's board. The built-in games go to their own
+ * addresses, and an old season address opens its game's board with the season picked.
+ */
+export function gameTarget(
+  c: Catalog,
+  gameId: string,
+  board: string | undefined,
+  picked: string | null | undefined,
+  search = '',
+): AggregatedTarget {
+  const g = c.games[gameId]
+  if (!g) return { redirect: gameBoardsPath(PORTAL2) }
+  if (BUILT_IN_KINDS[gameId]) return { redirect: gameBoardsPath(gameId) }
+  if (g.kind === 'season' && g.base && c.games[g.base]) {
+    const path = gameBoardPath(g.base, baseBoardOf(c, gameId, board ?? 'overall'))
+    return { redirect: withSeason(`${path}${search}`, gameId) }
+  }
+  if (!board || (board !== 'overall' && !g.modes.includes(board))) return { redirect: gameBoardsPath(gameId) }
+  const title = board === 'overall' ? 'Overall' : modeLabel(c, board)
+  return boardView(c, gameId, board, title, picked, g.label)
 }
 
 export interface BoardTabs {

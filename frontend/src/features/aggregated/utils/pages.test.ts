@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { BUILTIN_CATALOG, buildCatalog, type CatalogRaw } from '@/lib/catalog'
 import catalogRaw from '@/testing/fixtures/catalog.json'
-import { boardTabs, builtInTarget, DEFAULT_KICKER, seasonKicker } from './pages'
+import { boardTabs, builtInTarget, chapterTarget, DEFAULT_KICKER, gameTarget, seasonKicker } from './pages'
 
 const catalog = buildCatalog(catalogRaw as CatalogRaw)
 const SEASON = 'portal-2-season-1'
@@ -105,5 +105,56 @@ describe('boardTabs', () => {
       ],
     })
     expect(boardTabs(catalog, 'nope')).toBeNull()
+  })
+})
+
+describe('chapterTarget', () => {
+  it("opens a chapter's board under its mode", () => {
+    expect(chapterTarget(catalog, '8')).toEqual({
+      view: {
+        game: 'portal2',
+        kind: 'sp',
+        title: 'The Cold Boot',
+        kicker: 'Singleplayer · Chapter 2',
+        season: null,
+        board: { game: 'portal2', board: 'chapter-8' },
+      },
+    })
+    expect(chapterTarget(catalog, '99')).toEqual({ redirect: '/leaderboard/overall' })
+  })
+})
+
+describe('gameTarget', () => {
+  it("opens a custom game's board with the game as the kicker", () => {
+    expect(gameTarget(catalog, 'custom-game', 'overall', undefined)).toEqual({
+      view: {
+        game: 'custom-game',
+        kind: 'overall',
+        title: 'Overall',
+        kicker: 'Custom Game',
+        season: null,
+        board: { game: 'custom-game', board: 'overall' },
+      },
+    })
+  })
+
+  it('sends unknown games and boards, and the built-in games, to their boards', () => {
+    expect(gameTarget(catalog, 'nope', 'overall', undefined)).toEqual({ redirect: '/leaderboard/overall' })
+    expect(gameTarget(catalog, 'portal2', 'sp', undefined)).toEqual({ redirect: '/leaderboard/overall' })
+    expect(gameTarget(catalog, 'custom-game', undefined, undefined)).toEqual({
+      redirect: '/leaderboard/game/custom-game/overall',
+    })
+    expect(gameTarget(catalog, 'custom-game', 'coop', undefined)).toEqual({
+      redirect: '/leaderboard/game/custom-game/overall',
+    })
+  })
+
+  it("sends an old season address to its game's board with the season picked, keeping the query", () => {
+    expect(gameTarget(catalog, SEASON, `${SEASON}-sp`, undefined, '?player=1')).toEqual({
+      redirect: `/leaderboard/sp?player=1&season=${SEASON}`,
+    })
+    expect(gameTarget(catalog, SEASON, undefined, undefined)).toEqual({
+      redirect: `/leaderboard/overall?season=${SEASON}`,
+    })
   })
 })

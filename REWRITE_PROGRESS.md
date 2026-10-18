@@ -40,8 +40,8 @@
   - [x] 5.2b Map page: board, co-op halves, co-op PB style: c9a1553
   - [x] 5.2c Map page: WR history with hidden WRs for staff: c9a1553
   - [x] 5.2d Wall of Shame: d2f476b
-  - [x] 5.4a Aggregated: Portal 2 overall / sp / coop: (pending)
-  - [ ] 5.4b Aggregated: Mel, chapters, custom games and seasons
+  - [x] 5.4a Aggregated: Portal 2 overall / sp / coop: cd183b1
+  - [x] 5.4b Aggregated: Mel, chapters, custom games and seasons: (pending)
   - [ ] 5.5a Profiles: header, tabs per game, seasons in tab
   - [ ] 5.5b Profiles: points history chart with wheel zoom
   - [ ] 5.5c Profiles: activity heatmap, demo stats, co-op partners
@@ -68,6 +68,13 @@
 
 ## Log
 <!-- Newest first. One entry per finished item: date, what was done, commit, tests added. -->
+- 2026-10-18: 5.4b Aggregated boards: `/leaderboard/mel/$kind`, `/leaderboard/chapter/$chapterId` (kicker
+  "Singleplayer · Chapter 1" / "Cooperative · Course 1", the chapter picked in the list, a season pick opens the
+  mode's season board), `/leaderboard/game/$gameId` and `/$board` (custom games asked for by the chapters' game_mode,
+  their own tabs; built-in games and unknown boards redirect; an old season address opens its game's board with the
+  season picked, keeping the query). `chapterTarget` / `gameTarget` in `utils/pages.ts`. These redirects need the
+  catalog, so they happen from the page (`<Redirect>`), not in `beforeLoad`. Commit (pending). Tests: 12 (+10
+  redirect rows, +4 route rows).
 - 2026-10-18: 5.4a Aggregated boards, Portal 2 (`features/aggregated`): `utils/points.ts` (`adaptPoints`,
   `serverBoard`: which `/points/game/{id}/{board}` and how many maps a Time entry needs), `utils/pages.ts` (what
   each address shows: title, kicker, season copy of the board, `/leaderboard/season` -> the running season or "No
@@ -76,7 +83,7 @@
   country pickers, tabs keeping country and season). `/leaderboard/$kind` uses it; the shared code already handles
   Mel, chapters, custom games and seasons, whose routes come in 5.4b. Sample data: `samplePoints` (port of
   `mockAggregated`). Fixture `points-sp.json` captured from the local API. Not compared in a browser this session.
-  Commit (pending). Tests: 31 (+4 route rows).
+  Commit cd183b1. Tests: 31 (+4 route rows).
 - 2026-10-18: 5.2d Wall of Shame (`features/leaderboards`): `api/wall-of-shame.ts` (GET /wall_of_shame, sorted by
   name ignoring case and accents, as legacy), `WallOfShamePage` (search by name or Steam id, "N banned players" /
   "M of N" count, empty and no-match messages, cards linking to profiles), route loader prefetch. Sample data: the
