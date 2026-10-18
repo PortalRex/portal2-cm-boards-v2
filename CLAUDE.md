@@ -53,6 +53,8 @@ and `backend/` with a `.env` copied from `.env.example`.
 - **shadcn/ui** for components. Components are copied into the repo, so restyle them by editing the component or
   the theme tokens, not by wrapping them in one-off overrides. Use Tailwind with CSS variables for theming
   (light/dark), and add new primitives with the shadcn CLI.
+- **Lucide** (`lucide-react`) for icons, the shadcn default (`iconLibrary` in `components.json`). Don't add a second
+  icon library. For brand logos Lucide lacks (Steam, YouTube), use a small inline SVG or a file in `assets/`.
 - **Vitest + React Testing Library + MSW** for tests.
 
 ### Structure (Bulletproof React)
@@ -140,6 +142,20 @@ Rules:
 
 ---
 
+## Code style
+
+Applies to all code, frontend and backend.
+
+- **Formatting:** frontend code follows **Prettier** (config in `frontend/.prettierrc.json`). Run `npm run format`
+  and don't hand-format against it. Rust uses `cargo fmt`.
+- **Readable first.** Write code the next person can follow at a glance: clear names, small functions, early returns
+  over deep nesting, comments only for the *why*. Match the style of the surrounding code.
+- **Avoid duplication.** Before writing something new, look for an existing helper, component, hook or query
+  factory. When the same logic appears a second time, extract it (frontend: shared `components/`, `hooks/`, `lib/`
+  or a feature's `utils/`; backend: a shared controller or tool function) instead of copying it.
+
+---
+
 ## Backend (`server/` and `backend/`)
 
 The basic structure is in place. Follow it and don't restructure it.
@@ -215,6 +231,6 @@ The goal is that a change in one place cannot silently break another.
 ### Before you finish a task
 
 1. Run the full test suite for every part you touched (frontend and/or `server` / `backend`), not only the new tests.
-2. Typecheck and lint (`npm run typecheck && npm run lint`, `cargo clippy`).
+2. Format, typecheck and lint (`npm run format && npm run typecheck && npm run lint`, `cargo fmt && cargo clippy`).
 3. If an API response shape changed, update the frontend types, MSW handlers and tests in the same change.
 4. Report failures honestly. Never skip, delete or weaken a test to make it pass.
