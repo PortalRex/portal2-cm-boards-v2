@@ -10,3 +10,14 @@ export const boardLabel = (c: Catalog, key: string) => (key === 'overall' ? 'Ove
 /** A board key from the address, if the game has it (else the default). */
 export const pick = (value: string | undefined, allowed: string[], fallback: string) =>
   value && allowed.includes(value) ? value : fallback
+
+/** A steady colour per player. */
+export const hue = (id: string) => [...id].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 360, 7)
+
+/** The History page's views (?view=). */
+export const HISTORY_VIEWS = [
+  { value: 'longest', label: 'Longest lasting' },
+  { value: 'domination', label: 'Longest domination' },
+  { value: 'improvements', label: 'Biggest improvements' },
+  { value: 'days', label: 'Days holding' },
+]

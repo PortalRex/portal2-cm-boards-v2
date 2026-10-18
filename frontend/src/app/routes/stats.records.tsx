@@ -1,7 +1,27 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { NotBuiltYet } from '@/components/placeholder-page'
+import { z } from 'zod'
+import { StatsShell } from '@/components/stats-shell'
+import { RecordsPanel } from '@/features/stats/components/wr-panels'
 
-// Stats: Records (5.6).
+const text = z.string().optional().catch(undefined)
+
+// Stats: Records.
 export const Route = createFileRoute('/stats/records')({
-  component: () => <NotBuiltYet title="Stats" />,
+  validateSearch: z.looseObject({ mode: text, game: text }),
+  component: RecordsRoute,
 })
+
+function RecordsRoute() {
+  const { mode } = Route.useSearch()
+  const navigate = Route.useNavigate()
+  return (
+    <StatsShell>
+      <RecordsPanel
+        mode={mode}
+        onMode={(v) =>
+          void navigate({ search: (prev) => ({ ...prev, mode: v || undefined }), replace: true })
+        }
+      />
+    </StatsShell>
+  )
+}

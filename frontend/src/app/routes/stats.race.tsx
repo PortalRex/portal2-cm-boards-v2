@@ -1,7 +1,27 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { NotBuiltYet } from '@/components/placeholder-page'
+import { z } from 'zod'
+import { StatsShell } from '@/components/stats-shell'
+import { RacePanel } from '@/features/stats/components/wr-panels'
 
-// Stats: Race (5.6).
+const text = z.string().optional().catch(undefined)
+
+// Stats: Race.
 export const Route = createFileRoute('/stats/race')({
-  component: () => <NotBuiltYet title="Stats" />,
+  validateSearch: z.looseObject({ board: text, game: text }),
+  component: RaceRoute,
 })
+
+function RaceRoute() {
+  const { board } = Route.useSearch()
+  const navigate = Route.useNavigate()
+  return (
+    <StatsShell>
+      <RacePanel
+        board={board}
+        onBoard={(v) =>
+          void navigate({ search: (prev) => ({ ...prev, board: v || undefined }), replace: true })
+        }
+      />
+    </StatsShell>
+  )
+}
