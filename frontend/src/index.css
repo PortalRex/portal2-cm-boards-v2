@@ -1,0 +1,278 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+@import '@fontsource/barlow-semi-condensed/300.css';
+@import '@fontsource/barlow-semi-condensed/400.css';
+@import '@fontsource/barlow-semi-condensed/500.css';
+@import '@fontsource/barlow-semi-condensed/600.css';
+@import '@fontsource/barlow-semi-condensed/700.css';
+
+/* Dark is the design default; public/theme.js and the theme toggle set data-theme="light". */
+@custom-variant dark (&:where(:root:not([data-theme="light"]), :root:not([data-theme="light"]) *));
+@custom-variant light (&:where([data-theme="light"], [data-theme="light"] *));
+
+/*
+ * Design tokens from the "Portal 2 Leaderboards 2" Figma file (the legacy site's index.css),
+ * plus the shadcn token names mapped onto them so the copied primitives use the same palette.
+ */
+:root {
+  --page: #1e1f21;
+  --panel: #141414;
+  --panel-head: #1e1f21;
+  --card-surface: #18191c;
+  --card-head: #1e1f21;
+  --row: #18191b;
+  --row-alt: #141414;
+  --row-sub: #131416;
+  --row-sub-alt: #101010;
+  --control: #191a1c;
+  --control-raised: #212224;
+  --line: #3f4042;
+  --line-strong: #5c5d5f;
+
+  --text: #ffffff;
+  --text-2: #d9d9d9;
+  --text-muted: #9a9b9d;
+  --text-dim: #6f7072;
+
+  --brand: #0775bd;
+  --brand-light: #8ecbf5;
+  --green: #8ad97c;
+  --wr-row: #2c2431;
+  --trophy: #db7eff;
+
+  --rank-prev: #3e5739;
+  --rank-new: #2f3a6f;
+  --rank-cell: #262729;
+  --rank-cell-text: #b5b6b8;
+  --rank-cell-divider: #1a1b1d;
+  --pending: #243548;
+  --pending-text: #9fb6cf;
+
+  --portal-blue: rgba(40, 140, 255, 0.16);
+  --portal-orange: rgba(255, 140, 30, 0.16);
+  --portal-neutral: rgba(160, 162, 166, 0.12);
+
+  --menu: #151618;
+  --seg-active: #262729;
+  --seg-hover: #1f2022;
+  --track: #2a2b2d;
+  --control-raised-2: #3a3b3d;
+  --chart-grid: #2a2b2d;
+  --chart-line: #2f9bea;
+  --hl-green: #344231;
+  --hl-green-2: #2f3d2c;
+  --hl-teal: #2a4a40;
+  --hl-red: #614144;
+  --hl-red-text: #e3c4c7;
+  --banned: #614144;
+  --banned-text: #e3c4c7;
+  --series-coop: #f28b8b;
+  --series-sp: #a3b6f5;
+  --series-overall: #a7f0a0;
+  --page-rgb: 30 31 33;
+  --panel-rgb: 20 20 20;
+  --row-rgb: 24 25 27;
+
+  /* shadcn names */
+  --background: var(--page);
+  --foreground: var(--text);
+  --card: var(--panel);
+  --card-foreground: var(--text);
+  --popover: var(--menu);
+  --popover-foreground: var(--text);
+  --primary: var(--brand);
+  --primary-foreground: #ffffff;
+  --secondary: var(--control-raised);
+  --secondary-foreground: var(--text);
+  --muted: var(--control);
+  --muted-foreground: var(--text-muted);
+  --accent: var(--seg-hover);
+  --accent-foreground: var(--text);
+  --destructive: #e5484d;
+  --border: var(--line);
+  --input: var(--line);
+  --ring: var(--brand-light);
+  --chart-1: var(--chart-line);
+  --chart-2: var(--series-sp);
+  --chart-3: var(--series-coop);
+  --chart-4: var(--series-overall);
+  --chart-5: var(--trophy);
+
+  --radius: 6px;
+  --content: 1640px;
+  color-scheme: dark;
+}
+
+:root[data-theme='light'] {
+  --page: #e9ebee;
+  --panel: #ffffff;
+  --panel-head: #f2f3f5;
+  --card-surface: #fafbfc;
+  --card-head: #eff1f3;
+  --row: #f4f5f7;
+  --row-alt: #ffffff;
+  --row-sub: #eceef1;
+  --row-sub-alt: #e6e8eb;
+  --control: #ffffff;
+  --control-raised: #e8eaed;
+  --line: #cdd0d5;
+  --line-strong: #a5a9b0;
+
+  --text: #15171a;
+  --text-2: #33363b;
+  --text-muted: #5d626a;
+  --text-dim: #868b93;
+
+  --brand: #0775bd;
+  --brand-light: #075e98;
+  --green: #2b7f1f;
+  --wr-row: #f1e4f8;
+  --trophy: #9333c4;
+
+  --rank-prev: #d3e6cc;
+  --rank-new: #d2d9f6;
+  --rank-cell: #d9dbde;
+  --rank-cell-text: #5d626a;
+  --rank-cell-divider: #c3c6cb;
+  --pending: #d8e5f4;
+  --pending-text: #2a4867;
+
+  --portal-blue: rgba(40, 140, 255, 0.14);
+  --portal-orange: rgba(255, 140, 30, 0.16);
+  --portal-neutral: rgba(90, 94, 100, 0.12);
+
+  --menu: #ffffff;
+  --seg-active: #dcdfe4;
+  --seg-hover: #eceef1;
+  --track: #dfe2e6;
+  --control-raised-2: #d5d8dd;
+  --chart-grid: #e0e3e7;
+  --chart-line: #1b7fd1;
+  --hl-green: #dcebd6;
+  --hl-green-2: #e3efdf;
+  --hl-teal: #d6ece5;
+  --hl-red: #f3dcdf;
+  --hl-red-text: #7a2e36;
+  --banned: #f3dcdf;
+  --banned-text: #7a2e36;
+  --series-coop: #d6455a;
+  --series-sp: #3c5fd6;
+  --series-overall: #2f9a3a;
+  --page-rgb: 233 235 238;
+  --panel-rgb: 255 255 255;
+  --row-rgb: 244 245 247;
+
+  --destructive: #c62a2f;
+  color-scheme: light;
+}
+
+@theme inline {
+  --font-sans: 'Barlow Semi Condensed', 'Arial Narrow', sans-serif;
+  --font-heading: var(--font-sans);
+
+  /* shadcn */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  /* Site palette: bg-panel, text-text-muted, border-line, ... */
+  --color-page: var(--page);
+  --color-panel: var(--panel);
+  --color-panel-head: var(--panel-head);
+  --color-card-surface: var(--card-surface);
+  --color-card-head: var(--card-head);
+  --color-row: var(--row);
+  --color-row-alt: var(--row-alt);
+  --color-row-sub: var(--row-sub);
+  --color-row-sub-alt: var(--row-sub-alt);
+  --color-control: var(--control);
+  --color-control-raised: var(--control-raised);
+  --color-control-raised-2: var(--control-raised-2);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-text: var(--text);
+  --color-text-2: var(--text-2);
+  --color-text-muted: var(--text-muted);
+  --color-text-dim: var(--text-dim);
+  --color-brand: var(--brand);
+  --color-brand-light: var(--brand-light);
+  --color-green: var(--green);
+  --color-wr-row: var(--wr-row);
+  --color-trophy: var(--trophy);
+  --color-rank-prev: var(--rank-prev);
+  --color-rank-new: var(--rank-new);
+  --color-rank-cell: var(--rank-cell);
+  --color-rank-cell-text: var(--rank-cell-text);
+  --color-rank-cell-divider: var(--rank-cell-divider);
+  --color-pending: var(--pending);
+  --color-pending-text: var(--pending-text);
+  --color-portal-blue: var(--portal-blue);
+  --color-portal-orange: var(--portal-orange);
+  --color-portal-neutral: var(--portal-neutral);
+  --color-menu: var(--menu);
+  --color-seg-active: var(--seg-active);
+  --color-seg-hover: var(--seg-hover);
+  --color-track: var(--track);
+  --color-chart-grid: var(--chart-grid);
+  --color-chart-line: var(--chart-line);
+  --color-hl-green: var(--hl-green);
+  --color-hl-green-2: var(--hl-green-2);
+  --color-hl-teal: var(--hl-teal);
+  --color-hl-red: var(--hl-red);
+  --color-hl-red-text: var(--hl-red-text);
+  --color-banned: var(--banned);
+  --color-banned-text: var(--banned-text);
+  --color-series-coop: var(--series-coop);
+  --color-series-sp: var(--series-sp);
+  --color-series-overall: var(--series-overall);
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: var(--radius);
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --container-content: var(--content);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html,
+  body,
+  #root {
+    min-height: 100%;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-size: 16px;
+  }
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+}
+
+@utility num {
+  font-variant-numeric: tabular-nums;
+}

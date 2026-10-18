@@ -5,15 +5,15 @@
 
 ## Checklist
 <!-- Every step and Step 5 feature item from FRONTEND_REWRITE.md, as checkboxes. -->
-- [x] 1. Rename old frontend to `frontend-legacy` (compose, README, CLAUDE.md, this log): (pending)
+- [x] 1. Rename old frontend to `frontend-legacy` (compose, README, CLAUDE.md, this log): 269197e
 - [ ] 2. Scaffold
-  - [ ] 2a. Vite + React + TS strict (`noUncheckedIndexedAccess`) + `@/` alias
-  - [ ] 2b. Tailwind + shadcn init (CSS-variable theming, light/dark)
-  - [ ] 2c. TanStack Query + Router (file routes in `src/app/routes/`), zod, recharts
-  - [ ] 2d. ESLint (typescript-eslint, react-hooks, import/no-restricted-paths zones) + Prettier
-  - [ ] 2e. Vitest + RTL + MSW setup, `renderWithProviders`, smoke test
-  - [ ] 2f. Dev proxy, validated env (`src/config/env.ts`)
-  - [ ] 2g. Public assets and images (`public/`, `src/assets/`, Mel NOTICE.md, `theme.js`)
+  - [x] 2a. Vite + React + TS strict (`noUncheckedIndexedAccess`) + `@/` alias: (pending)
+  - [x] 2b. Tailwind + shadcn init (CSS-variable theming, light/dark): (pending)
+  - [x] 2c. TanStack Query + Router (file routes in `src/app/routes/`), zod, recharts: (pending)
+  - [x] 2d. ESLint (typescript-eslint, react-hooks, import/no-restricted-paths zones) + Prettier: (pending)
+  - [x] 2e. Vitest + RTL + MSW setup, `renderWithProviders`, smoke test: (pending)
+  - [x] 2f. Dev proxy, validated env (`src/config/env.ts`): (pending)
+  - [x] 2g. Public assets and images (`public/`, `src/assets/`, Mel NOTICE.md, `theme.js`): (pending)
   - [ ] 2h. Docker: Dockerfile, nginx.conf (`/assets/`), security headers, compose back to `./frontend`
 - [ ] 3. Foundation
   - [ ] 3.1 `lib/api-client.ts` (`api.*`, `ApiError`, `apiUrl`, param dropping, FormData)
@@ -68,12 +68,28 @@
 
 ## Log
 <!-- Newest first. One entry per finished item: date, what was done, commit, tests added. -->
+- 2026-10-17: Steps 2a-2g. Vite 8 + React 19 + TS 6 (strict, `noUncheckedIndexedAccess`, `@/` alias), Tailwind 4 +
+  shadcn (radix-nova) with the legacy Figma palette as theme tokens, TanStack Query + Router (file routes in
+  `src/app/routes/`, tree generated to `src/app/routeTree.gen.ts`), zod-validated env (`src/config/env.ts`), ESLint
+  with the import-boundary zones (checked with throwaway cross-feature imports: both rules fire), Prettier, Vitest +
+  RTL + MSW (`renderWithProviders`, `renderRoute`), dev proxy, public assets, theme.js and images. Commit (pending).
+  Tests: app shell smoke test, env parsing (4).
 - 2026-10-17: Step 1. Branch `frontend-rewrite` from `v2-redesign` (0b3120f). Moved `frontend/` to
   `frontend-legacy/` with history, pointed compose (prod and dev) at it, updated README, CLAUDE.md and the
   security-headers path in BACKEND_CHANGES.md. Commit (pending). No tests (no code yet).
 
 ## Decisions and findings
 <!-- Legacy behaviours discovered, choices made and why. -->
+- Theme: legacy is dark by default and sets `data-theme="light"` on `<html>` for light (`p2cm.theme`). The new CSS
+  keeps that: the dark values sit on `:root`, the light ones on `:root[data-theme="light"]`, and Tailwind's `dark:`
+  variant means "not light". shadcn's token names (`--background`, `--primary`, ...) point at the legacy tokens.
+  `--border`/`--accent`/`--card` were legacy names too; the legacy ones are renamed `--line`, `--brand`,
+  `--card-surface` to free the shadcn names.
+- Font: Barlow Semi Condensed is self-hosted through `@fontsource` instead of Google Fonts. Looks the same, and needs
+  no third-party request.
+- Tooling versions: ESLint is pinned to 9 because `eslint-plugin-import` doesn't support 10 yet. MSW 3 renamed
+  `onUnhandledRequest` to `onUnhandledFrame`. Tests fail on any request without a handler.
+- `cn` in `lib/utils.ts` is shadcn's own package (github.com/shadcn-ui/cn), the replacement for clsx + tailwind-merge.
 - The hardening merge added a CSP in `security-headers.conf` (no inline scripts) and `public/theme.js` (sets the
   theme before first paint without an inline script). The new app keeps both: nginx includes the same headers file,
   and `index.html` loads `theme.js` as a file. Vite's production build doesn't inline scripts, so no extra flag is needed.
