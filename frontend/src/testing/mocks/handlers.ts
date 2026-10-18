@@ -6,4 +6,8 @@ export const API = 'http://localhost:3000/api/v1'
 
 // Default handlers shared by the tests and the sample-data browser worker. Tests add their own
 // with server.use(...).
-export const handlers: RequestHandler[] = [http.get(`${API}/catalog`, () => HttpResponse.json(catalog))]
+export const handlers: RequestHandler[] = [
+  http.get(`${API}/catalog`, () => HttpResponse.json(catalog)),
+  http.get(`${API}/site`, () => HttpResponse.json({ private: false })),
+  http.get(`${API}/auth/me`, () => HttpResponse.json(null)),
+]

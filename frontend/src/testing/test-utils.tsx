@@ -10,6 +10,10 @@ import { render } from '@testing-library/react'
 import type { ReactElement } from 'react'
 import type { RouterContext } from '@/app/routes/__root'
 import { routeTree } from '@/app/routeTree.gen'
+import { adaptMe } from '@/lib/auth'
+import { queryKeys } from '@/lib/query-keys'
+import { STORAGE_KEYS } from '@/lib/storage'
+import { users, type TestUser } from './data/users'
 
 export function createTestQueryClient() {
   return new QueryClient({
@@ -21,14 +25,25 @@ interface Options {
   /** Starting URL (path and search), "/" by default. */
   route?: string
   queryClient?: QueryClient
+  /** Who is signed in (as /auth/me would say); anonymous by default. */
+  user?: TestUser | null
+  /** Staff viewing the site as a player (Settings). */
+  viewAsPlayer?: boolean
+}
+
+function prepare({ queryClient, user = null, viewAsPlayer = false }: Omit<Options, 'route'>) {
+  const client = queryClient ?? createTestQueryClient()
+  client.setQueryData(queryKeys.me(), adaptMe(user ? users[user] : null))
+  if (viewAsPlayer) localStorage.setItem(STORAGE_KEYS.viewAsPlayer, '1')
+  return client
 }
 
 /**
  * Renders a component inside a fresh QueryClient and an in-memory router whose only route
  * renders `ui`, so router hooks (search params, links) work at `route`.
  */
-export function renderWithProviders(ui: ReactElement, { route = '/', queryClient }: Options = {}) {
-  const client = queryClient ?? createTestQueryClient()
+export function renderWithProviders(ui: ReactElement, { route = '/', ...options }: Options = {}) {
+  const client = prepare(options)
   const rootRoute = createRootRouteWithContext<RouterContext>()({
     component: () => (
       <>
@@ -52,8 +67,8 @@ export function renderWithProviders(ui: ReactElement, { route = '/', queryClient
 }
 
 /** Renders the real app routes at `route`, for route-level tests (redirects, guards, loaders). */
-export function renderRoute(route: string, { queryClient }: Omit<Options, 'route'> = {}) {
-  const client = queryClient ?? createTestQueryClient()
+export function renderRoute(route: string, options: Omit<Options, 'route'> = {}) {
+  const client = prepare(options)
   const router = createRouter({
     routeTree,
     context: { queryClient: client },
