@@ -374,8 +374,9 @@ The notes below cover only what the legacy code doesn't make obvious.
 
 **5.3 details**
 
-- Every staff action (ban, verify, delete, remove demo, hide from WR history, set co-op partner or host, notes) needs a
-  reason, is hidden in view-as-player mode, and calls `invalidateRun` on success.
+- Every staff action (ban, verify, delete, remove demo, hide from WR history, set co-op partner or host, notes) asks for a
+  reason, is hidden in view-as-player mode, and calls `invalidateRun` on success. **Decided:** the reason stays optional,
+  as in legacy and on the server.
 - Autorender calls (`check-videos-exist`, `HEAD …/video?source=`) go directly to `VITE_AUTORENDER_URL`, and video files
   come from `VITE_AUTORENDER_STORAGE_URL`.
 - Demo upload is multipart, up to 50 MB: preview first, then submit. Show the server's error messages as legacy does.
@@ -426,6 +427,7 @@ Deliberate changes from the legacy site that the user has already approved. Don'
 | # | Legacy | New | Why |
 |---|---|---|---|
 | D1 | Falls back to sample data (`api/mock.js`) automatically when the API can't be reached, even in production | Sample data only when `VITE_USE_MOCK=true`. If the API is down, pages show a normal error state | The live site must never show fake scores |
+| D2 | MUI icons (`@mui/icons-material`) | The closest Lucide icons; brand logos as small inline SVGs | MUI is ruled out. Icon polish comes after the port (see Follow-ups) |
 
 Not differences, so keep them as legacy does: the catalog still falls back to the built-in Portal 2 / Mel data when
 `GET /catalog` fails (that's real map data), and the "using sample data" indicator still appears whenever sample data shows.
@@ -471,5 +473,6 @@ On top of the rules in CLAUDE.md, every feature needs:
 
 Ideas found during the rewrite that would change behaviour. List them here and don't build them yet.
 
+- Icons: polish the Lucide replacements for the legacy MUI icons once the port is done (D2).
 - Aggregated boards: picking a country drops `?season=` (legacy replaces the whole query), so a season board flips
   to all-time. Keeping the season would match what the tabs and chapter picker already do.

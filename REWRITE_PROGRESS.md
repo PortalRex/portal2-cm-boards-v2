@@ -41,7 +41,7 @@
   - [x] 5.2c Map page: WR history with hidden WRs for staff: c9a1553
   - [x] 5.2d Wall of Shame: d2f476b
   - [x] 5.4a Aggregated: Portal 2 overall / sp / coop: cd183b1
-  - [x] 5.4b Aggregated: Mel, chapters, custom games and seasons: (pending)
+  - [x] 5.4b Aggregated: Mel, chapters, custom games and seasons: 25910a6
   - [ ] 5.5a Profiles: header, tabs per game, seasons in tab
   - [ ] 5.5b Profiles: points history chart with wheel zoom
   - [ ] 5.5c Profiles: activity heatmap, demo stats, co-op partners
@@ -73,7 +73,7 @@
   mode's season board), `/leaderboard/game/$gameId` and `/$board` (custom games asked for by the chapters' game_mode,
   their own tabs; built-in games and unknown boards redirect; an old season address opens its game's board with the
   season picked, keeping the query). `chapterTarget` / `gameTarget` in `utils/pages.ts`. These redirects need the
-  catalog, so they happen from the page (`<Redirect>`), not in `beforeLoad`. Commit (pending). Tests: 12 (+10
+  catalog, so they happen from the page (`<Redirect>`), not in `beforeLoad`. Commit 25910a6. Tests: 12 (+10
   redirect rows, +4 route rows).
 - 2026-10-18: 5.4a Aggregated boards, Portal 2 (`features/aggregated`): `utils/points.ts` (`adaptPoints`,
   `serverBoard`: which `/points/game/{id}/{board}` and how many maps a Time entry needs), `utils/pages.ts` (what
@@ -267,7 +267,8 @@
 - The notice keeps the legacy text "Sample data · API offline", which legacy also showed with `REACT_APP_USE_MOCK`.
 - Icons: legacy used `@mui/icons-material`, which the plan rules out. `components/icons.tsx` keeps the legacy names and
   maps them to the closest lucide icons; lucide 1.x has no brand icons, so YouTube and GitHub are drawn as SVGs like
-  Steam, Discord and Twitch. The glyphs look slightly different (see Blocked / questions).
+  Steam, Discord and Twitch. The glyphs look slightly different; the user accepted this as D2 (2026-10-18), icon
+  polish comes after the port.
 - `ErrorState` is new: it is what pages show where legacy fell back to sample data (D1).
 - Line height: legacy never set one (browser `normal`); Tailwind's preflight uses 1.5 and every `text-*` size carries
   its own. index.css sets `html { line-height: normal }` and the `--text-*--line-height` theme values to `normal`,
@@ -296,7 +297,7 @@
   existing elements can stay stale until then.
 - Map board rows: legacy's two stripe rules tie on specificity and the later (translucent panel) one matches every
   entry, so the board is not striped; chamber history and the WR editor are (first row = row colour). Kept so.
-- Staff reasons: legacy and the server treat the reason as optional; kept optional (see Blocked / questions).
+- Staff reasons: legacy and the server treat the reason as optional; the user decided to keep it optional (2026-10-18).
 - `cn` in `lib/utils.ts` is shadcn's own package (github.com/shadcn-ui/cn), the replacement for clsx + tailwind-merge.
 - The hardening merge added a CSP in `security-headers.conf` (no inline scripts) and `public/theme.js` (sets the
   theme before first paint without an inline script). The new app keeps both: nginx includes the same headers file,
@@ -307,7 +308,3 @@
 
 ## Blocked / questions
 <!-- Things waiting on the user. -->
-- Staff action reasons: FRONTEND_REWRITE.md 5.3 says every staff action "needs a reason", but legacy and the server
-  treat it as optional. Kept optional for parity; should the new site require one?
-- Icons: MUI can't come back, so the icons are now lucide's closest matches (trophy, history, timer, thumbs, ...). Their
-  shapes differ a little from legacy's. Should this be listed as accepted difference D2? Work continues with lucide.
