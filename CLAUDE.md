@@ -214,6 +214,10 @@ The goal is that a change in one place cannot silently break another.
     admin guards, and what a regular player sees compared with staff.
 - Test what the user sees (roles, labels, text), not implementation details.
 - Commands: `npm run test` (watch), `npm run test -- --run` (CI), `npm run typecheck`, `npm run lint`.
+- The full frontend suite is slow (minutes) and some tests time out under its load. Don't run it after
+  every change: run only the test files the change could affect (`npx vitest --run <files>`), e.g. the
+  tests next to the edited files and those of the components that use them. Run the full suite only
+  when asked or for wide-reaching changes.
 
 ### Backend
 
@@ -230,7 +234,8 @@ The goal is that a change in one place cannot silently break another.
 
 ### Before you finish a task
 
-1. Run the full test suite for every part you touched (frontend and/or `server` / `backend`), not only the new tests.
+1. Run the tests for every part you touched (frontend and/or `server` / `backend`), not only the new tests. For the
+   frontend, that means the affected test files rather than the whole suite (see Testing → Frontend).
 2. Format, typecheck and lint (`npm run format && npm run typecheck && npm run lint`, `cargo fmt && cargo clippy`).
 3. If an API response shape changed, update the frontend types, MSW handlers and tests in the same change.
 4. Report failures honestly. Never skip, delete or weaken a test to make it pass.
