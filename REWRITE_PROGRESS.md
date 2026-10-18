@@ -23,7 +23,7 @@
   - [x] 3.5 Static data: `countries`, `roles`, built-in maps / bsp names / seasons: 7694f3b
   - [x] 3.6 Per-browser settings (localStorage keys, try/catch) and theme: f9c0072
   - [x] 3.7 `lib/catalog` (query options, selectors, built-in fallback, root loader): 74c99f5
-  - [x] 3.8 `lib/query-keys.ts` and `lib/invalidate.ts`: (pending)
+  - [x] 3.8 `lib/query-keys.ts` and `lib/invalidate.ts`: cfb9afe
   - [ ] 3.9 `lib/auth` (`/auth/me`, roles, view-as-player) + `hooks/use-current-user`
   - [ ] 3.10 `hooks/use-game` (URL wins, saved choice, branding)
   - [ ] 3.11 Shared run model: `types/runs.ts` + adapters with captured fixtures
@@ -72,6 +72,8 @@
   `lib/invalidate.ts` (`invalidateRun`, `invalidateUser`), and `hooks/use-coop-role-overrides.ts` (the co-op host
   overrides in the query cache). Commit (pending). Tests: 4 (what each invalidation marks stale and leaves alone;
   overrides shared between readers).
+  Correction: cfb9afe was committed with the overrides test failing (it didn't wait for Query's batched
+  notifications); fixed in the next commit. Commits now go through a gate script that stops on any failure.
 - 2026-10-17: 3.7 `lib/catalog`: raw `/catalog` types, `buildCatalog` (port of `applyCatalog`, immutable),
   `BUILTIN_CATALOG` (built-in Portal 2 / Mel with bundled images via `import.meta.glob`), selectors (maps, chapters,
   boards, `gameIdParam`, `pickableGames`), season helpers, `catalogQueryOptions` / `useCatalog`, and the root route
