@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { NotBuiltYet } from '@/components/placeholder-page'
 
-// Stub until the profiles feature (5.5); PlayerLink links here.
+// Profiles (5.5).
 export const Route = createFileRoute('/profile/$profileId')({
-  component: () => <h1 className="p-4 text-2xl font-semibold">Profile</h1>,
+  component: () => <NotBuiltYet title="Profile" />,
 })

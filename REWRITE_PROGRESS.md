@@ -30,8 +30,8 @@
   - [x] 3.12 Sample data mode: MSW handlers + factories, browser worker behind `VITE_USE_MOCK`, indicator: d2bead4
   - [x] 3.13 Shared UI on shadcn (panels, tabs, selects, toggles, avatars, flags, score cells, icons): c058b8c
   - [x] 3.14 Layout + TopBar (nav, dropdowns, Aggregate menu per game, More menu, account area, theme toggle): 128c893
-  - [x] 3.15 Private mode gate in the root route: (pending)
-- [ ] 4. Routes: every legacy URL and redirect, thin route files with zod search params
+  - [x] 3.15 Private mode gate in the root route: 846cc64
+- [x] 4. Routes: every legacy URL and redirect, thin route files with zod search params: (pending)
 - [ ] 5. Features
   - [ ] 5.1a Score Updates: list, filters/limits/toggles in search params
   - [ ] 5.1b Score Updates: daily chambers, weekly recap, graph
@@ -68,6 +68,11 @@
 
 ## Log
 <!-- Newest first. One entry per finished item: date, what was done, commit, tests added. -->
+- 2026-10-17: Step 4. A route file for every legacy URL (`src/app/routes/`), the redirects (`/leaderboard`,
+  `/leaderboard/mel`, `/stats/times`, and `/compare` and `/more/countries` keeping their query), `/more/$page` and
+  the root not-found page as the legacy Placeholder. Pages not built yet show `NotBuiltYet` with their title; each
+  feature replaces its stub and adds its zod search schema. Commit (pending). Tests: 36 route tests (every URL, every
+  redirect with and without a query) + search-param tests.
 - 2026-10-17: 3.15 Private mode: `components/layouts/private-gate.tsx` (port of PrivateGate: "Coming soon" with
   Steam sign-in back to the page, or "signed in as a non-staff account" with sign-out). The root loader now also
   loads `/site` and `/auth/me`. Like legacy, the gate checks the real role, so staff viewing as a player get in.
@@ -207,6 +212,9 @@
 - Phone menu: legacy hides every Aggregate flyout (chapters and seasons) on narrow screens; kept so.
 - Menu state that legacy reset in an effect on route change (phone menu, game picker) is keyed to the page instead,
   which the React hooks lint prefers; it closes on navigation as before.
+- Search params: TanStack Router's default parser JSON-parses query values, which turned `?a=76561198000000001` into a
+  number and lost digits (caught by the `/compare` redirect test). The router (and the test routers) use
+  `lib/search-params.ts`: values stay text, URLs stay plain like legacy's, and route schemas coerce where needed.
 - `cn` in `lib/utils.ts` is shadcn's own package (github.com/shadcn-ui/cn), the replacement for clsx + tailwind-merge.
 - The hardening merge added a CSP in `security-headers.conf` (no inline scripts) and `public/theme.js` (sets the
   theme before first paint without an inline script). The new app keeps both: nginx includes the same headers file,

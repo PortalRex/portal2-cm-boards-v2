@@ -1,6 +1,7 @@
 import type { QueryClient } from '@tanstack/react-query'
 import { createRootRouteWithContext, Outlet } from '@tanstack/react-router'
 import { PrivateGate } from '@/components/layouts/private-gate'
+import { PlaceholderPage } from '@/components/placeholder-page'
 import { TopBar } from '@/components/layouts/top-bar'
 import { SampleDataNotice } from '@/components/sample-data-notice'
 import { useTheme } from '@/hooks/use-theme'
@@ -22,6 +23,8 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       queryClient.ensureQueryData(meQueryOptions()),
     ]),
   component: RootLayout,
+  // Unknown addresses get the legacy placeholder ("Page not found").
+  notFoundComponent: () => <PlaceholderPage />,
 })
 
 function RootLayout() {

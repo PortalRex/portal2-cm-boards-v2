@@ -12,6 +12,7 @@ import type { RouterContext } from '@/app/routes/__root'
 import { routeTree } from '@/app/routeTree.gen'
 import { adaptMe } from '@/lib/auth'
 import { queryKeys } from '@/lib/query-keys'
+import { parseSearch, stringifySearch } from '@/lib/search-params'
 import { STORAGE_KEYS } from '@/lib/storage'
 import { users, type TestUser } from './data/users'
 
@@ -57,6 +58,8 @@ export async function renderWithProviders(ui: ReactElement, { route = '/', ...op
     routeTree: rootRoute,
     context: { queryClient: client },
     history: createMemoryHistory({ initialEntries: [route] }),
+    parseSearch,
+    stringifySearch,
   })
   await router.load()
   const result = render(
@@ -78,6 +81,8 @@ export async function renderRoute(route: string, options: Omit<Options, 'route'>
     routeTree,
     context: { queryClient: client },
     history: createMemoryHistory({ initialEntries: [route] }),
+    parseSearch,
+    stringifySearch,
   })
   await router.load()
   const result = render(
