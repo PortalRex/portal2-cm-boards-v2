@@ -57,8 +57,8 @@
   - [x] 5.7 Settings (name/avatar locks, view-as-player for staff): 09d111c
   - [x] 5.8 About, Donators, Placeholder: 0287124
   - [x] 5.9a Admin: guard, layout, audit log: afea143
-  - [x] 5.9b Admin: reports, background jobs: d55d54f (lint fix (pending))
-  - [ ] 5.9c Admin: games editor (split into components)
+  - [x] 5.9b Admin: reports, background jobs: d55d54f (lint fix 6a7c9a5)
+  - [x] 5.9c Admin: games editor (split into components): (pending)
   - [ ] 5.9d Staff inbox long poll
 - [ ] 6. Parity and cutover
   - [ ] 6.1 `frontend/PARITY.md`, every route x role x game x theme x phone
@@ -68,13 +68,20 @@
 
 ## Log
 <!-- Newest first. One entry per finished item: date, what was done, commit, tests added. -->
+- 2026-10-18: 5.9c Games editor, split from legacy's 1,125-line file into `features/admin/components/games/`
+  (`games-editor` list + panel host, `new-game-form`, `game-panel` with branding, `image-row` shared by game and map
+  pictures, `game-modes` with `ModeSelect`, `game-links` with the season pool, `layout-editor` with chapter heads and
+  add forms, `map-editor` with categories and links), `api/catalog-editor.ts`, and the pure helpers (slugs, mode
+  keys, times, map / chapter moves) in `utils/catalog-editor.ts`. Every change refetches the catalog (the editor's
+  and the site's, same query key) and reloads run data. The legacy sheet's cascade is worked out per element in
+  `styles.ts`. Tests: 6 helper tests, 12 editor tests (2 under happy-dom for image uploads). Commit (pending).
 - 2026-10-18: 5.9b Run reports (`components/reports.tsx`: open / resolved / dismissed / all, 50 per page, the run with
   its flags, details, resolve or dismiss with a note and optionally the run's other open reports, how a closed one
   ended, reopen; refreshes the reports, count, inbox, log and the run) and Background jobs
   (`components/background-jobs.tsx`: state, schedule, last run, Run now / Dry run in the background, polled every
   15 s and every 3 s while running; once a real run started here finishes, the site's run data reloads). Tests: 7.
   Commit d55d54f. It went out with a lint error (setState in an effect; my commit command didn't stop on the gate's
-  failure). Fixed in the next commit: the finished-run check now runs in the jobs query's fetch. Commit (pending).
+  failure). Fixed in the next commit: the finished-run check now runs in the jobs query's fetch. Commit 6a7c9a5.
 - 2026-10-18: 5.9a Staff panel (`features/admin`): `/admin?section=` (log, reports, games, jobs; validated, and a
   section the user can't open shows the changelog, as legacy). Who sees what is legacy's: visitors are asked to sign
   in, players and staff viewing as a player get "Staff only.", reports for every staff tier with the open count,
@@ -333,6 +340,11 @@
 
 ## Decisions and findings
 <!-- Legacy behaviours discovered, choices made and why. -->
+- Games editor: legacy's whole sheet hung off `.ge` element rules (`.ge button`, `.ge input`), which outranked several
+  class rules. Kept the visible results: the games list buttons have 0 14px padding, 15px text, a 4px radius and no
+  hover; the season's "link to base" checkbox sits above its text (the form's label rule made it a column); a
+  season's read-only map chips keep the draggable chips' colour and grab cursor. Like the rest of the staff panel it
+  can't be compared with legacy on sample data.
 - Staff panel guard: legacy doesn't redirect non-staff away from /admin; the page itself says "Sign in with an admin
   account…" or "Staff only.". Kept as is (FRONTEND_REWRITE: copy legacy's role checks exactly), so the route has no
   `beforeLoad` redirect. The section is now in the address (`?section=`, replace navigation) rather than page state;

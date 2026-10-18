@@ -11,6 +11,7 @@ import { isRoleAdmin, isStaff } from '@/lib/auth'
 import { reportCountQueryOptions } from '../api/audit'
 import { AuditLog } from './audit-log'
 import { BackgroundJobs } from './background-jobs'
+import { GamesEditor } from './games/games-editor'
 import { Reports } from './reports'
 
 export type AdminSection = 'log' | 'reports' | 'games' | 'jobs'
@@ -84,7 +85,7 @@ export function AdminPage({
         ) : shown === 'jobs' ? (
           <BackgroundJobs />
         ) : shown === 'games' ? (
-          <EmptyState>Not built yet in the new site.</EmptyState>
+          <GamesEditor />
         ) : (
           <AuditLog />
         )}
