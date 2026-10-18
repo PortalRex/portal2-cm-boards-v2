@@ -31,9 +31,9 @@
   - [x] 3.13 Shared UI on shadcn (panels, tabs, selects, toggles, avatars, flags, score cells, icons): c058b8c
   - [x] 3.14 Layout + TopBar (nav, dropdowns, Aggregate menu per game, More menu, account area, theme toggle): 128c893
   - [x] 3.15 Private mode gate in the root route: 846cc64
-- [x] 4. Routes: every legacy URL and redirect, thin route files with zod search params: (pending)
+- [x] 4. Routes: every legacy URL and redirect, thin route files with zod search params: 4570ca2
 - [ ] 5. Features
-  - [ ] 5.1a Score Updates: list, filters/limits/toggles in search params
+  - [x] 5.1a Score Updates: list, filters/limits/toggles in search params: (pending)
   - [ ] 5.1b Score Updates: daily chambers, weekly recap, graph
   - [ ] 5.1c Score Updates: inline Run Details slot (read-only Run Details)
   - [ ] 5.2a Map list (catalog images with built-in fallback)
@@ -68,6 +68,16 @@
 
 ## Log
 <!-- Newest first. One entry per finished item: date, what was done, commit, tests added. -->
+- 2026-10-17: 5.1a Score Updates list. Shared run pieces: `lib/runs/changelog.ts` (legacy fetchChangelog's params,
+  query options), `lib/runs/reactions.ts`, `lib/runs/video.ts`, `lib/autorender.ts`, `lib/rows.ts`,
+  `hooks/use-rendered-set.ts`, `components/runs/run-media.tsx` (autorender / YouTube / demo / comment links, RunVideo)
+  and `components/runs/time-button.tsx` (the history dialog behind every time). Feature `score-updates`: URL filters
+  (`utils/filters.ts`, legacy semantics: defaults left out, toggles "1", page reset, other params kept), co-op half
+  merging, `ScoreRow` (rank change, map with image, co-op tints and PB marks in both styles, time button, deltas,
+  date, reactions, status), `RowReactions`, `ScoreFilters` (incl. the phone "More filters" fold), `ScoreUpdatesList`.
+  `Select`/`Segmented` gained size options. Compared with legacy in the browser on sample data: at 1440 px every
+  header and cell of the table matches to the pixel and the filter bar is the same height; at 375 px the two-line
+  phone rows match too. Run Details is a slot (5.1c). Commit (pending). Tests: 40.
 - 2026-10-17: Step 4. A route file for every legacy URL (`src/app/routes/`), the redirects (`/leaderboard`,
   `/leaderboard/mel`, `/stats/times`, and `/compare` and `/more/countries` keeping their query), `/more/$page` and
   the root not-found page as the legacy Placeholder. Pages not built yet show `NotBuiltYet` with their title; each
@@ -215,6 +225,10 @@
 - Search params: TanStack Router's default parser JSON-parses query values, which turned `?a=76561198000000001` into a
   number and lost digits (caught by the `/compare` redirect test). The router (and the test routers) use
   `lib/search-params.ts`: values stay text, URLs stay plain like legacy's, and route schemas coerce where needed.
+- Shared run code: the run history dialog, media links and the changelog query are used by Score Updates, the map
+  page and profiles, so they live in `lib/runs`, `components/runs` and `hooks/`, not in one feature.
+- Reactions in a row keep their own counts after a click (as legacy did) rather than refetching the list.
+- Autorender share ids are cached per set of ids in the query cache (legacy had a module-level Map).
 - `cn` in `lib/utils.ts` is shadcn's own package (github.com/shadcn-ui/cn), the replacement for clsx + tailwind-merge.
 - The hardening merge added a CSP in `security-headers.conf` (no inline scripts) and `public/theme.js` (sets the
   theme before first paint without an inline script). The new app keeps both: nginx includes the same headers file,

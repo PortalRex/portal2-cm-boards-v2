@@ -1,12 +1,13 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { siteBackground } from '@/components/layouts/backgrounds'
-import { Page } from '@/components/layouts/page'
+import { ScoreUpdatesPage } from '@/features/score-updates/components/score-updates-page'
+import { scoreUpdatesSearchSchema } from '@/features/score-updates/utils/filters'
 
-// Placeholder until Score Updates (5.1).
 export const Route = createFileRoute('/')({
-  component: () => (
-    <Page background={siteBackground}>
-      <h1 className="p-4 text-2xl font-semibold">Score Updates</h1>
-    </Page>
-  ),
+  validateSearch: scoreUpdatesSearchSchema,
+  component: ScoreUpdatesRoute,
 })
+
+function ScoreUpdatesRoute() {
+  const search = Route.useSearch()
+  return <ScoreUpdatesPage search={search} />
+}

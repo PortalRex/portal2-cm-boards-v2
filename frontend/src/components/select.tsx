@@ -1,3 +1,4 @@
+import { cn } from 'cn'
 import { NativeSelect, NativeSelectOption } from './ui/native-select'
 
 export interface SelectOption {
@@ -12,18 +13,22 @@ export function Select({
   onChange,
   options,
   label,
+  size = 'lg',
   className,
 }: {
   value: string
   onChange: (value: string) => void
   options: SelectOption[]
   label?: string
+  /** "lg": 40 px (the default); "md": 32 px, for filter bars. */
+  size?: 'lg' | 'md'
+  /** Width classes; the boards' dropdowns are at least 218 px wide unless given another min-width. */
   className?: string
 }) {
   return (
     <NativeSelect
-      size="lg"
-      className={className}
+      size={size}
+      className={cn('min-w-[218px] [&_select]:w-full', className)}
       value={value}
       onChange={(e) => onChange(e.target.value)}
       aria-label={label}
