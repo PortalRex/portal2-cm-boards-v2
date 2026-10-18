@@ -62,7 +62,7 @@ export function ScoreRow({
           className={cn(
             'col-span-2 self-stretch upto900:col-auto upto900:[grid-area:rank]',
             // Phones: only the new rank.
-            'upto900:[&>div]:min-h-10 upto900:[&>div]:grid-cols-1 upto900:[&>div]:text-[15px] upto900:[&>div>:nth-child(-n+2)]:hidden',
+            'upto900:[&>div]:min-h-10 upto900:[&>div]:grid-cols-1 upto900:[&>div]:text-[15px] upto900:[&>div>:first-child]:hidden upto900:[&>div>svg]:hidden',
           )}
         >
           <RankChange pre={entry.preRank} post={entry.postRank} />

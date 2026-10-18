@@ -39,7 +39,8 @@ export function AutorenderLink({
       </a>
     )
   }
-  if (!video.render) return <PlayIcon className={cn(filled, off)} style={icon} role="img" aria-label="No autorender" />
+  if (!video.render)
+    return <PlayIcon className={cn(filled, off)} style={icon} role="img" aria-label="No autorender" />
   return (
     <a
       href={video.render}
@@ -116,7 +117,8 @@ export function CommentButton({ note, size = 22 }: { note: string | null | undef
     }
   }, [pinned])
   const icon = { width: size - shrink, height: size - shrink }
-  if (!note) return <CommentIcon className={cn(filled, off)} style={icon} role="img" aria-label="No comment" />
+  if (!note)
+    return <CommentIcon className={cn(filled, off)} style={icon} role="img" aria-label="No comment" />
   // Centred over the icon, but kept inside the window (the bubble is up to 320px wide).
   const place = () => setPos(bubbleAnchor(ref.current, Math.min(160, window.innerWidth * 0.4)))
   return (

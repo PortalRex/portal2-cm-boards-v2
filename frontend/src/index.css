@@ -95,7 +95,6 @@
   --rank-new: #2f3a6f;
   --rank-cell: #262729;
   --rank-cell-text: #b5b6b8;
-  --rank-cell-divider: #1a1b1d;
   --pending: #243548;
   --pending-text: #9fb6cf;
 
@@ -184,7 +183,6 @@
   --rank-new: #d2d9f6;
   --rank-cell: #d9dbde;
   --rank-cell-text: #5d626a;
-  --rank-cell-divider: #c3c6cb;
   --pending: #d8e5f4;
   --pending-text: #2a4867;
 
@@ -292,7 +290,6 @@
   --color-rank-new: var(--rank-new);
   --color-rank-cell: var(--rank-cell);
   --color-rank-cell-text: var(--rank-cell-text);
-  --color-rank-cell-divider: var(--rank-cell-divider);
   --color-pending: var(--pending);
   --color-pending-text: var(--pending-text);
   --color-portal-blue: var(--portal-blue);

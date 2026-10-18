@@ -189,8 +189,10 @@ describe('ranks', () => {
     await renderWithProviders(<RankChange pre={30} post={1} />)
     expect(screen.getByTestId('rank-before')).toHaveTextContent('30')
     const after = screen.getByTestId('rank-after')
-    expect(within(after).getByRole('img', { name: 'World record (rank 1)' })).toBeInTheDocument()
-    expect(after.className).toMatch(/wr-glow/)
+    const trophy = within(after).getByRole('img', { name: 'World record (rank 1)' })
+    // The glow is on the record's tag inside the grey box.
+    expect(trophy.parentElement?.className).toMatch(/wr-glow/)
+    expect(after.className).not.toMatch(/wr-glow/)
   })
 })
 

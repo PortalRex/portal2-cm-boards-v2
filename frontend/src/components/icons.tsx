@@ -75,6 +75,15 @@ export const TriangleDown = ({ size = 14, ...rest }: IconProps) => (
   </svg>
 )
 
+// A solid trophy for world records: lucide's is drawn for outlines, and filling it fills its
+// handles and stem into blobs.
+export const TrophyFilledIcon = ({ children, ...props }: IconProps) => (
+  <svg {...svg(props)}>
+    {children}
+    <path d="M19 5h-2V3H7v2H5c-1.1 0-2 .9-2 2v1c0 2.55 1.92 4.63 4.39 4.94A5.01 5.01 0 0 0 11 15.9V19H7v2h10v-2h-4v-3.1a5.01 5.01 0 0 0 3.61-2.96C19.08 12.63 21 10.55 21 8V7c0-1.1-.9-2-2-2ZM5 8V7h2v3.82C5.84 10.4 5 9.3 5 8Zm14 0c0 1.3-.84 2.4-2 2.82V7h2v1Z" />
+  </svg>
+)
+
 export const SteamIcon = (props: IconProps) => (
   <svg {...svg(props)}>
     <path d="M11.98 1C6.2 1 1.48 5.45 1.02 11.1l5.9 2.44a3.1 3.1 0 0 1 1.76-.54l2.63-3.81v-.05a4.17 4.17 0 1 1 4.17 4.17h-.1l-3.75 2.68v.15a3.13 3.13 0 0 1-6.2.63L1.21 15.1A11 11 0 1 0 11.98 1Zm-4.9 16.7-1.35-.56a2.35 2.35 0 1 0 1.28-3.2l1.4.58a1.73 1.73 0 1 1-1.33 3.18Zm11.1-8.38a2.78 2.78 0 1 0-2.79 2.78 2.78 2.78 0 0 0 2.79-2.78Zm-4.86 0a2.09 2.09 0 1 1 2.08 2.09 2.09 2.09 0 0 1-2.08-2.09Z" />
