@@ -1,10 +1,10 @@
 import { queryOptions } from '@tanstack/react-query'
-import { adaptChangelog, player } from '@/lib/adapters/runs'
+import { player } from '@/lib/adapters/runs'
 import { api } from '@/lib/api-client'
 import { findMap, gameIdParam, getMap, PORTAL2, type Catalog } from '@/lib/catalog'
 import { queryKeys } from '@/lib/query-keys'
+import { getGameRanks, getPlayerRuns } from '@/lib/runs/player-runs'
 import { getProfileScores } from '@/lib/runs/profile-scores'
-import type { ChangelogRaw } from '@/types/runs'
 import type {
   GameResults,
   PointsPeak,
@@ -18,27 +18,12 @@ import type {
 import type { PointsSample } from '../utils/points-chart'
 import { adaptProfile, scoresFromRanks } from '../utils/profile'
 
-/** The player's runs as the profile lists them (legacy asked for them unfiltered, banned included). */
-const getRuns = async (
-  c: Catalog,
-  profileNumber: string,
-  game: string,
-  limit: number,
-  signal?: AbortSignal,
-) =>
-  (
-    await api.get<ChangelogRaw[]>('/changelog', {
-      params: { profile_number: profileNumber, limit, ...gameIdParam(c, game) },
-      signal,
-    })
-  ).map((r) => adaptChangelog(r, game, c))
-
 /** A player's Portal 2 profile: points, places, best runs on every map and every run. */
 export async function getProfile(c: Catalog, profileNumber: string, signal?: AbortSignal): Promise<Profile> {
   const [page, user, history, pbs] = await Promise.all([
     api.get<ProfilePageRaw>(`/profile/${profileNumber}`, { signal }),
     api.get<UserRaw>(`/user/${profileNumber}`, { signal }),
-    getRuns(c, profileNumber, PORTAL2, 5000, signal),
+    getPlayerRuns(c, profileNumber, PORTAL2, 5000, signal),
     getProfileScores(profileNumber, signal),
   ])
   return adaptProfile(c, profileNumber, page, user, history, pbs)
@@ -78,8 +63,8 @@ export async function getGameResults(
   signal?: AbortSignal,
 ): Promise<GameResults> {
   const [ranks, history] = await Promise.all([
-    api.get<Record<string, number>>(`/ranks/game/${c.games[game]?.dbId}/${profileNumber}`, { signal }),
-    getRuns(c, profileNumber, game, 500, signal),
+    getGameRanks(c, profileNumber, game, signal),
+    getPlayerRuns(c, profileNumber, game, 500, signal),
   ])
   return { scores: scoresFromRanks(c, profileNumber, ranks, history, game), history }
 }

@@ -2,6 +2,7 @@ import { getMap, PORTAL2, type Catalog } from '@/lib/catalog'
 import { countryById } from '@/lib/data/countries'
 import { parseTimestamp } from '@/lib/format'
 import { pointsForRank } from '@/lib/points'
+import { latestRuns } from '@/lib/runs/player-runs'
 import type { ProfileScoreRaw } from '@/lib/runs/profile-scores'
 import type { Run } from '@/types/runs'
 import type {
@@ -32,11 +33,7 @@ export function scoresFromRanks(
   history: Run[],
   game: string,
 ): Record<string, MapScore> {
-  const latest: Record<string, Run> = {}
-  for (const h of history) {
-    const seen = latest[h.map.id]
-    if (!seen || time(h.timestamp) > time(seen.timestamp)) latest[h.map.id] = h
-  }
+  const latest = latestRuns(history)
   const scores: Record<string, MapScore> = {}
   for (const [mapId, rank] of Object.entries(ranks ?? {})) {
     const map = getMap(c, mapId, game)
