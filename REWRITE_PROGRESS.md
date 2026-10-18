@@ -22,8 +22,8 @@
   - [x] 3.4 Pure helpers: `activity`, `adminActions`, `youtube`, `scroll`, `pointsForRank`: 6870ddb
   - [x] 3.5 Static data: `countries`, `roles`, built-in maps / bsp names / seasons: 7694f3b
   - [x] 3.6 Per-browser settings (localStorage keys, try/catch) and theme: f9c0072
-  - [x] 3.7 `lib/catalog` (query options, selectors, built-in fallback, root loader): (pending)
-  - [ ] 3.8 `lib/query-keys.ts` and `lib/invalidate.ts`
+  - [x] 3.7 `lib/catalog` (query options, selectors, built-in fallback, root loader): 74c99f5
+  - [x] 3.8 `lib/query-keys.ts` and `lib/invalidate.ts`: (pending)
   - [ ] 3.9 `lib/auth` (`/auth/me`, roles, view-as-player) + `hooks/use-current-user`
   - [ ] 3.10 `hooks/use-game` (URL wins, saved choice, branding)
   - [ ] 3.11 Shared run model: `types/runs.ts` + adapters with captured fixtures
@@ -68,6 +68,10 @@
 
 ## Log
 <!-- Newest first. One entry per finished item: date, what was done, commit, tests added. -->
+- 2026-10-17: 3.8 `lib/query-keys.ts` (a key for every resource legacy `client.js` fetches, resource name first),
+  `lib/invalidate.ts` (`invalidateRun`, `invalidateUser`), and `hooks/use-coop-role-overrides.ts` (the co-op host
+  overrides in the query cache). Commit (pending). Tests: 4 (what each invalidation marks stale and leaves alone;
+  overrides shared between readers).
 - 2026-10-17: 3.7 `lib/catalog`: raw `/catalog` types, `buildCatalog` (port of `applyCatalog`, immutable),
   `BUILTIN_CATALOG` (built-in Portal 2 / Mel with bundled images via `import.meta.glob`), selectors (maps, chapters,
   boards, `gameIdParam`, `pickableGames`), season helpers, `catalogQueryOptions` / `useCatalog`, and the root route
@@ -138,6 +142,9 @@
   one try with a 4 s timeout, no retry). The root loader awaits it so the first page doesn't render without it, as
   legacy blocked the first render. Selectors take the catalog as their first argument instead of reading a global.
 - The fixture's custom game ("Bexc is BALD", a staff test game) was given neutral names; the shape is unchanged.
+- Invalidation is deliberately wide: a run can be copied to linked maps and seasons by DB triggers and moves points for
+  everyone on the map, so `invalidateRun` marks every board, ranking and stats list stale, plus the run, its co-op
+  halves and its players' profiles. Only queries on screen refetch at once, so this costs little.
 - `cn` in `lib/utils.ts` is shadcn's own package (github.com/shadcn-ui/cn), the replacement for clsx + tailwind-merge.
 - The hardening merge added a CSP in `security-headers.conf` (no inline scripts) and `public/theme.js` (sets the
   theme before first paint without an inline script). The new app keeps both: nginx includes the same headers file,
