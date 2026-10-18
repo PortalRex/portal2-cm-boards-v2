@@ -53,7 +53,8 @@ const svg = ({ size = 24, ...rest }: IconProps) => ({
   height: size,
   viewBox: '0 0 24 24',
   fill: 'currentColor',
-  'aria-hidden': true,
+  // Decorative unless given a name.
+  'aria-hidden': rest['aria-label'] ? undefined : true,
   ...rest,
 })
 

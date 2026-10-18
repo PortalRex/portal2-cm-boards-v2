@@ -49,8 +49,8 @@
   - [x] 5.6a Stats: Runners tab: a2459af
   - [x] 5.6b Stats: Records, History, Race tabs: f31bed9 (fixed in the next commit)
   - [x] 5.6c Compare (`?a=&b=`, debounced player search): 2c31c0b
-  - [x] 5.6d Countries: (pending)
-  - [ ] 5.3a Run Details: media (autorender, YouTube)
+  - [x] 5.6d Countries: fc7d07b
+  - [x] 5.3a Run Details: media (autorender, YouTube): (pending)
   - [ ] 5.3b Run Details: reactions, reports
   - [ ] 5.3c Run Details: staff actions with reasons + invalidation
   - [ ] 5.3d Submit Run (upload preview, submit, admin manual entry)
@@ -68,6 +68,11 @@
 
 ## Log
 <!-- Newest first. One entry per finished item: date, what was done, commit, tests added. -->
+- 2026-10-18: 5.3a Run Details media. The pieces were already in place and wired on Score Updates, map boards and
+  profiles (5.1a/5.1c and the profile work); this adds their own tests (`components/runs/run-media.test.tsx`: link
+  states, share ids from the rendered set, demo/YouTube links, comment bubble, video source order and the
+  both-sources-failed fallback, YouTube and render-request fallbacks). Fixed: labelled custom SVG icons (YouTube etc.)
+  were still `aria-hidden`. Filled in the Countries hash. Commit (pending). Tests: 7.
 - 2026-10-18: 5.6d Countries (`features/countries`): `api/countries.ts` (/countries/stats per board) and
   `CountriesPanel` (players and points per country, best five players, each country linking to its board filtered
   to it; overall / single player / co-op switch). Like legacy the board is component state, not in the address, so
