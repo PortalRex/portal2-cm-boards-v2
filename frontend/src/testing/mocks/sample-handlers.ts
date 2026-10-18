@@ -8,6 +8,7 @@ import {
   sampleWeeklyRecap,
   samplePreviews,
   sampleSpBoard,
+  sampleWallOfShame,
 } from '@/testing/data/sample'
 
 // The API as sample data (VITE_USE_MOCK=true): the browser worker serves these, and tests can use
@@ -47,6 +48,7 @@ export function sampleHandlers(api: string): RequestHandler[] {
       const url = new URL(request.url)
       return HttpResponse.json(sampleDaily(gameOf(url), url.searchParams.get('date') ?? undefined))
     }),
+    http.get(`${api}/wall_of_shame`, () => HttpResponse.json(sampleWallOfShame())),
     http.all(`${api}/*`, () =>
       HttpResponse.json({ error: "Sample data doesn't cover this yet." }, { status: 404 }),
     ),

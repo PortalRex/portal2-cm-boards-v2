@@ -63,6 +63,14 @@ export const SAMPLE_PLAYERS: SamplePlayer[] = NAMES.map((name, i) => ({
   country: COUNTRIES[i % COUNTRIES.length]!,
 }))
 
+/** GET /wall_of_shame: the last three sample players, as legacy's sample data. */
+export const sampleWallOfShame = () =>
+  SAMPLE_PLAYERS.slice(-3).map((p) => ({
+    profile_number: p.profileNumber,
+    user_name: p.name,
+    avatar: p.avatar,
+  }))
+
 /** The stand-in signed-in user shown with sample data (never staff). */
 export const SAMPLE_ME: MeRaw = {
   profile_number: SAMPLE_PLAYERS[0]!.profileNumber,

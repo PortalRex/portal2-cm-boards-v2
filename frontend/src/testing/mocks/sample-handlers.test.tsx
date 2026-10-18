@@ -54,6 +54,12 @@ describe('sample handlers', () => {
     expect(await api.get('/catalog')).toEqual([])
   })
 
+  it('serve three banned players for the Wall of Shame, as legacy', async () => {
+    server.use(...sampleHandlers(API))
+    const banned = await api.get<{ profile_number: string }[]>('/wall_of_shame')
+    expect(banned.map((u) => u.profile_number)).toEqual(SAMPLE_PLAYERS.slice(-3).map((p) => p.profileNumber))
+  })
+
   it('signs in a sample player who is never staff', async () => {
     server.use(...sampleHandlers(API))
     const me = await getMe(undefined, true)

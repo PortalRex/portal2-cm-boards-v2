@@ -37,9 +37,9 @@
   - [x] 5.1b Score Updates: daily chambers, weekly recap, graph: ca41dc2
   - [x] 5.1c Score Updates: inline Run Details slot (read-only Run Details): 253c3e9
   - [x] 5.2a Map list (catalog images with built-in fallback): a0c0342
-  - [x] 5.2b Map page: board, co-op halves, co-op PB style: (pending)
-  - [x] 5.2c Map page: WR history with hidden WRs for staff: (pending)
-  - [ ] 5.2d Wall of Shame
+  - [x] 5.2b Map page: board, co-op halves, co-op PB style: c9a1553
+  - [x] 5.2c Map page: WR history with hidden WRs for staff: c9a1553
+  - [x] 5.2d Wall of Shame: (pending)
   - [ ] 5.4a Aggregated: Portal 2 overall / sp / coop
   - [ ] 5.4b Aggregated: Mel, chapters, custom games and seasons
   - [ ] 5.5a Profiles: header, tabs per game, seasons in tab
@@ -68,29 +68,36 @@
 
 ## Log
 <!-- Newest first. One entry per finished item: date, what was done, commit, tests added. -->
+- 2026-10-18: 5.2d Wall of Shame (`features/leaderboards`): `api/wall-of-shame.ts` (GET /wall_of_shame, sorted by
+  name ignoring case and accents, as legacy), `WallOfShamePage` (search by name or Steam id, "N banned players" /
+  "M of N" count, empty and no-match messages, cards linking to profiles), route loader prefetch. Sample data: the
+  last three sample players, as legacy's mock; default test handler answers an empty list. Node isn't installed in
+  this WSL session, so the tooling ran inside the dev compose's `web` container (`docker exec -w /app
+  p2boards-web-1 ...`). Not compared in a browser this session (no browser tool); the layout is a direct port of
+  WallOfShame.css. Commit (pending). Tests: 5.
 - 2026-10-17: 5.2b-c Map page (`features/leaderboards`): redirects (unknown map, wrong mode, season copy, season
   without the map), info panel with the WR history chart (ranges, wheel zoom via shared `hooks/use-wheel-zoom.ts`,
   click for `?at=`), video, wiki/history buttons, board with search, pagination, Your best (profile scores fallback
   via shared `lib/runs/profile-scores.ts`), as-of banner, Run Details slot; Chamber History with filters; staff WR
   history editor (hidden for players and view-as-player). Shared `components/redirect.tsx` (TanStack `<Navigate>`
   looped on the unknown-map redirect). Checked against legacy at 1440 and 375 px: every measured box matches.
-  Commit (pending). Tests: 19.
+  Commit c9a1553. Tests: 19.
 - 2026-10-17: 5.2a Map list (`features/leaderboards`): `MapListPage` (season and mode controls, chapters/courses,
   old `?game=<season>` links), `MapCard` (image header, WR row, next six, fixed icon columns, own runs tinted),
   `api/previews.ts`. Shared `components/season-select.tsx`; selects got an `xl` (46 px) size. The address keeps only
   mode and season, as legacy. Checked in the browser: at 1440 px the controls, chapter header, grid and card geometry
-  match legacy; at 375 px the two-card grid, mode buttons and first-two-rows cards match. Commit (pending). Tests: 7.
+  match legacy; at 375 px the two-card grid, mode buttons and first-two-rows cards match. Commit a0c0342. Tests: 7.
 - 2026-10-17: 5.1c Read-only Run Details (`features/runs`): video (autorender / YouTube / request), co-op half switch,
   mtrigger segments, comment and info, timer-rounding note, demo / YouTube / autorender buttons, with legacy's
   container-query layout (`@container/run-details`). The index route fills Score Updates' `renderRunDetails` slot.
   Reactions, report, pending proof and staff tools come in 5.3 as children of the same panel. Checked in the browser:
   at 1440 px the three columns, video and buttons match legacy (legacy is 28 px taller only by its Report link).
-  Commit (pending). Tests: 9 (+1 route test for the slot).
+  Commit 253c3e9. Tests: 9 (+1 route test for the slot).
 - 2026-10-17: 5.1b Score Updates panels: `RecapPanel` (Weekly recap / Daily chambers / Following tabs, week and day
   pagers keeping the previous data faded while the next loads, as legacy), `ActivityPanel` (month / year / all time
   chart), `api/panels.ts`. Sample data for /recap/weekly and /daily; empty defaults for the panels in the test
   handlers. Checked against legacy in the browser: at 1440 px the panel row, headers and pagers match and the score
-  table starts at the same height; at 375 px the headers, pagers and switches match. Commit (pending). Tests: 7.
+  table starts at the same height; at 375 px the headers, pagers and switches match. Commit ca41dc2. Tests: 7.
 - 2026-10-17: 5.1a Score Updates list. Shared run pieces: `lib/runs/changelog.ts` (legacy fetchChangelog's params,
   query options), `lib/runs/reactions.ts`, `lib/runs/video.ts`, `lib/autorender.ts`, `lib/rows.ts`,
   `hooks/use-rendered-set.ts`, `components/runs/run-media.tsx` (autorender / YouTube / demo / comment links, RunVideo)
@@ -100,17 +107,17 @@
   date, reactions, status), `RowReactions`, `ScoreFilters` (incl. the phone "More filters" fold), `ScoreUpdatesList`.
   `Select`/`Segmented` gained size options. Compared with legacy in the browser on sample data: at 1440 px every
   header and cell of the table matches to the pixel and the filter bar is the same height; at 375 px the two-line
-  phone rows match too. Run Details is a slot (5.1c). Commit (pending). Tests: 40.
+  phone rows match too. Run Details is a slot (5.1c). Commit 145f2ac. Tests: 40.
 - 2026-10-17: Step 4. A route file for every legacy URL (`src/app/routes/`), the redirects (`/leaderboard`,
   `/leaderboard/mel`, `/stats/times`, and `/compare` and `/more/countries` keeping their query), `/more/$page` and
   the root not-found page as the legacy Placeholder. Pages not built yet show `NotBuiltYet` with their title; each
-  feature replaces its stub and adds its zod search schema. Commit (pending). Tests: 36 route tests (every URL, every
+  feature replaces its stub and adds its zod search schema. Commit 4570ca2. Tests: 36 route tests (every URL, every
   redirect with and without a query) + search-param tests.
 - 2026-10-17: 3.15 Private mode: `components/layouts/private-gate.tsx` (port of PrivateGate: "Coming soon" with
   Steam sign-in back to the page, or "signed in as a non-staff account" with sign-out). The root loader now also
   loads `/site` and `/auth/me`. Like legacy, the gate checks the real role, so staff viewing as a player get in.
   `isStaff` returns a plain boolean (its type-guard form narrowed the false branch wrongly). Step 3 done.
-  Commit (pending). Tests: 8 (public site, anonymous, player + sign-out, each staff role, view-as-player, banned).
+  Commit 846cc64. Tests: 8 (public site, anonymous, player + sign-out, each staff role, view-as-player, banned).
 - 2026-10-17: 3.14 Layout and top bar (`components/layouts`): `nav-model.ts` (Aggregate menu per game with chapters
   and seasons, active-page matching, game-switch paths, NAV and More), `top-bar.tsx`, `brand-menu.tsx` (game picker),
   `aggregate-menu.tsx`, `profile-menu.tsx`, `menu-parts.tsx`, `page.tsx` (background, tint, content column),
@@ -118,39 +125,39 @@
   `components/app-link.tsx`. Root route renders the top bar, the page and the sample notice. `npm run dev:mock` added.
   Checked side by side with the legacy site (both on sample data) by measuring layout in the browser: at 1440 px the
   top bar, nav links and Aggregate menu match legacy to the pixel; at 375 px the bar, phone menu rows and expanders
-  match too, with no sideways scroll. Commit (pending). Tests: 22 (menu model, roles, slots, theme, game switch).
+  match too, with no sideways scroll. Commit 128c893. Tests: 22 (menu model, roles, slots, theme, game switch).
 - 2026-10-17: 3.13 Shared UI. shadcn primitives added (input, tabs, toggle(-group), dropdown-menu, dialog, sheet,
   tooltip, popover, separator, skeleton, native-select); `button` (outline + lg) and `native-select` (lg) restyled to
   the legacy controls. Shared components: `panel` (Panel, collapsible Card), `pagination`, `search-box`, `select`,
   `segmented`, `avatar` (+ Flag), `player-link`, `youtube-embed`, `rank` (RankNumber, RankChange), `status` (Loading,
   EmptyState, ErrorState), `icons`. Global utilities in index.css: `rank-tint`, `me-row`, `wr-glow`(`-raised`).
   `renderWithProviders`/`renderRoute` are now async and wait for the router to load. Stub `/profile/$profileId`
-  route so links type-check. Commit (pending). Tests: 16.
+  route so links type-check. Commit c058b8c. Tests: 16.
 - 2026-10-17: 3.12 Sample data mode. `src/testing/data/sample.ts` ports the legacy generators (players, boards,
   previews, changelog, activity) to raw API JSON, so sample data goes through the real adapters.
   `src/testing/mocks/sample-handlers.ts` serves them (built-in catalog, a signed-in sample player marked `sample`, 404
   for endpoints without sample data); `browser.ts` starts the worker. `main.tsx` loads it only when
   `import.meta.env.VITE_USE_MOCK === 'true'` and MSW's Vite plugin (worker script) is only added in that mode: a normal
   build was checked to contain neither the mock code nor `mockServiceWorker.js`, while a mock build emits the worker.
-  `components/sample-data-notice.tsx` is the corner notice. Commit (pending). Tests: 8. Still to check in a browser
+  `components/sample-data-notice.tsx` is the corner notice. Commit d2bead4. Tests: 8. Still to check in a browser
   once the layout exists (3.14).
 - 2026-10-17: 3.11 `types/runs.ts` (raw changelog / sp + coop board / preview / co-op half types from the Rust
   models, and the UI `Run`, `RankedRun`, `PreviewRun`, `CoopHalf`, `Player`) and `lib/adapters/runs.ts`. Fixtures
   captured from the local API, one row per edge case (improvement, first run, banned, pending, co-op roles known and
   unknown, "N/A" filler, Mel, estimated date; co-op board rows with p1 host, p2 host, unknown, filler).
   `legacy-adapted-runs.json` is the legacy adapters' own output on those fixtures (generated by running the legacy
-  code in Node), and the tests require the new adapters to match it. Commit (pending). Tests: 9.
+  code in Node), and the tests require the new adapters to match it. Commit 5fff31a. Tests: 9.
 - 2026-10-17: 3.10 `lib/catalog/games.ts` (`gameFromLocation`, `selectedGame`, `baseGame`, branding with the built-in
   logos/background, board paths) and `hooks/use-game.ts` (`useGame`, `useGamePicker`, `setGame` on `p2cm.game`),
-  `hooks/use-season.ts`. Commit (pending). Tests: 27 (every address form, address beats saved choice, legacy saved
+  `hooks/use-season.ts`. Commit cf15221. Tests: 27 (every address form, address beats saved choice, legacy saved
   game, remembering the address's game, branding overrides).
 - 2026-10-17: 3.9 `lib/auth` (`/auth/me` + `/site` query options, `isStaff`, `isRoleAdmin`, `ROLE_LABELS`,
   `asViewed`, `steamLoginUrl`, `logout`), `hooks/use-current-user.ts`, `hooks/use-view-as-player.ts`. Test users for
   every role (`src/testing/data/users.ts`), `renderWithProviders`/`renderRoute` take `user` and `viewAsPlayer`, and
-  default MSW handlers answer `/auth/me` (signed out) and `/site` (public). Commit (pending). Tests: 12.
+  default MSW handlers answer `/auth/me` (signed out) and `/site` (public). Commit 2e3b835. Tests: 12.
 - 2026-10-17: 3.8 `lib/query-keys.ts` (a key for every resource legacy `client.js` fetches, resource name first),
   `lib/invalidate.ts` (`invalidateRun`, `invalidateUser`), and `hooks/use-coop-role-overrides.ts` (the co-op host
-  overrides in the query cache). Commit (pending). Tests: 4 (what each invalidation marks stale and leaves alone;
+  overrides in the query cache). Commit cfb9afe. Tests: 4 (what each invalidation marks stale and leaves alone;
   overrides shared between readers).
   Correction: cfb9afe was committed with the overrides test failing (it didn't wait for Query's batched
   notifications); fixed in the next commit. Commits now go through a gate script that stops on any failure.
@@ -158,38 +165,38 @@
   `BUILTIN_CATALOG` (built-in Portal 2 / Mel with bundled images via `import.meta.glob`), selectors (maps, chapters,
   boards, `gameIdParam`, `pickableGames`), season helpers, `catalogQueryOptions` / `useCatalog`, and the root route
   loader. `lib/query-keys.ts` started with the catalog key. Fixture `src/testing/fixtures/catalog.json` captured from
-  the local server (Portal 2, Mel, a custom game, a season). Commit (pending). Tests: 26.
+  the local server (Portal 2, Mel, a custom game, a season). Commit 74c99f5. Tests: 26.
 - 2026-10-17: 3.6 `lib/storage.ts` (legacy keys, try/catch, in-memory fallback when blocked, same-page and cross-tab
   change events) and `hooks/use-stored.ts` (`useSyncExternalStore`), with `use-theme`, `use-coop-pb-style`,
   `use-collapsed` (+ group), `use-follows`, `use-debounced`. `p2cm.game` and `p2cm.viewAsPlayer` get their hooks in
-  3.9/3.10. Commit (pending). Tests: 13 (legacy values read back, formats written, blocked storage, sync between
+  3.9/3.10. Commit f9c0072. Tests: 13 (legacy values read back, formats written, blocked storage, sync between
   hooks and tabs).
 - 2026-10-17: 3.5 `lib/data/countries.ts` (+ generated `country-table.ts`), `lib/data/roles.ts`, and the built-in
   map data for the catalog: `lib/catalog/builtin-chapters.ts` and `bsp-names.ts`, generated from the legacy files
   (239 countries, 108 BSP names, 60 sp + 48 coop + 22 story + 18 advanced maps, same as legacy). Seasons helpers
-  depend on the catalog and move to 3.7. Commit (pending). Tests: 27 (roles, role progress, countries).
+  depend on the catalog and move to 3.7. Commit 7694f3b. Tests: 27 (roles, role progress, countries).
 - 2026-10-17: 3.4 `lib/activity.ts`, `lib/admin-actions.ts` (generated from the legacy tables), `lib/youtube.ts`,
-  `lib/scroll.ts`. `pointsForRank` was done in 3.2 (`lib/points.ts`). Commit (pending). Tests: 24 (activity
+  `lib/scroll.ts`. `pointsForRank` was done in 3.2 (`lib/points.ts`). Commit 6870ddb. Tests: 24 (activity
   windows checked against legacy summaries, YouTube link forms, action labels/tones, scroll timing and jump).
 - 2026-10-17: 3.2-3.3 `lib/format.ts`, `lib/points.ts` (`pointsForRank`), `lib/ranks.ts`, `lib/run-filters.ts`,
-  `lib/coop-roles.ts`. Expected values were produced by running the legacy functions in Node. Commit (pending). Tests:
+  `lib/coop-roles.ts`. Expected values were produced by running the legacy functions in Node. Commit 2384e56. Tests:
   108 cases (scores, deltas, timestamps, time ago, dates, ordinals, points, rank colours on both scales, tile
   rainbow, filter options, co-op role overrides).
 - 2026-10-17: 3.1 `lib/api-client.ts`: `api.get/post/put/delete`, `request()` (status + data, for the inbox long
-  poll), `ApiError`, `apiUrl`. Commit (pending). Tests: param dropping, credentials + JSON body, multipart upload,
+  poll), `ApiError`, `apiUrl`. Commit 7419168. Tests: param dropping, credentials + JSON body, multipart upload,
   five error-body shapes, 204 status, link URLs (10).
 - 2026-10-17: Step 2h. Dockerfile (Node 24, `VITE_API_URL`, copies `dist/`), nginx.conf copied with `/static/` ->
   `/assets/`, security headers copied, compose back on `./frontend`, dev compose runs `npm run dev -- --port 3000`.
-  Built the image and ran it: SPA fallback, CSP and the immutable `/assets/` cache all as before. Commit (pending).
+  Built the image and ran it: SPA fallback, CSP and the immutable `/assets/` cache all as before. Commit d192cc9.
 - 2026-10-17: Steps 2a-2g. Vite 8 + React 19 + TS 6 (strict, `noUncheckedIndexedAccess`, `@/` alias), Tailwind 4 +
   shadcn (radix-nova) with the legacy Figma palette as theme tokens, TanStack Query + Router (file routes in
   `src/app/routes/`, tree generated to `src/app/routeTree.gen.ts`), zod-validated env (`src/config/env.ts`), ESLint
   with the import-boundary zones (checked with throwaway cross-feature imports: both rules fire), Prettier, Vitest +
-  RTL + MSW (`renderWithProviders`, `renderRoute`), dev proxy, public assets, theme.js and images. Commit (pending).
+  RTL + MSW (`renderWithProviders`, `renderRoute`), dev proxy, public assets, theme.js and images. Commit 535adf2.
   Tests: app shell smoke test, env parsing (4).
 - 2026-10-17: Step 1. Branch `frontend-rewrite` from `v2-redesign` (0b3120f). Moved `frontend/` to
   `frontend-legacy/` with history, pointed compose (prod and dev) at it, updated README, CLAUDE.md and the
-  security-headers path in BACKEND_CHANGES.md. Commit (pending). No tests (no code yet).
+  security-headers path in BACKEND_CHANGES.md. Commit 269197e. No tests (no code yet).
 
 ## Decisions and findings
 <!-- Legacy behaviours discovered, choices made and why. -->

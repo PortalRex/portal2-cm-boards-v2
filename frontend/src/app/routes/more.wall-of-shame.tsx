@@ -1,7 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { NotBuiltYet } from '@/components/placeholder-page'
+import { wallOfShameQueryOptions } from '@/features/leaderboards/api/wall-of-shame'
+import { WallOfShamePage } from '@/features/leaderboards/components/wall-of-shame-page'
 
-// Wall of Shame (5.2).
 export const Route = createFileRoute('/more/wall-of-shame')({
-  component: () => <NotBuiltYet title="Wall Of Shame" />,
+  loader: ({ context: { queryClient } }) => queryClient.prefetchQuery(wallOfShameQueryOptions()),
+  component: WallOfShamePage,
 })
