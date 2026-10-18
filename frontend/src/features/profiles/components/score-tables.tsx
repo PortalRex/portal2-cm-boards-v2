@@ -5,12 +5,12 @@ import { AppLink } from '@/components/app-link'
 import { Avatar } from '@/components/avatar'
 import { ChevronDownIcon } from '@/components/icons'
 import { PlayerLink } from '@/components/player-link'
-import { RANK_TAG, RankNumber } from '@/components/rank'
+import { RankNumber } from '@/components/rank'
 import { AutorenderLink, CommentButton, DemoLink, YouTubeLink } from '@/components/runs/run-media'
 import { TimeButton } from '@/components/runs/time-button'
 import { mapPath, type Chapter, type MapInfo } from '@/lib/catalog'
 import { formatDateTime, formatDelta, timeAgo } from '@/lib/format'
-import { rankTileVars } from '@/lib/ranks'
+import { RANK_TAG, rankTileVars } from '@/lib/ranks'
 import { toggleOnRowClick } from '@/lib/rows'
 import { scrollToCentre } from '@/lib/scroll'
 import type { Player } from '@/types/runs'
@@ -62,7 +62,7 @@ export function Summary({
       {chapters.map((chapter) => {
         const ranks = chapter.maps.map((m) => scores[m.id]?.rank).filter((r): r is number => Boolean(r))
         const avg = ranks.length ? Math.round(ranks.reduce((a, b) => a + b, 0) / ranks.length) : null
-        const avgClass = cn('num flex items-center justify-center self-stretch text-lg', avg && 'rank-tile')
+        const avgClass = cn(RANK_TAG, 'bg-track', avg && 'rank-tile')
         const nameClass = 'flex flex-col truncate text-lg leading-[1.1] whitespace-nowrap'
         const name = (
           <>
@@ -264,13 +264,11 @@ function ChapterRow({
         aria-expanded={s ? open : undefined}
         onClick={s ? toggleOnRowClick(toggle) : undefined}
       >
-        <span
-          className={cn(
-            'num flex items-center justify-center self-stretch bg-track text-lg',
-            rankClass(s?.rank),
-          )}
-        >
-          <RankNumber rank={s?.rank} inherit />
+        {/* A tag like the Summary's tiles; on phones it fills the narrow column. */}
+        <span className="flex items-center upto800:px-0!">
+          <span className={cn(RANK_TAG, 'bg-track', rankClass(s?.rank, true))}>
+            <RankNumber rank={s?.rank} inherit />
+          </span>
         </span>
         {/* Only the name links to the map; the rest of the row opens the run. */}
         {/* Legacy's own 2px 14px padding lost to the row's `> span` rule: the row's 0 10px applies. */}

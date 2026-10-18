@@ -1,3 +1,4 @@
+import { cn } from 'cn'
 import type { CSSProperties } from 'react'
 
 // Rank number colours from the original board (Portal2Boards public/js/rank.js): a linear RGB
@@ -77,3 +78,9 @@ export function rankTileVars(rank: number | null | undefined): RankVars | undefi
     '--rank-color-dark': `hsl(${h} ${Math.round(90 - 25 * soften)}% ${Math.round(66 + 4 * soften)}%)`,
   }
 }
+
+/** A rank tag's shape without a size, for tags that need their own (the map board's). */
+export const RANK_TAG_BASE = 'num inline-flex items-center justify-center rounded-[2px]'
+
+/** A rank tag's shape, shared by the profile summary's tiles and RankChange. */
+export const RANK_TAG = cn(RANK_TAG_BASE, 'h-[30px] w-[60px] text-base upto800:w-11')

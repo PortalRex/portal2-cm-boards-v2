@@ -1,5 +1,5 @@
 import { cn } from 'cn'
-import { rankVars, WR_COLOR } from '@/lib/ranks'
+import { RANK_TAG, rankVars, WR_COLOR } from '@/lib/ranks'
 import { TriangleRight, TrophyFilledIcon } from './icons'
 
 /**
@@ -40,30 +40,41 @@ export function RankNumber({
   )
 }
 
-/** A rank tag's shape, shared by the profile summary's tiles and RankChange. */
-export const RANK_TAG =
-  'num inline-flex h-[30px] w-[60px] items-center justify-center rounded-[2px] text-base upto800:w-11'
+/**
+ * A rank as a tag: ranks 2–500 in the rank's deeper colour (the light-theme scale), toned down
+ * with grey so white numbers read on it; a world record glows. Other ranks are a plain number.
+ * `className` sizes it (RANK_TAG by default).
+ */
+export function RankTag({
+  rank,
+  className = RANK_TAG,
+}: {
+  rank: number | null | undefined
+  className?: string
+}) {
+  if (rank == null || rank > 500) return <RankNumber rank={rank} colored />
+  return (
+    <span
+      className={cn(
+        className,
+        'bg-[color-mix(in_oklab,var(--rank-color)_80%,#6b6b6b)] font-semibold text-white',
+        rank === 1 && 'wr-glow wr-glow-raised',
+      )}
+      style={rankVars(rank)}
+    >
+      <RankNumber rank={rank} inherit />
+    </span>
+  )
+}
 
-// Ranks 2–500 sit in a tag of the rank's deeper colour (the light-theme scale), toned down with
-// grey so white numbers read on it; the box around it stays grey.
-const tag = cn(RANK_TAG, 'bg-[color-mix(in_oklab,var(--rank-color)_80%,#6b6b6b)] text-white')
-
-/** One side of a RankChange: a grey box with the rank as a coloured tag (a glowing one for a record). */
+/** One side of a RankChange: the rank's tag in a grey box. */
 function RankCell({ rank, testId }: { rank: number | null; testId: string }) {
-  const tagged = rank != null && rank <= 500
   return (
     <span
       className="flex items-center justify-center bg-rank-cell font-semibold text-rank-cell-text"
-      style={rankVars(rank)}
       data-testid={testId}
     >
-      {tagged ? (
-        <span className={cn(tag, rank === 1 && 'wr-glow wr-glow-raised')}>
-          <RankNumber rank={rank} inherit />
-        </span>
-      ) : (
-        <RankNumber rank={rank} inherit />
-      )}
+      <RankTag rank={rank} />
     </span>
   )
 }

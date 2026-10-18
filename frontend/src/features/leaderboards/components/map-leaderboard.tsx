@@ -4,7 +4,7 @@ import { useState, type ReactNode } from 'react'
 import { Avatar } from '@/components/avatar'
 import { Pagination } from '@/components/pagination'
 import { PlayerLink } from '@/components/player-link'
-import { RankNumber } from '@/components/rank'
+import { RankNumber, RankTag } from '@/components/rank'
 import { AutorenderLink, CommentButton, DemoLink, YouTubeLink } from '@/components/runs/run-media'
 import { TimeButton } from '@/components/runs/time-button'
 import { SearchBox } from '@/components/search-box'
@@ -19,6 +19,10 @@ import { toggleOnRowClick } from '@/lib/rows'
 import { profileScoresQueryOptions } from '@/lib/runs/profile-scores'
 import type { RankedRun } from '@/types/runs'
 import { headBase, PAGE_SIZE, rowBase, TINT_BG } from '../utils/board-styles'
+import { RANK_TAG_BASE } from '@/lib/ranks'
+
+// The rank tag's look, small enough for the board's narrow rank column.
+const BOARD_TAG = cn(RANK_TAG_BASE, 'h-6 w-9 text-sm upto900:w-7')
 
 export type RenderRunDetails = (run: RankedRun, map: MapInfo, rendered: Map<number, string>) => ReactNode
 
@@ -146,8 +150,8 @@ export function MapLeaderboard({
                     open ? 'bg-seg-active' : 'bg-[rgb(var(--panel-rgb)/0.9)]',
                   )}
                 >
-                  <span role="cell" className="num text-center text-[15px]">
-                    <RankNumber rank={e.rank} colored />
+                  <span role="cell" className="num flex justify-center text-[15px]">
+                    <RankTag rank={e.rank} className={BOARD_TAG} />
                   </span>
                   {cells.map((p, j) =>
                     p ? (
