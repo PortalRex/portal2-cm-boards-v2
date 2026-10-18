@@ -4,6 +4,8 @@ import {
   sampleActivity,
   sampleChangelog,
   sampleCoopBoard,
+  sampleDaily,
+  sampleWeeklyRecap,
   samplePreviews,
   sampleSpBoard,
 } from '@/testing/data/sample'
@@ -37,6 +39,14 @@ export function sampleHandlers(api: string): RequestHandler[] {
       HttpResponse.json(samplePreviews(gameOf(new URL(request.url)), true)),
     ),
     http.get(`${api}/graph`, () => HttpResponse.json(sampleActivity())),
+    http.get(`${api}/recap/weekly`, ({ request }) => {
+      const url = new URL(request.url)
+      return HttpResponse.json(sampleWeeklyRecap(gameOf(url), url.searchParams.get('week') ?? undefined))
+    }),
+    http.get(`${api}/daily`, ({ request }) => {
+      const url = new URL(request.url)
+      return HttpResponse.json(sampleDaily(gameOf(url), url.searchParams.get('date') ?? undefined))
+    }),
     http.all(`${api}/*`, () =>
       HttpResponse.json({ error: "Sample data doesn't cover this yet." }, { status: 404 }),
     ),

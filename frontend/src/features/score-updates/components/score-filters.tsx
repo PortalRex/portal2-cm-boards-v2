@@ -43,7 +43,7 @@ export function ScoreFilters({
         onChange={(m) => set({ mode: m, map: '' })}
         label="Board"
         className="max-[900px]:w-full"
-        itemClassName="max-[900px]:flex-1 max-[900px]:px-1.5 max-[900px]:text-[15px]"
+        itemClassName="max-[900px]:flex-1 max-[900px]:px-1.5 max-[900px]:text-[15px] max-[700px]:px-3"
         options={[
           { value: '', label: 'All' },
           ...modes.map((m) => ({ value: m, label: modeLabel(catalog, m) })),

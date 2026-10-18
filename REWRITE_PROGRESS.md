@@ -33,8 +33,8 @@
   - [x] 3.15 Private mode gate in the root route: 846cc64
 - [x] 4. Routes: every legacy URL and redirect, thin route files with zod search params: 4570ca2
 - [ ] 5. Features
-  - [x] 5.1a Score Updates: list, filters/limits/toggles in search params: (pending)
-  - [ ] 5.1b Score Updates: daily chambers, weekly recap, graph
+  - [x] 5.1a Score Updates: list, filters/limits/toggles in search params: 145f2ac
+  - [x] 5.1b Score Updates: daily chambers, weekly recap, graph: (pending)
   - [ ] 5.1c Score Updates: inline Run Details slot (read-only Run Details)
   - [ ] 5.2a Map list (catalog images with built-in fallback)
   - [ ] 5.2b Map page: board, co-op halves, co-op PB style
@@ -68,6 +68,11 @@
 
 ## Log
 <!-- Newest first. One entry per finished item: date, what was done, commit, tests added. -->
+- 2026-10-17: 5.1b Score Updates panels: `RecapPanel` (Weekly recap / Daily chambers / Following tabs, week and day
+  pagers keeping the previous data faded while the next loads, as legacy), `ActivityPanel` (month / year / all time
+  chart), `api/panels.ts`. Sample data for /recap/weekly and /daily; empty defaults for the panels in the test
+  handlers. Checked against legacy in the browser: at 1440 px the panel row, headers and pagers match and the score
+  table starts at the same height; at 375 px the headers, pagers and switches match. Commit (pending). Tests: 7.
 - 2026-10-17: 5.1a Score Updates list. Shared run pieces: `lib/runs/changelog.ts` (legacy fetchChangelog's params,
   query options), `lib/runs/reactions.ts`, `lib/runs/video.ts`, `lib/autorender.ts`, `lib/rows.ts`,
   `hooks/use-rendered-set.ts`, `components/runs/run-media.tsx` (autorender / YouTube / demo / comment links, RunVideo)
@@ -229,6 +234,11 @@
   page and profiles, so they live in `lib/runs`, `components/runs` and `hooks/`, not in one feature.
 - Reactions in a row keep their own counts after a click (as legacy did) rather than refetching the list.
 - Autorender share ids are cached per set of ids in the query cache (legacy had a module-level Map).
+- Segmented switches below 700 px: legacy's MapList.css (`.segmented button { flex: 1; min-width: 0; padding: 0 12px }`
+  at max-width 700) is in every page's bundle, so it applied to every switch site-wide. `Segmented` reproduces that
+  (measured identical: 106 / 65 / 59 px buttons on the home page at 375 px).
+- The activity chart measured 9 px wider than legacy's in the hidden browser pane: ResizeObserver doesn't run while
+  nothing paints, so the first measurement sticks. Not a code difference; recheck with the pane visible.
 - `cn` in `lib/utils.ts` is shadcn's own package (github.com/shadcn-ui/cn), the replacement for clsx + tailwind-merge.
 - The hardening merge added a CSP in `security-headers.conf` (no inline scripts) and `public/theme.js` (sets the
   theme before first paint without an inline script). The new app keeps both: nginx includes the same headers file,

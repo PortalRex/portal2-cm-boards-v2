@@ -13,6 +13,12 @@ export const handlers: RequestHandler[] = [
   http.get(`${API}/catalog`, () => HttpResponse.json(catalog)),
   http.get(`${API}/site`, () => HttpResponse.json({ private: false })),
   http.get(`${API}/auth/me`, () => HttpResponse.json(null)),
+  // The home page's panels: empty unless a test says otherwise.
+  http.get(`${API}/graph`, () => HttpResponse.json([])),
+  http.get(`${API}/recap/weekly`, () =>
+    HttpResponse.json({ start: '2026-10-12', end: '2026-10-19', runs: [] }),
+  ),
+  http.get(`${API}/daily`, () => HttpResponse.json({ date: '2026-10-17', chambers: [] })),
   // No rendered videos unless a test says otherwise.
   http.post(`${AUTORENDER}/api/v1/check-videos-exist`, () => HttpResponse.json({ ids: [] })),
 ]

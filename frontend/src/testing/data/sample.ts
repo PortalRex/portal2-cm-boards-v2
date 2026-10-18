@@ -342,3 +342,36 @@ export function sampleActivity(): { date: string; count: number }[] {
   }
   return days
 }
+
+/** GET /recap/weekly: the week's top 5 (here: the best-ranked sample runs). */
+export function sampleWeeklyRecap(game = 'portal2', week = '2026-10-12') {
+  const start = new Date(`${week}T00:00:00Z`)
+  start.setUTCDate(start.getUTCDate() - ((start.getUTCDay() + 6) % 7))
+  const end = new Date(start.getTime() + 7 * DAY)
+  const runs = [...sampleChangelog({ game })]
+    .sort((a, b) => (a.post_rank ?? 999) - (b.post_rank ?? 999))
+    .slice(0, 5)
+  return { start: start.toISOString().slice(0, 10), end: end.toISOString().slice(0, 10), runs }
+}
+
+/** GET /daily: one map per board with a few of its sample runs. */
+export function sampleDaily(game = 'portal2', date = '2026-10-17') {
+  const seed = Number(date.replaceAll('-', ''))
+  const chambers = (BUILTIN_CATALOG.games[game]?.modes ?? []).map((mode, i) => {
+    const maps = mapsForGame(BUILTIN_CATALOG, game).filter((m) => m.mode === mode)
+    const map = maps[(seed + i * 7) % maps.length]!
+    const runs = sampleChangelog({ game, limit: '200' })
+      .filter((r) => r.map_id === map.id)
+      .slice(0, 4)
+    return {
+      map: {
+        steam_id: map.id,
+        name: map.title,
+        game_mode: mode,
+        is_coop: isMultiplayerMode(BUILTIN_CATALOG, mode),
+      },
+      runs,
+    }
+  })
+  return { date, chambers }
+}
