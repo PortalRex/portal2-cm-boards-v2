@@ -1,0 +1,4594 @@
+[
+  {
+    "id": 1,
+    "name": "Portal 2",
+    "slug": "portal2",
+    "kind": "game",
+    "base_game_id": null,
+    "starts_at": null,
+    "ends_at": null,
+    "sort_order": 1,
+    "hidden": false,
+    "short_name": null,
+    "logo_version": null,
+    "background_version": null,
+    "mode_names": {},
+    "chapters": [
+      {
+        "id": 1,
+        "name": "Team Building",
+        "game_mode": "coop",
+        "is_multiplayer": true,
+        "sort_order": 0,
+        "maps": [
+          {
+            "steam_id": "47741",
+            "name": "Doors",
+            "bsp_name": "mp_coop_doors",
+            "default_cat_id": 1,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 1,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-47741"]
+          },
+          {
+            "steam_id": "47825",
+            "name": "Buttons",
+            "bsp_name": "mp_coop_race_2",
+            "default_cat_id": 2,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 2,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-47825"]
+          },
+          {
+            "steam_id": "47828",
+            "name": "Lasers",
+            "bsp_name": "mp_coop_laser_2",
+            "default_cat_id": 3,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 3,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-47828"]
+          },
+          {
+            "steam_id": "47829",
+            "name": "Rat Maze",
+            "bsp_name": "mp_coop_rat_maze",
+            "default_cat_id": 4,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 4,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-47829"]
+          },
+          {
+            "steam_id": "45467",
+            "name": "Laser Crusher",
+            "bsp_name": "mp_coop_laser_crusher",
+            "default_cat_id": 5,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 5,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-45467"]
+          },
+          {
+            "steam_id": "46362",
+            "name": "Behind the Scenes",
+            "bsp_name": "mp_coop_teambts",
+            "default_cat_id": 6,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 6,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-46362"]
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "name": "Mass and Velocity",
+        "game_mode": "coop",
+        "is_multiplayer": true,
+        "sort_order": 0,
+        "maps": [
+          {
+            "steam_id": "47831",
+            "name": "Flings",
+            "bsp_name": "mp_coop_fling_3",
+            "default_cat_id": 7,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 7,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-47831"]
+          },
+          {
+            "steam_id": "47833",
+            "name": "Infinifling",
+            "bsp_name": "mp_coop_infinifling_train",
+            "default_cat_id": 8,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 8,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-47833"]
+          },
+          {
+            "steam_id": "47835",
+            "name": "Team Retrieval",
+            "bsp_name": "mp_coop_come_along",
+            "default_cat_id": 9,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 9,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-47835"]
+          },
+          {
+            "steam_id": "47837",
+            "name": "Vertical Flings",
+            "bsp_name": "mp_coop_fling_1",
+            "default_cat_id": 10,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 10,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-47837"]
+          },
+          {
+            "steam_id": "47840",
+            "name": "Catapults",
+            "bsp_name": "mp_coop_catapult_1",
+            "default_cat_id": 11,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 11,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-47840"]
+          },
+          {
+            "steam_id": "47841",
+            "name": "Multifling",
+            "bsp_name": "mp_coop_multifling_1",
+            "default_cat_id": 12,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 12,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-47841"]
+          },
+          {
+            "steam_id": "47844",
+            "name": "Fling Crushers",
+            "bsp_name": "mp_coop_fling_crushers",
+            "default_cat_id": 13,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 13,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-47844"]
+          },
+          {
+            "steam_id": "47845",
+            "name": "Industrial Fan",
+            "bsp_name": "mp_coop_fan",
+            "default_cat_id": 14,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 14,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-47845"]
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "name": "Hard Light",
+        "game_mode": "coop",
+        "is_multiplayer": true,
+        "sort_order": 0,
+        "maps": [
+          {
+            "steam_id": "47848",
+            "name": "Cooperative Bridges",
+            "bsp_name": "mp_coop_wall_intro",
+            "default_cat_id": 15,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 15,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-47848"]
+          },
+          {
+            "steam_id": "47849",
+            "name": "Bridge Swap",
+            "bsp_name": "mp_coop_wall_2",
+            "default_cat_id": 16,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 16,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-47849"]
+          },
+          {
+            "steam_id": "47854",
+            "name": "Fling Block",
+            "bsp_name": "mp_coop_catapult_wall_intro",
+            "default_cat_id": 17,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 17,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-47854"]
+          },
+          {
+            "steam_id": "47856",
+            "name": "Catapult Block",
+            "bsp_name": "mp_coop_wall_block",
+            "default_cat_id": 18,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 18,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-47856"]
+          },
+          {
+            "steam_id": "47858",
+            "name": "Bridge Fling",
+            "bsp_name": "mp_coop_catapult_2",
+            "default_cat_id": 19,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 19,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-47858"]
+          },
+          {
+            "steam_id": "47861",
+            "name": "Turret Walls",
+            "bsp_name": "mp_coop_turret_walls",
+            "default_cat_id": 20,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 20,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-47861"]
+          },
+          {
+            "steam_id": "52642",
+            "name": "Turret Assassin",
+            "bsp_name": "mp_coop_turret_ball",
+            "default_cat_id": 21,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 21,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-52642"]
+          },
+          {
+            "steam_id": "52660",
+            "name": "Bridge Testing",
+            "bsp_name": "mp_coop_wall_5",
+            "default_cat_id": 22,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 22,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-52660"]
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "name": "Excursion Funnels",
+        "game_mode": "coop",
+        "is_multiplayer": true,
+        "sort_order": 0,
+        "maps": [
+          {
+            "steam_id": "52662",
+            "name": "Cooperative Funnels",
+            "bsp_name": "mp_coop_tbeam_redirect",
+            "default_cat_id": 23,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 23,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-52662"]
+          },
+          {
+            "steam_id": "52663",
+            "name": "Funnel Drill",
+            "bsp_name": "mp_coop_tbeam_drill",
+            "default_cat_id": 24,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 24,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-52663"]
+          },
+          {
+            "steam_id": "52665",
+            "name": "Funnel Catch",
+            "bsp_name": "mp_coop_tbeam_catch_grind_1",
+            "default_cat_id": 25,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 25,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-52665"]
+          },
+          {
+            "steam_id": "52667",
+            "name": "Funnel Laser",
+            "bsp_name": "mp_coop_tbeam_laser_1",
+            "default_cat_id": 26,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 26,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-52667"]
+          },
+          {
+            "steam_id": "52671",
+            "name": "Cooperative Polarity",
+            "bsp_name": "mp_coop_tbeam_polarity",
+            "default_cat_id": 27,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 27,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-52671"]
+          },
+          {
+            "steam_id": "52687",
+            "name": "Funnel Hop",
+            "bsp_name": "mp_coop_tbeam_polarity2",
+            "default_cat_id": 28,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 28,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-52687"]
+          },
+          {
+            "steam_id": "52689",
+            "name": "Advanced Polarity",
+            "bsp_name": "mp_coop_tbeam_polarity3",
+            "default_cat_id": 29,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 29,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-52689"]
+          },
+          {
+            "steam_id": "52691",
+            "name": "Funnel Maze",
+            "bsp_name": "mp_coop_tbeam_maze",
+            "default_cat_id": 30,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 30,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-52691"]
+          },
+          {
+            "steam_id": "52777",
+            "name": "Turret Warehouse",
+            "bsp_name": "mp_coop_tbeam_end",
+            "default_cat_id": 31,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 31,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-52777"]
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "name": "Mobility Gels",
+        "game_mode": "coop",
+        "is_multiplayer": true,
+        "sort_order": 0,
+        "maps": [
+          {
+            "steam_id": "52694",
+            "name": "Repulsion Jumps",
+            "bsp_name": "mp_coop_paint_come_along",
+            "default_cat_id": 32,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 32,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-52694"]
+          },
+          {
+            "steam_id": "52711",
+            "name": "Double Bounce",
+            "bsp_name": "mp_coop_paint_redirect",
+            "default_cat_id": 33,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 33,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-52711"]
+          },
+          {
+            "steam_id": "52714",
+            "name": "Bridge Repulsion",
+            "bsp_name": "mp_coop_paint_bridge",
+            "default_cat_id": 34,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 34,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-52714"]
+          },
+          {
+            "steam_id": "52715",
+            "name": "Wall Repulsion",
+            "bsp_name": "mp_coop_paint_walljumps",
+            "default_cat_id": 35,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 35,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-52715"]
+          },
+          {
+            "steam_id": "52717",
+            "name": "Propulsion Crushers",
+            "bsp_name": "mp_coop_paint_speed_fling",
+            "default_cat_id": 36,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 36,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-52717"]
+          },
+          {
+            "steam_id": "52735",
+            "name": "Turret Ninja",
+            "bsp_name": "mp_coop_paint_red_racer",
+            "default_cat_id": 37,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 37,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-52735"]
+          },
+          {
+            "steam_id": "52738",
+            "name": "Propulsion Retrieval",
+            "bsp_name": "mp_coop_paint_speed_catch",
+            "default_cat_id": 38,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 38,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-52738"]
+          },
+          {
+            "steam_id": "52740",
+            "name": "Vault Entrance",
+            "bsp_name": "mp_coop_paint_longjump_intro",
+            "default_cat_id": 39,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 39,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-52740"]
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "name": "Art Therapy",
+        "game_mode": "coop",
+        "is_multiplayer": true,
+        "sort_order": 0,
+        "maps": [
+          {
+            "steam_id": "49341",
+            "name": "Separation",
+            "bsp_name": "mp_coop_separation_1",
+            "default_cat_id": 40,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 40,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-49341"]
+          },
+          {
+            "steam_id": "49343",
+            "name": "Triple Axis",
+            "bsp_name": "mp_coop_tripleaxis",
+            "default_cat_id": 41,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 41,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-49343"]
+          },
+          {
+            "steam_id": "49345",
+            "name": "Catapult Catch",
+            "bsp_name": "mp_coop_catapult_catch",
+            "default_cat_id": 42,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 42,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-49345"]
+          },
+          {
+            "steam_id": "49347",
+            "name": "Bridge Gels",
+            "bsp_name": "mp_coop_2paints_1bridge",
+            "default_cat_id": 43,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 43,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-49347"]
+          },
+          {
+            "steam_id": "49349",
+            "name": "Maintenance",
+            "bsp_name": "mp_coop_paint_conversion",
+            "default_cat_id": 44,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 44,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-49349"]
+          },
+          {
+            "steam_id": "49351",
+            "name": "Bridge Catch",
+            "bsp_name": "mp_coop_bridge_catch",
+            "default_cat_id": 45,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 45,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-49351"]
+          },
+          {
+            "steam_id": "52757",
+            "name": "Double Lift",
+            "bsp_name": "mp_coop_laser_tbeam",
+            "default_cat_id": 46,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 46,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-52757"]
+          },
+          {
+            "steam_id": "52759",
+            "name": "Gel Maze",
+            "bsp_name": "mp_coop_paint_rat_maze",
+            "default_cat_id": 47,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 47,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-52759"]
+          },
+          {
+            "steam_id": "48287",
+            "name": "Crazier Box",
+            "bsp_name": "mp_coop_paint_crazy_box",
+            "default_cat_id": 48,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 48,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-48287"]
+          }
+        ]
+      },
+      {
+        "id": 7,
+        "name": "The Courtesy Call",
+        "game_mode": "sp",
+        "is_multiplayer": false,
+        "sort_order": 0,
+        "maps": [
+          {
+            "steam_id": "62761",
+            "name": "Container Ride",
+            "bsp_name": "sp_a1_intro1",
+            "default_cat_id": 100,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 100,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-62761"]
+          },
+          {
+            "steam_id": "62758",
+            "name": "Portal Carousel",
+            "bsp_name": "sp_a1_intro2",
+            "default_cat_id": 101,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 101,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-62758"]
+          },
+          {
+            "steam_id": "47458",
+            "name": "Portal Gun",
+            "bsp_name": "sp_a1_intro3",
+            "default_cat_id": 49,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 49,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-47458"]
+          },
+          {
+            "steam_id": "47455",
+            "name": "Smooth Jazz",
+            "bsp_name": "sp_a1_intro4",
+            "default_cat_id": 50,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 50,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-47455"]
+          },
+          {
+            "steam_id": "47452",
+            "name": "Cube Momentum",
+            "bsp_name": "sp_a1_intro5",
+            "default_cat_id": 51,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 51,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-47452"]
+          },
+          {
+            "steam_id": "47106",
+            "name": "Future Starter",
+            "bsp_name": "sp_a1_intro6",
+            "default_cat_id": 52,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 52,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-47106"]
+          },
+          {
+            "steam_id": "62763",
+            "name": "Secret Panel",
+            "bsp_name": "sp_a1_intro7",
+            "default_cat_id": 102,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 102,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-62763"]
+          },
+          {
+            "steam_id": "62759",
+            "name": "Wakeup",
+            "bsp_name": "sp_a1_wakeup",
+            "default_cat_id": 103,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 103,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-62759"]
+          },
+          {
+            "steam_id": "47735",
+            "name": "Incinerator",
+            "bsp_name": "sp_a2_intro",
+            "default_cat_id": 53,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 53,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-47735"]
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "name": "The Cold Boot",
+        "game_mode": "sp",
+        "is_multiplayer": false,
+        "sort_order": 0,
+        "maps": [
+          {
+            "steam_id": "62765",
+            "name": "Laser Intro",
+            "bsp_name": "sp_a2_laser_intro",
+            "default_cat_id": 104,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 104,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-62765"]
+          },
+          {
+            "steam_id": "47736",
+            "name": "Laser Stairs",
+            "bsp_name": "sp_a2_laser_stairs",
+            "default_cat_id": 54,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 54,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-47736"]
+          },
+          {
+            "steam_id": "47738",
+            "name": "Dual Lasers",
+            "bsp_name": "sp_a2_dual_lasers",
+            "default_cat_id": 55,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 55,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-47738"]
+          },
+          {
+            "steam_id": "47742",
+            "name": "Laser Over Goo",
+            "bsp_name": "sp_a2_laser_over_goo",
+            "default_cat_id": 56,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 56,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-47742"]
+          },
+          {
+            "steam_id": "62767",
+            "name": "Catapult Intro",
+            "bsp_name": "sp_a2_catapult_intro",
+            "default_cat_id": 105,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 105,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-62767"]
+          },
+          {
+            "steam_id": "47744",
+            "name": "Trust Fling",
+            "bsp_name": "sp_a2_trust_fling",
+            "default_cat_id": 57,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 57,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-47744"]
+          },
+          {
+            "steam_id": "47465",
+            "name": "Pit Flings",
+            "bsp_name": "sp_a2_pit_flings",
+            "default_cat_id": 58,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 58,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-47465"]
+          },
+          {
+            "steam_id": "47746",
+            "name": "Fizzler Intro",
+            "bsp_name": "sp_a2_fizzler_intro",
+            "default_cat_id": 59,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 59,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-47746"]
+          }
+        ]
+      },
+      {
+        "id": 9,
+        "name": "The Return",
+        "game_mode": "sp",
+        "is_multiplayer": false,
+        "sort_order": 0,
+        "maps": [
+          {
+            "steam_id": "47748",
+            "name": "Ceiling Catapult",
+            "bsp_name": "sp_a2_sphere_peek",
+            "default_cat_id": 60,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 60,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-47748"]
+          },
+          {
+            "steam_id": "47751",
+            "name": "Ricochet",
+            "bsp_name": "sp_a2_ricochet",
+            "default_cat_id": 61,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 61,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-47751"]
+          },
+          {
+            "steam_id": "47752",
+            "name": "Bridge Intro",
+            "bsp_name": "sp_a2_bridge_intro",
+            "default_cat_id": 62,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 62,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-47752"]
+          },
+          {
+            "steam_id": "47755",
+            "name": "Bridge the Gap",
+            "bsp_name": "sp_a2_bridge_the_gap",
+            "default_cat_id": 63,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 63,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-47755"]
+          },
+          {
+            "steam_id": "47756",
+            "name": "Turret Intro",
+            "bsp_name": "sp_a2_turret_intro",
+            "default_cat_id": 64,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 64,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-47756"]
+          },
+          {
+            "steam_id": "47759",
+            "name": "Laser Relays",
+            "bsp_name": "sp_a2_laser_relays",
+            "default_cat_id": 65,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 65,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-47759"]
+          },
+          {
+            "steam_id": "47760",
+            "name": "Turret Blocker",
+            "bsp_name": "sp_a2_turret_blocker",
+            "default_cat_id": 66,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 66,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-47760"]
+          },
+          {
+            "steam_id": "47763",
+            "name": "Laser vs Turret",
+            "bsp_name": "sp_a2_laser_vs_turret",
+            "default_cat_id": 67,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 67,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-47763"]
+          },
+          {
+            "steam_id": "47764",
+            "name": "Pull the Rug",
+            "bsp_name": "sp_a2_pull_the_rug",
+            "default_cat_id": 68,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 68,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-47764"]
+          }
+        ]
+      },
+      {
+        "id": 10,
+        "name": "The Surprise",
+        "game_mode": "sp",
+        "is_multiplayer": false,
+        "sort_order": 0,
+        "maps": [
+          {
+            "steam_id": "47766",
+            "name": "Column Blocker",
+            "bsp_name": "sp_a2_column_blocker",
+            "default_cat_id": 69,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 69,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-47766"]
+          },
+          {
+            "steam_id": "47768",
+            "name": "Laser Chaining",
+            "bsp_name": "sp_a2_laser_chaining",
+            "default_cat_id": 70,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 70,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-47768"]
+          },
+          {
+            "steam_id": "47770",
+            "name": "Triple Laser",
+            "bsp_name": "sp_a2_triple_laser",
+            "default_cat_id": 71,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 71,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-47770"]
+          },
+          {
+            "steam_id": "47773",
+            "name": "Jail Break",
+            "bsp_name": "sp_a2_bts1",
+            "default_cat_id": 72,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 72,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-47773"]
+          },
+          {
+            "steam_id": "47774",
+            "name": "Escape",
+            "bsp_name": "sp_a2_bts2",
+            "default_cat_id": 73,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 73,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-47774"]
+          }
+        ]
+      },
+      {
+        "id": 11,
+        "name": "The Escape",
+        "game_mode": "sp",
+        "is_multiplayer": false,
+        "sort_order": 0,
+        "maps": [
+          {
+            "steam_id": "47776",
+            "name": "Turret Factory",
+            "bsp_name": "sp_a2_bts3",
+            "default_cat_id": 74,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 74,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-47776"]
+          },
+          {
+            "steam_id": "47779",
+            "name": "Turret Sabotage",
+            "bsp_name": "sp_a2_bts4",
+            "default_cat_id": 75,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 75,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-47779"]
+          },
+          {
+            "steam_id": "47780",
+            "name": "Neurotoxin Sabotage",
+            "bsp_name": "sp_a2_bts5",
+            "default_cat_id": 76,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 76,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-47780"]
+          },
+          {
+            "steam_id": "62771",
+            "name": "Core",
+            "bsp_name": "sp_a2_core",
+            "default_cat_id": 106,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 106,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-62771"]
+          }
+        ]
+      },
+      {
+        "id": 12,
+        "name": "The Fall",
+        "game_mode": "sp",
+        "is_multiplayer": false,
+        "sort_order": 0,
+        "maps": [
+          {
+            "steam_id": "47783",
+            "name": "Underground",
+            "bsp_name": "sp_a3_01",
+            "default_cat_id": 77,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 77,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-47783"]
+          },
+          {
+            "steam_id": "47784",
+            "name": "Cave Johnson",
+            "bsp_name": "sp_a3_03",
+            "default_cat_id": 78,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 78,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-47784"]
+          },
+          {
+            "steam_id": "47787",
+            "name": "Repulsion Intro",
+            "bsp_name": "sp_a3_jump_intro",
+            "default_cat_id": 79,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 79,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-47787"]
+          },
+          {
+            "steam_id": "47468",
+            "name": "Bomb Flings",
+            "bsp_name": "sp_a3_bomb_flings",
+            "default_cat_id": 80,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 80,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-47468"]
+          },
+          {
+            "steam_id": "47469",
+            "name": "Crazy Box",
+            "bsp_name": "sp_a3_crazy_box",
+            "default_cat_id": 81,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 81,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-47469"]
+          },
+          {
+            "steam_id": "47472",
+            "name": "PotatOS",
+            "bsp_name": "sp_a3_transition01",
+            "default_cat_id": 82,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 82,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-47472"]
+          }
+        ]
+      },
+      {
+        "id": 13,
+        "name": "The Reunion",
+        "game_mode": "sp",
+        "is_multiplayer": false,
+        "sort_order": 0,
+        "maps": [
+          {
+            "steam_id": "47791",
+            "name": "Propulsion Intro",
+            "bsp_name": "sp_a3_speed_ramp",
+            "default_cat_id": 83,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 83,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-47791"]
+          },
+          {
+            "steam_id": "47793",
+            "name": "Propulsion Flings",
+            "bsp_name": "sp_a3_speed_flings",
+            "default_cat_id": 84,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 84,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-47793"]
+          },
+          {
+            "steam_id": "47795",
+            "name": "Conversion Intro",
+            "bsp_name": "sp_a3_portal_intro",
+            "default_cat_id": 85,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 85,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-47795"]
+          },
+          {
+            "steam_id": "47798",
+            "name": "Three Gels",
+            "bsp_name": "sp_a3_end",
+            "default_cat_id": 86,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 86,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-47798"]
+          }
+        ]
+      },
+      {
+        "id": 14,
+        "name": "The Itch",
+        "game_mode": "sp",
+        "is_multiplayer": false,
+        "sort_order": 0,
+        "maps": [
+          {
+            "steam_id": "88350",
+            "name": "Test",
+            "bsp_name": "sp_a4_intro",
+            "default_cat_id": 107,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 107,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-88350"]
+          },
+          {
+            "steam_id": "47800",
+            "name": "Funnel Intro",
+            "bsp_name": "sp_a4_tb_intro",
+            "default_cat_id": 87,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 87,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-47800"]
+          },
+          {
+            "steam_id": "47802",
+            "name": "Ceiling Button",
+            "bsp_name": "sp_a4_tb_trust_drop",
+            "default_cat_id": 88,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 88,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-47802"]
+          },
+          {
+            "steam_id": "47804",
+            "name": "Wall Button",
+            "bsp_name": "sp_a4_tb_wall_button",
+            "default_cat_id": 89,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 89,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-47804"]
+          },
+          {
+            "steam_id": "47806",
+            "name": "Polarity",
+            "bsp_name": "sp_a4_tb_polarity",
+            "default_cat_id": 90,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 90,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-47806"]
+          },
+          {
+            "steam_id": "47808",
+            "name": "Funnel Catch",
+            "bsp_name": "sp_a4_tb_catch",
+            "default_cat_id": 91,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 91,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-47808"]
+          },
+          {
+            "steam_id": "47811",
+            "name": "Stop the Box",
+            "bsp_name": "sp_a4_stop_the_box",
+            "default_cat_id": 92,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 92,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-47811"]
+          },
+          {
+            "steam_id": "47813",
+            "name": "Laser Catapult",
+            "bsp_name": "sp_a4_laser_catapult",
+            "default_cat_id": 93,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 93,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-47813"]
+          },
+          {
+            "steam_id": "47815",
+            "name": "Laser Platform",
+            "bsp_name": "sp_a4_laser_platform",
+            "default_cat_id": 94,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 94,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-47815"]
+          },
+          {
+            "steam_id": "47817",
+            "name": "Propulsion Catch",
+            "bsp_name": "sp_a4_speed_tb_catch",
+            "default_cat_id": 95,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 95,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-47817"]
+          },
+          {
+            "steam_id": "47819",
+            "name": "Repulsion Polarity",
+            "bsp_name": "sp_a4_jump_polarity",
+            "default_cat_id": 96,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 96,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-47819"]
+          }
+        ]
+      },
+      {
+        "id": 15,
+        "name": "The Part Where...",
+        "game_mode": "sp",
+        "is_multiplayer": false,
+        "sort_order": 0,
+        "maps": [
+          {
+            "steam_id": "62776",
+            "name": "Finale 1",
+            "bsp_name": "sp_a4_finale1",
+            "default_cat_id": 108,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 108,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-62776"]
+          },
+          {
+            "steam_id": "47821",
+            "name": "Finale 2",
+            "bsp_name": "sp_a4_finale2",
+            "default_cat_id": 97,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 97,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-47821"]
+          },
+          {
+            "steam_id": "47824",
+            "name": "Finale 3",
+            "bsp_name": "sp_a4_finale3",
+            "default_cat_id": 98,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 98,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-47824"]
+          },
+          {
+            "steam_id": "47456",
+            "name": "Finale 4",
+            "bsp_name": "sp_a4_finale4",
+            "default_cat_id": 99,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 99,
+                "name": "any%"
+              }
+            ],
+            "links": ["s4-47456"]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": 2,
+    "name": "Portal Stories: Mel",
+    "slug": "mel",
+    "kind": "game",
+    "base_game_id": null,
+    "starts_at": null,
+    "ends_at": null,
+    "sort_order": 2,
+    "hidden": false,
+    "short_name": null,
+    "logo_version": null,
+    "background_version": null,
+    "mode_names": {},
+    "chapters": [
+      {
+        "id": 16,
+        "name": "1952",
+        "game_mode": "story",
+        "is_multiplayer": false,
+        "sort_order": 0,
+        "maps": [
+          {
+            "steam_id": "1",
+            "name": "Tramride",
+            "bsp_name": "st_a1_tramride",
+            "default_cat_id": 109,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 109,
+                "name": "any%"
+              }
+            ],
+            "links": []
+          },
+          {
+            "steam_id": "2",
+            "name": "Mel Intro",
+            "bsp_name": "st_a1_mel_intro",
+            "default_cat_id": 110,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 110,
+                "name": "any%"
+              }
+            ],
+            "links": []
+          },
+          {
+            "steam_id": "3",
+            "name": "Lift",
+            "bsp_name": "st_a1_lift",
+            "default_cat_id": 111,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 111,
+                "name": "any%"
+              }
+            ],
+            "links": []
+          },
+          {
+            "steam_id": "4",
+            "name": "Garden",
+            "bsp_name": "st_a1_garden",
+            "default_cat_id": 112,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 112,
+                "name": "any%"
+              }
+            ],
+            "links": []
+          }
+        ]
+      },
+      {
+        "id": 17,
+        "name": "Extended Relaxation",
+        "game_mode": "story",
+        "is_multiplayer": false,
+        "sort_order": 0,
+        "maps": [
+          {
+            "steam_id": "5",
+            "name": "Destroyed Garden",
+            "bsp_name": "st_a2_garden_de",
+            "default_cat_id": 113,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 113,
+                "name": "any%"
+              }
+            ],
+            "links": []
+          },
+          {
+            "steam_id": "6",
+            "name": "Underbounce",
+            "bsp_name": "st_a2_underbounce",
+            "default_cat_id": 114,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 114,
+                "name": "any%"
+              }
+            ],
+            "links": []
+          },
+          {
+            "steam_id": "7",
+            "name": "Once Upon",
+            "bsp_name": "st_a2_once_upon",
+            "default_cat_id": 115,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 115,
+                "name": "any%"
+              }
+            ],
+            "links": []
+          },
+          {
+            "steam_id": "8",
+            "name": "Past Power",
+            "bsp_name": "st_a2_past_power",
+            "default_cat_id": 116,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 116,
+                "name": "any%"
+              }
+            ],
+            "links": []
+          },
+          {
+            "steam_id": "9",
+            "name": "Ramp",
+            "bsp_name": "st_a2_ramp",
+            "default_cat_id": 117,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 117,
+                "name": "any%"
+              }
+            ],
+            "links": []
+          },
+          {
+            "steam_id": "10",
+            "name": "Firestorm",
+            "bsp_name": "st_a2_firestorm",
+            "default_cat_id": 118,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 118,
+                "name": "any%"
+              }
+            ],
+            "links": []
+          }
+        ]
+      },
+      {
+        "id": 18,
+        "name": "The Ascent",
+        "game_mode": "story",
+        "is_multiplayer": false,
+        "sort_order": 0,
+        "maps": [
+          {
+            "steam_id": "11",
+            "name": "Junkyard",
+            "bsp_name": "st_a3_junkyard",
+            "default_cat_id": 119,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 119,
+                "name": "any%"
+              }
+            ],
+            "links": []
+          },
+          {
+            "steam_id": "12",
+            "name": "Concepts",
+            "bsp_name": "st_a3_concepts",
+            "default_cat_id": 120,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 120,
+                "name": "any%"
+              }
+            ],
+            "links": []
+          },
+          {
+            "steam_id": "13",
+            "name": "Paint Fling",
+            "bsp_name": "st_a3_paint_fling",
+            "default_cat_id": 121,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 121,
+                "name": "any%"
+              }
+            ],
+            "links": []
+          },
+          {
+            "steam_id": "14",
+            "name": "Faith Plate",
+            "bsp_name": "st_a3_faith_plate",
+            "default_cat_id": 122,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 122,
+                "name": "any%"
+              }
+            ],
+            "links": []
+          },
+          {
+            "steam_id": "15",
+            "name": "Transition",
+            "bsp_name": "st_a3_transition",
+            "default_cat_id": 123,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 123,
+                "name": "any%"
+              }
+            ],
+            "links": []
+          }
+        ]
+      },
+      {
+        "id": 19,
+        "name": "Organic Complications",
+        "game_mode": "story",
+        "is_multiplayer": false,
+        "sort_order": 0,
+        "maps": [
+          {
+            "steam_id": "16",
+            "name": "Overgrown",
+            "bsp_name": "st_a4_overgrown",
+            "default_cat_id": 124,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 124,
+                "name": "any%"
+              }
+            ],
+            "links": []
+          },
+          {
+            "steam_id": "17",
+            "name": "Funnel Over Goo",
+            "bsp_name": "st_a4_tb_over_goo",
+            "default_cat_id": 125,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 125,
+                "name": "any%"
+              }
+            ],
+            "links": []
+          },
+          {
+            "steam_id": "18",
+            "name": "Two Of A Kind",
+            "bsp_name": "st_a4_two_of_a_kind",
+            "default_cat_id": 126,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 126,
+                "name": "any%"
+              }
+            ],
+            "links": []
+          },
+          {
+            "steam_id": "19",
+            "name": "Destroyed",
+            "bsp_name": "st_a4_destroyed",
+            "default_cat_id": 127,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 127,
+                "name": "any%"
+              }
+            ],
+            "links": []
+          },
+          {
+            "steam_id": "20",
+            "name": "Factory",
+            "bsp_name": "st_a4_factory",
+            "default_cat_id": 128,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 128,
+                "name": "any%"
+              }
+            ],
+            "links": []
+          }
+        ]
+      },
+      {
+        "id": 20,
+        "name": "Intrusion",
+        "game_mode": "story",
+        "is_multiplayer": false,
+        "sort_order": 0,
+        "maps": [
+          {
+            "steam_id": "21",
+            "name": "Core Access",
+            "bsp_name": "st_a4_core_access",
+            "default_cat_id": 129,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 129,
+                "name": "any%"
+              }
+            ],
+            "links": []
+          },
+          {
+            "steam_id": "22",
+            "name": "Finale",
+            "bsp_name": "st_a4_finale",
+            "default_cat_id": 130,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 130,
+                "name": "any%"
+              }
+            ],
+            "links": []
+          }
+        ]
+      },
+      {
+        "id": 21,
+        "name": "Extended Relaxation",
+        "game_mode": "advanced",
+        "is_multiplayer": false,
+        "sort_order": 0,
+        "maps": [
+          {
+            "steam_id": "27",
+            "name": "Advanced Destroyed Garden",
+            "bsp_name": "sp_a2_garden_de",
+            "default_cat_id": 131,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 131,
+                "name": "any%"
+              }
+            ],
+            "links": []
+          },
+          {
+            "steam_id": "28",
+            "name": "Advanced Underbounce",
+            "bsp_name": "sp_a2_underbounce",
+            "default_cat_id": 132,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 132,
+                "name": "any%"
+              }
+            ],
+            "links": []
+          },
+          {
+            "steam_id": "29",
+            "name": "Advanced Once Upon",
+            "bsp_name": "sp_a2_once_upon",
+            "default_cat_id": 133,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 133,
+                "name": "any%"
+              }
+            ],
+            "links": []
+          },
+          {
+            "steam_id": "30",
+            "name": "Advanced Past Power",
+            "bsp_name": "sp_a2_past_power",
+            "default_cat_id": 134,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 134,
+                "name": "any%"
+              }
+            ],
+            "links": []
+          },
+          {
+            "steam_id": "31",
+            "name": "Advanced Ramp",
+            "bsp_name": "sp_a2_ramp",
+            "default_cat_id": 135,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 135,
+                "name": "any%"
+              }
+            ],
+            "links": []
+          },
+          {
+            "steam_id": "32",
+            "name": "Advanced Firestorm",
+            "bsp_name": "sp_a2_firestorm",
+            "default_cat_id": 136,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 136,
+                "name": "any%"
+              }
+            ],
+            "links": []
+          }
+        ]
+      },
+      {
+        "id": 22,
+        "name": "The Ascent",
+        "game_mode": "advanced",
+        "is_multiplayer": false,
+        "sort_order": 0,
+        "maps": [
+          {
+            "steam_id": "33",
+            "name": "Advanced Junkyard",
+            "bsp_name": "sp_a3_junkyard",
+            "default_cat_id": 137,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 137,
+                "name": "any%"
+              }
+            ],
+            "links": []
+          },
+          {
+            "steam_id": "34",
+            "name": "Advanced Concepts",
+            "bsp_name": "sp_a3_concepts",
+            "default_cat_id": 138,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 138,
+                "name": "any%"
+              }
+            ],
+            "links": []
+          },
+          {
+            "steam_id": "35",
+            "name": "Advanced Paint Fling",
+            "bsp_name": "sp_a3_paint_fling",
+            "default_cat_id": 139,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 139,
+                "name": "any%"
+              }
+            ],
+            "links": []
+          },
+          {
+            "steam_id": "36",
+            "name": "Advanced Faith Plate",
+            "bsp_name": "sp_a3_faith_plate",
+            "default_cat_id": 140,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 140,
+                "name": "any%"
+              }
+            ],
+            "links": []
+          },
+          {
+            "steam_id": "37",
+            "name": "Advanced Transition",
+            "bsp_name": "sp_a3_transition",
+            "default_cat_id": 141,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 141,
+                "name": "any%"
+              }
+            ],
+            "links": []
+          }
+        ]
+      },
+      {
+        "id": 23,
+        "name": "Organic Complications",
+        "game_mode": "advanced",
+        "is_multiplayer": false,
+        "sort_order": 0,
+        "maps": [
+          {
+            "steam_id": "38",
+            "name": "Advanced Overgrown",
+            "bsp_name": "sp_a4_overgrown",
+            "default_cat_id": 142,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 142,
+                "name": "any%"
+              }
+            ],
+            "links": []
+          },
+          {
+            "steam_id": "39",
+            "name": "Advanced Funnel Over Goo",
+            "bsp_name": "sp_a4_tb_over_goo",
+            "default_cat_id": 143,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 143,
+                "name": "any%"
+              }
+            ],
+            "links": []
+          },
+          {
+            "steam_id": "40",
+            "name": "Advanced Two Of A Kind",
+            "bsp_name": "sp_a4_two_of_a_kind",
+            "default_cat_id": 144,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 144,
+                "name": "any%"
+              }
+            ],
+            "links": []
+          },
+          {
+            "steam_id": "41",
+            "name": "Advanced Destroyed",
+            "bsp_name": "sp_a4_destroyed",
+            "default_cat_id": 145,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 145,
+                "name": "any%"
+              }
+            ],
+            "links": []
+          },
+          {
+            "steam_id": "42",
+            "name": "Advanced Factory",
+            "bsp_name": "sp_a4_factory",
+            "default_cat_id": 146,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 146,
+                "name": "any%"
+              }
+            ],
+            "links": []
+          }
+        ]
+      },
+      {
+        "id": 24,
+        "name": "Intrusion",
+        "game_mode": "advanced",
+        "is_multiplayer": false,
+        "sort_order": 0,
+        "maps": [
+          {
+            "steam_id": "43",
+            "name": "Advanced Core Access",
+            "bsp_name": "sp_a4_core_access",
+            "default_cat_id": 147,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 147,
+                "name": "any%"
+              }
+            ],
+            "links": []
+          },
+          {
+            "steam_id": "44",
+            "name": "Advanced Finale",
+            "bsp_name": "sp_a4_finale",
+            "default_cat_id": 148,
+            "source_map": null,
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 148,
+                "name": "any%"
+              }
+            ],
+            "links": []
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": 3,
+    "name": "Custom Game",
+    "slug": "custom-game",
+    "kind": "game",
+    "base_game_id": null,
+    "starts_at": null,
+    "ends_at": null,
+    "sort_order": 3,
+    "hidden": false,
+    "short_name": null,
+    "logo_version": null,
+    "background_version": null,
+    "mode_names": {
+      "sp": "Main Board"
+    },
+    "chapters": [
+      {
+        "id": 25,
+        "name": "First",
+        "game_mode": "sp",
+        "is_multiplayer": false,
+        "sort_order": 1,
+        "maps": [
+          {
+            "steam_id": "g3-1",
+            "name": "Custom Map 1",
+            "bsp_name": null,
+            "default_cat_id": 149,
+            "source_map": null,
+            "sort_order": 1,
+            "image_version": 1792000557,
+            "categories": [
+              {
+                "id": 149,
+                "name": "any%"
+              }
+            ],
+            "links": []
+          }
+        ]
+      },
+      {
+        "id": 26,
+        "name": "Second",
+        "game_mode": "sp",
+        "is_multiplayer": false,
+        "sort_order": 2,
+        "maps": [
+          {
+            "steam_id": "g3-2",
+            "name": "Custom Map 2",
+            "bsp_name": null,
+            "default_cat_id": 150,
+            "source_map": null,
+            "sort_order": 2,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 150,
+                "name": "any%"
+              }
+            ],
+            "links": []
+          }
+        ]
+      },
+      {
+        "id": 27,
+        "name": "Third",
+        "game_mode": "sp",
+        "is_multiplayer": false,
+        "sort_order": 3,
+        "maps": [
+          {
+            "steam_id": "g3-3",
+            "name": "Custom Map 3",
+            "bsp_name": null,
+            "default_cat_id": 151,
+            "source_map": null,
+            "sort_order": 3,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 151,
+                "name": "any%"
+              }
+            ],
+            "links": []
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": 4,
+    "name": "Portal 2 Season 1",
+    "slug": "portal-2-season-1",
+    "kind": "season",
+    "base_game_id": 1,
+    "starts_at": "2026-10-15T00:00:00",
+    "ends_at": "2026-10-30T23:04:00",
+    "sort_order": 4,
+    "hidden": false,
+    "short_name": null,
+    "logo_version": null,
+    "background_version": null,
+    "mode_names": {},
+    "chapters": [
+      {
+        "id": 28,
+        "name": "Team Building",
+        "game_mode": "coop",
+        "is_multiplayer": true,
+        "sort_order": 0,
+        "maps": [
+          {
+            "steam_id": "s4-47741",
+            "name": "Doors",
+            "bsp_name": "mp_coop_doors",
+            "default_cat_id": 152,
+            "source_map": "47741",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 152,
+                "name": "any%"
+              }
+            ],
+            "links": ["47741"]
+          },
+          {
+            "steam_id": "s4-47825",
+            "name": "Buttons",
+            "bsp_name": "mp_coop_race_2",
+            "default_cat_id": 153,
+            "source_map": "47825",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 153,
+                "name": "any%"
+              }
+            ],
+            "links": ["47825"]
+          },
+          {
+            "steam_id": "s4-47828",
+            "name": "Lasers",
+            "bsp_name": "mp_coop_laser_2",
+            "default_cat_id": 154,
+            "source_map": "47828",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 154,
+                "name": "any%"
+              }
+            ],
+            "links": ["47828"]
+          },
+          {
+            "steam_id": "s4-47829",
+            "name": "Rat Maze",
+            "bsp_name": "mp_coop_rat_maze",
+            "default_cat_id": 155,
+            "source_map": "47829",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 155,
+                "name": "any%"
+              }
+            ],
+            "links": ["47829"]
+          },
+          {
+            "steam_id": "s4-45467",
+            "name": "Laser Crusher",
+            "bsp_name": "mp_coop_laser_crusher",
+            "default_cat_id": 156,
+            "source_map": "45467",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 156,
+                "name": "any%"
+              }
+            ],
+            "links": ["45467"]
+          },
+          {
+            "steam_id": "s4-46362",
+            "name": "Behind the Scenes",
+            "bsp_name": "mp_coop_teambts",
+            "default_cat_id": 157,
+            "source_map": "46362",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 157,
+                "name": "any%"
+              }
+            ],
+            "links": ["46362"]
+          }
+        ]
+      },
+      {
+        "id": 29,
+        "name": "Mass and Velocity",
+        "game_mode": "coop",
+        "is_multiplayer": true,
+        "sort_order": 0,
+        "maps": [
+          {
+            "steam_id": "s4-47831",
+            "name": "Flings",
+            "bsp_name": "mp_coop_fling_3",
+            "default_cat_id": 158,
+            "source_map": "47831",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 158,
+                "name": "any%"
+              }
+            ],
+            "links": ["47831"]
+          },
+          {
+            "steam_id": "s4-47833",
+            "name": "Infinifling",
+            "bsp_name": "mp_coop_infinifling_train",
+            "default_cat_id": 159,
+            "source_map": "47833",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 159,
+                "name": "any%"
+              }
+            ],
+            "links": ["47833"]
+          },
+          {
+            "steam_id": "s4-47835",
+            "name": "Team Retrieval",
+            "bsp_name": "mp_coop_come_along",
+            "default_cat_id": 160,
+            "source_map": "47835",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 160,
+                "name": "any%"
+              }
+            ],
+            "links": ["47835"]
+          },
+          {
+            "steam_id": "s4-47837",
+            "name": "Vertical Flings",
+            "bsp_name": "mp_coop_fling_1",
+            "default_cat_id": 161,
+            "source_map": "47837",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 161,
+                "name": "any%"
+              }
+            ],
+            "links": ["47837"]
+          },
+          {
+            "steam_id": "s4-47840",
+            "name": "Catapults",
+            "bsp_name": "mp_coop_catapult_1",
+            "default_cat_id": 162,
+            "source_map": "47840",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 162,
+                "name": "any%"
+              }
+            ],
+            "links": ["47840"]
+          },
+          {
+            "steam_id": "s4-47841",
+            "name": "Multifling",
+            "bsp_name": "mp_coop_multifling_1",
+            "default_cat_id": 163,
+            "source_map": "47841",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 163,
+                "name": "any%"
+              }
+            ],
+            "links": ["47841"]
+          },
+          {
+            "steam_id": "s4-47844",
+            "name": "Fling Crushers",
+            "bsp_name": "mp_coop_fling_crushers",
+            "default_cat_id": 164,
+            "source_map": "47844",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 164,
+                "name": "any%"
+              }
+            ],
+            "links": ["47844"]
+          },
+          {
+            "steam_id": "s4-47845",
+            "name": "Industrial Fan",
+            "bsp_name": "mp_coop_fan",
+            "default_cat_id": 165,
+            "source_map": "47845",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 165,
+                "name": "any%"
+              }
+            ],
+            "links": ["47845"]
+          }
+        ]
+      },
+      {
+        "id": 30,
+        "name": "Hard Light",
+        "game_mode": "coop",
+        "is_multiplayer": true,
+        "sort_order": 0,
+        "maps": [
+          {
+            "steam_id": "s4-47848",
+            "name": "Cooperative Bridges",
+            "bsp_name": "mp_coop_wall_intro",
+            "default_cat_id": 166,
+            "source_map": "47848",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 166,
+                "name": "any%"
+              }
+            ],
+            "links": ["47848"]
+          },
+          {
+            "steam_id": "s4-47849",
+            "name": "Bridge Swap",
+            "bsp_name": "mp_coop_wall_2",
+            "default_cat_id": 167,
+            "source_map": "47849",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 167,
+                "name": "any%"
+              }
+            ],
+            "links": ["47849"]
+          },
+          {
+            "steam_id": "s4-47854",
+            "name": "Fling Block",
+            "bsp_name": "mp_coop_catapult_wall_intro",
+            "default_cat_id": 168,
+            "source_map": "47854",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 168,
+                "name": "any%"
+              }
+            ],
+            "links": ["47854"]
+          },
+          {
+            "steam_id": "s4-47856",
+            "name": "Catapult Block",
+            "bsp_name": "mp_coop_wall_block",
+            "default_cat_id": 169,
+            "source_map": "47856",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 169,
+                "name": "any%"
+              }
+            ],
+            "links": ["47856"]
+          },
+          {
+            "steam_id": "s4-47858",
+            "name": "Bridge Fling",
+            "bsp_name": "mp_coop_catapult_2",
+            "default_cat_id": 170,
+            "source_map": "47858",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 170,
+                "name": "any%"
+              }
+            ],
+            "links": ["47858"]
+          },
+          {
+            "steam_id": "s4-47861",
+            "name": "Turret Walls",
+            "bsp_name": "mp_coop_turret_walls",
+            "default_cat_id": 171,
+            "source_map": "47861",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 171,
+                "name": "any%"
+              }
+            ],
+            "links": ["47861"]
+          },
+          {
+            "steam_id": "s4-52642",
+            "name": "Turret Assassin",
+            "bsp_name": "mp_coop_turret_ball",
+            "default_cat_id": 172,
+            "source_map": "52642",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 172,
+                "name": "any%"
+              }
+            ],
+            "links": ["52642"]
+          },
+          {
+            "steam_id": "s4-52660",
+            "name": "Bridge Testing",
+            "bsp_name": "mp_coop_wall_5",
+            "default_cat_id": 173,
+            "source_map": "52660",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 173,
+                "name": "any%"
+              }
+            ],
+            "links": ["52660"]
+          }
+        ]
+      },
+      {
+        "id": 31,
+        "name": "Excursion Funnels",
+        "game_mode": "coop",
+        "is_multiplayer": true,
+        "sort_order": 0,
+        "maps": [
+          {
+            "steam_id": "s4-52662",
+            "name": "Cooperative Funnels",
+            "bsp_name": "mp_coop_tbeam_redirect",
+            "default_cat_id": 174,
+            "source_map": "52662",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 174,
+                "name": "any%"
+              }
+            ],
+            "links": ["52662"]
+          },
+          {
+            "steam_id": "s4-52663",
+            "name": "Funnel Drill",
+            "bsp_name": "mp_coop_tbeam_drill",
+            "default_cat_id": 175,
+            "source_map": "52663",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 175,
+                "name": "any%"
+              }
+            ],
+            "links": ["52663"]
+          },
+          {
+            "steam_id": "s4-52665",
+            "name": "Funnel Catch",
+            "bsp_name": "mp_coop_tbeam_catch_grind_1",
+            "default_cat_id": 176,
+            "source_map": "52665",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 176,
+                "name": "any%"
+              }
+            ],
+            "links": ["52665"]
+          },
+          {
+            "steam_id": "s4-52667",
+            "name": "Funnel Laser",
+            "bsp_name": "mp_coop_tbeam_laser_1",
+            "default_cat_id": 177,
+            "source_map": "52667",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 177,
+                "name": "any%"
+              }
+            ],
+            "links": ["52667"]
+          },
+          {
+            "steam_id": "s4-52671",
+            "name": "Cooperative Polarity",
+            "bsp_name": "mp_coop_tbeam_polarity",
+            "default_cat_id": 178,
+            "source_map": "52671",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 178,
+                "name": "any%"
+              }
+            ],
+            "links": ["52671"]
+          },
+          {
+            "steam_id": "s4-52687",
+            "name": "Funnel Hop",
+            "bsp_name": "mp_coop_tbeam_polarity2",
+            "default_cat_id": 179,
+            "source_map": "52687",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 179,
+                "name": "any%"
+              }
+            ],
+            "links": ["52687"]
+          },
+          {
+            "steam_id": "s4-52689",
+            "name": "Advanced Polarity",
+            "bsp_name": "mp_coop_tbeam_polarity3",
+            "default_cat_id": 180,
+            "source_map": "52689",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 180,
+                "name": "any%"
+              }
+            ],
+            "links": ["52689"]
+          },
+          {
+            "steam_id": "s4-52691",
+            "name": "Funnel Maze",
+            "bsp_name": "mp_coop_tbeam_maze",
+            "default_cat_id": 181,
+            "source_map": "52691",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 181,
+                "name": "any%"
+              }
+            ],
+            "links": ["52691"]
+          },
+          {
+            "steam_id": "s4-52777",
+            "name": "Turret Warehouse",
+            "bsp_name": "mp_coop_tbeam_end",
+            "default_cat_id": 182,
+            "source_map": "52777",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 182,
+                "name": "any%"
+              }
+            ],
+            "links": ["52777"]
+          }
+        ]
+      },
+      {
+        "id": 32,
+        "name": "Mobility Gels",
+        "game_mode": "coop",
+        "is_multiplayer": true,
+        "sort_order": 0,
+        "maps": [
+          {
+            "steam_id": "s4-52694",
+            "name": "Repulsion Jumps",
+            "bsp_name": "mp_coop_paint_come_along",
+            "default_cat_id": 183,
+            "source_map": "52694",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 183,
+                "name": "any%"
+              }
+            ],
+            "links": ["52694"]
+          },
+          {
+            "steam_id": "s4-52711",
+            "name": "Double Bounce",
+            "bsp_name": "mp_coop_paint_redirect",
+            "default_cat_id": 184,
+            "source_map": "52711",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 184,
+                "name": "any%"
+              }
+            ],
+            "links": ["52711"]
+          },
+          {
+            "steam_id": "s4-52714",
+            "name": "Bridge Repulsion",
+            "bsp_name": "mp_coop_paint_bridge",
+            "default_cat_id": 185,
+            "source_map": "52714",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 185,
+                "name": "any%"
+              }
+            ],
+            "links": ["52714"]
+          },
+          {
+            "steam_id": "s4-52715",
+            "name": "Wall Repulsion",
+            "bsp_name": "mp_coop_paint_walljumps",
+            "default_cat_id": 186,
+            "source_map": "52715",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 186,
+                "name": "any%"
+              }
+            ],
+            "links": ["52715"]
+          },
+          {
+            "steam_id": "s4-52717",
+            "name": "Propulsion Crushers",
+            "bsp_name": "mp_coop_paint_speed_fling",
+            "default_cat_id": 187,
+            "source_map": "52717",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 187,
+                "name": "any%"
+              }
+            ],
+            "links": ["52717"]
+          },
+          {
+            "steam_id": "s4-52735",
+            "name": "Turret Ninja",
+            "bsp_name": "mp_coop_paint_red_racer",
+            "default_cat_id": 188,
+            "source_map": "52735",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 188,
+                "name": "any%"
+              }
+            ],
+            "links": ["52735"]
+          },
+          {
+            "steam_id": "s4-52738",
+            "name": "Propulsion Retrieval",
+            "bsp_name": "mp_coop_paint_speed_catch",
+            "default_cat_id": 189,
+            "source_map": "52738",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 189,
+                "name": "any%"
+              }
+            ],
+            "links": ["52738"]
+          },
+          {
+            "steam_id": "s4-52740",
+            "name": "Vault Entrance",
+            "bsp_name": "mp_coop_paint_longjump_intro",
+            "default_cat_id": 190,
+            "source_map": "52740",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 190,
+                "name": "any%"
+              }
+            ],
+            "links": ["52740"]
+          }
+        ]
+      },
+      {
+        "id": 33,
+        "name": "Art Therapy",
+        "game_mode": "coop",
+        "is_multiplayer": true,
+        "sort_order": 0,
+        "maps": [
+          {
+            "steam_id": "s4-49341",
+            "name": "Separation",
+            "bsp_name": "mp_coop_separation_1",
+            "default_cat_id": 191,
+            "source_map": "49341",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 191,
+                "name": "any%"
+              }
+            ],
+            "links": ["49341"]
+          },
+          {
+            "steam_id": "s4-49343",
+            "name": "Triple Axis",
+            "bsp_name": "mp_coop_tripleaxis",
+            "default_cat_id": 192,
+            "source_map": "49343",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 192,
+                "name": "any%"
+              }
+            ],
+            "links": ["49343"]
+          },
+          {
+            "steam_id": "s4-49345",
+            "name": "Catapult Catch",
+            "bsp_name": "mp_coop_catapult_catch",
+            "default_cat_id": 193,
+            "source_map": "49345",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 193,
+                "name": "any%"
+              }
+            ],
+            "links": ["49345"]
+          },
+          {
+            "steam_id": "s4-49347",
+            "name": "Bridge Gels",
+            "bsp_name": "mp_coop_2paints_1bridge",
+            "default_cat_id": 194,
+            "source_map": "49347",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 194,
+                "name": "any%"
+              }
+            ],
+            "links": ["49347"]
+          },
+          {
+            "steam_id": "s4-49349",
+            "name": "Maintenance",
+            "bsp_name": "mp_coop_paint_conversion",
+            "default_cat_id": 195,
+            "source_map": "49349",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 195,
+                "name": "any%"
+              }
+            ],
+            "links": ["49349"]
+          },
+          {
+            "steam_id": "s4-49351",
+            "name": "Bridge Catch",
+            "bsp_name": "mp_coop_bridge_catch",
+            "default_cat_id": 196,
+            "source_map": "49351",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 196,
+                "name": "any%"
+              }
+            ],
+            "links": ["49351"]
+          },
+          {
+            "steam_id": "s4-52757",
+            "name": "Double Lift",
+            "bsp_name": "mp_coop_laser_tbeam",
+            "default_cat_id": 197,
+            "source_map": "52757",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 197,
+                "name": "any%"
+              }
+            ],
+            "links": ["52757"]
+          },
+          {
+            "steam_id": "s4-52759",
+            "name": "Gel Maze",
+            "bsp_name": "mp_coop_paint_rat_maze",
+            "default_cat_id": 198,
+            "source_map": "52759",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 198,
+                "name": "any%"
+              }
+            ],
+            "links": ["52759"]
+          },
+          {
+            "steam_id": "s4-48287",
+            "name": "Crazier Box",
+            "bsp_name": "mp_coop_paint_crazy_box",
+            "default_cat_id": 199,
+            "source_map": "48287",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 199,
+                "name": "any%"
+              }
+            ],
+            "links": ["48287"]
+          }
+        ]
+      },
+      {
+        "id": 34,
+        "name": "The Courtesy Call",
+        "game_mode": "sp",
+        "is_multiplayer": false,
+        "sort_order": 0,
+        "maps": [
+          {
+            "steam_id": "s4-62761",
+            "name": "Container Ride",
+            "bsp_name": "sp_a1_intro1",
+            "default_cat_id": 200,
+            "source_map": "62761",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 200,
+                "name": "any%"
+              }
+            ],
+            "links": ["62761"]
+          },
+          {
+            "steam_id": "s4-62758",
+            "name": "Portal Carousel",
+            "bsp_name": "sp_a1_intro2",
+            "default_cat_id": 201,
+            "source_map": "62758",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 201,
+                "name": "any%"
+              }
+            ],
+            "links": ["62758"]
+          },
+          {
+            "steam_id": "s4-47458",
+            "name": "Portal Gun",
+            "bsp_name": "sp_a1_intro3",
+            "default_cat_id": 202,
+            "source_map": "47458",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 202,
+                "name": "any%"
+              }
+            ],
+            "links": ["47458"]
+          },
+          {
+            "steam_id": "s4-47455",
+            "name": "Smooth Jazz",
+            "bsp_name": "sp_a1_intro4",
+            "default_cat_id": 203,
+            "source_map": "47455",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 203,
+                "name": "any%"
+              }
+            ],
+            "links": ["47455"]
+          },
+          {
+            "steam_id": "s4-47452",
+            "name": "Cube Momentum",
+            "bsp_name": "sp_a1_intro5",
+            "default_cat_id": 204,
+            "source_map": "47452",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 204,
+                "name": "any%"
+              }
+            ],
+            "links": ["47452"]
+          },
+          {
+            "steam_id": "s4-47106",
+            "name": "Future Starter",
+            "bsp_name": "sp_a1_intro6",
+            "default_cat_id": 205,
+            "source_map": "47106",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 205,
+                "name": "any%"
+              }
+            ],
+            "links": ["47106"]
+          },
+          {
+            "steam_id": "s4-62763",
+            "name": "Secret Panel",
+            "bsp_name": "sp_a1_intro7",
+            "default_cat_id": 206,
+            "source_map": "62763",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 206,
+                "name": "any%"
+              }
+            ],
+            "links": ["62763"]
+          },
+          {
+            "steam_id": "s4-62759",
+            "name": "Wakeup",
+            "bsp_name": "sp_a1_wakeup",
+            "default_cat_id": 207,
+            "source_map": "62759",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 207,
+                "name": "any%"
+              }
+            ],
+            "links": ["62759"]
+          },
+          {
+            "steam_id": "s4-47735",
+            "name": "Incinerator",
+            "bsp_name": "sp_a2_intro",
+            "default_cat_id": 208,
+            "source_map": "47735",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 208,
+                "name": "any%"
+              }
+            ],
+            "links": ["47735"]
+          }
+        ]
+      },
+      {
+        "id": 35,
+        "name": "The Cold Boot",
+        "game_mode": "sp",
+        "is_multiplayer": false,
+        "sort_order": 0,
+        "maps": [
+          {
+            "steam_id": "s4-62765",
+            "name": "Laser Intro",
+            "bsp_name": "sp_a2_laser_intro",
+            "default_cat_id": 209,
+            "source_map": "62765",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 209,
+                "name": "any%"
+              }
+            ],
+            "links": ["62765"]
+          },
+          {
+            "steam_id": "s4-47736",
+            "name": "Laser Stairs",
+            "bsp_name": "sp_a2_laser_stairs",
+            "default_cat_id": 210,
+            "source_map": "47736",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 210,
+                "name": "any%"
+              }
+            ],
+            "links": ["47736"]
+          },
+          {
+            "steam_id": "s4-47738",
+            "name": "Dual Lasers",
+            "bsp_name": "sp_a2_dual_lasers",
+            "default_cat_id": 211,
+            "source_map": "47738",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 211,
+                "name": "any%"
+              }
+            ],
+            "links": ["47738"]
+          },
+          {
+            "steam_id": "s4-47742",
+            "name": "Laser Over Goo",
+            "bsp_name": "sp_a2_laser_over_goo",
+            "default_cat_id": 212,
+            "source_map": "47742",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 212,
+                "name": "any%"
+              }
+            ],
+            "links": ["47742"]
+          },
+          {
+            "steam_id": "s4-62767",
+            "name": "Catapult Intro",
+            "bsp_name": "sp_a2_catapult_intro",
+            "default_cat_id": 213,
+            "source_map": "62767",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 213,
+                "name": "any%"
+              }
+            ],
+            "links": ["62767"]
+          },
+          {
+            "steam_id": "s4-47744",
+            "name": "Trust Fling",
+            "bsp_name": "sp_a2_trust_fling",
+            "default_cat_id": 214,
+            "source_map": "47744",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 214,
+                "name": "any%"
+              }
+            ],
+            "links": ["47744"]
+          },
+          {
+            "steam_id": "s4-47465",
+            "name": "Pit Flings",
+            "bsp_name": "sp_a2_pit_flings",
+            "default_cat_id": 215,
+            "source_map": "47465",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 215,
+                "name": "any%"
+              }
+            ],
+            "links": ["47465"]
+          },
+          {
+            "steam_id": "s4-47746",
+            "name": "Fizzler Intro",
+            "bsp_name": "sp_a2_fizzler_intro",
+            "default_cat_id": 216,
+            "source_map": "47746",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 216,
+                "name": "any%"
+              }
+            ],
+            "links": ["47746"]
+          }
+        ]
+      },
+      {
+        "id": 36,
+        "name": "The Return",
+        "game_mode": "sp",
+        "is_multiplayer": false,
+        "sort_order": 0,
+        "maps": [
+          {
+            "steam_id": "s4-47748",
+            "name": "Ceiling Catapult",
+            "bsp_name": "sp_a2_sphere_peek",
+            "default_cat_id": 217,
+            "source_map": "47748",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 217,
+                "name": "any%"
+              }
+            ],
+            "links": ["47748"]
+          },
+          {
+            "steam_id": "s4-47751",
+            "name": "Ricochet",
+            "bsp_name": "sp_a2_ricochet",
+            "default_cat_id": 218,
+            "source_map": "47751",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 218,
+                "name": "any%"
+              }
+            ],
+            "links": ["47751"]
+          },
+          {
+            "steam_id": "s4-47752",
+            "name": "Bridge Intro",
+            "bsp_name": "sp_a2_bridge_intro",
+            "default_cat_id": 219,
+            "source_map": "47752",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 219,
+                "name": "any%"
+              }
+            ],
+            "links": ["47752"]
+          },
+          {
+            "steam_id": "s4-47755",
+            "name": "Bridge the Gap",
+            "bsp_name": "sp_a2_bridge_the_gap",
+            "default_cat_id": 220,
+            "source_map": "47755",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 220,
+                "name": "any%"
+              }
+            ],
+            "links": ["47755"]
+          },
+          {
+            "steam_id": "s4-47756",
+            "name": "Turret Intro",
+            "bsp_name": "sp_a2_turret_intro",
+            "default_cat_id": 221,
+            "source_map": "47756",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 221,
+                "name": "any%"
+              }
+            ],
+            "links": ["47756"]
+          },
+          {
+            "steam_id": "s4-47759",
+            "name": "Laser Relays",
+            "bsp_name": "sp_a2_laser_relays",
+            "default_cat_id": 222,
+            "source_map": "47759",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 222,
+                "name": "any%"
+              }
+            ],
+            "links": ["47759"]
+          },
+          {
+            "steam_id": "s4-47760",
+            "name": "Turret Blocker",
+            "bsp_name": "sp_a2_turret_blocker",
+            "default_cat_id": 223,
+            "source_map": "47760",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 223,
+                "name": "any%"
+              }
+            ],
+            "links": ["47760"]
+          },
+          {
+            "steam_id": "s4-47763",
+            "name": "Laser vs Turret",
+            "bsp_name": "sp_a2_laser_vs_turret",
+            "default_cat_id": 224,
+            "source_map": "47763",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 224,
+                "name": "any%"
+              }
+            ],
+            "links": ["47763"]
+          },
+          {
+            "steam_id": "s4-47764",
+            "name": "Pull the Rug",
+            "bsp_name": "sp_a2_pull_the_rug",
+            "default_cat_id": 225,
+            "source_map": "47764",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 225,
+                "name": "any%"
+              }
+            ],
+            "links": ["47764"]
+          }
+        ]
+      },
+      {
+        "id": 37,
+        "name": "The Surprise",
+        "game_mode": "sp",
+        "is_multiplayer": false,
+        "sort_order": 0,
+        "maps": [
+          {
+            "steam_id": "s4-47766",
+            "name": "Column Blocker",
+            "bsp_name": "sp_a2_column_blocker",
+            "default_cat_id": 226,
+            "source_map": "47766",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 226,
+                "name": "any%"
+              }
+            ],
+            "links": ["47766"]
+          },
+          {
+            "steam_id": "s4-47768",
+            "name": "Laser Chaining",
+            "bsp_name": "sp_a2_laser_chaining",
+            "default_cat_id": 227,
+            "source_map": "47768",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 227,
+                "name": "any%"
+              }
+            ],
+            "links": ["47768"]
+          },
+          {
+            "steam_id": "s4-47770",
+            "name": "Triple Laser",
+            "bsp_name": "sp_a2_triple_laser",
+            "default_cat_id": 228,
+            "source_map": "47770",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 228,
+                "name": "any%"
+              }
+            ],
+            "links": ["47770"]
+          },
+          {
+            "steam_id": "s4-47773",
+            "name": "Jail Break",
+            "bsp_name": "sp_a2_bts1",
+            "default_cat_id": 229,
+            "source_map": "47773",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 229,
+                "name": "any%"
+              }
+            ],
+            "links": ["47773"]
+          },
+          {
+            "steam_id": "s4-47774",
+            "name": "Escape",
+            "bsp_name": "sp_a2_bts2",
+            "default_cat_id": 230,
+            "source_map": "47774",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 230,
+                "name": "any%"
+              }
+            ],
+            "links": ["47774"]
+          }
+        ]
+      },
+      {
+        "id": 38,
+        "name": "The Escape",
+        "game_mode": "sp",
+        "is_multiplayer": false,
+        "sort_order": 0,
+        "maps": [
+          {
+            "steam_id": "s4-47776",
+            "name": "Turret Factory",
+            "bsp_name": "sp_a2_bts3",
+            "default_cat_id": 231,
+            "source_map": "47776",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 231,
+                "name": "any%"
+              }
+            ],
+            "links": ["47776"]
+          },
+          {
+            "steam_id": "s4-47779",
+            "name": "Turret Sabotage",
+            "bsp_name": "sp_a2_bts4",
+            "default_cat_id": 232,
+            "source_map": "47779",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 232,
+                "name": "any%"
+              }
+            ],
+            "links": ["47779"]
+          },
+          {
+            "steam_id": "s4-47780",
+            "name": "Neurotoxin Sabotage",
+            "bsp_name": "sp_a2_bts5",
+            "default_cat_id": 233,
+            "source_map": "47780",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 233,
+                "name": "any%"
+              }
+            ],
+            "links": ["47780"]
+          },
+          {
+            "steam_id": "s4-62771",
+            "name": "Core",
+            "bsp_name": "sp_a2_core",
+            "default_cat_id": 234,
+            "source_map": "62771",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 234,
+                "name": "any%"
+              }
+            ],
+            "links": ["62771"]
+          }
+        ]
+      },
+      {
+        "id": 39,
+        "name": "The Fall",
+        "game_mode": "sp",
+        "is_multiplayer": false,
+        "sort_order": 0,
+        "maps": [
+          {
+            "steam_id": "s4-47783",
+            "name": "Underground",
+            "bsp_name": "sp_a3_01",
+            "default_cat_id": 235,
+            "source_map": "47783",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 235,
+                "name": "any%"
+              }
+            ],
+            "links": ["47783"]
+          },
+          {
+            "steam_id": "s4-47784",
+            "name": "Cave Johnson",
+            "bsp_name": "sp_a3_03",
+            "default_cat_id": 236,
+            "source_map": "47784",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 236,
+                "name": "any%"
+              }
+            ],
+            "links": ["47784"]
+          },
+          {
+            "steam_id": "s4-47787",
+            "name": "Repulsion Intro",
+            "bsp_name": "sp_a3_jump_intro",
+            "default_cat_id": 237,
+            "source_map": "47787",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 237,
+                "name": "any%"
+              }
+            ],
+            "links": ["47787"]
+          },
+          {
+            "steam_id": "s4-47468",
+            "name": "Bomb Flings",
+            "bsp_name": "sp_a3_bomb_flings",
+            "default_cat_id": 238,
+            "source_map": "47468",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 238,
+                "name": "any%"
+              }
+            ],
+            "links": ["47468"]
+          },
+          {
+            "steam_id": "s4-47469",
+            "name": "Crazy Box",
+            "bsp_name": "sp_a3_crazy_box",
+            "default_cat_id": 239,
+            "source_map": "47469",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 239,
+                "name": "any%"
+              }
+            ],
+            "links": ["47469"]
+          },
+          {
+            "steam_id": "s4-47472",
+            "name": "PotatOS",
+            "bsp_name": "sp_a3_transition01",
+            "default_cat_id": 240,
+            "source_map": "47472",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 240,
+                "name": "any%"
+              }
+            ],
+            "links": ["47472"]
+          }
+        ]
+      },
+      {
+        "id": 40,
+        "name": "The Reunion",
+        "game_mode": "sp",
+        "is_multiplayer": false,
+        "sort_order": 0,
+        "maps": [
+          {
+            "steam_id": "s4-47791",
+            "name": "Propulsion Intro",
+            "bsp_name": "sp_a3_speed_ramp",
+            "default_cat_id": 241,
+            "source_map": "47791",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 241,
+                "name": "any%"
+              }
+            ],
+            "links": ["47791"]
+          },
+          {
+            "steam_id": "s4-47793",
+            "name": "Propulsion Flings",
+            "bsp_name": "sp_a3_speed_flings",
+            "default_cat_id": 242,
+            "source_map": "47793",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 242,
+                "name": "any%"
+              }
+            ],
+            "links": ["47793"]
+          },
+          {
+            "steam_id": "s4-47795",
+            "name": "Conversion Intro",
+            "bsp_name": "sp_a3_portal_intro",
+            "default_cat_id": 243,
+            "source_map": "47795",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 243,
+                "name": "any%"
+              }
+            ],
+            "links": ["47795"]
+          },
+          {
+            "steam_id": "s4-47798",
+            "name": "Three Gels",
+            "bsp_name": "sp_a3_end",
+            "default_cat_id": 244,
+            "source_map": "47798",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 244,
+                "name": "any%"
+              }
+            ],
+            "links": ["47798"]
+          }
+        ]
+      },
+      {
+        "id": 41,
+        "name": "The Itch",
+        "game_mode": "sp",
+        "is_multiplayer": false,
+        "sort_order": 0,
+        "maps": [
+          {
+            "steam_id": "s4-88350",
+            "name": "Test",
+            "bsp_name": "sp_a4_intro",
+            "default_cat_id": 245,
+            "source_map": "88350",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 245,
+                "name": "any%"
+              }
+            ],
+            "links": ["88350"]
+          },
+          {
+            "steam_id": "s4-47800",
+            "name": "Funnel Intro",
+            "bsp_name": "sp_a4_tb_intro",
+            "default_cat_id": 246,
+            "source_map": "47800",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 246,
+                "name": "any%"
+              }
+            ],
+            "links": ["47800"]
+          },
+          {
+            "steam_id": "s4-47802",
+            "name": "Ceiling Button",
+            "bsp_name": "sp_a4_tb_trust_drop",
+            "default_cat_id": 247,
+            "source_map": "47802",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 247,
+                "name": "any%"
+              }
+            ],
+            "links": ["47802"]
+          },
+          {
+            "steam_id": "s4-47804",
+            "name": "Wall Button",
+            "bsp_name": "sp_a4_tb_wall_button",
+            "default_cat_id": 248,
+            "source_map": "47804",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 248,
+                "name": "any%"
+              }
+            ],
+            "links": ["47804"]
+          },
+          {
+            "steam_id": "s4-47806",
+            "name": "Polarity",
+            "bsp_name": "sp_a4_tb_polarity",
+            "default_cat_id": 249,
+            "source_map": "47806",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 249,
+                "name": "any%"
+              }
+            ],
+            "links": ["47806"]
+          },
+          {
+            "steam_id": "s4-47808",
+            "name": "Funnel Catch",
+            "bsp_name": "sp_a4_tb_catch",
+            "default_cat_id": 250,
+            "source_map": "47808",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 250,
+                "name": "any%"
+              }
+            ],
+            "links": ["47808"]
+          },
+          {
+            "steam_id": "s4-47811",
+            "name": "Stop the Box",
+            "bsp_name": "sp_a4_stop_the_box",
+            "default_cat_id": 251,
+            "source_map": "47811",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 251,
+                "name": "any%"
+              }
+            ],
+            "links": ["47811"]
+          },
+          {
+            "steam_id": "s4-47813",
+            "name": "Laser Catapult",
+            "bsp_name": "sp_a4_laser_catapult",
+            "default_cat_id": 252,
+            "source_map": "47813",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 252,
+                "name": "any%"
+              }
+            ],
+            "links": ["47813"]
+          },
+          {
+            "steam_id": "s4-47815",
+            "name": "Laser Platform",
+            "bsp_name": "sp_a4_laser_platform",
+            "default_cat_id": 253,
+            "source_map": "47815",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 253,
+                "name": "any%"
+              }
+            ],
+            "links": ["47815"]
+          },
+          {
+            "steam_id": "s4-47817",
+            "name": "Propulsion Catch",
+            "bsp_name": "sp_a4_speed_tb_catch",
+            "default_cat_id": 254,
+            "source_map": "47817",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 254,
+                "name": "any%"
+              }
+            ],
+            "links": ["47817"]
+          },
+          {
+            "steam_id": "s4-47819",
+            "name": "Repulsion Polarity",
+            "bsp_name": "sp_a4_jump_polarity",
+            "default_cat_id": 255,
+            "source_map": "47819",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 255,
+                "name": "any%"
+              }
+            ],
+            "links": ["47819"]
+          }
+        ]
+      },
+      {
+        "id": 42,
+        "name": "The Part Where...",
+        "game_mode": "sp",
+        "is_multiplayer": false,
+        "sort_order": 0,
+        "maps": [
+          {
+            "steam_id": "s4-62776",
+            "name": "Finale 1",
+            "bsp_name": "sp_a4_finale1",
+            "default_cat_id": 256,
+            "source_map": "62776",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 256,
+                "name": "any%"
+              }
+            ],
+            "links": ["62776"]
+          },
+          {
+            "steam_id": "s4-47821",
+            "name": "Finale 2",
+            "bsp_name": "sp_a4_finale2",
+            "default_cat_id": 257,
+            "source_map": "47821",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 257,
+                "name": "any%"
+              }
+            ],
+            "links": ["47821"]
+          },
+          {
+            "steam_id": "s4-47824",
+            "name": "Finale 3",
+            "bsp_name": "sp_a4_finale3",
+            "default_cat_id": 258,
+            "source_map": "47824",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 258,
+                "name": "any%"
+              }
+            ],
+            "links": ["47824"]
+          },
+          {
+            "steam_id": "s4-47456",
+            "name": "Finale 4",
+            "bsp_name": "sp_a4_finale4",
+            "default_cat_id": 259,
+            "source_map": "47456",
+            "sort_order": 0,
+            "image_version": null,
+            "categories": [
+              {
+                "id": 259,
+                "name": "any%"
+              }
+            ],
+            "links": ["47456"]
+          }
+        ]
+      }
+    ]
+  }
+]
