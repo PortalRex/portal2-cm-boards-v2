@@ -14,7 +14,8 @@
     "test": "vitest",
     "typecheck": "tsc -b --noEmit",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "check": "prettier --check . && vitest --run && tsc -b --noEmit && eslint ."
   },
   "dependencies": {
     "@fontsource/barlow-semi-condensed": "^5.3.0",

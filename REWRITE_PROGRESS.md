@@ -75,8 +75,8 @@
   did; listed under Follow-ups. Commit f31bed9. Tests: 14 (+4 route rows).
   Correction: f31bed9 was committed with three route-table tests failing (they still expected the placeholder's
   "Stats" heading) and a type error in a test cast; the command chain didn't stop on them. Fixed in the next commit.
-  Commits now go through a gate script (format, tests, typecheck, lint; `set -e`, run in the web container) and
-  are made only after it prints "gate: ok".
+  Commits now go through `npm run check` (prettier --check, the full test run, typecheck and lint, stopping on the
+  first failure), run in the web container, and are made only when it exits 0.
 - 2026-10-18: 5.6a Stats Runners (`features/stats`): `api/stats.ts` (/stats/site and /stats/wr with their adapters,
   ports of fetchSiteStats / fetchWrStats), `RunnersPanel` (totals, peak points per board in `?board=`, leader cards
   with record-days from the WR stats, longest-standing records), `stats-ui.tsx` (figures, section titles, striped
@@ -286,7 +286,8 @@
   season board drops `?season=` (and `?player=`) and shows the all-time board. Kept for parity; listed under
   Follow-ups in FRONTEND_REWRITE.md.
 - Tooling in this WSL session: no Node on the host, so tests, typecheck, lint and format run in the dev compose's
-  `web` container: `docker exec -w /app p2boards-web-1 npx vitest --run` (and `npm run ...`).
+  `web` container: `docker exec -w /app p2boards-web-1 npm run check` (and `npm run format`, ...). `npm run check`
+  is the commit gate: it exits non-zero on any failure.
 - Nine "request without a matching handler" MSW warnings (changelog, profile scores) were already printed by
   older tests before 5.4a; they don't fail the suite. Worth silencing when those features are revisited.
 - Theme: legacy is dark by default and sets `data-theme="light"` on `<html>` for light (`p2cm.theme`). The new CSS
