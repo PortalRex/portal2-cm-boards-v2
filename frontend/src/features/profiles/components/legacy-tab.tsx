@@ -66,6 +66,8 @@ export function LegacyTab({
                         className={cn(
                           'num flex items-center justify-center self-stretch font-medium text-white',
                           rankClass(s?.rank),
+                          // Legacy's rank tint came later than this cell's 500 and set 600.
+                          rankClass(s?.rank) === 'rank-tile' && 'font-semibold',
                         )}
                         style={rankTileVars(s?.rank)}
                       >

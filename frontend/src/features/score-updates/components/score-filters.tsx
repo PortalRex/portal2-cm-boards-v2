@@ -133,7 +133,7 @@ export function ScoreFilters({
         <button
           type="button"
           onClick={() => set(CLEARED)}
-          className="ml-auto cursor-pointer border-0 bg-transparent text-[15px] text-brand-light hover:underline upto900:m-0 upto900:justify-self-center"
+          className="ml-auto cursor-pointer border-0 bg-transparent px-1.5 py-px text-[15px] text-brand-light hover:underline upto900:m-0 upto900:justify-self-center"
         >
           Clear filters
         </button>

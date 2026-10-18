@@ -52,7 +52,8 @@ export function Segmented<T extends string>({
           key={o.value}
           value={toItem(o.value)}
           className={cn(
-            'h-full rounded-[4px] border-0 font-normal text-text-2 hover:bg-seg-hover data-[state=on]:bg-seg-active data-[state=on]:font-medium data-[state=on]:text-foreground',
+            // No transition: legacy's switches change at once.
+            'h-full rounded-[4px] border-0 font-normal text-text-2 transition-none hover:bg-seg-hover data-[state=on]:bg-seg-active data-[state=on]:font-medium data-[state=on]:text-foreground',
             SIZES[size].item,
             PHONE,
             itemClassName,

@@ -194,7 +194,7 @@ export function ChapterTable({
         <span className="text-right">ΔNext</span>
         <span className={cn('text-right', desktopOnly)}>ΔWR</span>
         <span className={cn('text-right', desktopOnly)}>Points</span>
-        {coop && <span className={desktopOnly}>Partner</span>}
+        {coop && <span className={cn(desktopOnly, 'min-h-8 text-sm text-text-muted')}>Partner</span>}
         <span />
       </div>
       {chapter.maps.map((m, i) => (
