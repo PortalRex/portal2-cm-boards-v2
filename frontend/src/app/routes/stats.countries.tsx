@@ -1,7 +1,12 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { NotBuiltYet } from '@/components/placeholder-page'
+import { StatsShell } from '@/components/stats-shell'
+import { CountriesPanel } from '@/features/countries/components/countries-panel'
 
-// Countries (5.6).
+// Countries on a Portal 2 points board.
 export const Route = createFileRoute('/stats/countries')({
-  component: () => <NotBuiltYet title="Countries" />,
+  component: () => (
+    <StatsShell>
+      <CountriesPanel />
+    </StatsShell>
+  ),
 })
