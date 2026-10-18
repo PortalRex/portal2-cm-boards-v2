@@ -5,6 +5,7 @@ import { LayoutSlotsContext, type LayoutSlots } from '@/components/layouts/slots
 import { PlaceholderPage } from '@/components/placeholder-page'
 import { TopBar } from '@/components/layouts/top-bar'
 import { SampleDataNotice } from '@/components/sample-data-notice'
+import { StaffInbox } from '@/features/admin/components/staff-inbox'
 import { SubmitRun } from '@/features/runs/components/submit-run'
 import { useTheme } from '@/hooks/use-theme'
 import { meQueryOptions, siteQueryOptions } from '@/lib/auth'
@@ -32,6 +33,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 // The top bar's feature parts (shared layout code can't import features).
 const slots: LayoutSlots = {
   submitRun: (onClose) => <SubmitRun onClose={onClose} />,
+  staffInbox: <StaffInbox />,
 }
 
 function RootLayout() {

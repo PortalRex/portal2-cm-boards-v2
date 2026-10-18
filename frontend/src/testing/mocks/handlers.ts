@@ -1,4 +1,4 @@
-import { http, HttpResponse, type RequestHandler } from 'msw'
+import { delay, http, HttpResponse, type RequestHandler } from 'msw'
 import catalog from '@/testing/fixtures/catalog.json'
 
 /** Where the API is in tests (jsdom's origin + VITE_API_URL). */
@@ -37,6 +37,14 @@ export const handlers: RequestHandler[] = [
   http.get(`${API}/admin/reports/count`, () => HttpResponse.json({ open: 0 })),
   http.get(`${API}/admin/reports`, () => HttpResponse.json([])),
   http.get(`${API}/admin/jobs`, () => HttpResponse.json([])),
+  // The staff inbox: empty, and its live wait never answers unless a test says otherwise.
+  http.get(`${API}/admin/inbox`, () =>
+    HttpResponse.json({ items: [], unread: 0, seen_id: null, open_reports: 0 }),
+  ),
+  http.get(`${API}/admin/inbox/wait`, async () => {
+    await delay('infinite')
+    return new HttpResponse(null, { status: 204 })
+  }),
   // Staff: no notes on a run and nobody reacted, unless a test says otherwise.
   http.get(`${API}/admin/runs/:id/notes`, () => HttpResponse.json([])),
   http.get(`${API}/admin/runs/:id/reactions`, () => HttpResponse.json({ current: [], history: [] })),

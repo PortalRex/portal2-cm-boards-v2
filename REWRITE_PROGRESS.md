@@ -58,8 +58,8 @@
   - [x] 5.8 About, Donators, Placeholder: 0287124
   - [x] 5.9a Admin: guard, layout, audit log: afea143
   - [x] 5.9b Admin: reports, background jobs: d55d54f (lint fix 6a7c9a5)
-  - [x] 5.9c Admin: games editor (split into components): (pending)
-  - [ ] 5.9d Staff inbox long poll
+  - [x] 5.9c Admin: games editor (split into components): 739b30d
+  - [x] 5.9d Staff inbox long poll: (pending)
 - [ ] 6. Parity and cutover
   - [ ] 6.1 `frontend/PARITY.md`, every route x role x game x theme x phone
   - [ ] 6.2 Settings carry over from legacy localStorage
@@ -68,13 +68,20 @@
 
 ## Log
 <!-- Newest first. One entry per finished item: date, what was done, commit, tests added. -->
+- 2026-10-18: 5.9d Staff inbox (`components/staff-inbox.tsx`, filled into the top bar's `staffInbox` slot from the
+  root route): red badge for new entries (not your own), amber for open reports, the panel with each entry linking to
+  its map, profile, the reports list or the log, opening marks them read (badge cleared at once) and highlights the
+  new ones; closes on Escape, an outside click or another page. `hooks/use-staff-inbox.ts`: the inbox query (reloaded
+  every 5 minutes while visible) plus the long poll on `/admin/inbox/wait`: it reads `after` / `seen` from the cache
+  each round, writes the reloaded inbox with `setQueryData`, waits 10 s after a failure and aborts on unmount. Default
+  test handlers answer an empty inbox and a wait that never returns. Tests: 6. Commit (pending).
 - 2026-10-18: 5.9c Games editor, split from legacy's 1,125-line file into `features/admin/components/games/`
   (`games-editor` list + panel host, `new-game-form`, `game-panel` with branding, `image-row` shared by game and map
   pictures, `game-modes` with `ModeSelect`, `game-links` with the season pool, `layout-editor` with chapter heads and
   add forms, `map-editor` with categories and links), `api/catalog-editor.ts`, and the pure helpers (slugs, mode
   keys, times, map / chapter moves) in `utils/catalog-editor.ts`. Every change refetches the catalog (the editor's
   and the site's, same query key) and reloads run data. The legacy sheet's cascade is worked out per element in
-  `styles.ts`. Tests: 6 helper tests, 12 editor tests (2 under happy-dom for image uploads). Commit (pending).
+  `styles.ts`. Tests: 6 helper tests, 12 editor tests (2 under happy-dom for image uploads). Commit 739b30d.
 - 2026-10-18: 5.9b Run reports (`components/reports.tsx`: open / resolved / dismissed / all, 50 per page, the run with
   its flags, details, resolve or dismiss with a note and optionally the run's other open reports, how a closed one
   ended, reopen; refreshes the reports, count, inbox, log and the run) and Background jobs
@@ -340,6 +347,8 @@
 
 ## Decisions and findings
 <!-- Legacy behaviours discovered, choices made and why. -->
+- Staff inbox highlight: legacy's `.is-new` row used `var(--me-tint)`, which is only defined inside `.is-me`, so the
+  background never showed; only the 3px brand edge did. Kept that.
 - Games editor: legacy's whole sheet hung off `.ge` element rules (`.ge button`, `.ge input`), which outranked several
   class rules. Kept the visible results: the games list buttons have 0 14px padding, 15px text, a 4px radius and no
   hover; the season's "link to base" checkbox sits above its text (the form's label rule made it a column); a
