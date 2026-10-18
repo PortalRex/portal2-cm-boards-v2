@@ -34,8 +34,8 @@
 - [x] 4. Routes: every legacy URL and redirect, thin route files with zod search params: 4570ca2
 - [ ] 5. Features
   - [x] 5.1a Score Updates: list, filters/limits/toggles in search params: 145f2ac
-  - [x] 5.1b Score Updates: daily chambers, weekly recap, graph: (pending)
-  - [ ] 5.1c Score Updates: inline Run Details slot (read-only Run Details)
+  - [x] 5.1b Score Updates: daily chambers, weekly recap, graph: ca41dc2
+  - [x] 5.1c Score Updates: inline Run Details slot (read-only Run Details): (pending)
   - [ ] 5.2a Map list (catalog images with built-in fallback)
   - [ ] 5.2b Map page: board, co-op halves, co-op PB style
   - [ ] 5.2c Map page: WR history with hidden WRs for staff
@@ -68,6 +68,12 @@
 
 ## Log
 <!-- Newest first. One entry per finished item: date, what was done, commit, tests added. -->
+- 2026-10-17: 5.1c Read-only Run Details (`features/runs`): video (autorender / YouTube / request), co-op half switch,
+  mtrigger segments, comment and info, timer-rounding note, demo / YouTube / autorender buttons, with legacy's
+  container-query layout (`@container/run-details`). The index route fills Score Updates' `renderRunDetails` slot.
+  Reactions, report, pending proof and staff tools come in 5.3 as children of the same panel. Checked in the browser:
+  at 1440 px the three columns, video and buttons match legacy (legacy is 28 px taller only by its Report link).
+  Commit (pending). Tests: 9 (+1 route test for the slot).
 - 2026-10-17: 5.1b Score Updates panels: `RecapPanel` (Weekly recap / Daily chambers / Following tabs, week and day
   pagers keeping the previous data faded while the next loads, as legacy), `ActivityPanel` (month / year / all time
   chart), `api/panels.ts`. Sample data for /recap/weekly and /daily; empty defaults for the panels in the test

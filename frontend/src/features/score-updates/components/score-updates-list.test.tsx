@@ -175,4 +175,17 @@ describe('Score Updates', () => {
     await userEvent.keyboard('{Escape}')
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
   })
+
+  it('opens Run Details under the row (the route fills the slot)', async () => {
+    serve()
+    server.use(http.get(`${API}/changelog/:id/segments`, () => HttpResponse.json([])))
+    const first = changelog[0]!
+    await renderRoute('/')
+    const row = await rowFor(first.map_name)
+    await userEvent.click(within(row).getByRole('button', { name: 'Show details' }))
+    expect(await within(row).findByText('SAR Version:')).toBeInTheDocument()
+    expect(within(row).getByRole('button', { name: 'Hide details' })).toHaveAttribute('aria-expanded', 'true')
+    await userEvent.click(within(row).getByRole('button', { name: 'Hide details' }))
+    expect(within(row).queryByText('SAR Version:')).toBeNull()
+  })
 })
