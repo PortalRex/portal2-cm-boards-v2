@@ -1,7 +1,14 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { NotBuiltYet } from '@/components/placeholder-page'
+import { z } from 'zod'
+import { MapListPage } from '@/features/leaderboards/components/map-list-page'
 
-// Map list (5.2).
+const text = z.string().optional().catch(undefined)
+
 export const Route = createFileRoute('/maps')({
-  component: () => <NotBuiltYet title="Leaderboard" />,
+  validateSearch: z.looseObject({ mode: text, season: text, game: text }),
+  component: MapListRoute,
 })
+
+function MapListRoute() {
+  return <MapListPage search={Route.useSearch()} />
+}

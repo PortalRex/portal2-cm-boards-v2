@@ -5,7 +5,7 @@ import { renderRoute } from '@/testing/test-utils'
 // Every legacy URL (frontend-legacy/src/App.js) must keep working. Pages not built yet render a
 // placeholder with their title; the tests check each address reaches its route.
 const pages: [string, string][] = [
-  ['/maps', 'Leaderboard'],
+  ['/maps', 'Leaderboards'],
   ['/map/sp/47458', 'Map'],
   ['/map/coop/47741?season=portal-2-season-1', 'Map'],
   ['/leaderboard/overall', 'Aggregated'],

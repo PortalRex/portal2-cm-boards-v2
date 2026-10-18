@@ -10,7 +10,7 @@ import { render } from '@testing-library/react'
 import type { ReactElement } from 'react'
 import type { RouterContext } from '@/app/routes/__root'
 import { routeTree } from '@/app/routeTree.gen'
-import { adaptMe } from '@/lib/auth'
+import { adaptMe, type MeRaw } from '@/lib/auth'
 import { queryKeys } from '@/lib/query-keys'
 import { parseSearch, stringifySearch } from '@/lib/search-params'
 import { STORAGE_KEYS } from '@/lib/storage'
@@ -26,15 +26,15 @@ interface Options {
   /** Starting URL (path and search), "/" by default. */
   route?: string
   queryClient?: QueryClient
-  /** Who is signed in (as /auth/me would say); anonymous by default. */
-  user?: TestUser | null
+  /** Who is signed in: a test user, or an /auth/me answer of its own; anonymous by default. */
+  user?: TestUser | MeRaw | null
   /** Staff viewing the site as a player (Settings). */
   viewAsPlayer?: boolean
 }
 
 function prepare({ queryClient, user = null, viewAsPlayer = false }: Omit<Options, 'route'>) {
   const client = queryClient ?? createTestQueryClient()
-  client.setQueryData(queryKeys.me(), adaptMe(user ? users[user] : null))
+  client.setQueryData(queryKeys.me(), adaptMe(typeof user === 'string' ? users[user] : user))
   if (viewAsPlayer) localStorage.setItem(STORAGE_KEYS.viewAsPlayer, '1')
   return client
 }

@@ -13,6 +13,9 @@ export const handlers: RequestHandler[] = [
   http.get(`${API}/catalog`, () => HttpResponse.json(catalog)),
   http.get(`${API}/site`, () => HttpResponse.json({ private: false })),
   http.get(`${API}/auth/me`, () => HttpResponse.json(null)),
+  // Map list previews: none unless a test says otherwise.
+  http.get(`${API}/sp`, () => HttpResponse.json([])),
+  http.get(`${API}/coop`, () => HttpResponse.json([])),
   // The home page's panels: empty unless a test says otherwise.
   http.get(`${API}/graph`, () => HttpResponse.json([])),
   http.get(`${API}/recap/weekly`, () =>

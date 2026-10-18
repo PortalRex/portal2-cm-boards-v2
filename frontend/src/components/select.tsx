@@ -20,8 +20,8 @@ export function Select({
   onChange: (value: string) => void
   options: SelectOption[]
   label?: string
-  /** "lg": 40 px (the default); "md": 32 px, for filter bars. */
-  size?: 'lg' | 'md'
+  /** "lg": 40 px (the default); "md": 32 px, for filter bars; "xl": 46 px. */
+  size?: 'lg' | 'md' | 'xl'
   /** Width classes; the boards' dropdowns are at least 218 px wide unless given another min-width. */
   className?: string
 }) {

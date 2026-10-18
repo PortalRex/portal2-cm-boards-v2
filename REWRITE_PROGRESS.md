@@ -35,8 +35,8 @@
 - [ ] 5. Features
   - [x] 5.1a Score Updates: list, filters/limits/toggles in search params: 145f2ac
   - [x] 5.1b Score Updates: daily chambers, weekly recap, graph: ca41dc2
-  - [x] 5.1c Score Updates: inline Run Details slot (read-only Run Details): (pending)
-  - [ ] 5.2a Map list (catalog images with built-in fallback)
+  - [x] 5.1c Score Updates: inline Run Details slot (read-only Run Details): 253c3e9
+  - [x] 5.2a Map list (catalog images with built-in fallback): (pending)
   - [ ] 5.2b Map page: board, co-op halves, co-op PB style
   - [ ] 5.2c Map page: WR history with hidden WRs for staff
   - [ ] 5.2d Wall of Shame
@@ -68,6 +68,11 @@
 
 ## Log
 <!-- Newest first. One entry per finished item: date, what was done, commit, tests added. -->
+- 2026-10-17: 5.2a Map list (`features/leaderboards`): `MapListPage` (season and mode controls, chapters/courses,
+  old `?game=<season>` links), `MapCard` (image header, WR row, next six, fixed icon columns, own runs tinted),
+  `api/previews.ts`. Shared `components/season-select.tsx`; selects got an `xl` (46 px) size. The address keeps only
+  mode and season, as legacy. Checked in the browser: at 1440 px the controls, chapter header, grid and card geometry
+  match legacy; at 375 px the two-card grid, mode buttons and first-two-rows cards match. Commit (pending). Tests: 7.
 - 2026-10-17: 5.1c Read-only Run Details (`features/runs`): video (autorender / YouTube / request), co-op half switch,
   mtrigger segments, comment and info, timer-rounding note, demo / YouTube / autorender buttons, with legacy's
   container-query layout (`@container/run-details`). The index route fills Score Updates' `renderRunDetails` slot.
@@ -245,6 +250,11 @@
   (measured identical: 106 / 65 / 59 px buttons on the home page at 375 px).
 - The activity chart measured 9 px wider than legacy's in the hidden browser pane: ResizeObserver doesn't run while
   nothing paints, so the first measurement sticks. Not a code difference; recheck with the pane visible.
+- Map cards: legacy's real `/sp`/`/coop` previews carry no demo id, so there is no demo column on the real site; only
+  legacy's sample data showed one. Maps missing from the previews show an empty record row (legacy only said "No
+  scores yet" for an empty group, which the API never sends).
+- Browser checks: after changing the emulated viewport size of a hidden tab, reload before measuring; styles of
+  existing elements can stay stale until then.
 - `cn` in `lib/utils.ts` is shadcn's own package (github.com/shadcn-ui/cn), the replacement for clsx + tailwind-merge.
 - The hardening merge added a CSP in `security-headers.conf` (no inline scripts) and `public/theme.js` (sets the
   theme before first paint without an inline script). The new app keeps both: nginx includes the same headers file,
