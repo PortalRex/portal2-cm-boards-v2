@@ -471,4 +471,5 @@ On top of the rules in CLAUDE.md, every feature needs:
 
 Ideas found during the rewrite that would change behaviour. List them here and don't build them yet.
 
--
+- Aggregated boards: picking a country drops `?season=` (legacy replaces the whole query), so a season board flips
+  to all-time. Keeping the season would match what the tabs and chapter picker already do.

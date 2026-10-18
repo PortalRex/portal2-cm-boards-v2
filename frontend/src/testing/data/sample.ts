@@ -1,4 +1,12 @@
-import { BUILTIN_CATALOG, isMultiplayerMode, mapsForGame, type MapInfo } from '@/lib/catalog'
+import {
+  BUILTIN_CATALOG,
+  isMultiplayerMode,
+  mapsForGame,
+  mapsForMode,
+  p2ChapterByDbId,
+  type MapInfo,
+} from '@/lib/catalog'
+import { countryIdByCode } from '@/lib/data/countries'
 import { pointsForRank } from '@/lib/points'
 import type { MeRaw } from '@/lib/auth'
 import type { ChangelogRaw, CoopPreviewRaw, CoopRankedRaw, SpPreviewRaw, SpRankedRaw } from '@/types/runs'
@@ -238,6 +246,51 @@ export function samplePreviews(game: string, coop: boolean): (SpPreviewRaw[] | C
             autorender_id: null,
           })),
   )
+}
+
+// --- aggregated boards ----------------------------------------------------------------
+
+function boardMaps(game: string, board: string): MapInfo[] {
+  const chapterId = /^chapter-(\d+)$/.exec(board)?.[1]
+  if (chapterId) return p2ChapterByDbId(BUILTIN_CATALOG, chapterId)?.maps ?? []
+  if (board === 'overall') return mapsForGame(BUILTIN_CATALOG, game)
+  return mapsForMode(BUILTIN_CATALOG, board)
+}
+
+/** GET /points/game/{game_id}/{board}: every sample player's points and time over the board's maps. */
+export function samplePoints(game: string, boardKey: string) {
+  const totals = new Map<string, { player: SamplePlayer; points: number; score: number; maps: Set<string> }>()
+  for (const map of boardMaps(game, boardKey)) {
+    for (const entry of board(map)) {
+      for (const player of entry.players) {
+        const t = totals.get(player.profileNumber) ?? { player, points: 0, score: 0, maps: new Set() }
+        totals.set(player.profileNumber, t)
+        if (t.maps.has(map.id)) continue
+        t.maps.add(map.id)
+        t.points += entry.points
+        t.score += entry.score
+      }
+    }
+  }
+  return {
+    id: null,
+    points: [...totals.values()]
+      .sort((a, b) => b.points - a.points)
+      .map(({ player, points, score, maps }) => [
+        player.profileNumber,
+        {
+          points,
+          score,
+          num_scores: maps.size,
+          total_rank_sum: 0,
+          worst: [0, 'Multiple'],
+          best: [0, 'Multiple'],
+          user_name: player.name,
+          avatar: player.avatar,
+          country_id: countryIdByCode(player.country),
+        },
+      ]),
+  }
 }
 
 // --- changelog ------------------------------------------------------------------------

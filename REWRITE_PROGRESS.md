@@ -39,8 +39,8 @@
   - [x] 5.2a Map list (catalog images with built-in fallback): a0c0342
   - [x] 5.2b Map page: board, co-op halves, co-op PB style: c9a1553
   - [x] 5.2c Map page: WR history with hidden WRs for staff: c9a1553
-  - [x] 5.2d Wall of Shame: (pending)
-  - [ ] 5.4a Aggregated: Portal 2 overall / sp / coop
+  - [x] 5.2d Wall of Shame: d2f476b
+  - [x] 5.4a Aggregated: Portal 2 overall / sp / coop: (pending)
   - [ ] 5.4b Aggregated: Mel, chapters, custom games and seasons
   - [ ] 5.5a Profiles: header, tabs per game, seasons in tab
   - [ ] 5.5b Profiles: points history chart with wheel zoom
@@ -68,13 +68,22 @@
 
 ## Log
 <!-- Newest first. One entry per finished item: date, what was done, commit, tests added. -->
+- 2026-10-18: 5.4a Aggregated boards, Portal 2 (`features/aggregated`): `utils/points.ts` (`adaptPoints`,
+  `serverBoard`: which `/points/game/{id}/{board}` and how many maps a Time entry needs), `utils/pages.ts` (what
+  each address shows: title, kicker, season copy of the board, `/leaderboard/season` -> the running season or "No
+  season yet", unknown board -> overall; the tabs per game), `api/aggregated.ts`, `PointsBoard` (20 a page,
+  `?player=` opens on that player's page with the row marked, own row tinted), `AggregatedPage` (season, chapter and
+  country pickers, tabs keeping country and season). `/leaderboard/$kind` uses it; the shared code already handles
+  Mel, chapters, custom games and seasons, whose routes come in 5.4b. Sample data: `samplePoints` (port of
+  `mockAggregated`). Fixture `points-sp.json` captured from the local API. Not compared in a browser this session.
+  Commit (pending). Tests: 31 (+4 route rows).
 - 2026-10-18: 5.2d Wall of Shame (`features/leaderboards`): `api/wall-of-shame.ts` (GET /wall_of_shame, sorted by
   name ignoring case and accents, as legacy), `WallOfShamePage` (search by name or Steam id, "N banned players" /
   "M of N" count, empty and no-match messages, cards linking to profiles), route loader prefetch. Sample data: the
   last three sample players, as legacy's mock; default test handler answers an empty list. Node isn't installed in
   this WSL session, so the tooling ran inside the dev compose's `web` container (`docker exec -w /app
   p2boards-web-1 ...`). Not compared in a browser this session (no browser tool); the layout is a direct port of
-  WallOfShame.css. Commit (pending). Tests: 5.
+  WallOfShame.css. Commit d2f476b. Tests: 5.
 - 2026-10-17: 5.2b-c Map page (`features/leaderboards`): redirects (unknown map, wrong mode, season copy, season
   without the map), info panel with the WR history chart (ranges, wheel zoom via shared `hooks/use-wheel-zoom.ts`,
   click for `?at=`), video, wiki/history buttons, board with search, pagination, Your best (profile scores fallback
@@ -200,6 +209,15 @@
 
 ## Decisions and findings
 <!-- Legacy behaviours discovered, choices made and why. -->
+- Aggregated map counts: legacy hard-codes 108 / 60 / 48 (Portal 2) and 40 / 22 / 18 (Mel) for the built-in boards
+  and counts catalog maps for chapters and other games; kept so (`serverBoard`).
+- Aggregated country picker: legacy's `setParams({ country })` replaces the whole query, so picking a country on a
+  season board drops `?season=` (and `?player=`) and shows the all-time board. Kept for parity; listed under
+  Follow-ups in FRONTEND_REWRITE.md.
+- Tooling in this WSL session: no Node on the host, so tests, typecheck, lint and format run in the dev compose's
+  `web` container: `docker exec -w /app p2boards-web-1 npx vitest --run` (and `npm run ...`).
+- Nine "request without a matching handler" MSW warnings (changelog, profile scores) were already printed by
+  older tests before 5.4a; they don't fail the suite. Worth silencing when those features are revisited.
 - Theme: legacy is dark by default and sets `data-theme="light"` on `<html>` for light (`p2cm.theme`). The new CSS
   keeps that: the dark values sit on `:root`, the light ones on `:root[data-theme="light"]`, and Tailwind's `dark:`
   variant means "not light". shadcn's token names (`--background`, `--primary`, ...) point at the legacy tokens.

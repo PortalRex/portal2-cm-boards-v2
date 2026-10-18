@@ -5,6 +5,7 @@ import {
   sampleChangelog,
   sampleCoopBoard,
   sampleDaily,
+  samplePoints,
   sampleWeeklyRecap,
   samplePreviews,
   sampleSpBoard,
@@ -48,6 +49,9 @@ export function sampleHandlers(api: string): RequestHandler[] {
       const url = new URL(request.url)
       return HttpResponse.json(sampleDaily(gameOf(url), url.searchParams.get('date') ?? undefined))
     }),
+    http.get(`${api}/points/game/:game/:board`, ({ params }) =>
+      HttpResponse.json(samplePoints(String(params.game) === '2' ? 'mel' : 'portal2', String(params.board))),
+    ),
     http.get(`${api}/wall_of_shame`, () => HttpResponse.json(sampleWallOfShame())),
     http.all(`${api}/*`, () =>
       HttpResponse.json({ error: "Sample data doesn't cover this yet." }, { status: 404 }),

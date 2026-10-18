@@ -54,6 +54,19 @@ describe('sample handlers', () => {
     expect(await api.get('/catalog')).toEqual([])
   })
 
+  it('serve aggregated boards where every sample player has a time on every map', async () => {
+    server.use(...sampleHandlers(API))
+    const sp = await api.get<{ points: [string, { num_scores: number; points: number }][] }>(
+      '/points/game/1/sp',
+    )
+    expect(sp.points).toHaveLength(SAMPLE_PLAYERS.length)
+    expect(sp.points.every(([, p]) => p.num_scores === 60)).toBe(true)
+    const chapter = await api.get<typeof sp>('/points/game/1/chapter-7')
+    expect(chapter.points[0]![1].num_scores).toBe(9)
+    const story = await api.get<typeof sp>('/points/game/2/story')
+    expect(story.points[0]![1].num_scores).toBe(22)
+  })
+
   it('serve three banned players for the Wall of Shame, as legacy', async () => {
     server.use(...sampleHandlers(API))
     const banned = await api.get<{ profile_number: string }[]>('/wall_of_shame')

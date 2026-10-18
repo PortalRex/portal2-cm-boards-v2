@@ -22,6 +22,8 @@ export const handlers: RequestHandler[] = [
     HttpResponse.json({ start: '2026-10-12', end: '2026-10-19', runs: [] }),
   ),
   http.get(`${API}/daily`, () => HttpResponse.json({ date: '2026-10-17', chambers: [] })),
+  // Aggregated boards: nobody unless a test says otherwise.
+  http.get(`${API}/points/game/:game/:board`, () => HttpResponse.json({ id: null, points: [] })),
   // Nobody banned unless a test says otherwise.
   http.get(`${API}/wall_of_shame`, () => HttpResponse.json([])),
   // No rendered videos unless a test says otherwise.
