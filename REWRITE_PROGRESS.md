@@ -32,7 +32,7 @@
   - [x] 3.14 Layout + TopBar (nav, dropdowns, Aggregate menu per game, More menu, account area, theme toggle): 128c893
   - [x] 3.15 Private mode gate in the root route: 846cc64
 - [x] 4. Routes: every legacy URL and redirect, thin route files with zod search params: 4570ca2
-- [ ] 5. Features
+- [x] 5. Features
   - [x] 5.1a Score Updates: list, filters/limits/toggles in search params: 145f2ac
   - [x] 5.1b Score Updates: daily chambers, weekly recap, graph: ca41dc2
   - [x] 5.1c Score Updates: inline Run Details slot (read-only Run Details): 253c3e9
@@ -59,22 +59,35 @@
   - [x] 5.9a Admin: guard, layout, audit log: afea143
   - [x] 5.9b Admin: reports, background jobs: d55d54f (lint fix 6a7c9a5)
   - [x] 5.9c Admin: games editor (split into components): 739b30d
-  - [x] 5.9d Staff inbox long poll: (pending)
+  - [x] 5.9d Staff inbox long poll: 0103cbe
 - [ ] 6. Parity and cutover
-  - [ ] 6.1 `frontend/PARITY.md`, every route x role x game x theme x phone
-  - [ ] 6.2 Settings carry over from legacy localStorage
-  - [ ] 6.3 Final checks (old links, Docker builds, Steam sign-in via proxy, 50 MB uploads)
+  - [ ] 6.1 `frontend/PARITY.md`, every route x role x game x theme x phone: done for visitors (all routes, desktop /
+    phone / light / Mel / breakpoints); signed-in and staff rows wait for real sign-ins (pending)
+  - [x] 6.2 Settings carry over from legacy localStorage: (pending)
+  - [x] 6.3 Final checks (old links, Docker builds, Steam sign-in via proxy, 50 MB uploads): (pending)
   - [ ] 6.4 Cutover (user approval, delete `frontend-legacy/`, docs)
 
 ## Log
 <!-- Newest first. One entry per finished item: date, what was done, commit, tests added. -->
+- 2026-10-18: Step 6. Parity pass against real data: legacy (:3001) and the new site (:3002) on one read-only
+  server instance (:8082, same database, private mode and jobs off). Every visible element measured on both sides
+  and lined up by text, for every route as a visitor at 1400px dark, 375px phone, 1400px light, Mel selected, and
+  900 / 1320 / 700px, plus interactive states (run details, filters, paging, profile tabs, chamber history). Results
+  in `frontend/PARITY.md`. Fixed along the way (commits 9ae745f, 91b6b31, 82cac34, 0103cbe): inclusive breakpoint
+  variants (`upto900:`, widest first), the empty-value switch choice, Tailwind-reset defaults legacy relied on
+  (`small`, code font, bullets, img max-width, browser button padding and paragraph margins, the race slider), narrow
+  pages, icon sizes and shrink, switch transitions, and per-page cascade results. 6.2: the six legacy keys and
+  formats are the same; `testing/legacy-settings.test.tsx` opens the site with them. 6.3: old links match, the
+  production image builds and serves through nginx, both compose files validate, Steam sign-in returns to the
+  forwarded host, 50 MB uploads pass and 70 MB get 413. Signed-in and staff views still need real sign-ins.
+  Commit (pending). Tests: 1.
 - 2026-10-18: 5.9d Staff inbox (`components/staff-inbox.tsx`, filled into the top bar's `staffInbox` slot from the
   root route): red badge for new entries (not your own), amber for open reports, the panel with each entry linking to
   its map, profile, the reports list or the log, opening marks them read (badge cleared at once) and highlights the
   new ones; closes on Escape, an outside click or another page. `hooks/use-staff-inbox.ts`: the inbox query (reloaded
   every 5 minutes while visible) plus the long poll on `/admin/inbox/wait`: it reads `after` / `seen` from the cache
   each round, writes the reloaded inbox with `setQueryData`, waits 10 s after a failure and aborts on unmount. Default
-  test handlers answer an empty inbox and a wait that never returns. Tests: 6. Commit (pending).
+  test handlers answer an empty inbox and a wait that never returns. Tests: 6. Commit 0103cbe.
 - 2026-10-18: 5.9c Games editor, split from legacy's 1,125-line file into `features/admin/components/games/`
   (`games-editor` list + panel host, `new-game-form`, `game-panel` with branding, `image-row` shared by game and map
   pictures, `game-modes` with `ModeSelect`, `game-links` with the season pool, `layout-editor` with chapter heads and
@@ -347,6 +360,11 @@
 
 ## Decisions and findings
 <!-- Legacy behaviours discovered, choices made and why. -->
+- Parity: rows that tie (0-point countries and their top players, chamber history entries with the same time) come
+  back from the server in a different order on each request, so the two sites can differ there, as can two loads
+  of either. Follow-up for the server (not done, the API stays as it is): a tie-breaker in those `ORDER BY`s.
+- Parity method: measurements of hidden browser tabs can catch CSS transitions at their start; the new switches had
+  shadcn's 150ms transition, which legacy didn't, so it was removed rather than worked around.
 - Staff inbox highlight: legacy's `.is-new` row used `var(--me-tint)`, which is only defined inside `.is-me`, so the
   background never showed; only the 3px brand edge did. Kept that.
 - Games editor: legacy's whole sheet hung off `.ge` element rules (`.ge button`, `.ge input`), which outranked several
