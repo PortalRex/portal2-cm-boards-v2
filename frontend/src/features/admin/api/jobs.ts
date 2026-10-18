@@ -25,11 +25,10 @@ export interface BackgroundJob {
   last: JobRun | null
 }
 
+export const getJobs = (signal?: AbortSignal) => api.get<BackgroundJob[]>('/admin/jobs', { signal })
+
 export const jobsQueryOptions = () =>
-  queryOptions({
-    queryKey: queryKeys.admin.jobs(),
-    queryFn: ({ signal }) => api.get<BackgroundJob[]>('/admin/jobs', { signal }),
-  })
+  queryOptions({ queryKey: queryKeys.admin.jobs(), queryFn: ({ signal }) => getJobs(signal) })
 
 /** Starts a job now; the server answers straight away and the job's progress shows in the list. */
 export const runJob = (key: string, query: string) =>

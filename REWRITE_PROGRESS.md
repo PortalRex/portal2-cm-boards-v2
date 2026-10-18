@@ -57,7 +57,7 @@
   - [x] 5.7 Settings (name/avatar locks, view-as-player for staff): 09d111c
   - [x] 5.8 About, Donators, Placeholder: 0287124
   - [x] 5.9a Admin: guard, layout, audit log: afea143
-  - [x] 5.9b Admin: reports, background jobs: (pending)
+  - [x] 5.9b Admin: reports, background jobs: d55d54f (lint fix (pending))
   - [ ] 5.9c Admin: games editor (split into components)
   - [ ] 5.9d Staff inbox long poll
 - [ ] 6. Parity and cutover
@@ -72,8 +72,9 @@
   its flags, details, resolve or dismiss with a note and optionally the run's other open reports, how a closed one
   ended, reopen; refreshes the reports, count, inbox, log and the run) and Background jobs
   (`components/background-jobs.tsx`: state, schedule, last run, Run now / Dry run in the background, polled every
-  15 s and every 3 s while running; once a real run started here finishes, the site's run data reloads). Tests: 6.
-  Commit (pending).
+  15 s and every 3 s while running; once a real run started here finishes, the site's run data reloads). Tests: 7.
+  Commit d55d54f. It went out with a lint error (setState in an effect; my commit command didn't stop on the gate's
+  failure). Fixed in the next commit: the finished-run check now runs in the jobs query's fetch. Commit (pending).
 - 2026-10-18: 5.9a Staff panel (`features/admin`): `/admin?section=` (log, reports, games, jobs; validated, and a
   section the user can't open shows the changelog, as legacy). Who sees what is legacy's: visitors are asked to sign
   in, players and staff viewing as a player get "Staff only.", reports for every staff tier with the open count,

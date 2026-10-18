@@ -1,10 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { cn } from 'cn'
-import { useEffect, useState } from 'react'
+import { useRef, useState } from 'react'
 import { EmptyState, Loading } from '@/components/status'
 import { formatDateTime, timeAgo } from '@/lib/format'
 import { invalidateRun } from '@/lib/invalidate'
-import { jobsQueryOptions, runJob, type BackgroundJob } from '../api/jobs'
+import { getJobs, jobsQueryOptions, runJob, type BackgroundJob } from '../api/jobs'
 
 // What each job's buttons do: [label, query] (the old-board pull also has a dry run).
 const ACTIONS: Record<string, [label: string, query: string][]> = {
@@ -30,9 +30,21 @@ export function BackgroundJobs() {
   const [busy, setBusy] = useState<string | null>(null)
   const [messages, setMessages] = useState<Record<string, string | null>>({})
   // A real run started here: once it has finished, the rest of the site reloads its data.
-  const [refreshAfter, setRefreshAfter] = useState<{ key: string; since: number } | null>(null)
+  const refreshAfter = useRef<{ key: string; since: number } | null>(null)
   const jobs = useQuery({
     ...jobsQueryOptions(),
+    queryFn: async ({ signal }) => {
+      const list = await getJobs(signal)
+      const watched = refreshAfter.current
+      const last = watched && list.find((j) => j.key === watched.key)?.last
+      if (watched && last && !last.running && last.finished_at) {
+        if (new Date(`${last.finished_at}Z`).getTime() >= watched.since - 2000) {
+          refreshAfter.current = null
+          void invalidateRun(qc, {})
+        }
+      }
+      return list
+    },
     refetchInterval: (q) => (busy || q.state.data?.some((j) => j.last?.running) ? 3000 : 15000),
   })
   const start = useMutation({
@@ -43,7 +55,7 @@ export function BackgroundJobs() {
       setMessages((m) => ({ ...m, [job.key]: null }))
     },
     onSuccess: (_, { job, query }) => {
-      if (!query.includes('dry_run')) setRefreshAfter({ key: job.key, since: Date.now() })
+      if (!query.includes('dry_run')) refreshAfter.current = { key: job.key, since: Date.now() }
     },
     onError: (e, { job }) => setMessages((m) => ({ ...m, [job.key]: e.message })),
     onSettled: () => {
@@ -51,18 +63,6 @@ export function BackgroundJobs() {
       return qc.invalidateQueries({ queryKey: jobsQueryOptions().queryKey })
     },
   })
-
-  const finished = refreshAfter && jobs.data?.find((j) => j.key === refreshAfter.key)?.last
-  const done =
-    finished &&
-    !finished.running &&
-    finished.finished_at &&
-    new Date(`${finished.finished_at}Z`).getTime() >= refreshAfter.since - 2000
-  useEffect(() => {
-    if (!done) return
-    setRefreshAfter(null)
-    void invalidateRun(qc, {})
-  }, [done, qc])
 
   if (jobs.isError && !jobs.data)
     return <EmptyState>Couldn’t load the background jobs: {jobs.error.message}</EmptyState>

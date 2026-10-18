@@ -214,6 +214,38 @@ describe('background jobs', () => {
     expect(started).toEqual(['?background=true', '?limit=200&background=true'])
   })
 
+  it('reloads the site’s run data once a run started here has finished', async () => {
+    let finished: string | null = null
+    server.use(
+      http.get(`${API}/admin/jobs`, () =>
+        HttpResponse.json([
+          job({
+            last: finished
+              ? {
+                  running: false,
+                  started_at: finished,
+                  finished_at: finished,
+                  trigger: 'Admin',
+                  ok: true,
+                  summary: '3 new times',
+                  dry_run: false,
+                }
+              : null,
+          }),
+        ]),
+      ),
+      http.post(`${API}/admin/steam_sync`, () => {
+        finished = new Date(Date.now() + 1000).toISOString().slice(0, 19)
+        return HttpResponse.json({ started: true }, { status: 202 })
+      }),
+    )
+    const { queryClient } = await renderWithProviders(<BackgroundJobs />, { user: 'admin' })
+    queryClient.setQueryData(['map-board', '47458'], [])
+    await userEvent.click(await screen.findByRole('button', { name: 'Run now' }))
+    expect(await screen.findByText('3 new times')).toBeInTheDocument()
+    await waitFor(() => expect(queryClient.getQueryState(['map-board', '47458'])?.isInvalidated).toBe(true))
+  })
+
   it('says when the jobs can’t be loaded', async () => {
     server.use(
       http.get(
