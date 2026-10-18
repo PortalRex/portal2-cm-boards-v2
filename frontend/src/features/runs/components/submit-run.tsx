@@ -113,9 +113,9 @@ export function SubmitRun({ onClose }: { onClose: () => void }) {
         <DialogPrimitive.Overlay className="fixed inset-0 z-[1000] flex items-start justify-center overflow-y-auto bg-black/60 px-4 pt-[72px] pb-4">
           <DialogPrimitive.Content
             aria-describedby={undefined}
-            className="w-full max-w-[520px] rounded-md border border-line bg-card-surface text-foreground shadow-[0_12px_40px_rgba(0,0,0,0.5)] outline-none"
+            className="w-full max-w-[520px] rounded-md border border-line bg-panel text-foreground shadow-[0_12px_40px_rgba(0,0,0,0.5)] outline-none"
           >
-            <header className="flex items-center justify-between rounded-t-md border-b border-line bg-card-head px-4 py-3">
+            <header className="flex items-center justify-between rounded-t-md border-b border-line bg-panel-head px-4 py-3">
               <DialogPrimitive.Title className="m-0 text-[22px] font-semibold">
                 Submit run
               </DialogPrimitive.Title>

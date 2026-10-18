@@ -40,7 +40,7 @@ function CollapseAll() {
         type="button"
         onClick={toggleAll}
         aria-expanded={!all}
-        className="inline-flex cursor-pointer items-center gap-2 rounded-md border-0 bg-card-head px-3 py-1 text-[15px] text-text-2 hover:bg-control-raised hover:text-foreground"
+        className="inline-flex cursor-pointer items-center gap-2 rounded-md border-0 bg-panel-head px-3 py-1 text-[15px] text-text-2 hover:bg-control-raised hover:text-foreground"
       >
         {all ? 'Expand all' : 'Collapse all'}
         <TriangleDown size={11} className={cn('transition-transform duration-150', !all && 'rotate-180')} />

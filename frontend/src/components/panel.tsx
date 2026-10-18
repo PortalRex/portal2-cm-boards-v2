@@ -69,11 +69,11 @@ export function Card({
       <h3 className="m-0 text-lg font-normal tracking-[0.02em] uppercase">{title}</h3>
     </>
   )
-  const headClass = cn('flex h-12 items-center gap-3.5 bg-card-head px-5', headClassName)
+  const headClass = cn('flex h-12 items-center gap-3.5 bg-panel-head px-5', headClassName)
   return (
     <section
       className={cn(
-        'flex flex-col overflow-hidden rounded-lg bg-card-surface',
+        'flex flex-col overflow-hidden rounded-lg bg-panel',
         collapsed && 'w-full self-start',
         className,
       )}

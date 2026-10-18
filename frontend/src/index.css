@@ -69,8 +69,6 @@
   --page: #1e1f21;
   --panel: #141414;
   --panel-head: #1e1f21;
-  --card-surface: #18191c;
-  --card-head: #1e1f21;
   --row: #18191b;
   --row-alt: #141414;
   --row-sub: #131416;
@@ -157,8 +155,6 @@
   --page: #e9ebee;
   --panel: #ffffff;
   --panel-head: #f2f3f5;
-  --card-surface: #fafbfc;
-  --card-head: #eff1f3;
   --row: #f4f5f7;
   --row-alt: #ffffff;
   --row-sub: #eceef1;
@@ -266,8 +262,6 @@
   --color-page: var(--page);
   --color-panel: var(--panel);
   --color-panel-head: var(--panel-head);
-  --color-card-surface: var(--card-surface);
-  --color-card-head: var(--card-head);
   --color-row: var(--row);
   --color-row-alt: var(--row-alt);
   --color-row-sub: var(--row-sub);

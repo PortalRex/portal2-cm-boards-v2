@@ -252,7 +252,7 @@ function ChapterRow({
       <div
         className={cn(
           row(coop),
-          open ? 'bg-seg-active' : striped ? 'bg-card-head' : 'bg-row',
+          open ? 'bg-seg-active' : striped ? 'bg-panel-head' : 'bg-row',
           selected && 'outline outline-1 -outline-offset-1 outline-brand',
           s && 'cursor-pointer hover:brightness-[1.15]',
           'shadow-[inset_-4px_0_0_var(--rank-color-dark,transparent)] light:shadow-[inset_-4px_0_0_var(--rank-color,transparent)]',

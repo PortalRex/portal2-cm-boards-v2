@@ -195,7 +195,7 @@ function TipCard({ tip, span, byDay }: { tip: Tip; span: number; byDay: Map<stri
     <div
       role="tooltip"
       style={style}
-      className="pointer-events-none fixed z-50 flex flex-col gap-1 rounded-md border border-line bg-card-head px-3 py-2.5 text-[13px] shadow-[0_6px_20px_rgb(0_0_0/35%)]"
+      className="pointer-events-none fixed z-50 flex flex-col gap-1 rounded-md border border-line bg-panel-head px-3 py-2.5 text-[13px] shadow-[0_6px_20px_rgb(0_0_0/35%)]"
     >
       <div className="mb-0.5 flex justify-between gap-2.5">
         <strong>{span === 1 ? fmt(d.date) : `${fmt(d.date)} – ${fmt(d.to!)}`}</strong>
