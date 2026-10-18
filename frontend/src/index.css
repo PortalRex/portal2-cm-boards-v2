@@ -307,6 +307,17 @@
   }
 }
 
+/* A rank tile (profile summary, chapter tables): tinted with the rank colour, the number in it. */
+@utility rank-tile {
+  background: color-mix(in srgb, var(--rank-color-dark) 32%, var(--track)) !important;
+  color: var(--rank-color-dark) !important;
+  font-weight: 600;
+  :root[data-theme='light'] & {
+    background: color-mix(in srgb, var(--rank-color) 20%, var(--track)) !important;
+    color: var(--rank-color) !important;
+  }
+}
+
 /* The signed-in player's own row on boards and lists. */
 @utility me-row {
   background: color-mix(in srgb, var(--brand) 22%, transparent) !important;

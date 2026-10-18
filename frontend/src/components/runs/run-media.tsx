@@ -1,8 +1,9 @@
 import { cn } from 'cn'
 import { useEffect, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
 import { CommentIcon, DownloadIcon, PlayIcon, VideocamIcon, YouTubeIcon } from '@/components/icons'
 import { YouTubeEmbed } from '@/components/youtube-embed'
+import { Bubble } from '@/components/bubble'
+import { bubbleAnchor } from '@/lib/bubble'
 import { runVideo, type VideoRun } from '@/lib/runs/video'
 import { apiUrl } from '@/lib/api-client'
 
@@ -111,17 +112,8 @@ export function CommentButton({ note, size = 22 }: { note: string | null | undef
   }, [pinned])
   const icon = { width: size, height: size }
   if (!note) return <CommentIcon className={off} style={icon} role="img" aria-label="No comment" />
-  const place = () => {
-    const r = ref.current?.getBoundingClientRect()
-    // Centred over the icon, but kept inside the window (the bubble is up to 320px wide).
-    const half = Math.min(160, window.innerWidth * 0.4)
-    if (r) {
-      setPos({
-        x: Math.min(Math.max(r.left + r.width / 2, half + 8), window.innerWidth - half - 8),
-        y: r.top,
-      })
-    }
-  }
+  // Centred over the icon, but kept inside the window (the bubble is up to 320px wide).
+  const place = () => setPos(bubbleAnchor(ref.current, Math.min(160, window.innerWidth * 0.4)))
   return (
     <span className="inline-flex" ref={ref}>
       <button
@@ -137,19 +129,7 @@ export function CommentButton({ note, size = 22 }: { note: string | null | undef
       >
         <CommentIcon style={icon} />
       </button>
-      {/* On the page body: a row's hover filter would otherwise pin a fixed bubble to the row. */}
-      {open &&
-        pos &&
-        createPortal(
-          <span
-            role="tooltip"
-            style={{ left: pos.x, top: pos.y }}
-            className="pointer-events-none fixed z-[1100] w-max max-w-[min(320px,80vw)] -translate-x-1/2 translate-y-[calc(-100%-8px)] rounded-md border border-line bg-menu px-[11px] py-[7px] text-sm leading-[1.35] font-normal [overflow-wrap:anywhere] whitespace-normal text-foreground not-italic shadow-[0_6px_18px_rgb(0_0_0/35%)] after:absolute after:-bottom-1.5 after:left-1/2 after:size-2.5 after:-translate-x-1/2 after:rotate-45 after:border-r after:border-b after:border-line after:bg-menu after:content-['']"
-          >
-            {note}
-          </span>,
-          document.body,
-        )}
+      {open && pos && <Bubble at={pos}>{note}</Bubble>}
     </span>
   )
 }

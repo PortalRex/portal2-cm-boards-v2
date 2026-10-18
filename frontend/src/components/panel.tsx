@@ -48,12 +48,17 @@ export function Card({
   icon: Icon,
   title,
   className,
+  bodyClassName,
+  headClassName,
   collapseId,
   children,
 }: {
   icon?: Icon
   title: ReactNode
   className?: string
+  bodyClassName?: string
+  /** Header size overrides (the profile's compact side cards). */
+  headClassName?: string
   collapseId?: string
   children?: ReactNode
 }) {
@@ -64,7 +69,7 @@ export function Card({
       <h3 className="m-0 text-lg font-normal tracking-[0.02em] uppercase">{title}</h3>
     </>
   )
-  const headClass = 'flex h-12 items-center gap-3.5 bg-card-head px-5'
+  const headClass = cn('flex h-12 items-center gap-3.5 bg-card-head px-5', headClassName)
   return (
     <section
       className={cn(
@@ -72,6 +77,7 @@ export function Card({
         collapsed && 'w-full self-start',
         className,
       )}
+      data-collapsed={collapsed || undefined}
     >
       {collapseId ? (
         <button
@@ -89,7 +95,7 @@ export function Card({
       ) : (
         <header className={headClass}>{head}</header>
       )}
-      {!collapsed && <div className="flex-1 p-5">{children}</div>}
+      {!collapsed && <div className={cn('flex-1 p-5', bodyClassName)}>{children}</div>}
     </section>
   )
 }
