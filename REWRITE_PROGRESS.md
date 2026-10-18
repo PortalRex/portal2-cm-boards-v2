@@ -20,8 +20,8 @@
   - [x] 3.2 Pure helpers: `format`: 2384e56
   - [x] 3.3 Pure helpers: `ranks`, `runFilters`, `coopRoles`: 2384e56
   - [x] 3.4 Pure helpers: `activity`, `adminActions`, `youtube`, `scroll`, `pointsForRank`: 6870ddb
-  - [x] 3.5 Static data: `countries`, `roles`, built-in maps / bsp names / seasons: (pending)
-  - [ ] 3.6 Per-browser settings (localStorage keys, try/catch) and theme
+  - [x] 3.5 Static data: `countries`, `roles`, built-in maps / bsp names / seasons: 7694f3b
+  - [x] 3.6 Per-browser settings (localStorage keys, try/catch) and theme: (pending)
   - [ ] 3.7 `lib/catalog` (query options, selectors, built-in fallback, root loader)
   - [ ] 3.8 `lib/query-keys.ts` and `lib/invalidate.ts`
   - [ ] 3.9 `lib/auth` (`/auth/me`, roles, view-as-player) + `hooks/use-current-user`
@@ -68,6 +68,11 @@
 
 ## Log
 <!-- Newest first. One entry per finished item: date, what was done, commit, tests added. -->
+- 2026-10-17: 3.6 `lib/storage.ts` (legacy keys, try/catch, in-memory fallback when blocked, same-page and cross-tab
+  change events) and `hooks/use-stored.ts` (`useSyncExternalStore`), with `use-theme`, `use-coop-pb-style`,
+  `use-collapsed` (+ group), `use-follows`, `use-debounced`. `p2cm.game` and `p2cm.viewAsPlayer` get their hooks in
+  3.9/3.10. Commit (pending). Tests: 13 (legacy values read back, formats written, blocked storage, sync between
+  hooks and tabs).
 - 2026-10-17: 3.5 `lib/data/countries.ts` (+ generated `country-table.ts`), `lib/data/roles.ts`, and the built-in
   map data for the catalog: `lib/catalog/builtin-chapters.ts` and `bsp-names.ts`, generated from the legacy files
   (239 countries, 108 BSP names, 60 sp + 48 coop + 22 story + 18 advanced maps, same as legacy). Seasons helpers
@@ -120,6 +125,9 @@
   writing to it), so rows update at once as in legacy. `tintFor` returns `'blue' | 'orange' | 'neutral'` and the
   components map that to classes.
 - `countryById` returns `{ id, code, name }` (legacy left out `id`); callers only read `code`/`name`.
+- Settings hooks: legacy had a listener set per hook plus a window event. The new ones all read localStorage through
+  one `useSyncExternalStore` hook, so there is no module-level store; the only module state is the in-memory copy
+  of values that couldn't be stored (blocked storage), which legacy kept in component state.
 - `cn` in `lib/utils.ts` is shadcn's own package (github.com/shadcn-ui/cn), the replacement for clsx + tailwind-merge.
 - The hardening merge added a CSP in `security-headers.conf` (no inline scripts) and `public/theme.js` (sets the
   theme before first paint without an inline script). The new app keeps both: nginx includes the same headers file,
