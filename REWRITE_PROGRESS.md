@@ -14,9 +14,9 @@
   - [x] 2e. Vitest + RTL + MSW setup, `renderWithProviders`, smoke test: 535adf2
   - [x] 2f. Dev proxy, validated env (`src/config/env.ts`): 535adf2
   - [x] 2g. Public assets and images (`public/`, `src/assets/`, Mel NOTICE.md, `theme.js`): 535adf2
-  - [x] 2h. Docker: Dockerfile, nginx.conf (`/assets/`), security headers, compose back to `./frontend`: (pending)
+  - [x] 2h. Docker: Dockerfile, nginx.conf (`/assets/`), security headers, compose back to `./frontend`: d192cc9
 - [ ] 3. Foundation
-  - [ ] 3.1 `lib/api-client.ts` (`api.*`, `ApiError`, `apiUrl`, param dropping, FormData)
+  - [x] 3.1 `lib/api-client.ts` (`api.*`, `ApiError`, `apiUrl`, param dropping, FormData): (pending)
   - [ ] 3.2 Pure helpers: `format`
   - [ ] 3.3 Pure helpers: `ranks`, `runFilters`, `coopRoles`
   - [ ] 3.4 Pure helpers: `activity`, `adminActions`, `youtube`, `scroll`, `pointsForRank`
@@ -68,6 +68,9 @@
 
 ## Log
 <!-- Newest first. One entry per finished item: date, what was done, commit, tests added. -->
+- 2026-10-17: 3.1 `lib/api-client.ts`: `api.get/post/put/delete`, `request()` (status + data, for the inbox long
+  poll), `ApiError`, `apiUrl`. Commit (pending). Tests: param dropping, credentials + JSON body, multipart upload,
+  five error-body shapes, 204 status, link URLs (10).
 - 2026-10-17: Step 2h. Dockerfile (Node 24, `VITE_API_URL`, copies `dist/`), nginx.conf copied with `/static/` ->
   `/assets/`, security headers copied, compose back on `./frontend`, dev compose runs `npm run dev -- --port 3000`.
   Built the image and ran it: SPA fallback, CSP and the immutable `/assets/` cache all as before. Commit (pending).
@@ -94,6 +97,12 @@
   `onUnhandledRequest` to `onUnhandledFrame`. Tests fail on any request without a handler.
 - Node: Vitest 5, jsdom and MSW 3 need Node 22.12+, so the Docker images use `node:24-bookworm` (legacy used 20) and
   `package.json` declares `engines`.
+- Error messages: the server answers errors as `{ "error": "..." }` (ServerError) or as plain text (most handlers'
+  `.body("No such run.")`). `ApiError.message` is that text; HTML proxy pages are replaced with legacy's wording
+  ("The server took too long to answer." for 504/524, "Sign in required." for an empty 401).
+- Upload tests: under jsdom, multipart bodies sent through MSW fail (the body Vitest's jsdom/Node fetch bridge sends
+  doesn't match its Content-Length; plain Node and happy-dom are fine). jsdom stays the default environment; test
+  files that upload files start with `// @vitest-environment happy-dom` (e.g. `api-client.upload.test.ts`).
 - `cn` in `lib/utils.ts` is shadcn's own package (github.com/shadcn-ui/cn), the replacement for clsx + tailwind-merge.
 - The hardening merge added a CSP in `security-headers.conf` (no inline scripts) and `public/theme.js` (sets the
   theme before first paint without an inline script). The new app keeps both: nginx includes the same headers file,
