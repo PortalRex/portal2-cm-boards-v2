@@ -43,7 +43,7 @@ export interface DetailsRun {
 }
 
 const outlineButton =
-  'inline-flex h-9 cursor-pointer items-center justify-center gap-2.5 rounded-[4px] border border-line-strong bg-control px-3 text-lg whitespace-nowrap hover:bg-control-raised [&_svg]:size-6'
+  'inline-flex h-9 cursor-pointer items-center justify-center gap-2.5 rounded-[4px] border border-line-strong bg-control px-3 text-lg whitespace-nowrap hover:bg-control-raised [&_svg]:size-6 [&_svg]:shrink-0'
 const disabled = 'pointer-events-none opacity-45'
 
 /**

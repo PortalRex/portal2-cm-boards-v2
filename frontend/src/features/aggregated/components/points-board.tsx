@@ -47,7 +47,8 @@ export function PointsBoard({
         <Pagination page={page} pageCount={pageCount} onChange={setPage} />
       </div>
       <div
-        className={cn(rowClass, 'min-h-[30px] text-[15px] text-text-muted uppercase upto600:min-h-[30px]')}
+        // On phones legacy's `.agg-row { min-height: 40px }` came later and outranked the head's 30px.
+        className={cn(rowClass, 'min-h-[30px] text-[15px] text-text-muted uppercase')}
       >
         <span />
         <span className="text-center">#</span>

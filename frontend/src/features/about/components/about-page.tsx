@@ -16,7 +16,7 @@ const TEAM = [
 
 const grid = 'grid grid-cols-2 gap-[18px] upto800:grid-cols-1'
 const link = 'text-brand-light'
-const list = 'm-0 pl-[18px] text-text-2 [&>li+li]:mt-1.5'
+const list = 'm-0 list-disc pl-[18px] text-text-2 [&>li+li]:mt-1.5'
 const code = 'rounded-[3px] bg-control px-[5px] py-px text-[15px]'
 
 // Sizes are arbitrary values on purpose: Tailwind's named sizes set a line height, and legacy's

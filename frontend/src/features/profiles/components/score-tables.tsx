@@ -181,7 +181,7 @@ export function ChapterTable({
           'mb-1 min-h-10 border-b-2 border-text-muted text-base font-light text-text-2 uppercase upto800:text-sm',
         )}
       >
-        <h3 className="col-span-2 m-0 pl-[82px]! text-[30px] font-light text-foreground upto800:pl-2.5! upto800:text-[22px]">
+        <h3 className="col-span-2 m-0 pr-0! pl-[82px]! text-[30px] font-light text-foreground upto800:pl-0! upto800:text-[22px]">
           {chapterLink ? (
             <AppLink href={chapterLink} className="hover:underline" title={`${chapter.name} board`}>
               {chapter.name}

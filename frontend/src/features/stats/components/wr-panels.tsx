@@ -165,6 +165,7 @@ export function HistoryPanel({ view: viewParam, onView }: { view?: string; onVie
         <>
           <StatsSwitch
             label="View"
+            body
             className="mb-3.5 h-auto flex-wrap"
             value={view}
             onChange={(v) => onView(v === 'longest' ? '' : v)}

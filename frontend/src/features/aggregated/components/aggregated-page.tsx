@@ -33,7 +33,9 @@ export interface AggregatedSearch {
   player?: string
 }
 
-const selectClass = 'min-w-[222px] [&_select]:rounded-md! [&_select]:border-2! [&_select]:bg-card-head!'
+// Legacy's arrow sat 14px inside the 2px border, so 16px from the edge.
+const selectClass =
+  'min-w-[222px] [&_select]:rounded-md! [&_select]:border-2! [&_select]:bg-card-head! [&_[data-slot=native-select-icon]]:right-4!'
 
 /** An aggregated board's page, or where its address sends you. */
 export function AggregatedPage({

@@ -145,7 +145,7 @@ export function WrHistoryChart({
                   resetZoom()
                 }}
                 className={cn(
-                  'h-full cursor-pointer rounded-[4px] border-0 bg-transparent px-2.5 text-sm text-text-2 hover:bg-seg-hover upto700:flex-1 upto700:px-3',
+                  'h-full min-w-0 cursor-pointer rounded-[4px] border-0 bg-transparent px-2.5 text-sm text-text-2 hover:bg-seg-hover upto700:flex-1',
                   range === r.value && !zoom && 'bg-seg-active font-medium text-foreground',
                 )}
               >

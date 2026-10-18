@@ -80,7 +80,7 @@ export function MapPage({
 type View = 'board' | 'history' | 'wr'
 
 const outlineButton =
-  'inline-flex h-10 cursor-pointer items-center justify-center gap-2.5 rounded-[4px] border border-line-strong bg-control px-2.5 text-lg font-light whitespace-nowrap hover:bg-control-raised upto900:min-w-0 upto900:text-base [&_svg]:size-6'
+  'inline-flex h-10 cursor-pointer items-center justify-center gap-2.5 rounded-[4px] border border-line-strong bg-control px-2.5 text-lg font-light whitespace-nowrap hover:bg-control-raised upto900:min-w-0 upto900:text-base [&_svg]:size-6 [&_svg]:shrink-0'
 
 /** `map` is the map shown (title, image); `data` the board shown: the map, or the season's copy. */
 function MapPageContent({

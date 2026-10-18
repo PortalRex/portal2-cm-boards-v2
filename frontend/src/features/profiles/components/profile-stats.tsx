@@ -141,7 +141,7 @@ export function PointsCard({ profile }: { profile: Profile }) {
       collapseId="profile.points"
       bodyClassName="flex items-center upto800:justify-around"
     >
-      <div className={cn(statRow, 'w-full')}>
+      <div className={statRow}>
         {BOARDS.map(({ key, label }) => (
           <Stat key={key} value={formatPoints(profile.points[key])} label={label}>
             <RoleBar board={key} points={profile.points[key] || 0} />

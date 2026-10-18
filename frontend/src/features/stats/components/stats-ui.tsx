@@ -127,6 +127,7 @@ export function StatsSwitch<T extends string>({
   label,
   className,
   wide = false,
+  body = false,
 }: {
   value: T
   options: { value: T; label: string }[]
@@ -135,6 +136,11 @@ export function StatsSwitch<T extends string>({
   className?: string
   /** The section heads' board switch (legacy .st-boards: wider buttons). */
   wide?: boolean
+  /**
+   * A switch in a section's body (legacy .st-seg-body): from 900px down its buttons keep their
+   * own width and wrap, rather than sharing the row (legacy's rule outranked the shared phone one).
+   */
+  body?: boolean
 }) {
   return (
     <Segmented
@@ -145,8 +151,11 @@ export function StatsSwitch<T extends string>({
       size="md"
       className={cn('h-10 upto900:h-auto upto900:flex-wrap', className)}
       itemClassName={cn(
-        'h-10 text-[17px] upto900:h-[38px] upto900:text-[15px]',
-        wide ? 'min-w-[120px] px-6 upto900:min-w-0' : 'min-w-0 px-[18px]',
+        'h-10 text-[17px] upto900:text-[15px]',
+        wide
+          ? 'min-w-[120px] px-6 upto900:h-[38px] upto900:min-w-0 upto900:px-3'
+          : 'min-w-0 px-[18px] upto900:px-3',
+        body && 'upto900:flex-auto upto700:flex-auto',
       )}
     />
   )

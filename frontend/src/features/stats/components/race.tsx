@@ -62,7 +62,8 @@ export function Race({ frames, players }: { frames: Frames; players: Record<stri
             setIndex(Number(e.target.value))
           }}
           aria-label="Month"
-          className="flex-1 accent-[#3b9bff]"
+          // Legacy left the slider with the browser's own margin, font and field colour (no reset).
+          className="flex-1 accent-[#3b9bff] [background-color:revert] [color:revert] [font:revert] [margin:revert]"
         />
         <span className="num min-w-24 text-right text-[26px] font-semibold upto900:min-w-[70px] upto900:text-lg">
           {new Date(frame.date).toLocaleDateString('en-GB', {
@@ -90,7 +91,9 @@ export function Race({ frames, players }: { frames: Frames; players: Record<stri
             >
               <span className="flex min-w-0 items-center gap-2 overflow-hidden whitespace-nowrap">
                 <Avatar src={p?.avatar} name={p?.name} size={24} />
-                <span className="truncate">{p?.name ?? id}</span>
+                {/* Clipped by the row on wide screens (legacy's ellipsis was on the row, where it doesn't
+                    apply); an ellipsis from 900px down. */}
+                <span className="upto900:truncate">{p?.name ?? id}</span>
               </span>
               <span className="flex min-w-0 items-center gap-2">
                 <span

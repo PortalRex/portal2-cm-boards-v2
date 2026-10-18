@@ -39,7 +39,7 @@ export function CountriesPanel() {
       title="Countries"
       className="rounded-tl-none"
       bodyClassName="px-7 pt-5 pb-7 upto800:p-4"
-      actions={<Segmented size="md" value={board} onChange={setBoard} label="Board" options={BOARDS} />}
+      actions={<Segmented value={board} onChange={setBoard} label="Board" options={BOARDS} />}
     >
       <p className="mt-0 mb-4 text-base text-text-muted">
         {list.length
