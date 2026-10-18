@@ -10,6 +10,8 @@ import { useCurrentUser } from '@/hooks/use-current-user'
 import { isRoleAdmin, isStaff } from '@/lib/auth'
 import { reportCountQueryOptions } from '../api/audit'
 import { AuditLog } from './audit-log'
+import { BackgroundJobs } from './background-jobs'
+import { Reports } from './reports'
 
 export type AdminSection = 'log' | 'reports' | 'games' | 'jobs'
 
@@ -77,10 +79,14 @@ export function AdminPage({
           <EmptyState>Sign in with an admin account to see the admin changelog.</EmptyState>
         ) : !staff ? (
           <EmptyState>Staff only.</EmptyState>
-        ) : shown === 'log' ? (
-          <AuditLog />
-        ) : (
+        ) : shown === 'reports' ? (
+          <Reports />
+        ) : shown === 'jobs' ? (
+          <BackgroundJobs />
+        ) : shown === 'games' ? (
           <EmptyState>Not built yet in the new site.</EmptyState>
+        ) : (
+          <AuditLog />
         )}
       </Panel>
     </Page>
