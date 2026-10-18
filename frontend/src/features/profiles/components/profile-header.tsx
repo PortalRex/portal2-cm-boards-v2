@@ -66,7 +66,7 @@ function siteLinks(player: ProfilePlayer): SiteLink[] {
       href: `https://twitch.tv/${player.twitch}`,
       icon: TwitchIcon,
       label: 'Twitch',
-      className: 'bg-[#6441a5] text-white',
+      className: 'bg-[#6441a5]',
       size: 32,
     })
   }
@@ -76,7 +76,7 @@ function siteLinks(player: ProfilePlayer): SiteLink[] {
       href: youtube,
       icon: YouTubeIcon,
       label: 'YouTube',
-      className: 'bg-[#d93a3a] text-white',
+      className: 'bg-[#d93a3a]',
       size: 30,
     })
   }

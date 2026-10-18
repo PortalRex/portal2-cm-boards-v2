@@ -71,7 +71,8 @@ export function MapListPage({ search }: { search: MapListSearch }) {
         {previews.isPending && board && <Loading />}
         {previews.isError && <ErrorState error={previews.error} onRetry={() => void previews.refetch()} />}
         {season && !board && (
-          <p className="text-text-muted">
+          // A plain paragraph in legacy, with the browser's 1em margins.
+          <p className="my-4 text-text-muted">
             {catalog.games[season]?.label} has no {modeLabel(catalog, mode)} maps.
           </p>
         )}

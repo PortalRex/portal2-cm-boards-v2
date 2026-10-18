@@ -203,7 +203,8 @@ function LeaderCard({
           ))}
         </ol>
       ) : (
-        <p className="text-text-muted">Nothing yet.</p>
+        // A plain paragraph in legacy, so it keeps the browser's 1em margins.
+        <p className="my-4 text-text-muted">Nothing yet.</p>
       )}
     </section>
   )

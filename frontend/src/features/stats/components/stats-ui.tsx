@@ -149,7 +149,7 @@ export function StatsSwitch<T extends string>({
       onChange={onChange}
       label={label}
       size="md"
-      className={cn('h-10 upto900:h-auto upto900:flex-wrap', className)}
+      className={cn('h-10 upto900:h-auto upto900:flex-wrap', body && 'upto900:w-full', className)}
       itemClassName={cn(
         'h-10 text-[17px] upto900:text-[15px]',
         wide
