@@ -11,6 +11,7 @@ import { runVideo } from '@/lib/runs/video'
 import type { CoopHalf, Player, RunMap } from '@/types/runs'
 import { coopHalvesQueryOptions, segmentsQueryOptions } from '../api/details'
 import { timerNote } from '../utils/timer-note'
+import { PendingProof } from './pending-proof'
 import { ReactionsBar } from './reactions-bar'
 import { ReportRun } from './report-run'
 import { StaffTools } from './staff-tools'
@@ -175,6 +176,7 @@ export function RunDetails({
             <dd>{run.banned ? 'Banned' : run.verified === false ? 'Pending' : 'Verified'}</dd>
           </dl>
           <TimerNote score={run.score} segments={segments.data ?? null} />
+          {own != null && <PendingProof run={{ ...run, changelogId: own }} />}
           {own != null && showReactions && <ReactionsBar changelogId={own} />}
           {own != null && <ReportRun changelogId={own} />}
           {own != null && <StaffTools run={{ ...run, changelogId: own }} map={map} game={game} />}

@@ -52,8 +52,8 @@
   - [x] 5.6d Countries: fc7d07b
   - [x] 5.3a Run Details: media (autorender, YouTube): 4b269c6
   - [x] 5.3b Run Details: reactions, reports: 62d30d3
-  - [x] 5.3c Run Details: staff actions with reasons + invalidation: (pending)
-  - [ ] 5.3d Submit Run (upload preview, submit, admin manual entry)
+  - [x] 5.3c Run Details: staff actions with reasons + invalidation: 0fc43fe
+  - [x] 5.3d Submit Run (upload preview, submit, admin manual entry): (pending)
   - [ ] 5.7 Settings (name/avatar locks, view-as-player for staff)
   - [ ] 5.8 About, Donators, Placeholder
   - [ ] 5.9a Admin: guard, layout, audit log
@@ -68,13 +68,22 @@
 
 ## Log
 <!-- Newest first. One entry per finished item: date, what was done, commit, tests added. -->
+- 2026-10-18: 5.3d Submit Run (`features/runs/api/submissions.ts`, `components/submit-run.tsx`), filled into the top
+  bar's `submitRun` slot from the root route: drop or pick a .dem, the server reads it (map link, time, co-op partner,
+  players), the Mel board choice when one map file is on both boards, optional YouTube link and comment, then submit;
+  the result names the map, the boards it counts on and whether it waits for the partner ("Submit another" starts
+  over). Players can only submit demos they are in; admins get the manual entry (map, time, player, partner), with or
+  without a demo. Blank fields are left out of the form, server messages are shown. Also `PendingProof` in Run Details
+  (Add demo on a pending run for its players and staff; a co-op run keeps it until both demos are in). Submissions and
+  added demos call `invalidateRun`. Tests: 15 (upload tests under happy-dom; the two full-app tests are in
+  `submit-run-button.test.tsx` under jsdom, since under happy-dom the app made requests MSW couldn't match).
 - 2026-10-18: 5.3c Staff tools in Run Details (`features/runs/api/staff.ts`, `components/staff-tools.tsx`), shown to
   any staff tier and hidden while viewing as a player: optional reason (audit log), ban / unban, verify / mark pending,
   admin-only remove demo and delete run (second click confirms, focus elsewhere cancels, the button keeps its size),
   partner by SteamID64 for co-op outside Mel, the co-op host picker (PUT /coop/{id}/host, then the role override so
   every row recolours), who reacted (loaded on open, with history) and staff notes (own notes deletable, admins any;
   the old board's notes show "The board"). Each action calls `invalidateRun`. Default test handlers for notes and the
-  reaction record. Commit (pending). Tests: 15.
+  reaction record. Commit 0fc43fe. Tests: 15.
 - 2026-10-18: 5.3b Reactions and reports in Run Details: `ReactionsBar` (counts for everyone, react / clear when
   signed in, cache updated from the answer; left out in Score Updates rows via `showReactions={false}`, as legacy)
   and `ReportRun` (anonymous report, reason required, details required for "Something else", null when empty,
@@ -298,6 +307,11 @@
 
 ## Decisions and findings
 <!-- Legacy behaviours discovered, choices made and why. -->
+- Submit Run: like legacy, the button is hidden from the sample-data stand-in user, so neither site can show the dialog
+  on sample data; the styling is ported from SubmitRun.css. Its cascade quirks are kept: `.sr-done p` (19px) outranks
+  `.sr-muted`, so the notes on the result screen are 19px; the open admin `<details>` has both a 10px gap and a 10px
+  top margin on each child. Mel advanced maps keep the built-in "Advanced …" titles in the map link, as legacy's
+  `getMap` gave.
 - Run Details staff tools: legacy's sample user is never staff (`isStaff` checks `!user.sample`), so the tools
   can't be compared on sample data. The styling comes from reading RunDetails.css: it loads after ui.css, so
   `.sd-admin button` outranks `.segmented button` and also styles the host picker (bordered, 32px tall in the 30px

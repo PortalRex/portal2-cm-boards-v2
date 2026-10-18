@@ -315,3 +315,17 @@ describe('staff notes', () => {
     expect(await screen.findByText('No notes yet.')).toBeInTheDocument()
   })
 })
+
+describe('a pending run in Run Details', () => {
+  it('offers its player the Add demo button', async () => {
+    const mine = { profileNumber: users.player.profile_number, name: 'Player', avatar: null }
+    await renderWithProviders(
+      <RunDetails run={{ ...run, demoId: null, verified: false, players: [mine] }} map={spMap} />,
+      {
+        user: 'player',
+      },
+    )
+    expect(await screen.findByText('This run is pending until its demo is added.')).toBeInTheDocument()
+    expect(screen.getByText('Add demo')).toBeInTheDocument()
+  })
+})
