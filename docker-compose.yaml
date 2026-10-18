@@ -44,7 +44,8 @@ services:
         condition: service_healthy
 
   web:
-    build: ./frontend
+    # The legacy site until the rewrite in ./frontend builds (FRONTEND_REWRITE.md, Step 2).
+    build: ./frontend-legacy
     restart: unless-stopped
     # Keep SERVER.PUBLIC_URL in server/.env in step if you change the port.
     ports:

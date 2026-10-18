@@ -485,7 +485,7 @@ From a review of the server and site (October 2026):
 - **One HTTP client** (`tools::helpers::http_client`) for the Steam calls, instead of one per sign-in.
 - The **CORS** allowed origins come from `SERVER.PUBLIC_URL` (plus the dev frontend); the access log leaves out the
   Steam callback (its query string holds the sign-in's one-time values).
-- **Site headers** (`frontend/security-headers.conf`, included by `nginx.conf`): a Content-Security-Policy (no inline
+- **Site headers** (`frontend-legacy/security-headers.conf`, copied to `frontend/`, included by `nginx.conf`): a Content-Security-Policy (no inline
   scripts: the theme script moved to `public/theme.js` and the image builds with `INLINE_RUNTIME_CHUNK=false`),
   `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, and HSTS when the request
   came in over https.

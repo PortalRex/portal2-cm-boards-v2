@@ -1,0 +1,85 @@
+# Frontend rewrite progress
+
+## Current task
+<!-- What is being worked on right now, plan, files touched, what's left. Empty when between items. -->
+
+## Checklist
+<!-- Every step and Step 5 feature item from FRONTEND_REWRITE.md, as checkboxes. -->
+- [x] 1. Rename old frontend to `frontend-legacy` (compose, README, CLAUDE.md, this log): (pending)
+- [ ] 2. Scaffold
+  - [ ] 2a. Vite + React + TS strict (`noUncheckedIndexedAccess`) + `@/` alias
+  - [ ] 2b. Tailwind + shadcn init (CSS-variable theming, light/dark)
+  - [ ] 2c. TanStack Query + Router (file routes in `src/app/routes/`), zod, recharts
+  - [ ] 2d. ESLint (typescript-eslint, react-hooks, import/no-restricted-paths zones) + Prettier
+  - [ ] 2e. Vitest + RTL + MSW setup, `renderWithProviders`, smoke test
+  - [ ] 2f. Dev proxy, validated env (`src/config/env.ts`)
+  - [ ] 2g. Public assets and images (`public/`, `src/assets/`, Mel NOTICE.md, `theme.js`)
+  - [ ] 2h. Docker: Dockerfile, nginx.conf (`/assets/`), security headers, compose back to `./frontend`
+- [ ] 3. Foundation
+  - [ ] 3.1 `lib/api-client.ts` (`api.*`, `ApiError`, `apiUrl`, param dropping, FormData)
+  - [ ] 3.2 Pure helpers: `format`
+  - [ ] 3.3 Pure helpers: `ranks`, `runFilters`, `coopRoles`
+  - [ ] 3.4 Pure helpers: `activity`, `adminActions`, `youtube`, `scroll`, `pointsForRank`
+  - [ ] 3.5 Static data: `countries`, `roles`, built-in maps / bsp names / seasons
+  - [ ] 3.6 Per-browser settings (localStorage keys, try/catch) and theme
+  - [ ] 3.7 `lib/catalog` (query options, selectors, built-in fallback, root loader)
+  - [ ] 3.8 `lib/query-keys.ts` and `lib/invalidate.ts`
+  - [ ] 3.9 `lib/auth` (`/auth/me`, roles, view-as-player) + `hooks/use-current-user`
+  - [ ] 3.10 `hooks/use-game` (URL wins, saved choice, branding)
+  - [ ] 3.11 Shared run model: `types/runs.ts` + adapters with captured fixtures
+  - [ ] 3.12 Sample data mode: MSW handlers + factories, browser worker behind `VITE_USE_MOCK`, indicator
+  - [ ] 3.13 Shared UI on shadcn (panels, tabs, selects, toggles, avatars, flags, score cells, icons)
+  - [ ] 3.14 Layout + TopBar (nav, dropdowns, Aggregate menu per game, More menu, account area, theme toggle)
+  - [ ] 3.15 Private mode gate in the root route
+- [ ] 4. Routes: every legacy URL and redirect, thin route files with zod search params
+- [ ] 5. Features
+  - [ ] 5.1a Score Updates: list, filters/limits/toggles in search params
+  - [ ] 5.1b Score Updates: daily chambers, weekly recap, graph
+  - [ ] 5.1c Score Updates: inline Run Details slot (read-only Run Details)
+  - [ ] 5.2a Map list (catalog images with built-in fallback)
+  - [ ] 5.2b Map page: board, co-op halves, co-op PB style
+  - [ ] 5.2c Map page: WR history with hidden WRs for staff
+  - [ ] 5.2d Wall of Shame
+  - [ ] 5.4a Aggregated: Portal 2 overall / sp / coop
+  - [ ] 5.4b Aggregated: Mel, chapters, custom games and seasons
+  - [ ] 5.5a Profiles: header, tabs per game, seasons in tab
+  - [ ] 5.5b Profiles: points history chart with wheel zoom
+  - [ ] 5.5c Profiles: activity heatmap, demo stats, co-op partners
+  - [ ] 5.5d Profiles: follows; staff tools slot
+  - [ ] 5.6a Stats: Runners tab
+  - [ ] 5.6b Stats: Records, History, Race tabs
+  - [ ] 5.6c Compare (`?a=&b=`, debounced player search)
+  - [ ] 5.6d Countries
+  - [ ] 5.3a Run Details: media (autorender, YouTube)
+  - [ ] 5.3b Run Details: reactions, reports
+  - [ ] 5.3c Run Details: staff actions with reasons + invalidation
+  - [ ] 5.3d Submit Run (upload preview, submit, admin manual entry)
+  - [ ] 5.7 Settings (name/avatar locks, view-as-player for staff)
+  - [ ] 5.8 About, Donators, Placeholder
+  - [ ] 5.9a Admin: guard, layout, audit log
+  - [ ] 5.9b Admin: reports, background jobs
+  - [ ] 5.9c Admin: games editor (split into components)
+  - [ ] 5.9d Staff inbox long poll
+- [ ] 6. Parity and cutover
+  - [ ] 6.1 `frontend/PARITY.md`, every route x role x game x theme x phone
+  - [ ] 6.2 Settings carry over from legacy localStorage
+  - [ ] 6.3 Final checks (old links, Docker builds, Steam sign-in via proxy, 50 MB uploads)
+  - [ ] 6.4 Cutover (user approval, delete `frontend-legacy/`, docs)
+
+## Log
+<!-- Newest first. One entry per finished item: date, what was done, commit, tests added. -->
+- 2026-10-17: Step 1. Branch `frontend-rewrite` from `v2-redesign` (0b3120f). Moved `frontend/` to
+  `frontend-legacy/` with history, pointed compose (prod and dev) at it, updated README, CLAUDE.md and the
+  security-headers path in BACKEND_CHANGES.md. Commit (pending). No tests (no code yet).
+
+## Decisions and findings
+<!-- Legacy behaviours discovered, choices made and why. -->
+- The hardening merge added a CSP in `security-headers.conf` (no inline scripts) and `public/theme.js` (sets the
+  theme before first paint without an inline script). The new app keeps both: nginx includes the same headers file,
+  and `index.html` loads `theme.js` as a file. Vite's production build doesn't inline scripts, so no extra flag is needed.
+- `frontend/` itself couldn't be renamed on Windows (a process held it as its working directory), so its contents
+  were moved with `git mv` instead. The history is the same.
+- Pushing: FRONTEND_REWRITE.md says don't push unless asked, so commits on this branch stay local until the user asks.
+
+## Blocked / questions
+<!-- Things waiting on the user. -->
