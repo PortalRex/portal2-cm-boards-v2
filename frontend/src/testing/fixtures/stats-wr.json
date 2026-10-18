@@ -1,0 +1,747 @@
+{
+  "records": [
+    {
+      "map_id": "62761",
+      "map_name": "Container Ride",
+      "is_coop": false,
+      "mode": "sp",
+      "score": 34473,
+      "since": "2025-11-11T06:04:58",
+      "days": 341.2,
+      "teams": [
+        {
+          "players": [
+            {
+              "profile_number": "76561198099281433",
+              "user_name": "MilkyFrenchToast",
+              "avatar": "https://avatars.steamstatic.com/007a0b3d7188046b5bff80becc9c0f5ace769c1a_full.jpg"
+            }
+          ],
+          "since": "2025-11-11T06:04:58"
+        }
+      ],
+      "records": 21
+    },
+    {
+      "map_id": "62758",
+      "map_name": "Portal Carousel",
+      "is_coop": false,
+      "mode": "sp",
+      "score": 2363,
+      "since": "2026-04-11T23:59:41",
+      "days": 189.5,
+      "teams": [
+        {
+          "players": [
+            {
+              "profile_number": "76561198795823814",
+              "user_name": "i spider",
+              "avatar": "https://avatars.steamstatic.com/527b3525c820a11df2aa81ff8876806de3bf012f_full.jpg"
+            }
+          ],
+          "since": "2026-04-11T23:59:41"
+        }
+      ],
+      "records": 18
+    },
+    {
+      "map_id": "47458",
+      "map_name": "Portal Gun",
+      "is_coop": false,
+      "mode": "sp",
+      "score": 2243,
+      "since": "2026-06-12T17:42:44",
+      "days": 127.8,
+      "teams": [
+        {
+          "players": [
+            {
+              "profile_number": "76561198795823814",
+              "user_name": "i spider",
+              "avatar": "https://avatars.steamstatic.com/527b3525c820a11df2aa81ff8876806de3bf012f_full.jpg"
+            }
+          ],
+          "since": "2026-06-12T17:42:44"
+        }
+      ],
+      "records": 42
+    },
+    {
+      "map_id": "47741",
+      "map_name": "Doors",
+      "is_coop": true,
+      "mode": "coop",
+      "score": 733,
+      "since": "2023-08-20T20:22:45",
+      "days": 1154.6,
+      "teams": [
+        {
+          "players": [
+            {
+              "profile_number": "76561198823602829",
+              "user_name": "RealCreative",
+              "avatar": "https://avatars.steamstatic.com/ace8efdb0d060e2bbc8d9d210429fbfea6d247e5_full.jpg"
+            },
+            {
+              "profile_number": "76561198917972968",
+              "user_name": "Suola",
+              "avatar": "https://avatars.steamstatic.com/f86dcc2d065a87a603427bb382d26e96c1d61060_full.jpg"
+            }
+          ],
+          "since": "2023-08-20T20:22:45"
+        }
+      ],
+      "records": 21
+    },
+    {
+      "map_id": "47825",
+      "map_name": "Buttons",
+      "is_coop": true,
+      "mode": "coop",
+      "score": 1756,
+      "since": "2024-04-20T14:53:47",
+      "days": 910.9,
+      "teams": [
+        {
+          "players": [
+            {
+              "profile_number": "76561198254956991",
+              "user_name": "hero",
+              "avatar": "https://avatars.steamstatic.com/2643702d4c2a40854d868d36afb5bf9037df4404_full.jpg"
+            },
+            {
+              "profile_number": "76561198295368421",
+              "user_name": "Rex",
+              "avatar": "https://avatars.steamstatic.com/09bb27cf013dc71da9175902304b17548adb322a_full.jpg"
+            }
+          ],
+          "since": "2024-04-20T14:53:47"
+        },
+        {
+          "players": [
+            {
+              "profile_number": "76561198823602829",
+              "user_name": "RealCreative",
+              "avatar": "https://avatars.steamstatic.com/ace8efdb0d060e2bbc8d9d210429fbfea6d247e5_full.jpg"
+            },
+            {
+              "profile_number": "76561198048179892",
+              "user_name": "Betsruner",
+              "avatar": "https://avatars.steamstatic.com/3973d053c195d49f47015c14838bddd546f71941_full.jpg"
+            }
+          ],
+          "since": "2024-11-01T23:52:29"
+        }
+      ],
+      "records": 27
+    },
+    {
+      "map_id": "47828",
+      "map_name": "Lasers",
+      "is_coop": true,
+      "mode": "coop",
+      "score": 1828,
+      "since": "2022-10-21T23:15:15",
+      "days": 1457.5,
+      "teams": [
+        {
+          "players": [
+            {
+              "profile_number": "76561198823602829",
+              "user_name": "RealCreative",
+              "avatar": "https://avatars.steamstatic.com/ace8efdb0d060e2bbc8d9d210429fbfea6d247e5_full.jpg"
+            },
+            {
+              "profile_number": "76561198081168311",
+              "user_name": "unity",
+              "avatar": "https://avatars.steamstatic.com/1fcc7701ff71dce31965e10408d79aeb79bdf051_full.jpg"
+            }
+          ],
+          "since": "2022-10-21T23:15:15"
+        },
+        {
+          "players": [
+            {
+              "profile_number": "76561198254956991",
+              "user_name": "hero",
+              "avatar": "https://avatars.steamstatic.com/2643702d4c2a40854d868d36afb5bf9037df4404_full.jpg"
+            },
+            {
+              "profile_number": "76561198295368421",
+              "user_name": "Rex",
+              "avatar": "https://avatars.steamstatic.com/09bb27cf013dc71da9175902304b17548adb322a_full.jpg"
+            }
+          ],
+          "since": "2023-03-10T14:22:08"
+        }
+      ],
+      "records": 31
+    }
+  ],
+  "total_time": {
+    "coop": 77977,
+    "sp": 229208
+  },
+  "holders": [
+    {
+      "player": {
+        "profile_number": "76561198039230536",
+        "user_name": "Zypeh",
+        "avatar": "https://avatars.steamstatic.com/4efac9cdae134d89bc22d70b22b236a11f4bda72_full.jpg"
+      },
+      "held": 0,
+      "days": 213441.1,
+      "set": 942
+    },
+    {
+      "player": {
+        "profile_number": "76561198045034733",
+        "user_name": "Undead",
+        "avatar": "https://avatars.steamstatic.com/ff8cce6ed65259baf9e43ccb0a19f4eb23ba5151_full.jpg"
+      },
+      "held": 0,
+      "days": 68380.7,
+      "set": 325
+    },
+    {
+      "player": {
+        "profile_number": "76561198823602829",
+        "user_name": "RealCreative",
+        "avatar": "https://avatars.steamstatic.com/ace8efdb0d060e2bbc8d9d210429fbfea6d247e5_full.jpg"
+      },
+      "held": 26,
+      "days": 43686.0,
+      "set": 180
+    },
+    {
+      "player": {
+        "profile_number": "76561198048179892",
+        "user_name": "Betsruner",
+        "avatar": "https://avatars.steamstatic.com/3973d053c195d49f47015c14838bddd546f71941_full.jpg"
+      },
+      "held": 2,
+      "days": 42258.6,
+      "set": 279
+    },
+    {
+      "player": {
+        "profile_number": "76561198081168311",
+        "user_name": "unity",
+        "avatar": "https://avatars.steamstatic.com/1fcc7701ff71dce31965e10408d79aeb79bdf051_full.jpg"
+      },
+      "held": 14,
+      "days": 40589.5,
+      "set": 172
+    }
+  ],
+  "longest": [
+    {
+      "map_id": "47817",
+      "map_name": "Propulsion Catch",
+      "is_coop": false,
+      "score": 2735,
+      "start": "2014-03-21T17:02:03",
+      "end": "2019-08-04T01:54:28",
+      "days": 1961.4,
+      "teams": [
+        {
+          "players": [
+            {
+              "profile_number": "76561198039230536",
+              "user_name": "Zypeh",
+              "avatar": "https://avatars.steamstatic.com/4efac9cdae134d89bc22d70b22b236a11f4bda72_full.jpg"
+            }
+          ],
+          "since": "2014-03-21T17:02:03"
+        }
+      ],
+      "beaten_by": [
+        {
+          "players": [
+            {
+              "profile_number": "76561198043196429",
+              "user_name": "Markel",
+              "avatar": "https://avatars.steamstatic.com/ce4ddba52f445c0eb71ddca800bfd5bf6ed332f3_full.jpg"
+            }
+          ],
+          "since": "2019-08-04T01:54:28"
+        }
+      ],
+      "beaten_with": 2733
+    },
+    {
+      "map_id": "47811",
+      "map_name": "Stop the Box",
+      "is_coop": false,
+      "score": 1495,
+      "start": "2021-10-28T04:25:52",
+      "end": null,
+      "days": 1816.3,
+      "teams": [
+        {
+          "players": [
+            {
+              "profile_number": "76561198096862334",
+              "user_name": "Unaccompanied Minor",
+              "avatar": "https://avatars.steamstatic.com/56bb21741447509747888d408363258687c2da16_full.jpg"
+            }
+          ],
+          "since": "2021-10-28T04:25:52"
+        }
+      ],
+      "beaten_by": [],
+      "beaten_with": null
+    },
+    {
+      "map_id": "47815",
+      "map_name": "Laser Platform",
+      "is_coop": false,
+      "score": 1503,
+      "start": "2021-12-21T05:08:22",
+      "end": null,
+      "days": 1762.3,
+      "teams": [
+        {
+          "players": [
+            {
+              "profile_number": "76561198067237436",
+              "user_name": "claire",
+              "avatar": "https://avatars.steamstatic.com/b80f6226bd48aceea471a818c768ef849a661a1f_full.jpg"
+            }
+          ],
+          "since": "2021-12-21T05:08:22"
+        }
+      ],
+      "beaten_by": [],
+      "beaten_with": null
+    }
+  ],
+  "domination": [
+    {
+      "map_id": "47458",
+      "map_name": "Portal Gun",
+      "is_coop": false,
+      "player": {
+        "profile_number": "76561198039230536",
+        "user_name": "Zypeh",
+        "avatar": "https://avatars.steamstatic.com/4efac9cdae134d89bc22d70b22b236a11f4bda72_full.jpg"
+      },
+      "start": "2013-09-06T13:40:03",
+      "end": "2021-03-08T15:07:41",
+      "days": 2740.1,
+      "records": 12,
+      "from_score": 2475,
+      "to_score": 2348
+    },
+    {
+      "map_id": "47736",
+      "map_name": "Laser Stairs",
+      "is_coop": false,
+      "player": {
+        "profile_number": "76561198039230536",
+        "user_name": "Zypeh",
+        "avatar": "https://avatars.steamstatic.com/4efac9cdae134d89bc22d70b22b236a11f4bda72_full.jpg"
+      },
+      "start": "2014-02-18T21:11:02",
+      "end": "2021-04-14T05:03:45",
+      "days": 2611.3,
+      "records": 3,
+      "from_score": 1180,
+      "to_score": 1163
+    },
+    {
+      "map_id": "52735",
+      "map_name": "Turret Ninja",
+      "is_coop": true,
+      "player": {
+        "profile_number": "76561198095730281",
+        "user_name": "Bexc",
+        "avatar": "https://avatars.steamstatic.com/3b161f8a37d8e69c3244b7c23d7b461433e14c0c_full.jpg"
+      },
+      "start": "2019-10-25T00:28:12",
+      "end": null,
+      "days": 2550.5,
+      "records": 10,
+      "from_score": 1388,
+      "to_score": 1325
+    }
+  ],
+  "improvements": [
+    {
+      "map_id": "47784",
+      "map_name": "Cave Johnson",
+      "is_coop": false,
+      "from_score": 6746,
+      "to_score": 4981,
+      "delta": 1765,
+      "date": "2012-04-14T08:32:43",
+      "teams": [
+        {
+          "players": [
+            {
+              "profile_number": "76561198008662184",
+              "user_name": "a baby",
+              "avatar": "https://steamcdn-a.akamaihd.net/steamcommunity/public/images/avatars/3a/3a485be878ce896a1ad5d65d864bdfe6cc2f555d_full.jpg"
+            }
+          ],
+          "since": "2012-04-14T08:32:43"
+        }
+      ],
+      "previous": [
+        {
+          "players": [
+            {
+              "profile_number": "76561198029691912",
+              "user_name": "Zemanzo",
+              "avatar": "https://steamcdn-a.akamaihd.net/steamcommunity/public/images/avatars/39/3994a55ccfa1d600edfc922fe51e829300cb3cde_full.jpg"
+            }
+          ],
+          "since": "2012-03-28T18:18:58"
+        }
+      ],
+      "previous_days": 16.6
+    },
+    {
+      "map_id": "62771",
+      "map_name": "Core",
+      "is_coop": false,
+      "from_score": 21290,
+      "to_score": 19533,
+      "delta": 1757,
+      "date": "2026-05-14T16:12:59",
+      "teams": [
+        {
+          "players": [
+            {
+              "profile_number": "76561199022832021",
+              "user_name": "ginx",
+              "avatar": "https://steamcdn-a.akamaihd.net/steamcommunity/public/images/avatars/fe/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg"
+            }
+          ],
+          "since": "2026-05-14T16:12:59"
+        }
+      ],
+      "previous": [
+        {
+          "players": [
+            {
+              "profile_number": "76561198118049581",
+              "user_name": "Flaming Bag of Shit",
+              "avatar": "https://avatars.steamstatic.com/1aa57ae65716c4e6110f625d070a7d8e9d96953f_full.jpg"
+            }
+          ],
+          "since": "2023-04-10T09:59:43"
+        }
+      ],
+      "previous_days": 1130.3
+    },
+    {
+      "map_id": "62763",
+      "map_name": "Secret Panel",
+      "is_coop": false,
+      "from_score": 7019,
+      "to_score": 5486,
+      "delta": 1533,
+      "date": "2019-05-31T11:07:57",
+      "teams": [
+        {
+          "players": [
+            {
+              "profile_number": "76561198404861950",
+              "user_name": "Lathil",
+              "avatar": "https://avatars.steamstatic.com/6636331f0f7d69a2ef6557a124ae4a3389466047_full.jpg"
+            }
+          ],
+          "since": "2019-05-31T11:07:57"
+        }
+      ],
+      "previous": [
+        {
+          "players": [
+            {
+              "profile_number": "76561198039230536",
+              "user_name": "Zypeh",
+              "avatar": "https://avatars.steamstatic.com/4efac9cdae134d89bc22d70b22b236a11f4bda72_full.jpg"
+            }
+          ],
+          "since": "2017-06-24T21:51:29"
+        }
+      ],
+      "previous_days": 705.6
+    }
+  ],
+  "race": {
+    "coop": {
+      "frames": [
+        {
+          "date": "2026-09-01",
+          "top": [
+            ["76561198823602829", 25],
+            ["76561198404861950", 19],
+            ["76561198295368421", 18],
+            ["76561198254956991", 13],
+            ["76561198081168311", 11],
+            ["76561198095730281", 7],
+            ["76561198172465698", 6],
+            ["76561198048179892", 2],
+            ["76561198149112443", 2],
+            ["76561198054297641", 1],
+            ["76561198165015808", 1],
+            ["76561198795823814", 1]
+          ]
+        },
+        {
+          "date": "2026-10-01",
+          "top": [
+            ["76561198823602829", 25],
+            ["76561198404861950", 19],
+            ["76561198295368421", 18],
+            ["76561198254956991", 13],
+            ["76561198081168311", 11],
+            ["76561198095730281", 7],
+            ["76561198172465698", 6],
+            ["76561198048179892", 2],
+            ["76561198149112443", 2],
+            ["76561198054297641", 1],
+            ["76561198165015808", 1],
+            ["76561198795823814", 1]
+          ]
+        },
+        {
+          "date": "2026-10-18",
+          "top": [
+            ["76561198823602829", 26],
+            ["76561198295368421", 19],
+            ["76561198404861950", 19],
+            ["76561198254956991", 13],
+            ["76561198081168311", 11],
+            ["76561198095730281", 7],
+            ["76561198172465698", 6],
+            ["76561198048179892", 2],
+            ["76561198149112443", 2],
+            ["76561198054297641", 1],
+            ["76561198165015808", 1],
+            ["76561198795823814", 1]
+          ]
+        }
+      ]
+    },
+    "overall": {
+      "frames": [
+        {
+          "date": "2026-09-01",
+          "top": [
+            ["76561198823602829", 25],
+            ["76561198254956991", 19],
+            ["76561198404861950", 19],
+            ["76561198295368421", 18],
+            ["76561198795823814", 16],
+            ["76561198081168311", 12],
+            ["76561198149112443", 10],
+            ["76561198095730281", 8],
+            ["76561198099281433", 7],
+            ["76561198172465698", 7],
+            ["76561198165015808", 5],
+            ["76561198068358920", 3]
+          ]
+        },
+        {
+          "date": "2026-10-01",
+          "top": [
+            ["76561198823602829", 25],
+            ["76561198254956991", 19],
+            ["76561198404861950", 19],
+            ["76561198295368421", 18],
+            ["76561198795823814", 16],
+            ["76561198081168311", 12],
+            ["76561198149112443", 10],
+            ["76561198095730281", 8],
+            ["76561198099281433", 7],
+            ["76561198172465698", 7],
+            ["76561198165015808", 5],
+            ["76561198068358920", 3]
+          ]
+        },
+        {
+          "date": "2026-10-18",
+          "top": [
+            ["76561198823602829", 26],
+            ["76561198254956991", 19],
+            ["76561198295368421", 19],
+            ["76561198404861950", 19],
+            ["76561198795823814", 16],
+            ["76561198081168311", 12],
+            ["76561198149112443", 9],
+            ["76561198095730281", 8],
+            ["76561198099281433", 7],
+            ["76561198172465698", 7],
+            ["76561198165015808", 5],
+            ["76561198068358920", 3]
+          ]
+        }
+      ]
+    },
+    "sp": {
+      "frames": [
+        {
+          "date": "2026-09-01",
+          "top": [
+            ["76561198795823814", 15],
+            ["76561198149112443", 8],
+            ["76561198099281433", 7],
+            ["76561198254956991", 6],
+            ["76561198165015808", 4],
+            ["76561198068358920", 3],
+            ["76561198118049581", 3],
+            ["76561198096862334", 2],
+            ["76561198240331128", 2],
+            ["76561198810570115", 2],
+            ["76561198952505877", 2],
+            ["76561199075756325", 2]
+          ]
+        },
+        {
+          "date": "2026-10-01",
+          "top": [
+            ["76561198795823814", 15],
+            ["76561198149112443", 8],
+            ["76561198099281433", 7],
+            ["76561198254956991", 6],
+            ["76561198165015808", 4],
+            ["76561198068358920", 3],
+            ["76561198118049581", 3],
+            ["76561198096862334", 2],
+            ["76561198240331128", 2],
+            ["76561198810570115", 2],
+            ["76561198952505877", 2],
+            ["76561199075756325", 2]
+          ]
+        },
+        {
+          "date": "2026-10-18",
+          "top": [
+            ["76561198795823814", 15],
+            ["76561198099281433", 7],
+            ["76561198149112443", 7],
+            ["76561198254956991", 6],
+            ["76561198165015808", 4],
+            ["76561198068358920", 3],
+            ["76561198118049581", 3],
+            ["76561198083196477", 2],
+            ["76561198096862334", 2],
+            ["76561198240331128", 2],
+            ["76561198810570115", 2],
+            ["76561198952505877", 2]
+          ]
+        }
+      ]
+    }
+  },
+  "race_players": {
+    "76561198118049581": {
+      "profile_number": "76561198118049581",
+      "user_name": "Flaming Bag of Shit",
+      "avatar": "https://avatars.steamstatic.com/1aa57ae65716c4e6110f625d070a7d8e9d96953f_full.jpg"
+    },
+    "76561198083196477": {
+      "profile_number": "76561198083196477",
+      "user_name": "Burger40",
+      "avatar": "https://avatars.steamstatic.com/cf641d7055a784ca5b5d2b1443a299f1dc71535c_full.jpg"
+    },
+    "76561198048179892": {
+      "profile_number": "76561198048179892",
+      "user_name": "Betsruner",
+      "avatar": "https://avatars.steamstatic.com/3973d053c195d49f47015c14838bddd546f71941_full.jpg"
+    },
+    "76561198099281433": {
+      "profile_number": "76561198099281433",
+      "user_name": "MilkyFrenchToast",
+      "avatar": "https://avatars.steamstatic.com/007a0b3d7188046b5bff80becc9c0f5ace769c1a_full.jpg"
+    },
+    "76561199075756325": {
+      "profile_number": "76561199075756325",
+      "user_name": "leuk",
+      "avatar": "https://avatars.steamstatic.com/d956bc4013e234d687e01e910297bd80cde68345_full.jpg"
+    },
+    "76561198823602829": {
+      "profile_number": "76561198823602829",
+      "user_name": "RealCreative",
+      "avatar": "https://avatars.steamstatic.com/ace8efdb0d060e2bbc8d9d210429fbfea6d247e5_full.jpg"
+    },
+    "76561198054297641": {
+      "profile_number": "76561198054297641",
+      "user_name": "Xinera",
+      "avatar": "https://avatars.steamstatic.com/8880424ca7b9a699e7fdaf9e6b8472ada5511994_full.jpg"
+    },
+    "76561198165015808": {
+      "profile_number": "76561198165015808",
+      "user_name": "Jythonscript",
+      "avatar": "https://avatars.steamstatic.com/a158a5eeb8fbb49c8ba626fb99dc2bdf44052dc0_full.jpg"
+    },
+    "76561198240331128": {
+      "profile_number": "76561198240331128",
+      "user_name": "ConnorT",
+      "avatar": "https://avatars.steamstatic.com/a5a7236c60ec8d63cae462a473e3b48c8145b589_full.jpg"
+    },
+    "76561198952505877": {
+      "profile_number": "76561198952505877",
+      "user_name": "Throw",
+      "avatar": "https://avatars.steamstatic.com/2c01a87d1b0789f7bdd1f3e693ef9987e49abe01_full.jpg"
+    },
+    "76561198404861950": {
+      "profile_number": "76561198404861950",
+      "user_name": "Lathil",
+      "avatar": "https://avatars.steamstatic.com/6636331f0f7d69a2ef6557a124ae4a3389466047_full.jpg"
+    },
+    "76561198095730281": {
+      "profile_number": "76561198095730281",
+      "user_name": "Bexc",
+      "avatar": "https://avatars.steamstatic.com/3b161f8a37d8e69c3244b7c23d7b461433e14c0c_full.jpg"
+    },
+    "76561198295368421": {
+      "profile_number": "76561198295368421",
+      "user_name": "Rex",
+      "avatar": "https://avatars.steamstatic.com/09bb27cf013dc71da9175902304b17548adb322a_full.jpg"
+    },
+    "76561198149112443": {
+      "profile_number": "76561198149112443",
+      "user_name": "AngerySnek",
+      "avatar": "https://avatars.steamstatic.com/36f5af69d7f5763b4fbede1c3a067f97505e77ce_full.jpg"
+    },
+    "76561198068358920": {
+      "profile_number": "76561198068358920",
+      "user_name": "Kendal",
+      "avatar": "https://avatars.steamstatic.com/6561779fe010c61ae679349104371f434bdffa2e_full.jpg"
+    },
+    "76561198172465698": {
+      "profile_number": "76561198172465698",
+      "user_name": "Nate",
+      "avatar": "https://avatars.steamstatic.com/939f31b3de147f1054f631cd33373043b3b6ad4b_full.jpg"
+    },
+    "76561198096862334": {
+      "profile_number": "76561198096862334",
+      "user_name": "Unaccompanied Minor",
+      "avatar": "https://avatars.steamstatic.com/56bb21741447509747888d408363258687c2da16_full.jpg"
+    },
+    "76561198795823814": {
+      "profile_number": "76561198795823814",
+      "user_name": "i spider",
+      "avatar": "https://avatars.steamstatic.com/527b3525c820a11df2aa81ff8876806de3bf012f_full.jpg"
+    },
+    "76561198254956991": {
+      "profile_number": "76561198254956991",
+      "user_name": "hero",
+      "avatar": "https://avatars.steamstatic.com/2643702d4c2a40854d868d36afb5bf9037df4404_full.jpg"
+    },
+    "76561198810570115": {
+      "profile_number": "76561198810570115",
+      "user_name": "jamal gameing",
+      "avatar": "https://avatars.steamstatic.com/be7eec8a60d692720284391b078383d970e3e4c1_full.jpg"
+    },
+    "76561198081168311": {
+      "profile_number": "76561198081168311",
+      "user_name": "unity",
+      "avatar": "https://avatars.steamstatic.com/1fcc7701ff71dce31965e10408d79aeb79bdf051_full.jpg"
+    }
+  }
+}

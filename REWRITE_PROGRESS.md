@@ -45,8 +45,8 @@
   - [x] 5.5a Profiles: header, tabs per game, seasons in tab: c1962ac
   - [x] 5.5b Profiles: points history chart with wheel zoom: 3a825eb
   - [x] 5.5c Profiles: activity heatmap, demo stats, co-op partners: 050a21b
-  - [x] 5.5d Profiles: follows; staff tools slot: (pending)
-  - [ ] 5.6a Stats: Runners tab
+  - [x] 5.5d Profiles: follows; staff tools slot: 4f233b0
+  - [x] 5.6a Stats: Runners tab: (pending)
   - [ ] 5.6b Stats: Records, History, Race tabs
   - [ ] 5.6c Compare (`?a=&b=`, debounced player search)
   - [ ] 5.6d Countries
@@ -68,6 +68,13 @@
 
 ## Log
 <!-- Newest first. One entry per finished item: date, what was done, commit, tests added. -->
+- 2026-10-18: 5.6a Stats Runners (`features/stats`): `api/stats.ts` (/stats/site and /stats/wr with their adapters,
+  ports of fetchSiteStats / fetchWrStats), `RunnersPanel` (totals, peak points per board in `?board=`, leader cards
+  with record-days from the WR stats, longest-standing records), `stats-ui.tsx` (figures, section titles, striped
+  tables, teams, map names, the 40 px switches). Shared `components/stats-shell.tsx` (the Stats tabs above the
+  panel), used by the Stats, Compare and Countries routes. Legacy had no sample data for the stats endpoints; sample
+  mode shows "Couldn’t load the stats." as legacy did. Fixtures `stats-site.json` / `stats-wr.json` captured and
+  trimmed. Commit (pending). Tests: 7 (+2 route rows).
 - 2026-10-18: 5.5d Profiles: `FollowButton` (p2cm.follows, filled star when following) in the header, and the staff
   tools through the header's slot: `features/admin` `ProfileStaffTools` (shield button with the staff-set dot, dialog
   with the shared reason: name / picture / country for moderators and admins, staff tier for admins, freeze, ban
@@ -75,7 +82,7 @@
   passes `staffTools={(player) => <ProfileStaffTools player={player} />}`. Every change calls `invalidateUser`.
   The admin feature takes its own structural `StaffProfile` type, so it doesn't import the profiles feature.
   Shared `components/round-button.ts` for the header's round buttons. `renderWithProviders`/`renderRoute` now also
-  answer /auth/me for the test user (an invalidated "me" used to refetch as signed out). Commit (pending).
+  answer /auth/me for the test user (an invalidated "me" used to refetch as signed out). Commit 4f233b0.
   Tests: 21 (+1 follow).
 - 2026-10-18: 5.5c Profiles: `utils/heatmap.ts` (runs per UTC day, Sunday-first weeks with month labels, the
   all-time grid of multi-day squares, years to pick) and `ActivityHeatmap` (summary line, year picker, hover / tap

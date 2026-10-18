@@ -1,0 +1,296 @@
+{
+  "totals": {
+    "runners": 10443,
+    "runs": 332097,
+    "world_records": 5340,
+    "demos": 172945,
+    "rendered": 48071,
+    "maps": 108,
+    "countries": 157,
+    "runs_year": 23910,
+    "runners_year": 906
+  },
+  "leaders": {
+    "demos": [
+      {
+        "profile_number": "76561199013726692",
+        "user_name": "savvydruid",
+        "avatar": "https://avatars.steamstatic.com/687d290c9238b42a790216892cc21f718741bd83_full.jpg",
+        "value": 1987
+      },
+      {
+        "profile_number": "76561199006050430",
+        "user_name": "SilentiumGradas",
+        "avatar": "https://avatars.steamstatic.com/86ad30b1d8b0eba6ebfb91e482d2f10386bc7279_full.jpg",
+        "value": 1828
+      },
+      {
+        "profile_number": "76561199106449775",
+        "user_name": "\u0435\u0433\u043e\u0440\u0438\u043a)",
+        "avatar": "https://avatars.steamstatic.com/7d1c826f0459bef27cd161e1974be73b61e3f06e_full.jpg",
+        "value": 1568
+      }
+    ],
+    "partners": [
+      {
+        "profile_number": "76561198823602829",
+        "user_name": "RealCreative",
+        "avatar": "https://avatars.steamstatic.com/ace8efdb0d060e2bbc8d9d210429fbfea6d247e5_full.jpg",
+        "value": 102
+      },
+      {
+        "profile_number": "76561198015394804",
+        "user_name": "felkelorebel",
+        "avatar": "https://avatars.steamstatic.com/b3745dd64d516fb7ce7072aaad09c93fd99c48f5_full.jpg",
+        "value": 82
+      },
+      {
+        "profile_number": "76561198084554697",
+        "user_name": "Luke",
+        "avatar": "https://avatars.steamstatic.com/ae7603dbeb28ea6b1870547f8dc5017ab5240fb9_full.jpg",
+        "value": 54
+      }
+    ],
+    "portals": [
+      {
+        "profile_number": "76561199006050430",
+        "user_name": "SilentiumGradas",
+        "avatar": "https://avatars.steamstatic.com/86ad30b1d8b0eba6ebfb91e482d2f10386bc7279_full.jpg",
+        "value": 16135
+      },
+      {
+        "profile_number": "76561199013726692",
+        "user_name": "savvydruid",
+        "avatar": "https://avatars.steamstatic.com/687d290c9238b42a790216892cc21f718741bd83_full.jpg",
+        "value": 15800
+      },
+      {
+        "profile_number": "76561199106449775",
+        "user_name": "\u0435\u0433\u043e\u0440\u0438\u043a)",
+        "avatar": "https://avatars.steamstatic.com/7d1c826f0459bef27cd161e1974be73b61e3f06e_full.jpg",
+        "value": 12832
+      }
+    ],
+    "runs": [
+      {
+        "profile_number": "76561199013726692",
+        "user_name": "savvydruid",
+        "avatar": "https://avatars.steamstatic.com/687d290c9238b42a790216892cc21f718741bd83_full.jpg",
+        "value": 2008
+      },
+      {
+        "profile_number": "76561198039230536",
+        "user_name": "Zypeh",
+        "avatar": "https://avatars.steamstatic.com/4efac9cdae134d89bc22d70b22b236a11f4bda72_full.jpg",
+        "value": 1982
+      },
+      {
+        "profile_number": "76561198068358920",
+        "user_name": "Kendal",
+        "avatar": "https://avatars.steamstatic.com/6561779fe010c61ae679349104371f434bdffa2e_full.jpg",
+        "value": 1979
+      }
+    ],
+    "runs_year": [
+      {
+        "profile_number": "76561199645152655",
+        "user_name": "Ksjbw",
+        "avatar": "https://avatars.steamstatic.com/721fc92c86478824e0f9768320ce65324d44bd64_full.jpg",
+        "value": 853
+      },
+      {
+        "profile_number": "76561199069689933",
+        "user_name": "Smily Dog",
+        "avatar": "https://avatars.steamstatic.com/721fc92c86478824e0f9768320ce65324d44bd64_full.jpg",
+        "value": 737
+      },
+      {
+        "profile_number": "76561199130241055",
+        "user_name": "Remon",
+        "avatar": "https://avatars.steamstatic.com/be015d307055cf8b13957aca48861c79fa705146_full.jpg",
+        "value": 470
+      }
+    ],
+    "time_saved": [
+      {
+        "profile_number": "76561199013726692",
+        "user_name": "savvydruid",
+        "avatar": "https://avatars.steamstatic.com/687d290c9238b42a790216892cc21f718741bd83_full.jpg",
+        "value": 171772
+      },
+      {
+        "profile_number": "76561199106449775",
+        "user_name": "\u0435\u0433\u043e\u0440\u0438\u043a)",
+        "avatar": "https://avatars.steamstatic.com/7d1c826f0459bef27cd161e1974be73b61e3f06e_full.jpg",
+        "value": 168065
+      },
+      {
+        "profile_number": "76561198377664123",
+        "user_name": "mitya",
+        "avatar": "https://avatars.steamstatic.com/c774fcb7516d344037f0b6abc8a26f9619202081_full.jpg",
+        "value": 153473
+      }
+    ],
+    "wr_held": [
+      {
+        "profile_number": "76561198823602829",
+        "user_name": "RealCreative",
+        "avatar": "https://avatars.steamstatic.com/ace8efdb0d060e2bbc8d9d210429fbfea6d247e5_full.jpg",
+        "value": 26
+      },
+      {
+        "profile_number": "76561198254956991",
+        "user_name": "hero",
+        "avatar": "https://avatars.steamstatic.com/2643702d4c2a40854d868d36afb5bf9037df4404_full.jpg",
+        "value": 19
+      },
+      {
+        "profile_number": "76561198295368421",
+        "user_name": "Rex",
+        "avatar": "https://avatars.steamstatic.com/09bb27cf013dc71da9175902304b17548adb322a_full.jpg",
+        "value": 19
+      }
+    ],
+    "wr_set": [
+      {
+        "profile_number": "76561198039230536",
+        "user_name": "Zypeh",
+        "avatar": "https://avatars.steamstatic.com/4efac9cdae134d89bc22d70b22b236a11f4bda72_full.jpg",
+        "value": 942
+      },
+      {
+        "profile_number": "76561198043899549",
+        "user_name": "Yarby",
+        "avatar": "https://avatars.steamstatic.com/e4b15b25a74d72bb7d93dac7ddcae58984f99b86_full.jpg",
+        "value": 341
+      },
+      {
+        "profile_number": "76561198045034733",
+        "user_name": "Undead",
+        "avatar": "https://avatars.steamstatic.com/ff8cce6ed65259baf9e43ccb0a19f4eb23ba5151_full.jpg",
+        "value": 325
+      }
+    ]
+  },
+  "longest_wrs": [
+    {
+      "map_id": "47811",
+      "map_name": "Stop the Box",
+      "is_coop": false,
+      "score": 1495,
+      "since": "2021-10-28T04:25:52",
+      "profile_number": "76561198096862334",
+      "user_name": "Unaccompanied Minor",
+      "avatar": "https://avatars.steamstatic.com/56bb21741447509747888d408363258687c2da16_full.jpg",
+      "partner_number": null,
+      "partner_name": null,
+      "partner_avatar": null
+    },
+    {
+      "map_id": "47815",
+      "map_name": "Laser Platform",
+      "is_coop": false,
+      "score": 1503,
+      "since": "2021-12-21T05:08:22",
+      "profile_number": "76561198067237436",
+      "user_name": "claire",
+      "avatar": "https://avatars.steamstatic.com/b80f6226bd48aceea471a818c768ef849a661a1f_full.jpg",
+      "partner_number": null,
+      "partner_name": null,
+      "partner_avatar": null
+    },
+    {
+      "map_id": "49345",
+      "map_name": "Catapult Catch",
+      "is_coop": true,
+      "score": 811,
+      "since": "2022-08-09T19:41:13",
+      "profile_number": "76561198081168311",
+      "user_name": "unity",
+      "avatar": "https://avatars.steamstatic.com/1fcc7701ff71dce31965e10408d79aeb79bdf051_full.jpg",
+      "partner_number": "76561198149112443",
+      "partner_name": "AngerySnek",
+      "partner_avatar": "https://avatars.steamstatic.com/36f5af69d7f5763b4fbede1c3a067f97505e77ce_full.jpg"
+    }
+  ],
+  "peaks": {
+    "coop": [
+      {
+        "profile_number": "76561198039230536",
+        "user_name": "Zypeh",
+        "avatar": "https://avatars.steamstatic.com/4efac9cdae134d89bc22d70b22b236a11f4bda72_full.jpg",
+        "points": 9596.0,
+        "date": "2020-11-12",
+        "current": 8942.6
+      },
+      {
+        "profile_number": "76561198045034733",
+        "user_name": "Undead",
+        "avatar": "https://avatars.steamstatic.com/ff8cce6ed65259baf9e43ccb0a19f4eb23ba5151_full.jpg",
+        "points": 9572.3,
+        "date": "2017-10-12",
+        "current": 8014.1
+      },
+      {
+        "profile_number": "76561198823602829",
+        "user_name": "RealCreative",
+        "avatar": "https://avatars.steamstatic.com/ace8efdb0d060e2bbc8d9d210429fbfea6d247e5_full.jpg",
+        "points": 9552.2,
+        "date": "2025-05-29",
+        "current": 9538.3
+      }
+    ],
+    "overall": [
+      {
+        "profile_number": "76561198039230536",
+        "user_name": "Zypeh",
+        "avatar": "https://avatars.steamstatic.com/4efac9cdae134d89bc22d70b22b236a11f4bda72_full.jpg",
+        "points": 21572.1,
+        "date": "2020-11-12",
+        "current": 19165.2
+      },
+      {
+        "profile_number": "76561198095730281",
+        "user_name": "Bexc",
+        "avatar": "https://avatars.steamstatic.com/3b161f8a37d8e69c3244b7c23d7b461433e14c0c_full.jpg",
+        "points": 21250.5,
+        "date": "2020-09-17",
+        "current": 19495.3
+      },
+      {
+        "profile_number": "76561198081168311",
+        "user_name": "unity",
+        "avatar": "https://avatars.steamstatic.com/1fcc7701ff71dce31965e10408d79aeb79bdf051_full.jpg",
+        "points": 21226.0,
+        "date": "2022-03-13",
+        "current": 20261.0
+      }
+    ],
+    "sp": [
+      {
+        "profile_number": "76561198039230536",
+        "user_name": "Zypeh",
+        "avatar": "https://avatars.steamstatic.com/4efac9cdae134d89bc22d70b22b236a11f4bda72_full.jpg",
+        "points": 11990.1,
+        "date": "2019-08-06",
+        "current": 10222.7
+      },
+      {
+        "profile_number": "76561198149112443",
+        "user_name": "AngerySnek",
+        "avatar": "https://avatars.steamstatic.com/36f5af69d7f5763b4fbede1c3a067f97505e77ce_full.jpg",
+        "points": 11823.2,
+        "date": "2023-03-24",
+        "current": 11544.4
+      },
+      {
+        "profile_number": "76561198095730281",
+        "user_name": "Bexc",
+        "avatar": "https://avatars.steamstatic.com/3b161f8a37d8e69c3244b7c23d7b461433e14c0c_full.jpg",
+        "points": 11795.3,
+        "date": "2020-09-11",
+        "current": 10278.9
+      }
+    ]
+  }
+}

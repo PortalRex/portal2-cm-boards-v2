@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { http, HttpResponse } from 'msw'
 import { API } from '@/testing/mocks/handlers'
 import { FIXTURE_PLAYER, serveProfile } from '@/testing/mocks/profile'
+import { serveStats } from '@/testing/mocks/stats'
 import { server } from '@/testing/mocks/server'
 import { renderRoute } from '@/testing/test-utils'
 
@@ -22,7 +23,8 @@ const pages: [string, string][] = [
   ['/leaderboard/chapter/1?country=hu', 'Team Building'],
   ['/leaderboard/game/custom-game/overall', 'Overall'],
   ['/leaderboard/game/custom-game/custom-game-sp', 'Main Board'],
-  ['/stats', 'Stats'],
+  ['/stats', 'Runners'],
+  ['/stats?board=sp&game=mel', 'Runners'],
   ['/stats/records', 'Stats'],
   ['/stats/history', 'Stats'],
   ['/stats/race', 'Stats'],
@@ -50,6 +52,7 @@ describe('routes', () => {
   })
 
   it.each(pages)('%s renders its page', async (url, title) => {
+    serveStats()
     server.use(
       http.get(`${API}/map/:kind/:id`, () => HttpResponse.json([])),
       http.get(`${API}/changelog`, () => HttpResponse.json([])),
