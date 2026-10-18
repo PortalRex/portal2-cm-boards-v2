@@ -25,5 +25,4 @@ describe('api client uploads', () => {
     expect(type).toMatch(/^multipart\/form-data/)
     expect(file).toMatchObject({ name: 'run.dem' })
   })
-
 })

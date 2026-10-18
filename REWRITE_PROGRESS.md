@@ -16,9 +16,9 @@
   - [x] 2g. Public assets and images (`public/`, `src/assets/`, Mel NOTICE.md, `theme.js`): 535adf2
   - [x] 2h. Docker: Dockerfile, nginx.conf (`/assets/`), security headers, compose back to `./frontend`: d192cc9
 - [ ] 3. Foundation
-  - [x] 3.1 `lib/api-client.ts` (`api.*`, `ApiError`, `apiUrl`, param dropping, FormData): (pending)
-  - [ ] 3.2 Pure helpers: `format`
-  - [ ] 3.3 Pure helpers: `ranks`, `runFilters`, `coopRoles`
+  - [x] 3.1 `lib/api-client.ts` (`api.*`, `ApiError`, `apiUrl`, param dropping, FormData): 7419168
+  - [x] 3.2 Pure helpers: `format`: (pending)
+  - [x] 3.3 Pure helpers: `ranks`, `runFilters`, `coopRoles`: (pending)
   - [ ] 3.4 Pure helpers: `activity`, `adminActions`, `youtube`, `scroll`, `pointsForRank`
   - [ ] 3.5 Static data: `countries`, `roles`, built-in maps / bsp names / seasons
   - [ ] 3.6 Per-browser settings (localStorage keys, try/catch) and theme
@@ -68,6 +68,10 @@
 
 ## Log
 <!-- Newest first. One entry per finished item: date, what was done, commit, tests added. -->
+- 2026-10-17: 3.2-3.3 `lib/format.ts`, `lib/points.ts` (`pointsForRank`), `lib/ranks.ts`, `lib/run-filters.ts`,
+  `lib/coop-roles.ts`. Expected values were produced by running the legacy functions in Node. Commit (pending). Tests:
+  108 cases (scores, deltas, timestamps, time ago, dates, ordinals, points, rank colours on both scales, tile
+  rainbow, filter options, co-op role overrides).
 - 2026-10-17: 3.1 `lib/api-client.ts`: `api.get/post/put/delete`, `request()` (status + data, for the inbox long
   poll), `ApiError`, `apiUrl`. Commit (pending). Tests: param dropping, credentials + JSON body, multipart upload,
   five error-body shapes, 204 status, link URLs (10).
@@ -103,6 +107,11 @@
 - Upload tests: under jsdom, multipart bodies sent through MSW fail (the body Vitest's jsdom/Node fetch bridge sends
   doesn't match its Content-Length; plain Node and happy-dom are fine). jsdom stays the default environment; test
   files that upload files start with `// @vitest-environment happy-dom` (e.g. `api-client.upload.test.ts`).
+- Tests run with `TZ=UTC` (set in vitest.config.ts) so local-time formatting is the same on every machine.
+- Co-op role overrides: legacy keeps them in a module-level Map with a window event. The new `coopRoles()` takes the
+  overrides as an argument; the overrides themselves will sit in the query cache (a hook, with the staff mutation
+  writing to it), so rows update at once as in legacy. `tintFor` returns `'blue' | 'orange' | 'neutral'` and the
+  components map that to classes.
 - `cn` in `lib/utils.ts` is shadcn's own package (github.com/shadcn-ui/cn), the replacement for clsx + tailwind-merge.
 - The hardening merge added a CSP in `security-headers.conf` (no inline scripts) and `public/theme.js` (sets the
   theme before first paint without an inline script). The new app keeps both: nginx includes the same headers file,

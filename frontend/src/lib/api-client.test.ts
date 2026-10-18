@@ -14,7 +14,9 @@ describe('api client', () => {
         return HttpResponse.json([])
       }),
     )
-    await api.get('/changelog', { params: { limit: 50, nick_name: '', chamber: null, sp: undefined, wr_gain: true } })
+    await api.get('/changelog', {
+      params: { limit: 50, nick_name: '', chamber: null, sp: undefined, wr_gain: true },
+    })
     expect(seen?.pathname).toBe('/api/v1/changelog')
     expect(Object.fromEntries(seen!.searchParams)).toEqual({ limit: '50', wr_gain: 'true' })
   })
@@ -41,9 +43,19 @@ describe('api client', () => {
 
   it.each([
     ['a JSON error', HttpResponse.json({ error: 'Not found.' }, { status: 404 }), 404, 'Not found.'],
-    ['a plain-text reason', new HttpResponse('This profile is frozen.', { status: 403 }), 403, 'This profile is frozen.'],
+    [
+      'a plain-text reason',
+      new HttpResponse('This profile is frozen.', { status: 403 }),
+      403,
+      'This profile is frozen.',
+    ],
     ['an empty 401', new HttpResponse(null, { status: 401 }), 401, 'Sign in required.'],
-    ['a proxy timeout page', new HttpResponse('<html>524</html>', { status: 524 }), 524, 'The server took too long to answer.'],
+    [
+      'a proxy timeout page',
+      new HttpResponse('<html>524</html>', { status: 524 }),
+      524,
+      'The server took too long to answer.',
+    ],
     ['an empty 500', new HttpResponse(null, { status: 500 }), 500, 'Request failed (500)'],
   ])('turns %s into an ApiError', async (_name, response, status, message) => {
     server.use(http.get(`${base}/x`, () => response))
@@ -54,7 +66,10 @@ describe('api client', () => {
 
   it('returns the status with request() (the inbox long poll tells 200 from 204)', async () => {
     server.use(http.get(`${base}/admin/inbox/wait`, () => new HttpResponse(null, { status: 204 })))
-    expect(await request('GET', '/admin/inbox/wait', { params: { after: 3 } })).toEqual({ status: 204, data: null })
+    expect(await request('GET', '/admin/inbox/wait', { params: { after: 3 } })).toEqual({
+      status: 204,
+      data: null,
+    })
   })
 
   it('makes absolute URLs for links', () => {
