@@ -11,6 +11,8 @@ import { runVideo } from '@/lib/runs/video'
 import type { CoopHalf, Player, RunMap } from '@/types/runs'
 import { coopHalvesQueryOptions, segmentsQueryOptions } from '../api/details'
 import { timerNote } from '../utils/timer-note'
+import { ReactionsBar } from './reactions-bar'
+import { ReportRun } from './report-run'
 
 /**
  * The run a details panel shows: a score update, a map board row or a profile score (they share
@@ -50,12 +52,15 @@ export function RunDetails({
   map,
   game = 'portal2',
   rendered,
+  showReactions = true,
   children,
 }: {
   run: DetailsRun
   map: RunMap
   game?: string
   rendered?: Map<number, string>
+  /** Score Updates rows have their own reaction buttons, so they leave these out. */
+  showReactions?: boolean
   /** Further sections under the info (reactions, report, staff tools). */
   children?: ReactNode
 }) {
@@ -168,6 +173,8 @@ export function RunDetails({
             <dd>{run.banned ? 'Banned' : run.verified === false ? 'Pending' : 'Verified'}</dd>
           </dl>
           <TimerNote score={run.score} segments={segments.data ?? null} />
+          {own != null && showReactions && <ReactionsBar changelogId={own} />}
+          {own != null && <ReportRun changelogId={own} />}
           {children}
           <div className="mt-3.5 grid grid-cols-2 gap-[18px] @max-[640px]/run-details:grid-cols-1">
             {view.demoId ? (

@@ -50,8 +50,8 @@
   - [x] 5.6b Stats: Records, History, Race tabs: f31bed9 (fixed in the next commit)
   - [x] 5.6c Compare (`?a=&b=`, debounced player search): 2c31c0b
   - [x] 5.6d Countries: fc7d07b
-  - [x] 5.3a Run Details: media (autorender, YouTube): (pending)
-  - [ ] 5.3b Run Details: reactions, reports
+  - [x] 5.3a Run Details: media (autorender, YouTube): 4b269c6
+  - [x] 5.3b Run Details: reactions, reports: (pending)
   - [ ] 5.3c Run Details: staff actions with reasons + invalidation
   - [ ] 5.3d Submit Run (upload preview, submit, admin manual entry)
   - [ ] 5.7 Settings (name/avatar locks, view-as-player for staff)
@@ -68,6 +68,11 @@
 
 ## Log
 <!-- Newest first. One entry per finished item: date, what was done, commit, tests added. -->
+- 2026-10-18: 5.3b Reactions and reports in Run Details: `ReactionsBar` (counts for everyone, react / clear when
+  signed in, cache updated from the answer; left out in Score Updates rows via `showReactions={false}`, as legacy)
+  and `ReportRun` (anonymous report, reason required, details required for "Something else", null when empty,
+  server message shown). `REPORT_REASONS` and `reportRun` live in `lib/runs/reports.ts` for the staff reports page.
+  Default test handler for reaction counts. Commit (pending). Tests: 6.
 - 2026-10-18: 5.3a Run Details media. The pieces were already in place and wired on Score Updates, map boards and
   profiles (5.1a/5.1c and the profile work); this adds their own tests (`components/runs/run-media.test.tsx`: link
   states, share ids from the rendered set, demo/YouTube links, comment bubble, video source order and the
