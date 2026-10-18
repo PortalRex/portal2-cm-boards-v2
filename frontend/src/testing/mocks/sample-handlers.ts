@@ -5,7 +5,11 @@ import {
   sampleChangelog,
   sampleCoopBoard,
   sampleDaily,
+  sampleGameRanks,
   samplePoints,
+  sampleProfilePage,
+  sampleProfileScores,
+  sampleUser,
   sampleWeeklyRecap,
   samplePreviews,
   sampleSpBoard,
@@ -51,6 +55,16 @@ export function sampleHandlers(api: string): RequestHandler[] {
     }),
     http.get(`${api}/points/game/:game/:board`, ({ params }) =>
       HttpResponse.json(samplePoints(String(params.game) === '2' ? 'mel' : 'portal2', String(params.board))),
+    ),
+    // Profiles: no peak or past days in sample data (legacy's sample profile had neither).
+    http.get(`${api}/profile/points_peak/:id`, () => HttpResponse.json({})),
+    http.get(`${api}/profile/scores/:id`, ({ params }) =>
+      HttpResponse.json(sampleProfileScores(String(params.id))),
+    ),
+    http.get(`${api}/profile/:id`, ({ params }) => HttpResponse.json(sampleProfilePage(String(params.id)))),
+    http.get(`${api}/user/:id`, ({ params }) => HttpResponse.json(sampleUser(String(params.id)))),
+    http.get(`${api}/ranks/game/:game/:id`, ({ params }) =>
+      HttpResponse.json(String(params.game) === '2' ? sampleGameRanks('mel', String(params.id)) : {}),
     ),
     http.get(`${api}/wall_of_shame`, () => HttpResponse.json(sampleWallOfShame())),
     http.all(`${api}/*`, () =>

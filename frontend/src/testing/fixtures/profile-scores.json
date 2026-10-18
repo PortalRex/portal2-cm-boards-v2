@@ -1,0 +1,102 @@
+[
+  {
+    "map_id": "47106",
+    "score": 2010,
+    "timestamp": "2024-07-05T23:03:42",
+    "changelog_id": 293327,
+    "is_multiplayer": false,
+    "rank": 2,
+    "delta_to_wr": 12,
+    "delta_to_next": 12
+  },
+  {
+    "map_id": "47452",
+    "score": 1226,
+    "timestamp": "2025-09-02T19:12:44",
+    "changelog_id": 331298,
+    "is_multiplayer": false,
+    "rank": 2,
+    "delta_to_wr": 18,
+    "delta_to_next": 18
+  },
+  {
+    "map_id": "47455",
+    "score": 2078,
+    "timestamp": "2025-01-13T23:38:06",
+    "changelog_id": 311616,
+    "is_multiplayer": false,
+    "rank": 2,
+    "delta_to_wr": 2,
+    "delta_to_next": 2
+  },
+  {
+    "map_id": "47456",
+    "score": 19820,
+    "timestamp": "2022-08-25T14:14:20",
+    "changelog_id": 217821,
+    "is_multiplayer": false,
+    "rank": 10,
+    "delta_to_wr": 177,
+    "delta_to_next": 4
+  },
+  {
+    "map_id": "47458",
+    "score": 2285,
+    "timestamp": "2025-11-23T21:11:47",
+    "changelog_id": 336335,
+    "is_multiplayer": false,
+    "rank": 4,
+    "delta_to_wr": 42,
+    "delta_to_next": 17
+  },
+  {
+    "map_id": "47465",
+    "score": 1478,
+    "timestamp": "2024-08-27T23:12:50",
+    "changelog_id": 298455,
+    "is_multiplayer": false,
+    "rank": 2,
+    "delta_to_wr": 10,
+    "delta_to_next": 10
+  },
+  {
+    "map_id": "45467",
+    "score": 948,
+    "timestamp": "2023-05-01T13:41:07",
+    "changelog_id": 252471,
+    "is_multiplayer": true,
+    "rank": 5,
+    "delta_to_wr": 7,
+    "delta_to_next": 3
+  },
+  {
+    "map_id": "46362",
+    "score": 1258,
+    "timestamp": "2024-09-13T23:48:19",
+    "changelog_id": 299733,
+    "is_multiplayer": true,
+    "rank": 3,
+    "delta_to_wr": 15,
+    "delta_to_next": 8
+  },
+  {
+    "map_id": "47741",
+    "score": 738,
+    "timestamp": "2022-08-05T20:31:54",
+    "changelog_id": 213262,
+    "is_multiplayer": true,
+    "rank": 3,
+    "delta_to_wr": 5,
+    "delta_to_next": 2
+  },
+  {
+    "map_id": "47825",
+    "score": 1756,
+    "timestamp": "2024-04-20T14:53:47",
+    "changelog_id": 286767,
+    "is_multiplayer": true,
+    "rank": 1,
+    "delta_to_wr": 0,
+    "delta_to_next": null
+  }
+]

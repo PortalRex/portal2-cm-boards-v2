@@ -2,6 +2,7 @@ import { screen, waitFor } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { http, HttpResponse } from 'msw'
 import { API } from '@/testing/mocks/handlers'
+import { FIXTURE_PLAYER, serveProfile } from '@/testing/mocks/profile'
 import { server } from '@/testing/mocks/server'
 import { renderRoute } from '@/testing/test-utils'
 
@@ -21,7 +22,6 @@ const pages: [string, string][] = [
   ['/leaderboard/chapter/1?country=hu', 'Team Building'],
   ['/leaderboard/game/custom-game/overall', 'Overall'],
   ['/leaderboard/game/custom-game/custom-game-sp', 'Main Board'],
-  ['/profile/76561198000000001', 'Profile'],
   ['/stats', 'Stats'],
   ['/stats/records', 'Stats'],
   ['/stats/history', 'Stats'],
@@ -40,6 +40,13 @@ describe('routes', () => {
     const { router } = await renderRoute('/')
     expect(router.state.location.pathname).toBe('/')
     expect(await screen.findByRole('heading', { name: 'Score Updates' })).toBeInTheDocument()
+  })
+
+  it('opens a profile at /profile/{steam id}', async () => {
+    serveProfile()
+    const { router } = await renderRoute(`/profile/${FIXTURE_PLAYER}?season=x`)
+    expect(router.state.location.href).toBe(`/profile/${FIXTURE_PLAYER}?season=x`)
+    expect(await screen.findByRole('heading', { name: /hero/, level: 1 })).toBeInTheDocument()
   })
 
   it.each(pages)('%s renders its page', async (url, title) => {

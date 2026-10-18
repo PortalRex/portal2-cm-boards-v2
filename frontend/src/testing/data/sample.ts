@@ -293,6 +293,97 @@ export function samplePoints(game: string, boardKey: string) {
   }
 }
 
+// --- profiles -------------------------------------------------------------------------
+
+const samplePlayer = (profileNumber: string) =>
+  SAMPLE_PLAYERS.find((p) => p.profileNumber === profileNumber) ?? SAMPLE_PLAYERS[0]!
+
+/** The player's place on each map of a game's sample boards. */
+function placesOf(profileNumber: string, game: string) {
+  return mapsForGame(BUILTIN_CATALOG, game).flatMap((map) => {
+    const entries = board(map)
+    const i = entries.findIndex((e) => e.players.some((p) => p.profileNumber === profileNumber))
+    return i < 0 ? [] : [{ map, entry: entries[i]!, next: entries[i - 1], wr: entries[0]! }]
+  })
+}
+
+/** GET /user/{id}: a sample player (titles and links made up, as legacy's sample profile). */
+export function sampleUser(profileNumber: string) {
+  const p = samplePlayer(profileNumber)
+  return {
+    profile_number: p.profileNumber,
+    board_name: p.name,
+    steam_name: p.name,
+    banned: false,
+    registered: 1,
+    avatar: p.avatar,
+    twitch: p.name.toLowerCase(),
+    youtube: `@${p.name}`,
+    title: 'Professional, Developer',
+    admin: 0,
+    country_id: countryIdByCode(p.country),
+    frozen: false,
+    frozen_reason: null,
+    role: null,
+    name_locked: false,
+    avatar_locked: false,
+    avatar_custom: false,
+    legends_at: null,
+  }
+}
+
+/** GET /profile/{id}: points and places from the sample aggregated boards, ranks from the maps. */
+export function sampleProfilePage(profileNumber: string) {
+  const p = samplePlayer(profileNumber)
+  const local = mulberry32(Number(p.profileNumber.slice(-6)))
+  const entry = (id: number, boardKey: string) => {
+    const rows = samplePoints('portal2', boardKey).points
+    const i = rows.findIndex(([pn]) => pn === p.profileNumber)
+    return {
+      id,
+      points: rows[i]?.[1] ?? null,
+      place: i < 0 ? null : i + 1,
+      country_place: 1 + Math.floor(local() * 4),
+    }
+  }
+  const places = placesOf(p.profileNumber, 'portal2')
+  const dated = (mode: string) =>
+    places
+      .filter((x) => x.map.mode === mode)
+      .sort((a, b) => a.entry.timestamp.localeCompare(b.entry.timestamp))
+  const brief = (x: (typeof places)[number] | undefined) =>
+    x ? { map: x.map.id, map_name: x.map.title, score: x.entry.score, timestamp: x.entry.timestamp } : null
+  return {
+    points: [entry(-1, 'sp'), entry(-2, 'coop'), entry(-3, 'overall')],
+    data: {
+      oldest_sp: brief(dated('sp')[0]),
+      newest_sp: brief(dated('sp').at(-1)),
+      oldest_coop: brief(dated('coop')[0]),
+      newest_coop: brief(dated('coop').at(-1)),
+    },
+    ranks: Object.fromEntries(places.map((x) => [x.map.id, x.entry.rank])),
+  }
+}
+
+/** GET /profile/scores/{id}: the player's time on every map, with the gaps to the next and the WR. */
+export const sampleProfileScores = (profileNumber: string) =>
+  placesOf(samplePlayer(profileNumber).profileNumber, 'portal2').map(({ map, entry, next, wr }) => ({
+    map_id: map.id,
+    score: entry.score,
+    timestamp: entry.timestamp,
+    changelog_id: null,
+    is_multiplayer: map.mode === 'coop',
+    rank: entry.rank,
+    delta_to_wr: entry.score - wr.score,
+    delta_to_next: next ? entry.score - next.score : null,
+  }))
+
+/** GET /ranks/game/{game_id}/{id}: the player's rank on each of the game's maps. */
+export const sampleGameRanks = (game: string, profileNumber: string) =>
+  Object.fromEntries(
+    placesOf(samplePlayer(profileNumber).profileNumber, game).map(({ map, entry }) => [map.id, entry.rank]),
+  )
+
 // --- changelog ------------------------------------------------------------------------
 
 function buildChangelog(game: string): ChangelogRaw[] {

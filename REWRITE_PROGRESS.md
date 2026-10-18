@@ -42,7 +42,7 @@
   - [x] 5.2d Wall of Shame: d2f476b
   - [x] 5.4a Aggregated: Portal 2 overall / sp / coop: cd183b1
   - [x] 5.4b Aggregated: Mel, chapters, custom games and seasons: 25910a6
-  - [ ] 5.5a Profiles: header, tabs per game, seasons in tab
+  - [x] 5.5a Profiles: header, tabs per game, seasons in tab: (pending)
   - [ ] 5.5b Profiles: points history chart with wheel zoom
   - [ ] 5.5c Profiles: activity heatmap, demo stats, co-op partners
   - [ ] 5.5d Profiles: follows; staff tools slot
@@ -68,6 +68,19 @@
 
 ## Log
 <!-- Newest first. One entry per finished item: date, what was done, commit, tests added. -->
+- 2026-10-18: 5.5a Profiles (`features/profiles`): `utils/profile.ts` (ports of adaptProfile, scoresFromRanks,
+  mergePbs, profileAsOf), `api/profile.ts` (profile = /profile + /user + the player's changelog + personal bests in one
+  query; points peak; /profile/at; another game's /ranks/game + changelog), `ProfilePage` (as-of banner with "Back to
+  today", Collapse all, the card rows), `ProfileHeader` (role colour and icon, badges incl. banned / frozen, country,
+  Steam / Twitch / YouTube, compare and edit links; `actions` / `after` slots for follow and staff tools),
+  `profile-stats.tsx` (points with role bars, global rank linking to the boards on the player's row, statistics,
+  average place, world records, peak points), `ProfileTabs` (Singleplayer / Cooperative or the game's tab, Legacy,
+  Info; seasons picked in the tab; sort orders), summary tiles, chapter tables (Run Details slot), history, Legacy
+  and Info tabs. The route keys the page by player and fills the Run Details slot. Sample data: profile, user,
+  scores and Mel ranks (port of mockProfile). Fixtures `profile-*.json` captured from the local API, trimmed to 10
+  personal bests. Still to come: points chart (5.5b, the Global Rank card's `chart` slot), activity heatmap and the
+  Stats tab (5.5c, the tab shows nothing until then), follow and staff tools (5.5d). Not compared in a browser this
+  session. Commit (pending). Tests: 26 (+1 route, +1 sample data).
 - 2026-10-18: 5.4b Aggregated boards: `/leaderboard/mel/$kind`, `/leaderboard/chapter/$chapterId` (kicker
   "Singleplayer · Chapter 1" / "Cooperative · Course 1", the chapter picked in the list, a season pick opens the
   mode's season board), `/leaderboard/game/$gameId` and `/$board` (custom games asked for by the chapters' game_mode,
@@ -216,6 +229,13 @@
 
 ## Decisions and findings
 <!-- Legacy behaviours discovered, choices made and why. -->
+- Profile rank tiles: legacy's `.rank-tint` in Profile.css is a tinted tile; the new `rank-tint` utility is legacy's
+  text-only `.rank-colored`. The tile is the new `rank-tile` utility.
+- Profile chapter tables hand the score to Run Details without players (legacy passed `run={s}`); only the Legacy
+  tab adds the player and partner. Kept so.
+- Profile: like legacy, picking a day on the chart or "Back to today" replaces the whole query (drops ?season=).
+- Shared `components/bubble.tsx` (+ `lib/bubble.ts` for its anchor): the comment bubble, now also the role bar's
+  hover label (legacy used the same `.comment-bubble` for both).
 - Aggregated map counts: legacy hard-codes 108 / 60 / 48 (Portal 2) and 40 / 22 / 18 (Mel) for the built-in boards
   and counts catalog maps for chapters and other games; kept so (`serverBoard`).
 - Aggregated country picker: legacy's `setParams({ country })` replaces the whole query, so picking a country on a

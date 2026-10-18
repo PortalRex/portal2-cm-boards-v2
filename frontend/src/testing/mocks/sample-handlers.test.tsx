@@ -67,6 +67,23 @@ describe('sample handlers', () => {
     expect(story.points[0]![1].num_scores).toBe(22)
   })
 
+  it("serve a sample player's profile that the profile adapters read", async () => {
+    server.use(...sampleHandlers(API))
+    const pn = SAMPLE_PLAYERS[3]!.profileNumber
+    const page = await api.get<{ ranks: Record<string, number>; points: { place: number | null }[] }>(
+      `/profile/${pn}`,
+    )
+    expect(Object.keys(page.ranks)).toHaveLength(108)
+    expect(page.points.every((p) => p.place != null)).toBe(true)
+    const scores = await api.get<{ map_id: string; rank: number }[]>(`/profile/scores/${pn}`)
+    expect(Object.fromEntries(scores.map((s) => [s.map_id, s.rank]))).toEqual(page.ranks)
+    expect(await api.get(`/user/${pn}`)).toMatchObject({
+      profile_number: pn,
+      board_name: SAMPLE_PLAYERS[3]!.name,
+    })
+    expect(Object.keys(await api.get<object>(`/ranks/game/2/${pn}`))).toHaveLength(40)
+  })
+
   it('serve three banned players for the Wall of Shame, as legacy', async () => {
     server.use(...sampleHandlers(API))
     const banned = await api.get<{ profile_number: string }[]>('/wall_of_shame')
