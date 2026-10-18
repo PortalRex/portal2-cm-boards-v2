@@ -48,7 +48,7 @@
   - [x] 5.5d Profiles: follows; staff tools slot: 4f233b0
   - [x] 5.6a Stats: Runners tab: a2459af
   - [x] 5.6b Stats: Records, History, Race tabs: f31bed9 (fixed in the next commit)
-  - [ ] 5.6c Compare (`?a=&b=`, debounced player search)
+  - [x] 5.6c Compare (`?a=&b=`, debounced player search): (pending)
   - [ ] 5.6d Countries
   - [ ] 5.3a Run Details: media (autorender, YouTube)
   - [ ] 5.3b Run Details: reactions, reports
@@ -68,6 +68,12 @@
 
 ## Log
 <!-- Newest first. One entry per finished item: date, what was done, commit, tests added. -->
+- 2026-10-18: 5.6c Compare (`features/compare`): `api/compare.ts` (player search via /users/search, one side = /user
+  + Portal 2 personal bests, or another game's ranks with the latest run's time), `utils/summary.ts` (maps faster,
+  ties, shared totals), `ComparePanel` (two player slots with a 250 ms debounced search and Change, swap, season
+  picker incl. old `?game=<season>` links, mode switch, the summary and the map-by-map rows). `/stats/compare` keeps
+  `?a=&b=&mode=&season=` in the address. Shared `lib/runs/player-runs.ts` (a player's runs, game ranks, latest run
+  per map), now also used by profiles. Commit (pending). Tests: 11 (+1 route row).
 - 2026-10-18: 5.6b Stats Records / History / Race (`features/stats/components/wr-panels.tsx`, `race.tsx`): records
   per mode (`?mode=`) with totals and the share of records held now; history views (`?view=` longest, domination,
   improvements, record-days); the race (`?board=`, play / pause, month slider, bars sliding between places). Routes
