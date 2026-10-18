@@ -2,8 +2,9 @@ import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { cn } from 'cn'
 import type { ReactNode } from 'react'
-import { TriangleDown } from '@/components/icons'
+import { HistoryIcon, TriangleDown } from '@/components/icons'
 import { Page } from '@/components/layouts/page'
+import { Card } from '@/components/panel'
 import { EmptyState, Loading } from '@/components/status'
 import { useCollapsedGroup } from '@/hooks/use-collapsed'
 import { useCatalog } from '@/lib/catalog'
@@ -12,6 +13,7 @@ import { formatDate } from '@/lib/format'
 import { pointsPeakQueryOptions, profileAtQueryOptions, profileQueryOptions } from '../api/profile'
 import type { Profile, RenderRunDetails } from '../types'
 import { profileAsOf, validDay } from '../utils/profile'
+import { ActivityHeatmap } from './activity-heatmap'
 import { PointsChart } from './points-chart'
 import { ProfileHeader } from './profile-header'
 import { GlobalRankCard, PointsCard, SideCards, StatisticsCard } from './profile-stats'
@@ -116,6 +118,11 @@ export function ProfilePage({
           <StatisticsCard profile={view} />
           <SideCards profile={view} peak={peakData} />
         </Row>
+        {p.history.length > 0 && (
+          <Card icon={HistoryIcon} title="Activity" collapseId="profile.activity" className="mb-5">
+            <ActivityHeatmap history={p.history} />
+          </Card>
+        )}
         <ProfileTabs profile={view} renderRunDetails={renderRunDetails} />
       </div>
     </Page>

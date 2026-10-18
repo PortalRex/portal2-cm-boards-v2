@@ -252,7 +252,8 @@ function PlaceStat({ label, entry }: { label: string; entry: MapScore | null }) 
 
 export function StatisticsCard({ profile }: { profile: Profile }) {
   return (
-    <Card icon={SparkleIcon} title="Statistics" collapseId="profile.stats" className={TALL}>
+    // Legacy's card shared the Stats tab's .pf-stats class, which put a 24 px gap under its header.
+    <Card icon={SparkleIcon} title="Statistics" collapseId="profile.stats" className={cn(TALL, 'gap-6')}>
       <div className="grid grid-cols-2 gap-x-2.5 gap-y-[26px] py-3">
         <ScoreStat label="Newest score" entry={profile.newest} green />
         <ScoreStat label="Oldest score" entry={profile.oldest} />

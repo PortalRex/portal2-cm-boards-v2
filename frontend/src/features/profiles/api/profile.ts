@@ -1,11 +1,20 @@
 import { queryOptions } from '@tanstack/react-query'
-import { adaptChangelog } from '@/lib/adapters/runs'
+import { adaptChangelog, player } from '@/lib/adapters/runs'
 import { api } from '@/lib/api-client'
-import { gameIdParam, PORTAL2, type Catalog } from '@/lib/catalog'
+import { findMap, gameIdParam, getMap, PORTAL2, type Catalog } from '@/lib/catalog'
 import { queryKeys } from '@/lib/query-keys'
 import { getProfileScores } from '@/lib/runs/profile-scores'
 import type { ChangelogRaw } from '@/types/runs'
-import type { GameResults, PointsPeak, Profile, ProfileAtRaw, ProfilePageRaw, UserRaw } from '../types'
+import type {
+  GameResults,
+  PointsPeak,
+  Profile,
+  ProfileAtRaw,
+  ProfilePageRaw,
+  ProfileStats,
+  ProfileStatsRaw,
+  UserRaw,
+} from '../types'
 import type { PointsSample } from '../utils/points-chart'
 import { adaptProfile, scoresFromRanks } from '../utils/profile'
 
@@ -101,4 +110,38 @@ export const pointsHistoryQueryOptions = (profileNumber: string) =>
   queryOptions({
     queryKey: queryKeys.profilePointsHistory(profileNumber),
     queryFn: ({ signal }) => getPointsHistory(profileNumber, signal),
+  })
+
+/** A player's stats in a game: activity, co-op partners and portal counts from demos. */
+export async function getProfileStats(
+  c: Catalog,
+  profileNumber: string,
+  game: string,
+  signal?: AbortSignal,
+): Promise<ProfileStats> {
+  const s = await api.get<ProfileStatsRaw>(`/profile/stats/${profileNumber}`, {
+    params: gameIdParam(c, game),
+    signal,
+  })
+  return {
+    summary: s.summary,
+    uniquePartners: s.unique_partners,
+    partners: s.partners.map((p) => ({
+      player: player(p.profile_number, p.user_name, p.avatar),
+      maps: p.maps,
+      runs: p.runs,
+    })),
+    fewestPortals: s.fewest_portals.map((f) => ({
+      map: getMap(c, f.map_id, game) ?? findMap(c, f.map_id) ?? null,
+      mapName: f.map_name,
+      score: f.score,
+      portals: f.portals,
+    })),
+  }
+}
+
+export const profileStatsQueryOptions = (c: Catalog, profileNumber: string, game: string) =>
+  queryOptions({
+    queryKey: [...queryKeys.profileStats(profileNumber, game), c.fromServer],
+    queryFn: ({ signal }) => getProfileStats(c, profileNumber, game, signal),
   })

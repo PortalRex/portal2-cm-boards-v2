@@ -5,6 +5,7 @@ import page from '@/testing/fixtures/profile-page.json'
 import peak from '@/testing/fixtures/profile-peak.json'
 import pointsHistory from '@/testing/fixtures/profile-points-history.json'
 import scores from '@/testing/fixtures/profile-scores.json'
+import stats from '@/testing/fixtures/profile-stats.json'
 import user from '@/testing/fixtures/profile-user.json'
 import { API } from './handlers'
 import { server } from './server'
@@ -41,6 +42,7 @@ export function serveProfile({
       `${API}/profile/points_history/:id`,
       ({ request }) => (note(request), HttpResponse.json(pointsHistory)),
     ),
+    http.get(`${API}/profile/stats/:id`, ({ request }) => (note(request), HttpResponse.json(stats))),
     http.get(`${API}/profile/scores/:id`, ({ request }) => (note(request), HttpResponse.json(scores))),
     http.get(`${API}/profile/at/:id`, ({ request }) => (note(request), HttpResponse.json(past))),
     http.get(`${API}/profile/:id`, ({ request, params }) => {

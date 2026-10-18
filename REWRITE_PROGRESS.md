@@ -43,8 +43,8 @@
   - [x] 5.4a Aggregated: Portal 2 overall / sp / coop: cd183b1
   - [x] 5.4b Aggregated: Mel, chapters, custom games and seasons: 25910a6
   - [x] 5.5a Profiles: header, tabs per game, seasons in tab: c1962ac
-  - [x] 5.5b Profiles: points history chart with wheel zoom: (pending)
-  - [ ] 5.5c Profiles: activity heatmap, demo stats, co-op partners
+  - [x] 5.5b Profiles: points history chart with wheel zoom: 3a825eb
+  - [x] 5.5c Profiles: activity heatmap, demo stats, co-op partners: (pending)
   - [ ] 5.5d Profiles: follows; staff tools slot
   - [ ] 5.6a Stats: Runners tab
   - [ ] 5.6b Stats: Records, History, Race tabs
@@ -68,13 +68,19 @@
 
 ## Log
 <!-- Newest first. One entry per finished item: date, what was done, commit, tests added. -->
+- 2026-10-18: 5.5c Profiles: `utils/heatmap.ts` (runs per UTC day, Sunday-first weeks with month labels, the
+  all-time grid of multi-day squares, years to pick) and `ActivityHeatmap` (summary line, year picker, hover / tap
+  card with the day's runs) in its own Activity card; `StatsTab` (/profile/stats with game_id: figures, co-op
+  partners with "and N more", fewest portals; its own season picker). Legacy's Statistics card shared the Stats
+  tab's `.pf-stats` class and so had a 24 px gap under its header; reproduced. Fixture `profile-stats.json`
+  (partners trimmed to 4 of 19). Commit (pending). Tests: 13.
 - 2026-10-18: 5.5b Points history chart (`features/profiles`): `utils/points-chart.ts` (samples plus each board's
   peak, what's in view, the shared scale from 0 and the per-line scales when zoomed, where a peak label goes),
   `PointsChart` (recharts lines, peak dots, the `?at=` day line, wheel zoom through the shared `useWheelZoom`, Reset
   zoom, legend toggles; click a day for the profile as it was then) in the Global Rank card. Legacy fell back to a
   history rebuilt from the player's runs when the endpoint failed; per D1 the chart now says it couldn't load, and
   the rebuild only feeds sample mode (`samplePointsHistory`). Clicking a day isn't testable under jsdom (recharts
-  has no size there); the handler is the same `activeTooltipIndex` lookup as the WR chart's. Commit (pending).
+  has no size there); the handler is the same `activeTooltipIndex` lookup as the WR chart's. Commit 3a825eb.
   Tests: 11.
 - 2026-10-18: 5.5a Profiles (`features/profiles`): `utils/profile.ts` (ports of adaptProfile, scoresFromRanks,
   mergePbs, profileAsOf), `api/profile.ts` (profile = /profile + /user + the player's changelog + personal bests in one

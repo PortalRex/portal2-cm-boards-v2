@@ -166,3 +166,42 @@ export type RenderRunDetails = (
   game: string,
   rendered: Map<number, string>,
 ) => ReactNode
+
+/** GET /profile/stats/{steam id} (with game_id): runs, maps, demo figures, partners. */
+export interface ProfileStatsRaw {
+  summary: {
+    runs: number
+    verified_runs: number
+    runs_with_demo: number
+    runs_with_video: number
+    first_run: string | null
+    latest_run: string | null
+    sp_maps: number
+    coop_maps: number
+    sp_map_count: number
+    coop_map_count: number
+    time_saved: number
+    runs_with_portals: number
+    portals_total: number
+    pbs_with_portals: number
+    pb_portals_total: number
+    wr_runs: number
+    wr_maps: number
+  } | null
+  unique_partners: number
+  partners: {
+    profile_number: string
+    user_name: string | null
+    avatar: string | null
+    maps: number
+    runs: number
+  }[]
+  fewest_portals: { map_id: string; map_name: string; score: number; portals: number }[]
+}
+
+export interface ProfileStats {
+  summary: ProfileStatsRaw['summary']
+  uniquePartners: number
+  partners: { player: Player; maps: number; runs: number }[]
+  fewestPortals: { map: RunMap | null; mapName: string; score: number; portals: number }[]
+}

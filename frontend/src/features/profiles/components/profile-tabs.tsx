@@ -24,6 +24,7 @@ import type { MapScore, Profile, ProfilePlayer, RenderRunDetails } from '../type
 import { InfoTab } from './info-tab'
 import { LegacyTab } from './legacy-tab'
 import { ProfileHistory } from './profile-history'
+import { StatsTab } from './stats-tab'
 import { chapterBoardPath } from '../utils/tables'
 import { ChapterTable, SectionTitle, Summary } from './score-tables'
 
@@ -68,11 +69,7 @@ interface TabState {
  * view), or another game's results in one tab; then Stats and Info. Seasons are picked inside the
  * game's tabs, not tabs of their own. A fresh set (season, sort, selection) for each game.
  */
-export function ProfileTabs(props: {
-  profile: Profile
-  renderRunDetails?: RenderRunDetails
-  statsTab?: ReactNode
-}) {
+export function ProfileTabs(props: { profile: Profile; renderRunDetails?: RenderRunDetails }) {
   const game = useGame()
   return <GameProfileTabs key={game} game={game} {...props} />
 }
@@ -97,12 +94,10 @@ function GameProfileTabs({
   game,
   profile,
   renderRunDetails,
-  statsTab,
 }: {
   game: string
   profile: Profile
   renderRunDetails?: RenderRunDetails
-  statsTab?: ReactNode
 }) {
   const catalog = useCatalog()
   const tabs = profileTabs(catalog.games[game]?.label, game)
@@ -174,7 +169,7 @@ function GameProfileTabs({
             {...state}
           />
         ) : tab === 'stats' ? (
-          statsTab
+          <StatsTab profileNumber={player.profileNumber} game={game} />
         ) : tab === 'legacy' ? (
           <LegacyTab scores={profile.scores} player={player} renderRunDetails={renderRunDetails} />
         ) : (
