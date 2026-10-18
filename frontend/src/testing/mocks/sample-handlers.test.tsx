@@ -99,9 +99,15 @@ describe('sample handlers', () => {
     expect(isStaff(me)).toBe(false)
   })
 
+  it('has legacy’s sample donators: five players, $50 down to $10', async () => {
+    server.use(...sampleHandlers(API))
+    const donators = await api.get<{ donation_amount: string }[]>('/donators')
+    expect(donators.map((d) => d.donation_amount)).toEqual(['50', '40', '30', '20', '10'])
+  })
+
   it('answer 404 for endpoints without sample data', async () => {
     server.use(...sampleHandlers(API))
-    await expect(api.get('/donators')).rejects.toMatchObject({
+    await expect(api.get('/admin/reports')).rejects.toMatchObject({
       status: 404,
       message: "Sample data doesn't cover this yet.",
     })

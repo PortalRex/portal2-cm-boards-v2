@@ -1,6 +1,7 @@
 import { http, HttpResponse, type RequestHandler } from 'msw'
 import {
   SAMPLE_ME,
+  SAMPLE_PLAYERS,
   sampleActivity,
   sampleChangelog,
   sampleCoopBoard,
@@ -44,6 +45,18 @@ export function sampleHandlers(api: string): RequestHandler[] {
     ),
     http.get(`${api}/coop`, ({ request }) =>
       HttpResponse.json(samplePreviews(gameOf(new URL(request.url)), true)),
+    ),
+    // Like legacy's sample donators: the first five players, $50 down to $10.
+    http.get(`${api}/donators`, () =>
+      HttpResponse.json(
+        SAMPLE_PLAYERS.slice(0, 5).map((p, i) => ({
+          profile_number: p.profileNumber,
+          board_name: p.name,
+          steam_name: p.name,
+          avatar: p.avatar,
+          donation_amount: String(50 - i * 10),
+        })),
+      ),
     ),
     http.get(`${api}/graph`, () => HttpResponse.json(sampleActivity())),
     http.get(`${api}/recap/weekly`, ({ request }) => {

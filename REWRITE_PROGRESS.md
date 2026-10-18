@@ -54,8 +54,8 @@
   - [x] 5.3b Run Details: reactions, reports: 62d30d3
   - [x] 5.3c Run Details: staff actions with reasons + invalidation: 0fc43fe
   - [x] 5.3d Submit Run (upload preview, submit, admin manual entry): d90dfe9
-  - [x] 5.7 Settings (name/avatar locks, view-as-player for staff): (pending)
-  - [ ] 5.8 About, Donators, Placeholder
+  - [x] 5.7 Settings (name/avatar locks, view-as-player for staff): 09d111c
+  - [x] 5.8 About, Donators, Placeholder: (pending)
   - [ ] 5.9a Admin: guard, layout, audit log
   - [ ] 5.9b Admin: reports, background jobs
   - [ ] 5.9c Admin: games editor (split into components)
@@ -68,13 +68,18 @@
 
 ## Log
 <!-- Newest first. One entry per finished item: date, what was done, commit, tests added. -->
+- 2026-10-18: 5.8 About (`features/about`, static, the points table from `pointsForRank`) and Donators
+  (`features/donators`: GET /donators, biggest first then by name, total). The placeholder was already ported (2.x).
+  Sample data now has legacy's five sample donators. Card text uses arbitrary font sizes so it inherits the cards'
+  1.45 line height, as legacy's did (Tailwind's named sizes set their own). Compared with legacy at 1400px and 375px:
+  every box matches. Commit (pending). Tests: 5.
 - 2026-10-18: 5.7 Settings (`features/settings`): theme and co-op PB style switches, name and picture (own, or back to
   Steam's; locked fields disabled with legacy's note), country (pick, or from the Steam profile with the server's
   reason when it has none), the staff view-as-player switch (keeps the real role while viewing as a player) and sign
   in / sign out. Changes call `invalidateUser`. Fixed in `<Page narrow>`: `max-w-content` and `max-w-[1240px]` were
   both set and the first won, so narrow pages (map page, aggregated boards, placeholders, Settings) were 1640px wide
   above 1288px viewports; checked against legacy at 1400px. Compared in the browser at 1400px and 375px (signed-out
-  view: the sample user has no account sections in either site). Commit (pending). Tests: 11.
+  view: the sample user has no account sections in either site). Commit 09d111c. Tests: 11.
 - 2026-10-18: 5.3d Submit Run (`features/runs/api/submissions.ts`, `components/submit-run.tsx`), filled into the top
   bar's `submitRun` slot from the root route: drop or pick a .dem, the server reads it (map link, time, co-op partner,
   players), the Mel board choice when one map file is on both boards, optional YouTube link and comment, then submit;

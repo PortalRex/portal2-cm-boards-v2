@@ -1,7 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { NotBuiltYet } from '@/components/placeholder-page'
+import { DonatorsPage } from '@/features/donators/components/donators-page'
+import { donatorsQueryOptions } from '@/features/donators/api/donators'
 
-// Donators (5.8).
 export const Route = createFileRoute('/more/donators')({
-  component: () => <NotBuiltYet title="Donators" />,
+  loader: ({ context: { queryClient } }) => queryClient.prefetchQuery(donatorsQueryOptions()),
+  component: DonatorsPage,
 })
