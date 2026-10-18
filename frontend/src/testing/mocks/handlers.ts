@@ -32,6 +32,9 @@ export const handlers: RequestHandler[] = [
   http.get(`${API}/runs/:id/reactions`, () => HttpResponse.json({ up: 0, down: 0, mine: null })),
   // Nobody has donated unless a test says otherwise.
   http.get(`${API}/donators`, () => HttpResponse.json([])),
+  // Staff panel: an empty log and no open reports unless a test says otherwise.
+  http.get(`${API}/admin/audit`, () => HttpResponse.json([])),
+  http.get(`${API}/admin/reports/count`, () => HttpResponse.json({ open: 0 })),
   // Staff: no notes on a run and nobody reacted, unless a test says otherwise.
   http.get(`${API}/admin/runs/:id/notes`, () => HttpResponse.json([])),
   http.get(`${API}/admin/runs/:id/reactions`, () => HttpResponse.json({ current: [], history: [] })),

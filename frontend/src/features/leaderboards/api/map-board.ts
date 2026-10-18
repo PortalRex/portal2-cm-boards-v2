@@ -65,7 +65,3 @@ export const staffWrHistoryQueryOptions = (map: MapInfo, c: Catalog) =>
     queryKey: queryKeys.wrHistory(map.game, map.id, true),
     queryFn: ({ signal }) => getStaffWrHistory(map, c, signal),
   })
-
-/** Staff: removes a run from (or returns it to) the map's WR history. */
-export const setRunWrHidden = (changelogId: number, hidden: boolean, reason: string | undefined) =>
-  api.put(`/admin/runs/${changelogId}/wr_history`, { body: { hidden, reason } })

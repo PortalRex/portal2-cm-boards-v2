@@ -37,7 +37,7 @@ const pages: [string, string][] = [
   ['/more/wall-of-shame', 'Wall Of Shame'],
   ['/more/donators', 'Donators'],
   ['/more/about', 'About'],
-  ['/admin', 'Staff'],
+  ['/admin', 'Admin changelog'],
 ]
 
 describe('routes', () => {

@@ -55,8 +55,8 @@
   - [x] 5.3c Run Details: staff actions with reasons + invalidation: 0fc43fe
   - [x] 5.3d Submit Run (upload preview, submit, admin manual entry): d90dfe9
   - [x] 5.7 Settings (name/avatar locks, view-as-player for staff): 09d111c
-  - [x] 5.8 About, Donators, Placeholder: (pending)
-  - [ ] 5.9a Admin: guard, layout, audit log
+  - [x] 5.8 About, Donators, Placeholder: 0287124
+  - [x] 5.9a Admin: guard, layout, audit log: (pending)
   - [ ] 5.9b Admin: reports, background jobs
   - [ ] 5.9c Admin: games editor (split into components)
   - [ ] 5.9d Staff inbox long poll
@@ -68,11 +68,18 @@
 
 ## Log
 <!-- Newest first. One entry per finished item: date, what was done, commit, tests added. -->
+- 2026-10-18: 5.9a Staff panel (`features/admin`): `/admin?section=` (log, reports, games, jobs; validated, and a
+  section the user can't open shows the changelog, as legacy). Who sees what is legacy's: visitors are asked to sign
+  in, players and staff viewing as a player get "Staff only.", reports for every staff tier with the open count,
+  games and jobs for admins. The audit log: runs / profiles / games, action filter, 50 per page with Load more,
+  details on demand, role changes, deleted runs struck through, and Undo for a ban or WR-history removal while the
+  run is still hidden (logged as "Undo of #id"). `setRunBanned` / `setRunWrHidden` moved to `lib/runs/moderation.ts`
+  (used by three features). Reports, jobs and games show "Not built yet" until 5.9b/c. Commit (pending). Tests: 10.
 - 2026-10-18: 5.8 About (`features/about`, static, the points table from `pointsForRank`) and Donators
   (`features/donators`: GET /donators, biggest first then by name, total). The placeholder was already ported (2.x).
   Sample data now has legacy's five sample donators. Card text uses arbitrary font sizes so it inherits the cards'
   1.45 line height, as legacy's did (Tailwind's named sizes set their own). Compared with legacy at 1400px and 375px:
-  every box matches. Commit (pending). Tests: 5.
+  every box matches. Commit 0287124. Tests: 5.
 - 2026-10-18: 5.7 Settings (`features/settings`): theme and co-op PB style switches, name and picture (own, or back to
   Steam's; locked fields disabled with legacy's note), country (pick, or from the Steam profile with the server's
   reason when it has none), the staff view-as-player switch (keeps the real role while viewing as a player) and sign
@@ -105,12 +112,12 @@
   profiles (5.1a/5.1c and the profile work); this adds their own tests (`components/runs/run-media.test.tsx`: link
   states, share ids from the rendered set, demo/YouTube links, comment bubble, video source order and the
   both-sources-failed fallback, YouTube and render-request fallbacks). Fixed: labelled custom SVG icons (YouTube etc.)
-  were still `aria-hidden`. Filled in the Countries hash. Commit (pending). Tests: 7.
+  were still `aria-hidden`. Filled in the Countries hash. Commit 0287124. Tests: 7.
 - 2026-10-18: 5.6d Countries (`features/countries`): `api/countries.ts` (/countries/stats per board) and
   `CountriesPanel` (players and points per country, best five players, each country linking to its board filtered
   to it; overall / single player / co-op switch). Like legacy the board is component state, not in the address, so
   `/more/countries?board=sp` still opens on Overall. `/stats/countries` route; default test handler answers an empty
-  list. Commit (pending). Tests: 2.
+  list. Commit 0287124. Tests: 2.
   Note: in one full run the map list's first test timed out at Vitest's 5 s default (the container was busy); it
   passes alone and in the next full run. Raise `testTimeout` if it keeps happening.
 - 2026-10-18: 5.6c Compare (`features/compare`): `api/compare.ts` (player search via /users/search, one side = /user
@@ -319,6 +326,11 @@
 
 ## Decisions and findings
 <!-- Legacy behaviours discovered, choices made and why. -->
+- Staff panel guard: legacy doesn't redirect non-staff away from /admin; the page itself says "Sign in with an admin
+  account…" or "Staff only.". Kept as is (FRONTEND_REWRITE: copy legacy's role checks exactly), so the route has no
+  `beforeLoad` redirect. The section is now in the address (`?section=`, replace navigation) rather than page state;
+  legacy already opened sections from `?section=`. While a new log kind or filter loads, the old rows are cleared
+  (legacy kept showing the previous kind's rows under the new kind's columns until the answer came).
 - Submit Run: like legacy, the button is hidden from the sample-data stand-in user, so neither site can show the dialog
   on sample data; the styling is ported from SubmitRun.css. Its cascade quirks are kept: `.sr-done p` (19px) outranks
   `.sr-muted`, so the notes on the result screen are 19px; the open admin `<details>` has both a 10px gap and a 10px

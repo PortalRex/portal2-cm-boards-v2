@@ -7,7 +7,8 @@ import { useCatalog, type MapInfo } from '@/lib/catalog'
 import { formatDate, formatDateTime, formatScore } from '@/lib/format'
 import { invalidateRun } from '@/lib/invalidate'
 import type { Run } from '@/types/runs'
-import { setRunWrHidden, staffWrHistoryQueryOptions } from '../api/map-board'
+import { setRunWrHidden } from '@/lib/runs/moderation'
+import { staffWrHistoryQueryOptions } from '../api/map-board'
 import { headBase, rowBase } from '../utils/board-styles'
 
 /** Staff: every world record on the map, with removal from (and return to) the WR history. */

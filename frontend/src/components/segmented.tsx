@@ -1,4 +1,5 @@
 import { cn } from 'cn'
+import type { ReactNode } from 'react'
 import { ToggleGroup, ToggleGroupItem } from './ui/toggle-group'
 
 // Legacy's segmented switches: the full-size one (map list modes) and the compact ones in filter
@@ -25,7 +26,7 @@ export function Segmented<T extends string>({
 }: {
   value: T
   onChange: (value: T) => void
-  options: { value: T; label: string }[]
+  options: { value: T; label: ReactNode }[]
   label?: string
   size?: keyof typeof SIZES
   /** Layout on the group (e.g. full width on phones). */
