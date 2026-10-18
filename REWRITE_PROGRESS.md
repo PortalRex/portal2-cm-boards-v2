@@ -36,9 +36,9 @@
   - [x] 5.1a Score Updates: list, filters/limits/toggles in search params: 145f2ac
   - [x] 5.1b Score Updates: daily chambers, weekly recap, graph: ca41dc2
   - [x] 5.1c Score Updates: inline Run Details slot (read-only Run Details): 253c3e9
-  - [x] 5.2a Map list (catalog images with built-in fallback): (pending)
-  - [ ] 5.2b Map page: board, co-op halves, co-op PB style
-  - [ ] 5.2c Map page: WR history with hidden WRs for staff
+  - [x] 5.2a Map list (catalog images with built-in fallback): a0c0342
+  - [x] 5.2b Map page: board, co-op halves, co-op PB style: (pending)
+  - [x] 5.2c Map page: WR history with hidden WRs for staff: (pending)
   - [ ] 5.2d Wall of Shame
   - [ ] 5.4a Aggregated: Portal 2 overall / sp / coop
   - [ ] 5.4b Aggregated: Mel, chapters, custom games and seasons
@@ -68,6 +68,13 @@
 
 ## Log
 <!-- Newest first. One entry per finished item: date, what was done, commit, tests added. -->
+- 2026-10-17: 5.2b-c Map page (`features/leaderboards`): redirects (unknown map, wrong mode, season copy, season
+  without the map), info panel with the WR history chart (ranges, wheel zoom via shared `hooks/use-wheel-zoom.ts`,
+  click for `?at=`), video, wiki/history buttons, board with search, pagination, Your best (profile scores fallback
+  via shared `lib/runs/profile-scores.ts`), as-of banner, Run Details slot; Chamber History with filters; staff WR
+  history editor (hidden for players and view-as-player). Shared `components/redirect.tsx` (TanStack `<Navigate>`
+  looped on the unknown-map redirect). Checked against legacy at 1440 and 375 px: every measured box matches.
+  Commit (pending). Tests: 19.
 - 2026-10-17: 5.2a Map list (`features/leaderboards`): `MapListPage` (season and mode controls, chapters/courses,
   old `?game=<season>` links), `MapCard` (image header, WR row, next six, fixed icon columns, own runs tinted),
   `api/previews.ts`. Shared `components/season-select.tsx`; selects got an `xl` (46 px) size. The address keeps only
@@ -255,6 +262,9 @@
   scores yet" for an empty group, which the API never sends).
 - Browser checks: after changing the emulated viewport size of a hidden tab, reload before measuring; styles of
   existing elements can stay stale until then.
+- Map board rows: legacy's two stripe rules tie on specificity and the later (translucent panel) one matches every
+  entry, so the board is not striped; chamber history and the WR editor are (first row = row colour). Kept so.
+- Staff reasons: legacy and the server treat the reason as optional; kept optional (see Blocked / questions).
 - `cn` in `lib/utils.ts` is shadcn's own package (github.com/shadcn-ui/cn), the replacement for clsx + tailwind-merge.
 - The hardening merge added a CSP in `security-headers.conf` (no inline scripts) and `public/theme.js` (sets the
   theme before first paint without an inline script). The new app keeps both: nginx includes the same headers file,
@@ -265,5 +275,7 @@
 
 ## Blocked / questions
 <!-- Things waiting on the user. -->
+- Staff action reasons: FRONTEND_REWRITE.md 5.3 says every staff action "needs a reason", but legacy and the server
+  treat it as optional. Kept optional for parity; should the new site require one?
 - Icons: MUI can't come back, so the icons are now lucide's closest matches (trophy, history, timer, thumbs, ...). Their
   shapes differ a little from legacy's. Should this be listed as accepted difference D2? Work continues with lucide.

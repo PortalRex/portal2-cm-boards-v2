@@ -1,13 +1,16 @@
 import { screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
+import { http, HttpResponse } from 'msw'
+import { API } from '@/testing/mocks/handlers'
+import { server } from '@/testing/mocks/server'
 import { renderRoute } from '@/testing/test-utils'
 
 // Every legacy URL (frontend-legacy/src/App.js) must keep working. Pages not built yet render a
 // placeholder with their title; the tests check each address reaches its route.
 const pages: [string, string][] = [
   ['/maps', 'Leaderboards'],
-  ['/map/sp/47458', 'Map'],
-  ['/map/coop/47741?season=portal-2-season-1', 'Map'],
+  ['/map/sp/47458', 'Portal Gun'],
+  ['/map/coop/47741?season=portal-2-season-1', 'Doors'],
   ['/leaderboard/overall', 'Aggregated'],
   ['/leaderboard/sp', 'Aggregated'],
   ['/leaderboard/coop', 'Aggregated'],
@@ -37,6 +40,10 @@ describe('routes', () => {
   })
 
   it.each(pages)('%s renders its page', async (url, title) => {
+    server.use(
+      http.get(`${API}/map/:kind/:id`, () => HttpResponse.json([])),
+      http.get(`${API}/changelog`, () => HttpResponse.json([])),
+    )
     const { router } = await renderRoute(url)
     expect(router.state.location.href).toBe(url)
     expect(await screen.findByRole('heading', { name: title })).toBeInTheDocument()

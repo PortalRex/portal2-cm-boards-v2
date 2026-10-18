@@ -7,6 +7,7 @@ import { server } from './mocks/server'
 // jsdom has no layout: scroll restoration calls these.
 window.scrollTo = () => {}
 Element.prototype.scrollTo = () => {}
+Element.prototype.scrollIntoView = () => {}
 
 // Any request without a handler fails the test, so nothing reaches a real server.
 beforeAll(() => server.listen({ onUnhandledFrame: 'error' }))
