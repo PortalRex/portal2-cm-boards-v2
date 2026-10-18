@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { ApiError } from '@/lib/api-client'
 import { renderWithProviders } from '@/testing/test-utils'
 import { Avatar, Flag } from './avatar'
+import { Page } from './layouts/page'
 import { pageWindow } from '@/lib/pagination'
 import { Pagination } from './pagination'
 import { Card, Panel } from './panel'
@@ -222,5 +223,17 @@ describe('status and media', () => {
       'https://www.youtube-nocookie.com/embed/-c0gaEXuKZA?start=30',
     )
     expect(screen.getByText('No video')).toBeInTheDocument()
+  })
+})
+
+describe('Page', () => {
+  it('is 1240px wide when narrow, the full content width otherwise', async () => {
+    const { unmount } = await renderWithProviders(<Page narrow>Narrow</Page>)
+    const narrow = screen.getByRole('main')
+    expect(narrow).toHaveClass('max-w-[1240px]')
+    expect(narrow).not.toHaveClass('max-w-content')
+    unmount()
+    await renderWithProviders(<Page>Wide</Page>)
+    expect(screen.getByRole('main')).toHaveClass('max-w-content')
   })
 })

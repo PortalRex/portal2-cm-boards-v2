@@ -1,7 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { NotBuiltYet } from '@/components/placeholder-page'
+import { SettingsPage } from '@/features/settings/components/settings-page'
 
-// Settings (5.7).
 export const Route = createFileRoute('/more/settings')({
-  component: () => <NotBuiltYet title="Settings" />,
+  component: SettingsPage,
 })

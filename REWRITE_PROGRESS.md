@@ -53,8 +53,8 @@
   - [x] 5.3a Run Details: media (autorender, YouTube): 4b269c6
   - [x] 5.3b Run Details: reactions, reports: 62d30d3
   - [x] 5.3c Run Details: staff actions with reasons + invalidation: 0fc43fe
-  - [x] 5.3d Submit Run (upload preview, submit, admin manual entry): (pending)
-  - [ ] 5.7 Settings (name/avatar locks, view-as-player for staff)
+  - [x] 5.3d Submit Run (upload preview, submit, admin manual entry): d90dfe9
+  - [x] 5.7 Settings (name/avatar locks, view-as-player for staff): (pending)
   - [ ] 5.8 About, Donators, Placeholder
   - [ ] 5.9a Admin: guard, layout, audit log
   - [ ] 5.9b Admin: reports, background jobs
@@ -68,6 +68,13 @@
 
 ## Log
 <!-- Newest first. One entry per finished item: date, what was done, commit, tests added. -->
+- 2026-10-18: 5.7 Settings (`features/settings`): theme and co-op PB style switches, name and picture (own, or back to
+  Steam's; locked fields disabled with legacy's note), country (pick, or from the Steam profile with the server's
+  reason when it has none), the staff view-as-player switch (keeps the real role while viewing as a player) and sign
+  in / sign out. Changes call `invalidateUser`. Fixed in `<Page narrow>`: `max-w-content` and `max-w-[1240px]` were
+  both set and the first won, so narrow pages (map page, aggregated boards, placeholders, Settings) were 1640px wide
+  above 1288px viewports; checked against legacy at 1400px. Compared in the browser at 1400px and 375px (signed-out
+  view: the sample user has no account sections in either site). Commit (pending). Tests: 11.
 - 2026-10-18: 5.3d Submit Run (`features/runs/api/submissions.ts`, `components/submit-run.tsx`), filled into the top
   bar's `submitRun` slot from the root route: drop or pick a .dem, the server reads it (map link, time, co-op partner,
   players), the Mel board choice when one map file is on both boards, optional YouTube link and comment, then submit;
@@ -76,7 +83,7 @@
   without a demo. Blank fields are left out of the form, server messages are shown. Also `PendingProof` in Run Details
   (Add demo on a pending run for its players and staff; a co-op run keeps it until both demos are in). Submissions and
   added demos call `invalidateRun`. Tests: 15 (upload tests under happy-dom; the two full-app tests are in
-  `submit-run-button.test.tsx` under jsdom, since under happy-dom the app made requests MSW couldn't match).
+  `submit-run-button.test.tsx` under jsdom, since under happy-dom the app made requests MSW couldn't match). Commit d90dfe9.
 - 2026-10-18: 5.3c Staff tools in Run Details (`features/runs/api/staff.ts`, `components/staff-tools.tsx`), shown to
   any staff tier and hidden while viewing as a player: optional reason (audit log), ban / unban, verify / mark pending,
   admin-only remove demo and delete run (second click confirms, focus elsewhere cancels, the button keeps its size),

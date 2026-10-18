@@ -55,8 +55,9 @@ export function Page({
       />
       <main
         className={cn(
-          'relative z-[1] mx-auto max-w-content px-6 pt-4 pb-20 max-[700px]:px-2.5 max-[700px]:pt-2 max-[700px]:pb-[60px]',
-          narrow && 'max-w-[1240px]',
+          'relative z-[1] mx-auto px-6 pt-4 pb-20 max-[700px]:px-2.5 max-[700px]:pt-2 max-[700px]:pb-[60px]',
+          // One or the other: `cn` doesn't know the custom max-w-content, so both would stay.
+          narrow ? 'max-w-[1240px]' : 'max-w-content',
         )}
       >
         {children}
