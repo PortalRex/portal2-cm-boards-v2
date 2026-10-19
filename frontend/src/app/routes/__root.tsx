@@ -1,6 +1,7 @@
 import type { QueryClient } from '@tanstack/react-query'
 import { createRootRouteWithContext, Outlet } from '@tanstack/react-router'
 import { PrivateGate } from '@/components/layouts/private-gate'
+import { PageTimer } from '@/components/layouts/page-timer'
 import { LayoutSlotsContext, type LayoutSlots } from '@/components/layouts/slots'
 import { PlaceholderPage } from '@/components/placeholder-page'
 import { TopBar } from '@/components/layouts/top-bar'
@@ -45,6 +46,7 @@ function RootLayout() {
         <div className="relative isolate min-h-screen">
           <TopBar />
           <Outlet />
+          <PageTimer />
           <SampleDataNotice />
         </div>
       </LayoutSlotsContext.Provider>

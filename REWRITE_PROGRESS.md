@@ -69,6 +69,10 @@
 
 ## Log
 <!-- Newest first. One entry per finished item: date, what was done, commit, tests added. -->
+- 2026-10-19: New (not in legacy, asked for): "This page was generated in X seconds" under every page
+  (`components/layouts/page-timer.tsx`, in the root layout). Counted from the browser's navigation start on the first
+  load and from the click for later pages, until the route and all its requests have finished (200ms with nothing
+  loading); polling afterwards doesn't count. Tests: 2.
 - 2026-10-18: Step 6. Parity pass against real data: legacy (:3001) and the new site (:3002) on one read-only
   server instance (:8082, same database, private mode and jobs off). Every visible element measured on both sides
   and lined up by text, for every route as a visitor at 1400px dark, 375px phone, 1400px light, Mel selected, and
