@@ -61,6 +61,8 @@ export async function invalidateUser(qc: QueryClient, profileNumber: string) {
     ['countries'],
     ['compare'],
     queryKeys.wallOfShame(),
+    // The About page's team (a staff tier, name or picture changed).
+    queryKeys.staff(),
     queryKeys.me(),
   ]
   await Promise.all(keys.map((queryKey) => qc.invalidateQueries({ queryKey })))

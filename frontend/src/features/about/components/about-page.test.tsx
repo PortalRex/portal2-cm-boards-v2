@@ -1,5 +1,8 @@
 import { screen, within } from '@testing-library/react'
+import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
+import { API } from '@/testing/mocks/handlers'
+import { server } from '@/testing/mocks/server'
 import { renderWithProviders } from '@/testing/test-utils'
 import { AboutPage } from './about-page'
 
@@ -28,5 +31,39 @@ describe('About', () => {
       '#15013',
       '#2001',
     ])
+  })
+
+  it('lists the staff from the server by tier, each name linking to the profile', async () => {
+    const member = (profile_number: string, user_name: string, role: string) => ({
+      profile_number,
+      user_name,
+      avatar: null,
+      role,
+    })
+    server.use(
+      http.get(`${API}/staff`, () =>
+        HttpResponse.json([
+          member('76561198045074889', 'Jonese1234', 'admin'),
+          member('76561198000000004', 'New Admin', 'admin'),
+          member('76561198000000003', 'Mod', 'moderator'),
+          member('76561198000000002', 'Verifier One', 'verifier'),
+          member('76561198000000005', 'Verifier Two', 'verifier'),
+        ]),
+      ),
+    )
+    await renderWithProviders(<AboutPage />)
+    const team = await screen.findByText('Developers and admins')
+    const card = team.closest('article')!
+    const groups = [...card.querySelectorAll('div')].map((g) => g.textContent)
+    expect(groups).toEqual([
+      'Developers and adminsJonese1234',
+      'AdminsNew Admin',
+      'ModeratorsMod',
+      'VerifiersVerifier One, Verifier Two',
+    ])
+    expect(within(card as HTMLElement).getByRole('link', { name: 'Verifier Two' })).toHaveAttribute(
+      'href',
+      '/profile/76561198000000005',
+    )
   })
 })

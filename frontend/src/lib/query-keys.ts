@@ -49,6 +49,7 @@ export const queryKeys = {
   compareSide: (profileNumber: string, game: string) => ['compare', profileNumber, game] as const,
   userSearch: (q: string) => ['user-search', q] as const,
   donators: () => ['donators'] as const,
+  staff: () => ['staff'] as const,
 
   admin: {
     audit: (params: Params) => ['admin', 'audit', params] as const,

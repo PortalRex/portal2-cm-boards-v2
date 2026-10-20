@@ -69,6 +69,11 @@
 
 ## Log
 <!-- Newest first. One entry per finished item: date, what was done, commit, tests added. -->
+- 2026-10-19: About's team comes from the server (new `GET /staff`, BACKEND_CHANGES §5): grouped as Developers and
+  admins / Admins / Moderators / Verifiers, every name linking to the profile, so new staff show up on their own. The
+  developers are a short list of profile numbers on the page (the server knows tiers, not who builds the site).
+  Changing a staff tier refreshes it (`invalidateUser`). Tests: 1 (plus a server DB test, which can only run once the
+  older DB tests compile again; endpoint checked against the local database).
 - 2026-10-19: New (not in legacy, asked for): "This page was generated in X seconds" under every page
   (`components/layouts/page-timer.tsx`, in the root layout). Counted from the browser's navigation start on the first
   load and from the click for later pages, until the route and all its requests have finished (200ms with nothing

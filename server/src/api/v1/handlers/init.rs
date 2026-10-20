@@ -120,6 +120,7 @@ pub fn init(cfg: &mut web::ServiceConfig) {
             .service(banned_users_all)
             .service(banned_user)
             .service(donators)
+            .service(staff_list)
             .service(wall_of_shame)
             .service(profile)
             .service(profile_scores)

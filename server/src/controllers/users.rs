@@ -170,6 +170,24 @@ impl Users {
             .fetch_all(pool)
             .await
     }
+    /// Everyone with a staff role (admin, moderator, verifier) who isn't banned: highest tier
+    /// first, then by name.
+    pub async fn get_staff(pool: &PgPool) -> Result<Vec<StaffMember>, sqlx::Error> {
+        sqlx::query_as::<_, StaffMember>(
+            r#"
+            SELECT users.profile_number,
+                COALESCE(users.board_name, users.steam_name, users.profile_number) AS user_name,
+                users.avatar,
+                users.role
+            FROM users
+            WHERE users.role IS NOT NULL AND NOT users.banned
+            ORDER BY CASE users.role WHEN 'admin' THEN 0 WHEN 'moderator' THEN 1 ELSE 2 END,
+                LOWER(COALESCE(users.board_name, users.steam_name, users.profile_number))
+            "#,
+        )
+        .fetch_all(pool)
+        .await
+    }
     /// Returns all users that have donated to the board. Ordered by highest amount.
     pub async fn get_donators(pool: &PgPool) -> Result<Vec<Users>, sqlx::Error> {
         sqlx::query_as::<_, Users>(

@@ -230,6 +230,37 @@ async fn donators(pool: web::Data<PgPool>) -> Result<impl Responder> {
     Ok(web::Json(Users::get_donators(pool.get_ref()).await?))
 }
 
+/// **GET** The board's staff: everyone with a staff role who isn't banned, admins first, then
+/// moderators, then verifiers, each by name. Public (the About page lists the team).
+///
+/// ## Example endpoints:
+///  - **Default**
+///     - `/api/v1/staff`
+///
+/// Makes a call to the underlying [Users::get_staff]
+///
+/// ## Example JSON output
+///
+/// ```json
+/// [
+///     {
+///         "profile_number": "76561198045074889",
+///         "user_name": "Jonese1234",
+///         "avatar": "https://avatars.steamstatic.com/9f6de098624a8f81ba6d2318e1923bdda1c710d6_full.jpg",
+///         "role": "admin"
+///     },
+///     {
+///         "profile_number": "76561198040982247",
+///         "user_name": "Daniel",
+///         "avatar": null,
+///         "role": "verifier"
+///     },...]
+/// ```
+#[get("/staff")]
+async fn staff_list(pool: web::Data<PgPool>) -> Result<impl Responder> {
+    Ok(web::Json(Users::get_staff(pool.get_ref()).await?))
+}
+
 /// **GET** method to return [UsersDisplay](crate::models::users::UsersDisplay) for all banned users on the boards.
 ///
 /// ## Example endpoints:

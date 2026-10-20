@@ -408,3 +408,39 @@ async fn test_db_admins() {
     let ban_stats = Admin::get_user_banned_time_stats(&pool).await.unwrap().unwrap();
     assert!(!ban_stats.is_empty());
 }
+#[actix_web::test]
+async fn test_db_staff_list() {
+    use crate::models::users::*;
+    let (_, pool) = get_config().await.expect("Error getting config and DB pool");
+    // Our own rows (removed again at the end): one per tier, plus a banned admin who isn't listed.
+    let rows = [
+        ("test-staff-v", "aaa verifier", "verifier", false),
+        ("test-staff-m", "zzz moderator", "moderator", false),
+        ("test-staff-a2", "Bbb admin", "admin", false),
+        ("test-staff-a1", "aaa admin", "admin", false),
+        ("test-staff-banned", "banned admin", "admin", true),
+    ];
+    let cleanup = || sqlx::query("DELETE FROM users WHERE profile_number LIKE 'test-staff-%'").execute(&pool);
+    cleanup().await.unwrap();
+    for (id, name, role, banned) in rows {
+        sqlx::query("INSERT INTO users (profile_number, steam_name, role, banned) VALUES ($1, $2, $3, $4)")
+            .bind(id)
+            .bind(name)
+            .bind(role)
+            .bind(banned)
+            .execute(&pool)
+            .await
+            .unwrap();
+    }
+    let staff = Users::get_staff(&pool).await;
+    cleanup().await.unwrap();
+    let ours: Vec<(String, String)> = staff
+        .unwrap()
+        .into_iter()
+        .filter(|s| s.profile_number.starts_with("test-staff-"))
+        .map(|s| (s.profile_number, s.role))
+        .collect();
+    // Admins first (by name, ignoring case), then moderators, then verifiers; banned staff left out.
+    let expected = [("test-staff-a1", "admin"), ("test-staff-a2", "admin"), ("test-staff-m", "moderator"), ("test-staff-v", "verifier")];
+    assert_eq!(ours, expected.map(|(a, b)| (a.to_string(), b.to_string())));
+}

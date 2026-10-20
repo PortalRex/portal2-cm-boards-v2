@@ -58,6 +58,17 @@ export function sampleHandlers(api: string): RequestHandler[] {
         })),
       ),
     ),
+    // A small sample team: two admins and two verifiers.
+    http.get(`${api}/staff`, () =>
+      HttpResponse.json(
+        SAMPLE_PLAYERS.slice(0, 4).map((p, i) => ({
+          profile_number: p.profileNumber,
+          user_name: p.name,
+          avatar: p.avatar,
+          role: i < 2 ? 'admin' : 'verifier',
+        })),
+      ),
+    ),
     http.get(`${api}/graph`, () => HttpResponse.json(sampleActivity())),
     http.get(`${api}/recap/weekly`, ({ request }) => {
       const url = new URL(request.url)

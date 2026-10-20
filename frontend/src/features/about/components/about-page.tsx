@@ -1,18 +1,23 @@
+import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
-import type { ReactNode } from 'react'
+import { Fragment, type ReactNode } from 'react'
 import { InfoIcon } from '@/components/icons'
 import { siteBackground } from '@/components/layouts/backgrounds'
 import { Page } from '@/components/layouts/page'
 import { Panel } from '@/components/panel'
 import { pointsForRank } from '@/lib/points'
+import { staffQueryOptions } from '../api/staff'
 
 const DISCORD = 'https://discord.gg/hRwE4Zr'
 const EXAMPLES = [1, 2, 5, 10, 25, 50, 100, 150, 200]
 
-const TEAM = [
-  { role: 'Developers and admins', names: ['Jonese1234', 'Rex', 'Daniel'] },
-  { role: 'Admins', names: ['Betsruner', 'Bexc'] },
-]
+// The board's developers (the server knows staff tiers, not who builds the site): admins among
+// them are listed as "Developers and admins".
+const DEVELOPERS = new Set([
+  '76561198045074889', // Jonese1234
+  '76561198295368421', // Rex
+  '76561198040982247', // Daniel
+])
 
 const grid = 'grid grid-cols-2 gap-[18px] upto800:grid-cols-1'
 const link = 'text-brand-light'
@@ -134,12 +139,7 @@ export function AboutPage() {
 
         <section className={grid}>
           <Card title="Team">
-            {TEAM.map((t) => (
-              <div key={t.role} className="mb-2 flex flex-col text-text-2">
-                <span className="text-[14px] text-text-muted uppercase">{t.role}</span>
-                <span>{t.names.join(', ')}</span>
-              </div>
-            ))}
+            <Team />
           </Card>
           <Card title="Community">
             <ul className={list}>
@@ -184,4 +184,40 @@ export function AboutPage() {
       </Panel>
     </Page>
   )
+}
+
+/** Everyone with a staff role, from the server, grouped by tier; each name opens the profile. */
+function Team() {
+  const staff = useQuery(staffQueryOptions())
+  if (staff.isPending) return <span className="text-text-muted">Loading…</span>
+  if (staff.isError) return <span className="text-text-muted">Couldn’t load the team.</span>
+  const list = staff.data
+  const groups = [
+    {
+      role: 'Developers and admins',
+      members: list.filter((s) => s.role === 'admin' && DEVELOPERS.has(s.profile_number)),
+    },
+    { role: 'Admins', members: list.filter((s) => s.role === 'admin' && !DEVELOPERS.has(s.profile_number)) },
+    { role: 'Moderators', members: list.filter((s) => s.role === 'moderator') },
+    { role: 'Verifiers', members: list.filter((s) => s.role === 'verifier') },
+  ].filter((g) => g.members.length)
+  return groups.map((g) => (
+    <div key={g.role} className="mb-2 flex flex-col text-text-2">
+      <span className="text-[14px] text-text-muted uppercase">{g.role}</span>
+      <span>
+        {g.members.map((m, i) => (
+          <Fragment key={m.profile_number}>
+            {i > 0 && ', '}
+            <Link
+              to="/profile/$profileId"
+              params={{ profileId: m.profile_number }}
+              className="hover:underline"
+            >
+              {m.user_name}
+            </Link>
+          </Fragment>
+        ))}
+      </span>
+    </div>
+  ))
 }

@@ -87,6 +87,16 @@ pub struct UsersDisplay {
     pub avatar: String,
 }
 
+/// A member of staff for the public team list: name, picture and staff tier.
+#[derive(Debug, FromRow, Deserialize, Serialize, Clone)]
+pub struct StaffMember {
+    pub profile_number: String,
+    pub user_name: String,
+    pub avatar: Option<String>,
+    /// "admin", "moderator" or "verifier".
+    pub role: String,
+}
+
 #[derive(Debug, Deserialize, Serialize, Clone, FromRow)]
 pub struct UsersDisplayCount {
     pub profile_number: String,

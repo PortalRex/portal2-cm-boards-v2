@@ -136,6 +136,7 @@ All under `/api/v1`. Auth: **public**, **signed in**, **staff** (any tier or ser
 | `GET /map/sp/{id}?at=`, `GET /map/coop/{id}?at=` | public | `at` (a day or an ISO time, UTC) gives the map's board as it stood then; undated imported runs count from release. The WR history chart links here (click a record). |
 | `GET /profile/points_peak/{steam_id}?game_id=` | public | A player's highest points per board (`sp`, `coop`, …, `overall`) with the date reached. Exact: points only rise when the player sets a run, so each of their runs is checked (same ranking as the points-over-time chart). |
 | `GET /users/search?q=` | public | Up to 10 players by name or Steam ID, most active first. |
+| `GET /staff` | public | Everyone with a staff role who isn't banned (id, name, avatar, `role`), admins first, then moderators, then verifiers, each by name. The About page's team list. (`GET /admins` still lists by the old `users.admin` number, which setting a role doesn't change.) |
 | `GET /recap/weekly?week=&game_id=` | public | The week's top 5 runs (best rank, then biggest improvement; one per player per map). |
 | `GET /daily?date=&game_id=` | public | That day's daily chambers (one map per board, picked from a hash of the date) and the times set on them. |
 | `GET /changelog/{id}/segments` | public | A run's mtrigger segments. |
