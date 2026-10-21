@@ -45,6 +45,7 @@ New databases get everything from `db/dbscript/schema.sql`. An existing database
 | `20261026000000_empty_chapters.sql` | Deletes Mel chapters without maps (the Mel board's empty Advanced "1952" chapter, imported as a second Story chapter). The importer now skips them. |
 | `20261107000000_own_display.sql` | `users.avatar_custom`: a picture the player chose in Settings, kept through sign-ins. |
 | `20261108000000_game_branding.sql` | `games.short_name` (the name beside the logo) and uploaded `logo_file` / `background_file` with their times. |
+| `20261110000000_coop_partner_demo.sql` | `coop_bundled.partner_demo_id`: a co-op partner's demo of a run that wasn't a personal best for them (see [§8](#8-run-submissions-and-demos)); linked copies of a pairing carry it. |
 
 `import_boards.py` builds a fresh database from the old boards' MySQL dumps and runs the BSP-name step itself (see
 [§10](#10-import-and-maintenance-scripts)).
@@ -268,6 +269,15 @@ All under `/api/v1`. Auth: **public**, **signed in**, **staff** (any tier or ser
   by submitting it (it pairs with the run) or with **Add demo** on their own half; `POST /runs/{id}/demo` puts a
   partner's demo on their half and answers `{ "verified": bool }`, and `POST /submissions` returns
   `waiting_for_partner`. Runs from before the cutoff keep the old rule. Staff can still verify by hand.
+- **Partner demos** (both players' views of every co-op run): when only one player of a co-op run improved, the other
+  has no changelog entry in it (their slot is the map's placeholder), so Submit Run refuses their demo as not a
+  personal best. They add it with `POST /runs/{id}/demo` instead, also once the run is verified: same checks (map,
+  exact time), they must be in it, and it can't be the same file as the other player's demo. It's kept as the run's
+  partner demo (`coop_bundled.partner_demo_id`; its `demos.cl_id` is the run's own entry) and shows as that player's
+  `demo_id` in `GET /coop/{id}/halves` and in the co-op map board's `demo_id1` / `demo_id2`. Under the co-op proof
+  rule it counts as that player's demo, so such runs can be verified without staff. Removing the run's demos (or the
+  run) removes it too; staff setting a different partner, or pairing the partner's own run in, drops it. The
+  background demo reader reads it like any other demo.
 - **Downloads** (`GET /demos/{id}/file`): submitted demos are read from `DEMO.STORAGE` by `demos.file_id`. Imported demos
   come from the `DEMO.ARCHIVE` folders, indexed by file name once at startup (`server/src/tools/demo_files.rs`; ~185k
   files). The old boards named those files `Map_score_steamid_N.dem` with their own id as N: for Portal 2 that's the

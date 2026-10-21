@@ -600,10 +600,12 @@ struct Bundle {
     p_id2: Option<String>,
     cl_id1: i64,
     cl_id2: Option<i64>,
+    /// The demo of a partner without a run of their own in it.
+    partner_demo_id: Option<i64>,
 }
 
 async fn bundle(tx: &mut Transaction<'_, Postgres>, id: i64) -> Result<Option<Bundle>, sqlx::Error> {
-    sqlx::query_as::<_, Bundle>("SELECT id, p_id1, p_id2, cl_id1, cl_id2 FROM coop_bundled WHERE id = $1 FOR UPDATE")
+    sqlx::query_as::<_, Bundle>("SELECT id, p_id1, p_id2, cl_id1, cl_id2, partner_demo_id FROM coop_bundled WHERE id = $1 FOR UPDATE")
         .bind(id)
         .fetch_optional(&mut **tx)
         .await
@@ -693,6 +695,7 @@ pub async fn pair_partner(tx: &mut Transaction<'_, Postgres>, cl_id: i64, partne
     if let Some((pid, Some(pcoop))) = partner_run {
         if Some(pcoop) != run.coop_id {
             sqlx::query("UPDATE changelog SET coop_id = NULL WHERE coop_id = $1").bind(pcoop).execute(&mut **tx).await?;
+            sqlx::query("DELETE FROM demos WHERE id = (SELECT partner_demo_id FROM coop_bundled WHERE id = $1)").bind(pcoop).execute(&mut **tx).await?;
             sqlx::query("DELETE FROM coop_bundled WHERE id = $1").bind(pcoop).execute(&mut **tx).await?;
             let _ = pid;
         }
@@ -704,6 +707,12 @@ pub async fn pair_partner(tx: &mut Transaction<'_, Postgres>, cl_id: i64, partne
             let ours_first = b.cl_id1 == run.id;
             let (old_partner, old_partner_cl) = if ours_first { (b.p_id2.clone(), b.cl_id2) } else { (Some(b.p_id1.clone()), Some(b.cl_id1)) };
             let new_cl = partner_cl.unwrap_or(filler_id);
+            // The partner demo is the old partner's view: it goes unless the same partner stays
+            // without a run of their own.
+            if let Some(demo) = b.partner_demo_id.filter(|_| old_partner.as_deref() != Some(partner) || new_cl != filler_id) {
+                sqlx::query("UPDATE coop_bundled SET partner_demo_id = NULL WHERE id = $1").bind(b.id).execute(&mut **tx).await?;
+                sqlx::query("DELETE FROM demos WHERE id = $1").bind(demo).execute(&mut **tx).await?;
+            }
             if ours_first {
                 sqlx::query("UPDATE coop_bundled SET p_id2 = $2, cl_id2 = $3, p1_is_host = NULL WHERE id = $1").bind(b.id).bind(partner).bind(new_cl).execute(&mut **tx).await?;
             } else {
@@ -733,7 +742,7 @@ pub async fn pair_partner(tx: &mut Transaction<'_, Postgres>, cl_id: i64, partne
     if let Some(pcl) = partner_cl {
         sqlx::query("UPDATE changelog SET coop_id = $2 WHERE id = $1").bind(pcl).bind(coop_id).execute(&mut **tx).await?;
     }
-    let before = before.map(|b| json!({ "id": b.id, "p_id1": b.p_id1, "p_id2": b.p_id2, "cl_id1": b.cl_id1, "cl_id2": b.cl_id2 }));
+    let before = before.map(|b| json!({ "id": b.id, "p_id1": b.p_id1, "p_id2": b.p_id2, "cl_id1": b.cl_id1, "cl_id2": b.cl_id2, "partner_demo_id": b.partner_demo_id }));
     let details = json!({ "partner": partner, "partner_run": partner_cl, "coop_id": coop_id, "before": before });
     Ok(Ok((Touched { map_id: run.map_id, is_coop: true, ids: vec![run.id] }, details)))
 }

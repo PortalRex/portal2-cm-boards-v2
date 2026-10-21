@@ -132,14 +132,22 @@ pub async fn run_batch(pool: &PgPool, config: &Config, cache: &CacheState, limit
     };
     let rows: Vec<Pending> = sqlx::query_as(
         r#"
-            SELECT DISTINCT ON (d.id) d.id AS demo_id, d.file_id, c.id AS cl_id, c.score, c.profile_number, c.map_id,
+            WITH demo_runs AS (
+                SELECT d.id, d.file_id, c.id AS cl_id FROM demos AS d JOIN changelog AS c ON c.demo_id = d.id
+                WHERE CASE WHEN $2::bigint[] IS NULL THEN d.parsed_at IS NULL ELSE c.id = ANY($2) END
+                UNION ALL
+                -- A co-op partner's demo of a run that wasn't a personal best for them: it's of
+                -- the run its row points to.
+                SELECT d.id, d.file_id, d.cl_id FROM coop_bundled AS cb JOIN demos AS d ON d.id = cb.partner_demo_id
+                WHERE CASE WHEN $2::bigint[] IS NULL THEN d.parsed_at IS NULL ELSE d.cl_id = ANY($2) END
+            )
+            SELECT DISTINCT ON (dr.id) dr.id AS demo_id, dr.file_id, c.id AS cl_id, c.score, c.profile_number, c.map_id,
                 ch.is_multiplayer AS is_coop, c.segments IS NULL AS no_segments
-            FROM demos AS d
-                JOIN changelog AS c ON c.demo_id = d.id
+            FROM demo_runs AS dr
+                JOIN changelog AS c ON c.id = dr.cl_id
                 JOIN maps AS m ON m.steam_id = c.map_id
                 JOIN chapters AS ch ON ch.id = m.chapter_id
-            WHERE CASE WHEN $2::bigint[] IS NULL THEN d.parsed_at IS NULL ELSE c.id = ANY($2) END
-            ORDER BY d.id DESC, c.mirror_of NULLS FIRST, c.id
+            ORDER BY dr.id DESC, c.mirror_of NULLS FIRST, c.id
             LIMIT $1
         "#,
     )

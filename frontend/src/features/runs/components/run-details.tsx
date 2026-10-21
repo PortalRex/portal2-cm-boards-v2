@@ -11,7 +11,7 @@ import { runVideo } from '@/lib/runs/video'
 import type { CoopHalf, Player, RunMap } from '@/types/runs'
 import { coopHalvesQueryOptions, segmentsQueryOptions } from '../api/details'
 import { timerNote } from '../utils/timer-note'
-import { PendingProof } from './pending-proof'
+import { PartnerDemo, PendingProof } from './pending-proof'
 import { ReactionsBar } from './reactions-bar'
 import { ReportRun } from './report-run'
 import { StaffTools } from './staff-tools'
@@ -80,7 +80,8 @@ export function RunDetails({
         )
       : 0)
   const half = list?.[index]
-  // What the media and comment show: the selected player's own entry.
+  // What the media and comment show: the selected player's own entry, or for a partner the run
+  // wasn't a personal best for, just their demo (the run's segments still apply).
   const view: DetailsRun =
     half?.changelogId != null
       ? {
@@ -96,7 +97,20 @@ export function RunDetails({
           sarVersion: half.sarVersion,
           timestamp: half.timestamp ?? run.timestamp,
         }
-      : run
+      : half?.demoId != null
+        ? {
+            ...run,
+            id: undefined,
+            changelogId: null,
+            changelogIds: list?.map((h) => h.changelogId),
+            youtubeId: null,
+            autorenderId: null,
+            demoId: half.demoId,
+            note: null,
+            portals: null,
+            sarVersion: half.sarVersion,
+          }
+        : run
   const ids = (view.changelogIds ?? [view.changelogId ?? view.id ?? null]).filter(
     (id): id is number => id != null,
   )
@@ -113,7 +127,7 @@ export function RunDetails({
       <div className="grid grid-cols-[minmax(240px,345px)_minmax(0,1fr)_minmax(260px,380px)] gap-5 border-t-2 border-row bg-panel p-5 rd-upto1150:grid-cols-[minmax(220px,320px)_minmax(0,1fr)] rd-upto640:grid-cols-1 rd-upto640:p-3">
         <div>
           <RunVideo
-            key={view.changelogId ?? view.id}
+            key={view.changelogId ?? view.id ?? `partner-${view.demoId}`}
             run={view}
             game={game}
             rendered={rendered}
@@ -179,7 +193,8 @@ export function RunDetails({
             <dd>{run.banned ? 'Banned' : run.verified === false ? 'Pending' : 'Verified'}</dd>
           </dl>
           <TimerNote score={run.score} segments={segments.data ?? null} />
-          {own != null && <PendingProof run={{ ...run, changelogId: own }} />}
+          {own != null && <PendingProof run={{ ...run, changelogId: own }} halves={list} />}
+          {own != null && <PartnerDemo run={{ ...run, changelogId: own }} halves={list} />}
           {own != null && showReactions && <ReactionsBar changelogId={own} />}
           {own != null && <ReportRun changelogId={own} />}
           {own != null && <StaffTools run={{ ...run, changelogId: own }} map={map} game={game} />}
@@ -328,11 +343,13 @@ function CoopToggle({
             role="tab"
             aria-selected={active}
             data-active={active || undefined}
-            disabled={h.changelogId == null}
+            disabled={h.changelogId == null && h.demoId == null}
             title={
-              h.changelogId == null
-                ? `${h.player?.name || 'Partner'} has no run of their own recorded`
-                : `Show ${h.player?.name || 'this player'}'s demo, video and comment`
+              h.changelogId != null
+                ? `Show ${h.player?.name || 'this player'}'s demo, video and comment`
+                : h.demoId != null
+                  ? `Show ${h.player?.name || 'Partner'}'s demo (the run wasn't a personal best for them)`
+                  : `${h.player?.name || 'Partner'} has no run of their own recorded`
             }
             onClick={() => onPick(i)}
             className={cn(

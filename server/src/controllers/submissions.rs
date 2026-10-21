@@ -122,11 +122,23 @@ pub struct NewRun<'a> {
 /// points, not on the boards) until a demo is added or staff verify them.
 pub const PROOF_RANK: i32 = 200;
 
+/// Whether a co-op run has a demo from each player: `halves` says, for each player with a run of
+/// their own in it, whether that run has a demo. A partner without a run of their own (the run
+/// wasn't a personal best for them) counts through the run's partner demo, which needs both
+/// players known (`partner_demo`).
+fn coop_proven(halves: &[bool], partner_demo: bool) -> bool {
+    match halves {
+        [a, b] => *a && *b,
+        [own] => *own && partner_demo,
+        _ => false,
+    }
+}
+
 /// Applies the co-op proof rule to a run's halves after a demo or partner change: co-op runs from
-/// `RANKS.COOP_PROOF_SINCE` on that rank in the top [PROOF_RANK] need a demo from each player,
-/// and until both halves have one (and the partner is known) both stay pending. Returns whether
-/// the run is now verified, or None when the rule doesn't apply (it's off, an older run, or one
-/// outside the top [PROOF_RANK]), leaving its halves as they were.
+/// `RANKS.COOP_PROOF_SINCE` on that rank in the top [PROOF_RANK] need a demo from each player
+/// (see [coop_proven]), and until they have them (and the partner is known) both stay pending.
+/// Returns whether the run is now verified, or None when the rule doesn't apply (it's off, an
+/// older run, or one outside the top [PROOF_RANK]), leaving its halves as they were.
 pub async fn settle_coop_proof(tx: &mut sqlx::Transaction<'_, sqlx::Postgres>, coop_id: i64) -> Result<Option<bool>, sqlx::Error> {
     let Some(since) = crate::tools::config::coop_proof_since() else {
         return Ok(None);
@@ -151,7 +163,15 @@ pub async fn settle_coop_proof(tx: &mut sqlx::Transaction<'_, sqlx::Postgres>, c
     if !is_new || !needs_proof {
         return Ok(None);
     }
-    let verified = real.len() == 2 && real.iter().all(|h| h.2);
+    let partner_demo: bool = sqlx::query_scalar(
+        "SELECT partner_demo_id IS NOT NULL AND p_id1 <> $2 AND COALESCE(p_id2, $2) <> $2 FROM coop_bundled WHERE id = $1",
+    )
+    .bind(coop_id)
+    .bind(FILLER)
+    .fetch_optional(&mut **tx)
+    .await?
+    .unwrap_or(false);
+    let verified = coop_proven(&real.iter().map(|h| h.2).collect::<Vec<_>>(), partner_demo);
     let ids: Vec<i64> = real.iter().map(|h| h.0).collect();
     sqlx::query("UPDATE changelog SET verified = $2 WHERE id = ANY($1)").bind(&ids).bind(verified).execute(&mut **tx).await?;
     Ok(Some(verified))
@@ -274,21 +294,73 @@ pub async fn attach_proof(pool: &PgPool, run: &ProofTarget, demo_file: &str, par
         .fetch_one(&mut *tx)
         .await?;
     sqlx::query("UPDATE changelog SET demo_id = $2, verified = true, portals = $3 WHERE id = $1").bind(run.id).bind(demo_id).bind(portals).execute(&mut *tx).await?;
-    let mut verified = true;
-    if let Some(coop_id) = run.coop_id {
-        match settle_coop_proof(&mut tx, coop_id).await? {
-            Some(v) => verified = v,
-            None => {
-                sqlx::query("UPDATE changelog SET verified = true WHERE id IN (SELECT unnest(ARRAY[cl_id1, cl_id2]) FROM coop_bundled WHERE id = $1) AND profile_number <> $2")
-                    .bind(coop_id)
-                    .bind(FILLER)
-                    .execute(&mut *tx)
-                    .await?;
-            }
-        }
-    }
+    let verified = match run.coop_id {
+        Some(coop_id) => settle_coop_demos(&mut tx, coop_id).await?,
+        None => true,
+    };
     tx.commit().await?;
     Ok(verified)
+}
+
+/// After a demo is added to a co-op run: the proof rule decides ([settle_coop_proof]), or where
+/// it doesn't apply, the demo proves the run and both halves are verified. Returns whether the
+/// run is verified now.
+async fn settle_coop_demos(tx: &mut sqlx::Transaction<'_, sqlx::Postgres>, coop_id: i64) -> Result<bool, sqlx::Error> {
+    if let Some(verified) = settle_coop_proof(tx, coop_id).await? {
+        return Ok(verified);
+    }
+    sqlx::query("UPDATE changelog SET verified = true WHERE id IN (SELECT unnest(ARRAY[cl_id1, cl_id2]) FROM coop_bundled WHERE id = $1) AND profile_number <> $2")
+        .bind(coop_id)
+        .bind(FILLER)
+        .execute(&mut **tx)
+        .await?;
+    Ok(true)
+}
+
+/// For a player in a co-op run without a run of their own in it (it wasn't a personal best for
+/// them): whether the run already has their demo. None when they have a run of their own in it,
+/// or aren't in it.
+pub async fn partner_demo_slot(pool: &PgPool, coop_id: i64, profile_number: &str) -> Result<Option<bool>, sqlx::Error> {
+    sqlx::query_scalar(
+        r#"
+            SELECT cb.partner_demo_id IS NOT NULL FROM coop_bundled AS cb
+            JOIN changelog AS f ON f.id = CASE WHEN cb.p_id1 = $2 THEN cb.cl_id1 WHEN cb.p_id2 = $2 THEN cb.cl_id2 END
+            WHERE cb.id = $1 AND f.profile_number = $3 AND $2 <> $3
+        "#,
+    )
+    .bind(coop_id)
+    .bind(profile_number)
+    .bind(FILLER)
+    .fetch_optional(pool)
+    .await
+}
+
+/// Adds a co-op partner's demo to a run that wasn't a personal best for them (see
+/// [partner_demo_slot]): `run` is the half of the player who improved. The demo is the run's
+/// partner demo (`coop_bundled.partner_demo_id`), with no changelog entry of its own. Returns
+/// whether the run is verified now, or None if the run got a partner demo in the meantime.
+pub async fn attach_partner_demo(pool: &PgPool, run: &ProofTarget, demo_file: &str, partner_name: Option<&str>) -> Result<Option<bool>, sqlx::Error> {
+    let Some(coop_id) = run.coop_id else {
+        return Ok(None);
+    };
+    let mut tx = pool.begin().await?;
+    let demo_id: i64 = sqlx::query_scalar("INSERT INTO demos (file_id, partner_name, parsed_successfully, cl_id) VALUES ($1, $2, true, $3) RETURNING id")
+        .bind(demo_file)
+        .bind(partner_name)
+        .bind(run.id)
+        .fetch_one(&mut *tx)
+        .await?;
+    let set = sqlx::query("UPDATE coop_bundled SET partner_demo_id = $2 WHERE id = $1 AND partner_demo_id IS NULL")
+        .bind(coop_id)
+        .bind(demo_id)
+        .execute(&mut *tx)
+        .await?;
+    if set.rows_affected() == 0 {
+        return Ok(None); // dropped with the transaction
+    }
+    let verified = settle_coop_demos(&mut tx, coop_id).await?;
+    tx.commit().await?;
+    Ok(Some(verified))
 }
 
 /// Where a submitted run was recorded.
@@ -470,6 +542,19 @@ pub fn youtube_id(input: &str) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn coop_proof_needs_each_players_demo() {
+        // Both players improved: a demo on each half.
+        assert!(coop_proven(&[true, true], false));
+        assert!(!coop_proven(&[true, false], false));
+        assert!(!coop_proven(&[false, false], true));
+        // Only one improved: their half's demo and the partner's demo of the run.
+        assert!(coop_proven(&[true], true));
+        assert!(!coop_proven(&[true], false));
+        assert!(!coop_proven(&[false], true));
+        assert!(!coop_proven(&[], true));
+    }
 
     #[test]
     fn youtube_ids() {

@@ -69,6 +69,13 @@
 
 ## Log
 <!-- Newest first. One entry per finished item: date, what was done, commit, tests added. -->
+- 2026-10-21: New (not in legacy, asked for): co-op partner demos. When a co-op run wasn't a personal best for one
+  player, they can now add their demo of it ("Add your demo" in Run details, also on verified runs), so the run keeps
+  both players' views; their tab in Run details shows it. Server: `coop_bundled.partner_demo_id` (migration
+  `20261110000000_coop_partner_demo.sql`), `POST /runs/{id}/demo` takes it, it counts under the co-op proof rule
+  (BACKEND_CHANGES §8). A player whose own demo is in now sees "pending until your partner adds their demo" instead
+  of the button. Tests: 5 (plus a server unit test that waits on the DB tests compiling; the endpoint, proof rule,
+  staff actions and demo reader were checked against a copy of the local database).
 - 2026-10-19: About's team comes from the server (new `GET /staff`, BACKEND_CHANGES §5): grouped as Developers and
   admins / Admins / Moderators / Verifiers, every name linking to the profile, so new staff show up on their own. The
   developers are a short list of profile numbers on the page (the server knows tiers, not who builds the site).

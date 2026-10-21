@@ -71,7 +71,9 @@ impl CoopMap {
                     COALESCE(p1.board_name, p1.steam_name, p1.profile_number) AS user_name1,
                     COALESCE(p2.board_name, p2.steam_name, p2.profile_number) AS user_name2,
                     cb.p_id1 AS profile_number1, cb.p_id2 AS profile_number2, 
-                    c1.demo_id AS demo_id1, c2.demo_id AS demo_id2, 
+                    -- A partner without a run of their own (the placeholder entry): their partner demo.
+                    COALESCE(c1.demo_id, CASE WHEN c1.profile_number = 'N/A' THEN cb.partner_demo_id END) AS demo_id1,
+                    COALESCE(c2.demo_id, CASE WHEN c2.profile_number = 'N/A' THEN cb.partner_demo_id END) AS demo_id2,
                     c1.youtube_id AS youtube_id1, c2.youtube_id AS youtube_id2,
                     c1.submission AS submission1, c2.submission AS submission2, 
                     c1.category_id, p1.avatar AS avatar1, p2.avatar AS avatar2,
@@ -87,8 +89,8 @@ impl CoopMap {
                 INNER JOIN users AS p2 ON (p2.profile_number = cb.p_id2)
                 INNER JOIN maps ON (c1.map_id = maps.steam_id)
                 INNER JOIN chapters ON (maps.chapter_id = chapters.id)
-                LEFT JOIN demos AS d1 ON (d1.id = c1.demo_id)
-                LEFT JOIN demos AS d2 ON (d2.id = c2.demo_id)
+                LEFT JOIN demos AS d1 ON (d1.id = COALESCE(c1.demo_id, CASE WHEN c1.profile_number = 'N/A' THEN cb.partner_demo_id END))
+                LEFT JOIN demos AS d2 ON (d2.id = COALESCE(c2.demo_id, CASE WHEN c2.profile_number = 'N/A' THEN cb.partner_demo_id END))
                 WHERE c1.map_id = $1
                     AND c1.coop_id IS NOT NULL
                     AND p1.banned=False

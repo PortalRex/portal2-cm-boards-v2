@@ -36,6 +36,7 @@ pub struct CoopMap {
     pub profile_number2: String,
     pub score: i32,
     pub p1_is_host: Option<bool>,
+    /// Each player's demo; for a partner without a run of their own, their partner demo.
     pub demo_id1: Option<i64>,
     pub demo_id2: Option<i64>,
     pub youtube_id1: Option<String>,

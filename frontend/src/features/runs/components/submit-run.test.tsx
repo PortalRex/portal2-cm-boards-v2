@@ -9,7 +9,8 @@ import { API } from '@/testing/mocks/handlers'
 import { server } from '@/testing/mocks/server'
 import { renderWithProviders } from '@/testing/test-utils'
 import type { DemoPreview, SubmitResult } from '../api/submissions'
-import { PendingProof } from './pending-proof'
+import type { CoopHalf } from '@/types/runs'
+import { PartnerDemo, PendingProof } from './pending-proof'
 import { SubmitRun } from './submit-run'
 
 const me = users.player.profile_number
@@ -288,6 +289,102 @@ describe('adding the demo to a pending run', () => {
     for (const { run, user, shown } of cases) {
       const { unmount } = await renderWithProviders(<PendingProof run={run} />, { user })
       expect(screen.queryByText('Add demo') != null).toBe(shown)
+      unmount()
+    }
+  })
+
+  it('tells a co-op player who has added theirs that it waits for their partner', async () => {
+    const halves = [coopHalf(player, 100, 7), coopHalf(other, 101, null)]
+    await renderWithProviders(
+      <PendingProof run={{ ...pending, players: [player, other], demoId: 7 }} halves={halves} />,
+      {
+        user: 'player',
+      },
+    )
+    expect(screen.getByText('This run is pending until your partner adds their demo.')).toBeInTheDocument()
+    expect(screen.queryByText('Add demo')).toBeNull()
+  })
+})
+
+const coopHalf = (
+  player: CoopHalf['player'],
+  changelogId: number | null,
+  demoId: number | null,
+): CoopHalf => ({
+  player,
+  isHost: null,
+  changelogId,
+  score: null,
+  timestamp: null,
+  note: null,
+  youtubeId: null,
+  autorenderId: null,
+  demoId,
+  hasSegments: false,
+  portals: null,
+  sarVersion: null,
+})
+
+describe('a co-op partner the run wasn’t a personal best for', () => {
+  const partner = { profileNumber: me, name: 'Player', avatar: null }
+  const improver = { profileNumber: '76561198000000099', name: 'Someone', avatar: null }
+  // The run's own entry is the other player's; the signed-in player has no run in it.
+  const run = { changelogId: 100, coopId: 7, players: [improver, partner], verified: true, demoId: 55 }
+  const halves = [coopHalf(improver, 100, 55), coopHalf(partner, null, null)]
+
+  it('can add their demo to the run', async () => {
+    const files: string[] = []
+    server.use(
+      http.post(`${API}/runs/100/demo`, async ({ request }) => {
+        const file = (await request.formData()).get('demo')
+        files.push(file instanceof File ? file.name : '')
+        return HttpResponse.json({ verified: true })
+      }),
+    )
+    const { container } = await renderWithProviders(<PartnerDemo run={run} halves={halves} />, {
+      user: 'player',
+    })
+    expect(screen.getByText(/wasn’t a personal best for you, so it has no demo of yours/)).toBeInTheDocument()
+    await userEvent.upload(container.querySelector('input[type=file]')!, demoFile('mine.dem'))
+    expect(await screen.findByText('Your demo was added to the run.')).toBeInTheDocument()
+    expect(files).toEqual(['mine.dem'])
+    expect(screen.queryByText('Add your demo')).toBeNull()
+  })
+
+  it('shows what the server says when it refuses the demo', async () => {
+    server.use(
+      http.post(`${API}/runs/100/demo`, () =>
+        HttpResponse.text('This is your partner’s demo of the run. Add the one you recorded.', {
+          status: 400,
+        }),
+      ),
+    )
+    const { container } = await renderWithProviders(<PartnerDemo run={run} halves={halves} />, {
+      user: 'player',
+    })
+    await userEvent.upload(container.querySelector('input[type=file]')!, demoFile())
+    expect(await screen.findByText(/Add the one you recorded\./)).toBeInTheDocument()
+    expect(screen.getByText('Add your demo')).toBeInTheDocument()
+  })
+
+  it('is only for that partner, until their demo is in, on runs that aren’t pending or banned', async () => {
+    const cases = [
+      { run, halves, user: 'player' as const, shown: true },
+      { run, halves, user: null, shown: false },
+      { run, halves, user: 'verifier' as const, shown: false },
+      // Their demo is already on their half.
+      { run, halves: [halves[0]!, coopHalf(partner, null, 61)], user: 'player' as const, shown: false },
+      // A run of their own in it: a demo goes on their own half (Add demo while pending).
+      { run, halves: [halves[0]!, coopHalf(partner, 101, null)], user: 'player' as const, shown: false },
+      { run: { ...run, verified: false }, halves, user: 'player' as const, shown: false },
+      { run: { ...run, banned: true }, halves, user: 'player' as const, shown: false },
+      { run, halves: null, user: 'player' as const, shown: false },
+    ]
+    for (const c of cases) {
+      const { unmount } = await renderWithProviders(<PartnerDemo run={c.run} halves={c.halves} />, {
+        user: c.user,
+      })
+      expect(screen.queryByText('Add your demo') != null).toBe(c.shown)
       unmount()
     }
   })

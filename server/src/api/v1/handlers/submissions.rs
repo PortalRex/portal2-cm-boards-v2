@@ -38,6 +38,8 @@ use std::{
 /// Largest demo accepted.
 const MAX_DEMO_BYTES: usize = 50 * 1024 * 1024;
 const MAX_FIELD_BYTES: usize = 4096;
+/// A co-op partner adding their demo of a run a second time.
+const ALREADY_ADDED: &str = "You've already added your demo of this run.";
 
 struct Form {
     demo: Option<Vec<u8>>,
@@ -328,7 +330,15 @@ async fn submission_create(
 /// **POST** Add the demo for a pending run (form field `demo`). The demo must be of the run's
 /// map, with the run's exact time, and have the uploader in it; the run is then verified.
 /// The run's player (or co-op partner) can do this, and staff for anyone's run. A partner's demo
-/// goes on their own half; a new co-op run in the top 200 is verified once both halves have one.
+/// goes on their own half; a new co-op run in the top 200 is verified once both players have one.
+///
+/// A co-op partner the run wasn't a personal best for (no run of their own in it) can add their
+/// demo of it too, also once the run is verified: it's kept as the run's partner demo, so the run
+/// has both players' views (it can't be the same file as the other player's demo). It shows as
+/// that player's `demo_id` in `/coop/{id}/halves` and on the co-op map board.
+///
+/// Example: `POST /api/v1/runs/123456/demo` (multipart, `demo`=file)
+///
 /// Responds `{ "verified": bool }`.
 #[post("/runs/{id}/demo")]
 async fn run_add_demo(
@@ -357,8 +367,10 @@ async fn run_add_demo(
     if !staff && !players.contains(&user.profile_number) {
         return Ok(HttpResponse::Forbidden().body("You can only add demos to your own runs."));
     }
-    // A co-op partner's demo goes on their own half of the run.
+    // A co-op partner's demo goes on their own half of the run, or, when the run wasn't a personal
+    // best for them (no half of their own), it's the run's partner demo.
     let mut run = run;
+    let mut partner_demo = false;
     if let Some(coop_id) = run.coop_id.filter(|_| user.profile_number != run.profile_number && players.contains(&user.profile_number)) {
         let own: Option<i64> = sqlx::query_scalar(
             "SELECT cl.id FROM coop_bundled AS cb JOIN changelog AS cl ON cl.id IN (cb.cl_id1, cb.cl_id2) WHERE cb.id = $1 AND cl.profile_number = $2",
@@ -372,28 +384,20 @@ async fn run_add_demo(
                 Some(half) => run = half,
                 None => return Ok(HttpResponse::NotFound().body("No such run.")),
             },
-            None => {
-                let is_new: bool = match crate::tools::config::coop_proof_since() {
-                    Some(since) => sqlx::query_scalar("SELECT COALESCE(timestamp >= $2::timestamp, false) FROM changelog WHERE id = $1")
-                        .bind(run.id)
-                        .bind(since)
-                        .fetch_one(pool.get_ref())
-                        .await?,
-                    None => false,
-                };
-                if is_new {
-                    return Ok(bad("Submit this demo with Submit Run to add your half of the run."));
-                }
-            }
+            None => match submissions::partner_demo_slot(pool.get_ref(), coop_id, &user.profile_number).await? {
+                Some(false) => partner_demo = true,
+                Some(true) => return Ok(bad(ALREADY_ADDED)),
+                None => return Ok(bad("This run's pairing has no place for your demo; staff can add it.")),
+            },
         }
     }
     if run.banned {
         return Ok(bad("This run is hidden from the boards."));
     }
-    if run.verified == Some(true) {
+    if !partner_demo && run.verified == Some(true) {
         return Ok(bad("This run is already verified."));
     }
-    if run.demo_id.is_some() {
+    if !partner_demo && run.demo_id.is_some() {
         return Ok(bad("This run already has a demo; staff will review it."));
     }
     let form = match read_form(payload).await {
@@ -420,12 +424,29 @@ async fn run_add_demo(
     if !info.players.iter().any(|p| players.contains(&p.steam_id)) {
         return Ok(bad("This run's player isn't in this demo."));
     }
-    let name = format!("{}_{}_{}_{}.dem", run.map_id, run.score, run.profile_number, &crate::tools::auth::random_token()[..10]);
+    if partner_demo {
+        if !info.players.iter().any(|p| p.steam_id == user.profile_number) {
+            return Ok(bad("You aren't in this demo."));
+        }
+        if same_as_run_demo(pool.get_ref(), &config, &run, bytes).await? {
+            return Ok(bad("This is your partner's demo of the run. Add the one you recorded."));
+        }
+    }
+    // Named after whose view it is.
+    let owner = if partner_demo { &user.profile_number } else { &run.profile_number };
+    let name = format!("{}_{}_{}_{}.dem", run.map_id, run.score, owner, &crate::tools::auth::random_token()[..10]);
     if let Err(e) = save_demo(&config, bytes, &name).await {
         return Ok(bad(e));
     }
-    let partner_name = info.players.iter().find(|p| p.steam_id != run.profile_number).map(|p| p.name.clone());
-    let verified = submissions::attach_proof(pool.get_ref(), &run, &name, if run.is_coop { partner_name.as_deref() } else { None }, info.portal_score).await?;
+    let partner_name = info.players.iter().find(|p| p.steam_id != *owner).map(|p| p.name.clone());
+    let verified = if partner_demo {
+        match submissions::attach_partner_demo(pool.get_ref(), &run, &name, partner_name.as_deref()).await? {
+            Some(verified) => verified,
+            None => return Ok(bad(ALREADY_ADDED)),
+        }
+    } else {
+        submissions::attach_proof(pool.get_ref(), &run, &name, if run.is_coop { partner_name.as_deref() } else { None }, info.portal_score).await?
+    };
 
     cache.update_current_state(if run.is_coop { COOP_PREVIEWS } else { SP_PREVIEWS }, false).await;
     if cache.default_cat_ids.contains_key(&run.map_id) {
@@ -434,6 +455,21 @@ async fn run_add_demo(
     invalidate_points().await;
     // `verified` false: a co-op run still waiting for the other player's demo.
     Ok(HttpResponse::Ok().json(json!({ "verified": verified })))
+}
+
+/// Whether `bytes` is the same file as the demo `run` already has.
+async fn same_as_run_demo(pool: &PgPool, config: &Config, run: &submissions::ProofTarget, bytes: &[u8]) -> Result<bool> {
+    let Some(demo_id) = run.demo_id else {
+        return Ok(false);
+    };
+    let file: Option<String> = sqlx::query_scalar("SELECT file_id FROM demos WHERE id = $1").bind(demo_id).fetch_optional(pool).await?;
+    let Some(file) = file else {
+        return Ok(false);
+    };
+    let Some(path) = crate::tools::demo_files::locate(&config.demo, &file, Some(run.id)).await else {
+        return Ok(false);
+    };
+    Ok(tokio::fs::read(&path).await.is_ok_and(|existing| existing == bytes))
 }
 
 /// **GET** Download a demo by its id (as runs list it in `demo_id`).

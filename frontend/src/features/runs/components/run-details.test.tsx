@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
 import coopHalves from '@/testing/fixtures/coop-halves.json'
+import { users } from '@/testing/data/users'
 import { API, AUTORENDER } from '@/testing/mocks/handlers'
 import { server } from '@/testing/mocks/server'
 import { renderWithProviders } from '@/testing/test-utils'
@@ -123,6 +124,36 @@ describe('RunDetails', () => {
       'href',
       `http://localhost:3000/api/v1/demos/${first!.demo_id}/file`,
     )
+  })
+
+  it('shows the demo of a partner the run wasn’t a personal best for, and offers them to add theirs', async () => {
+    noSegments()
+    const [first, second] = coopHalves
+    const run: DetailsRun = { ...spRun, id: first!.changelog_id!, coopId: 7 }
+    // Without their demo the partner's tab is off; signed in as them, they can add it.
+    server.use(
+      http.get(`${API}/coop/7/halves`, () =>
+        HttpResponse.json([first, { ...second, profile_number: users.player.profile_number }]),
+      ),
+    )
+    const { unmount } = await renderWithProviders(<RunDetails run={run} map={map} />, { user: 'player' })
+    expect((await screen.findAllByRole('tab'))[1]).toBeDisabled()
+    expect(screen.getByText('Add your demo')).toBeInTheDocument()
+    unmount()
+
+    // With it, their tab shows their demo (no video or comment of their own).
+    server.use(http.get(`${API}/coop/7/halves`, () => HttpResponse.json([first, { ...second, demo_id: 61 }])))
+    await renderWithProviders(<RunDetails run={{ ...run, note: 'run note' }} map={map} />)
+    const tab = (await screen.findAllByRole('tab'))[1]!
+    expect(tab).toBeEnabled()
+    await userEvent.click(tab)
+    await waitFor(() => expect(tab).toHaveAttribute('aria-selected', 'true'))
+    expect(screen.getByRole('link', { name: /download demo/i })).toHaveAttribute(
+      'href',
+      'http://localhost:3000/api/v1/demos/61/file',
+    )
+    expect(screen.getByText('No comment')).toBeInTheDocument()
+    expect(screen.queryByText('Add your demo')).toBeNull()
   })
 })
 

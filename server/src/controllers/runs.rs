@@ -2,7 +2,8 @@
 use sqlx::{FromRow, PgPool};
 
 /// One player's half of a co-op run. `changelog_id` and the run fields are empty when the
-/// player has no run of their own recorded (partner without a submission).
+/// player has no run of their own recorded (partner without a submission); `demo_id` is then
+/// their partner demo, if they added one (the run wasn't a personal best for them).
 #[derive(Debug, Serialize, FromRow)]
 pub struct CoopHalf {
     pub profile_number: Option<String>,
@@ -29,19 +30,23 @@ pub async fn coop_halves(pool: &PgPool, coop_id: i64) -> Result<Vec<CoopHalf>, s
         r#"
             WITH cb AS (SELECT * FROM coop_bundled WHERE id = $1),
             slots AS (
-                SELECT 1 AS slot, p_id1 AS profile_number, cl_id1 AS cl_id, p1_is_host AS is_host FROM cb
+                SELECT 1 AS slot, p_id1 AS profile_number, cl_id1 AS cl_id, p1_is_host AS is_host, partner_demo_id FROM cb
                 UNION ALL
-                SELECT 2, p_id2, cl_id2, NOT p1_is_host FROM cb
+                SELECT 2, p_id2, cl_id2, NOT p1_is_host, partner_demo_id FROM cb
             )
             SELECT NULLIF(s.profile_number, 'N/A') AS profile_number,
                    CASE WHEN s.profile_number = 'N/A' THEN NULL ELSE COALESCE(u.board_name, u.steam_name, s.profile_number) END AS user_name,
                    u.avatar, s.is_host,
-                   run.id AS changelog_id, run.score, run.timestamp, run.note, run.youtube_id, run.autorender_id, run.demo_id,
+                   run.id AS changelog_id, run.score, run.timestamp, run.note, run.youtube_id, run.autorender_id, dm.demo_id,
                    run.segments IS NOT NULL AS has_segments,
-                   run.portals, (SELECT d.sar_version FROM demos AS d WHERE d.id = run.demo_id) AS sar_version
+                   run.portals, (SELECT d.sar_version FROM demos AS d WHERE d.id = dm.demo_id) AS sar_version
             FROM slots AS s
             LEFT JOIN users AS u ON u.profile_number = s.profile_number
             LEFT JOIN changelog AS run ON run.id = s.cl_id AND run.profile_number <> 'N/A'
+            -- A known partner without a run of their own: their partner demo.
+            CROSS JOIN LATERAL (
+                SELECT COALESCE(run.demo_id, CASE WHEN run.id IS NULL AND s.profile_number <> 'N/A' THEN s.partner_demo_id END) AS demo_id
+            ) AS dm
             ORDER BY CASE WHEN s.is_host IS FALSE THEN 1 ELSE 0 END, s.slot
         "#,
     )
