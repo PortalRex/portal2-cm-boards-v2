@@ -165,6 +165,37 @@ To make that the default on your machine, copy `.env.example` to `.env` (it's gi
 
 The database lives in the `p2boards_pgdata` volume and submitted demos and map images in `p2boards_uploads`; `docker compose down -v` deletes both.
 
+## Coolify
+
+`docker-compose.coolify.yaml` runs the same three services on [Coolify](https://coolify.io), behind its proxy, which serves your domain over https. Coolify builds the images on the server (the Rust release build wants 2–4 GB of RAM while it runs).
+
+1. In Coolify: **+ New → Resource → Public Repository** (or your GitHub App for a private fork), this repository and branch, build pack **Docker Compose**, compose file `/docker-compose.coolify.yaml`.
+2. Under **Environment Variables** set:
+   - `PUBLIC_URL`: the site's address, e.g. `https://board.portal2.sr` (Steam sign-in only accepts this one)
+   - `STEAM_API_KEY`: a Steam Web API key (<https://steamcommunity.com/dev/apikey>; players' names and pictures come from it)
+   - optional: `PRIVATE=true` (staff-only while testing), `COOP_PROOF_SINCE` (the launch time in UTC, e.g. `2026-11-01 00:00:00`), `SERVICE_TOKEN` (only for `/backend`), `DEMO_ARCHIVE`, `SYNC_STEAM=false`
+
+   Coolify generates the database user and password (`SERVICE_USER_POSTGRES`, `SERVICE_PASSWORD_POSTGRES`) itself.
+3. Set the domain of the `web` service to the same address as `PUBLIC_URL` (DNS for it pointing at the server), then **Deploy**.
+
+A first deploy starts with empty tables (from `schema.sql`). To bring over an existing board instead, dump it where it runs now and restore it on the Coolify server (over SSH; Coolify names the containers `<service>-<id>`):
+
+```bash
+# Where the board runs now (the local Docker setup: docker compose exec db ...):
+pg_dump -U <user> -Fc --no-owner --no-privileges -f p2boards.dump p2boards
+
+# On the Coolify server, with the resource deployed (docker ps lists its db-<id> and server-<id> containers):
+DB=db-<id> SERVER=server-<id>
+docker cp p2boards.dump $DB:/tmp/p2boards.dump
+docker exec $DB sh -c 'pg_restore -U "$POSTGRES_USER" -d p2boards --clean --if-exists --no-owner --no-privileges /tmp/p2boards.dump'
+# Submitted demos (a tar of the old DEMO.STORAGE folder, here demo-storage/):
+docker cp demos.tar $SERVER:/tmp/demos.tar
+docker exec $SERVER tar -xf /tmp/demos.tar -C /data/demos --strip-components=1
+docker restart $SERVER
+```
+
+Turn on scheduled backups for the database in Coolify (they need an S3-compatible destination). The old boards' demo archive (~170 GB) isn't included: without it, imported runs' demo downloads report the file isn't available. To add it later, put the folders on the server, mount them into `server` and list them in `DEMO_ARCHIVE` (separated by `;`).
+
 ## Original Project Team
 
 This project started as a Senior Capstone Project for the following members.
