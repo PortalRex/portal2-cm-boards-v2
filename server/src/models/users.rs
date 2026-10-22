@@ -130,15 +130,23 @@ pub struct Players {
     pub players: Vec<GetPlayerSummaries>,
 }
 
+/// One player from GetPlayerSummaries. Steam leaves fields out for some profiles (private ones
+/// have no `lastlogoff`), so everything but the id, name and picture may be missing.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct GetPlayerSummaries {
     pub steamid: String,
+    #[serde(default)]
     pub communityvisibilitystate: i32,
+    #[serde(default)]
     pub profilestate: i32,
     pub personaname: String,
-    pub lastlogoff: i32,
+    #[serde(default)]
+    pub lastlogoff: i64,
+    #[serde(default)]
     pub profileurl: String,
+    #[serde(default)]
     pub avatar: String,
+    #[serde(default)]
     pub avatarmedium: String,
     pub avatarfull: String,
     /// The country on the Steam profile (ISO code), if public.

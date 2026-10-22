@@ -165,11 +165,14 @@ export function adaptProfile(
   const fromDate = (d: ProfileDateRaw | null | undefined): ScoreBrief | null =>
     d ? { map: getMap(c, d.map) ?? { title: d.map_name }, score: d.score, timestamp: d.timestamp } : null
   const dates = page.data ?? {}
+  // A mode without runs comes back as an empty entry (no map, no date): left out, or its missing
+  // date would count as the oldest.
+  const dated = (d: ProfileDateRaw | null | undefined): d is ProfileDateRaw => Boolean(d?.map && d.timestamp)
   const newest = [dates.newest_sp, dates.newest_coop]
-    .filter((d): d is ProfileDateRaw => Boolean(d))
+    .filter(dated)
     .sort((a, b) => time(b.timestamp) - time(a.timestamp))[0]
   const oldest = [dates.oldest_sp, dates.oldest_coop]
-    .filter((d): d is ProfileDateRaw => Boolean(d))
+    .filter(dated)
     .sort((a, b) => time(a.timestamp) - time(b.timestamp))[0]
   const titles = splitTitles(user.title)
   const role = user.role || null

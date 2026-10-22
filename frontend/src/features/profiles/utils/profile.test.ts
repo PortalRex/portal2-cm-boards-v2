@@ -91,6 +91,21 @@ describe('adaptProfile', () => {
     expect(p.oldest).toMatchObject({ map: { title: 'Team Retrieval' }, score: 1521 })
   })
 
+  it('leaves out a mode without runs (the server sends it empty)', () => {
+    const page = pageRaw as ProfilePageRaw
+    const empty = { map: '', map_name: '', score: 0, timestamp: null as unknown as string }
+    const p = adaptProfile(
+      catalog,
+      HERO,
+      { ...page, data: { ...page.data, oldest_coop: empty, newest_coop: empty } },
+      userRaw as UserRaw,
+      history,
+      pbsRaw as ProfileScoreRaw[],
+    )
+    expect(p.oldest?.map.title).toBe(page.data!.oldest_sp!.map_name)
+    expect(p.newest?.map.title).toBe(page.data!.newest_sp!.map_name)
+  })
+
   it('takes times and deltas from the personal bests, and the run details from the best run', () => {
     const buttons = profile().scores['47825']!
     expect(buttons).toMatchObject({

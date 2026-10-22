@@ -26,7 +26,7 @@ use crate::{
         moderation::{self, FILLER},
         submissions::{self, BoardMap, NewRun},
     },
-    models::users::Users,
+    models::users::{GetPlayerSummariesWrapper, Users},
     tools::{cache::CacheState, config::Config, points_cache},
 };
 use sqlx::PgPool;
@@ -56,6 +56,8 @@ pub struct SyncReport {
     pub maps_baselined: usize,
     pub runs_pending: usize,
     pub players_created: usize,
+    /// Players added without a Steam name and picture (see [fill_missing_profiles]) that got them.
+    pub profiles_filled: usize,
 }
 
 /// One cycle at a time (the schedule and the staff endpoint share it).
@@ -67,6 +69,9 @@ pub fn start(pool: PgPool, config: Config, cache: CacheState) {
         log::info!("steam sync: off (SYNC.STEAM)");
         return;
     }
+    if !has_api_key(&config) {
+        log::warn!("steam sync: STEAM.API_KEY is empty, so new players get no name or picture until it's set");
+    }
     let every = Duration::from_secs(config.sync.minutes() * 60);
     tokio::spawn(async move {
         // Let the caches warm first.
@@ -74,8 +79,8 @@ pub fn start(pool: PgPool, config: Config, cache: CacheState) {
         loop {
             match crate::tools::jobs::track(crate::tools::jobs::STEAM_SYNC, "schedule", false, summary, run_once(&pool, &config, &cache, None)).await {
                 Ok(r) => log::info!(
-                    "steam sync: {} maps checked ({} baselined, {} unchanged, {} failed), {} runs added ({} pending), {} players created",
-                    r.maps_checked, r.maps_baselined, r.maps_unchanged, r.maps_failed, r.runs_added, r.runs_pending, r.players_created
+                    "steam sync: {} maps checked ({} baselined, {} unchanged, {} failed), {} runs added ({} pending), {} players created, {} names filled in",
+                    r.maps_checked, r.maps_baselined, r.maps_unchanged, r.maps_failed, r.runs_added, r.runs_pending, r.players_created, r.profiles_filled
                 ),
                 Err(e) => log::error!("steam sync failed: {e}"),
             }
@@ -87,9 +92,58 @@ pub fn start(pool: PgPool, config: Config, cache: CacheState) {
 /// What a pass did, in one line (admin page).
 pub fn summary(r: &SyncReport) -> String {
     format!(
-        "{} maps checked ({} unchanged, {} failed), {} runs added ({} pending), {} players created",
-        r.maps_checked, r.maps_unchanged, r.maps_failed, r.runs_added, r.runs_pending, r.players_created
+        "{} maps checked ({} unchanged, {} failed), {} runs added ({} pending), {} players created, {} names filled in",
+        r.maps_checked, r.maps_unchanged, r.maps_failed, r.runs_added, r.runs_pending, r.players_created, r.profiles_filled
     )
+}
+
+/// Whether a Steam Web API key is set (player names and pictures come from it).
+fn has_api_key(config: &Config) -> bool {
+    !matches!(config.steam.api_key.trim(), "" | "unused")
+}
+
+/// Players added while their Steam profile couldn't be read (no API key, Steam down) have no name
+/// or picture. Each pass fills in up to 100 of them with one Steam call (random ones, so accounts
+/// Steam no longer has don't hold up the rest). Returns how many got one.
+async fn fill_missing_profiles(pool: &PgPool, config: &Config, client: &reqwest::Client) -> Result<usize, sqlx::Error> {
+    if !has_api_key(config) {
+        return Ok(0);
+    }
+    let ids: Vec<String> = sqlx::query_scalar(
+        "SELECT profile_number FROM users WHERE steam_name IS NULL AND board_name IS NULL AND profile_number ~ '^7656119[0-9]{10}$' ORDER BY random() LIMIT 100",
+    )
+    .fetch_all(pool)
+    .await?;
+    if ids.is_empty() {
+        return Ok(0);
+    }
+    let url = format!("https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/?key={}&steamids={}", config.steam.api_key.trim(), ids.join(","));
+    // Errors without the URL: it holds the API key.
+    let players = match client.get(&url).send().await.and_then(reqwest::Response::error_for_status) {
+        Ok(res) => match res.json::<GetPlayerSummariesWrapper>().await {
+            Ok(w) => w.response.players,
+            Err(e) => {
+                log::warn!("steam sync: player profiles: {}", e.without_url());
+                return Ok(0);
+            }
+        },
+        Err(e) => {
+            log::warn!("steam sync: player profiles: {}", e.without_url());
+            return Ok(0);
+        }
+    };
+    let mut filled = 0;
+    for p in players.iter().filter(|p| ids.contains(&p.steamid)) {
+        filled += sqlx::query("UPDATE users SET steam_name = $2, avatar = COALESCE(avatar, NULLIF($3, '')) WHERE profile_number = $1 AND steam_name IS NULL AND board_name IS NULL")
+            .bind(&p.steamid)
+            .bind(&p.personaname)
+            .bind(&p.avatarfull)
+            .execute(pool)
+            .await?
+            .rows_affected() as usize;
+        Users::set_default_country(pool, &p.steamid, p.loccountrycode.as_deref()).await?;
+    }
+    Ok(filled)
 }
 
 /// One pass over every public Portal 2 map (the hidden ones have no Steam leaderboard), or just
@@ -173,7 +227,9 @@ pub async fn run_once(pool: &PgPool, config: &Config, cache: &CacheState, only: 
         }
         tokio::time::sleep(BETWEEN_MAPS).await;
     }
-    if any_added {
+    report.profiles_filled = fill_missing_profiles(pool, config, &client).await?;
+    // Names and pictures show in the cached previews and points too.
+    if any_added || report.profiles_filled > 0 {
         cache.update_current_states(&[crate::tools::cache::SP_PREVIEWS, crate::tools::cache::COOP_PREVIEWS], &[false, false]).await;
         points_cache::invalidate_points().await;
     }
@@ -378,9 +434,16 @@ pub(crate) async fn ensure_user(pool: &PgPool, config: &Config, profile: &str) -
     if exists {
         return Ok(false);
     }
-    let steam: Option<Users> = match config.steam.api_key.as_str() {
-        "" | "unused" => None,
-        key => Users::new_from_steam(key, profile).await.ok(),
+    let steam: Option<Users> = match has_api_key(config) {
+        false => None,
+        true => match Users::new_from_steam(config.steam.api_key.trim(), profile).await {
+            Ok(user) => Some(user),
+            // Filled in by a later pass (fill_missing_profiles).
+            Err(e) => {
+                log::warn!("steam sync: no Steam profile for {profile} yet: {}", e.error_message);
+                None
+            }
+        },
     };
     sqlx::query(
         r#"

@@ -12,12 +12,15 @@ impl Users {
             "https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/?key={}&steamids={}",
             steam_api_key, profile_number
         );
+        // Errors without the URL: it holds the API key.
         let user = crate::tools::helpers::http_client()
             .get(&steam_api_url)
             .send()
-            .await?
+            .await
+            .map_err(reqwest::Error::without_url)?
             .json::<GetPlayerSummariesWrapper>()
-            .await?;
+            .await
+            .map_err(reqwest::Error::without_url)?;
         if user.response.players.is_empty() {
             return Err(ServerError {
                 error_message: format!("User not found"),
