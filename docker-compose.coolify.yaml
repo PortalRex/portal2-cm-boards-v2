@@ -9,30 +9,32 @@
 
 services:
   db:
-    image: postgres:16-bookworm
+    # postgres:16-bookworm with schema.sql inside (see db/Dockerfile).
+    build: ./db
     restart: unless-stopped
     # The hot data (changelog and its indexes, ~300 MB) fits in memory with these; the image's
     # defaults (128 MB shared buffers, 4 MB work_mem) spill the bigger sorts and joins to disk.
     command: postgres -c shared_buffers=512MB -c work_mem=16MB -c effective_cache_size=2GB
     environment:
       POSTGRES_DB: p2boards
-      POSTGRES_USER: ${SERVICE_USER_POSTGRES}
+      POSTGRES_USER: ${SERVICE_USER_POSTGRES:-postgres}
       POSTGRES_PASSWORD: ${SERVICE_PASSWORD_POSTGRES}
     volumes:
       - pgdata:/var/lib/postgresql/data
-      # Creates the tables when the volume is empty (first start only). A restored dump replaces them.
-      - ./db/dbscript/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d p2boards"]
+      # Over TCP: while the first start creates the tables, Postgres only listens on its socket, so this
+      # reports healthy once that's done.
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U \"$${POSTGRES_USER:-postgres}\" -d p2boards"]
       interval: 5s
       timeout: 5s
       retries: 20
+      start_period: 60s
 
   server:
     build: ./server
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgresql://${SERVICE_USER_POSTGRES}:${SERVICE_PASSWORD_POSTGRES}@db:5432/p2boards
+      DATABASE_URL: postgresql://${SERVICE_USER_POSTGRES:-postgres}:${SERVICE_PASSWORD_POSTGRES}@db:5432/p2boards
       SERVER.HOST: 0.0.0.0
       SERVER.PORT: "8080"
       # The site's address with https (e.g. https://board.portal2.sr): Steam sign-in returns there and only
