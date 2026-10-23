@@ -46,6 +46,7 @@ New databases get everything from `db/dbscript/schema.sql`. An existing database
 | `20261107000000_own_display.sql` | `users.avatar_custom`: a picture the player chose in Settings, kept through sign-ins. |
 | `20261108000000_game_branding.sql` | `games.short_name` (the name beside the logo) and uploaded `logo_file` / `background_file` with their times. |
 | `20261110000000_coop_partner_demo.sql` | `coop_bundled.partner_demo_id`: a co-op partner's demo of a run that wasn't a personal best for them (see [§8](#8-run-submissions-and-demos)); linked copies of a pairing carry it. |
+| `20261111000000_changelog_newest_index.sql` | `idx_changelog_newest` (changelog by timestamp, newest first, undated last): Score Updates read the newest runs off it instead of sorting the whole table (~175 ms → ~4 ms). |
 
 `import_boards.py` builds a fresh database from the old boards' MySQL dumps and runs the BSP-name step itself (see
 [§10](#10-import-and-maintenance-scripts)).

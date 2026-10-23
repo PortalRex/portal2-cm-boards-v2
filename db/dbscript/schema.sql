@@ -1593,3 +1593,13 @@ $$ LANGUAGE plpgsql;
 DROP TRIGGER IF EXISTS season_bundle_upsert ON coop_bundled;
 CREATE TRIGGER season_bundle_upsert AFTER INSERT OR UPDATE OF p_id1, p_id2, p1_is_host, cl_id1, cl_id2, partner_demo_id ON coop_bundled
     FOR EACH ROW EXECUTE FUNCTION season_bundle_upsert();
+
+--
+-- Newest-first changelog index (migrations/20261111000000_changelog_newest_index.sql).
+--
+
+-- Score Updates (and every changelog list) reads the newest runs first: ORDER BY timestamp DESC NULLS LAST
+-- (undated imported runs last). idx_changelog_timestamp is in the other order (ASC, nulls last), which can't
+-- give that, so each page load sorted the whole table (~180 ms, spilling to disk). This one is in that order,
+-- so the newest rows are read straight off it.
+CREATE INDEX IF NOT EXISTS idx_changelog_newest ON changelog (timestamp DESC NULLS LAST);

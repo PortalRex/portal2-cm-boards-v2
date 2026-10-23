@@ -188,6 +188,8 @@ pg_dump -U <user> -Fc --no-owner --no-privileges -f p2boards.dump p2boards
 DB=db-<id> SERVER=server-<id>
 docker cp p2boards.dump $DB:/tmp/p2boards.dump
 docker exec $DB sh -c 'pg_restore -U "$POSTGRES_USER" -d p2boards --clean --if-exists --no-owner --no-privileges /tmp/p2boards.dump'
+# A restore brings no planner statistics: build them, or queries are slow at first.
+docker exec $DB sh -c 'vacuumdb -U "$POSTGRES_USER" -d p2boards --analyze'
 # Submitted demos (a tar of the old DEMO.STORAGE folder, here demo-storage/):
 docker cp demos.tar $SERVER:/tmp/demos.tar
 docker exec $SERVER tar -xf /tmp/demos.tar -C /data/demos --strip-components=1
