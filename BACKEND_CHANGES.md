@@ -238,6 +238,10 @@ All under `/api/v1`. Auth: **public**, **signed in**, **staff** (any tier or ser
 - **Demo downloads** stream from disk through `actix-files` with ETag / Last-Modified (304s) and range requests, instead
   of reading the whole file into memory.
 - The points cache's safety refresh is hourly (it was every 10 minutes; every run change already rebuilds it).
+- **Rank cache reloads can't crash the server** (`CacheState::reload_rank` in `server/src/tools/cache.rs`): a failed
+  board read (e.g. a pool timeout under load) is retried once after 500 ms, then logged, and the map keeps its old
+  ranks until its next change or the next start. Maps added since startup get their category from the database.
+  Before, either case panicked.
 
 ### Hardening
 

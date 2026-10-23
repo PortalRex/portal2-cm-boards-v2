@@ -62,6 +62,23 @@ use std::{
 };
 use tokio::sync::Mutex;
 
+/// Runs `read`, and once more after a short pause if it fails: a pool timeout under load has
+/// usually passed by then.
+async fn read_with_retry<T, F, Fut>(mut read: F) -> Result<T, sqlx::Error>
+where
+    F: FnMut() -> Fut,
+    Fut: std::future::Future<Output = Result<T, sqlx::Error>>,
+{
+    match read().await {
+        Ok(value) => Ok(value),
+        Err(e) => {
+            log::warn!("rank cache: read failed, trying again: {e}");
+            tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+            read().await
+        }
+    }
+}
+
 pub const SP_PREVIEWS: &'static str = "sp_previews";
 pub const COOP_PREVIEWS: &'static str = "coop_previews";
 pub const POINTS_1: &'static str = "points1";
@@ -298,9 +315,11 @@ impl CacheState {
         // println!("Elapsed: {:.2?}", elapsed);
         Ok(fin)
     }
-    // TODO: Testing
     /// Refreshes map rank cache on a specific map. Especially slow for coop, but faster than refreshing all maps.
-    #[allow(dead_code)]
+    ///
+    /// Never takes the server down: a map added since startup gets its category from the database,
+    /// and if the board can't be read (e.g. the pool timing out under load, even after one retry)
+    /// the map keeps its old ranks until its next change or the next start.
     pub async fn reload_rank(
         &self,
         pool: &PgPool,
@@ -308,16 +327,15 @@ impl CacheState {
         config: &Config,
         is_coop: bool,
     ) {
+        let cat = self.default_cat(pool, map_id).await;
         if is_coop {
-            let res = CoopMap::get_coop_map_page(
-                pool,
-                map_id,
-                self.default_cat_ids[map_id],
-                1,
-                None,
-            )
-            .await
-            .unwrap();
+            let res = match read_with_retry(|| CoopMap::get_coop_map_page(pool, map_id, cat, 1, None)).await {
+                Ok(res) => res,
+                Err(e) => {
+                    log::warn!("rank cache: couldn't reload co-op map {map_id}, keeping its old ranks: {e}");
+                    return;
+                }
+            };
             let ranked = filter_coop_entries(res, config.proof.results as usize).await;
             let r = &mut self.ranks.lock().await;
             r.map_scores.insert(map_id.clone(), sorted_scores(ranked.iter().map(|e| e.map_data.score).collect()));
@@ -333,16 +351,13 @@ impl CacheState {
                 }
             }
         } else {
-            let res = SpMap::get_sp_map_page(
-                pool,
-                map_id,
-                config.proof.results,
-                self.default_cat_ids[map_id],
-                1,
-                None,
-            )
-            .await
-            .unwrap();
+            let res = match read_with_retry(|| SpMap::get_sp_map_page(pool, map_id, config.proof.results, cat, 1, None)).await {
+                Ok(res) => res,
+                Err(e) => {
+                    log::warn!("rank cache: couldn't reload map {map_id}, keeping its old ranks: {e}");
+                    return;
+                }
+            };
             let ranks = sp_ranks(&res);
             let r = &mut self.ranks.lock().await;
             r.map_scores.insert(map_id.clone(), sorted_scores(res.iter().map(|e| e.score).collect()));
@@ -441,4 +456,64 @@ pub async fn read_from_file<T: for<'de> serde::Deserialize<'de>>(id: &str) -> Re
     let reader = BufReader::new(file);
     let res: T = serde_json::from_reader(reader)?;
     Ok(res)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use sqlx::postgres::PgPoolOptions;
+    use std::sync::atomic::{AtomicU32, Ordering};
+
+    #[actix_web::test]
+    async fn read_with_retry_tries_once_more() {
+        let calls = AtomicU32::new(0);
+        let read = read_with_retry(|| {
+            let n = calls.fetch_add(1, Ordering::SeqCst);
+            async move { if n == 0 { Err(sqlx::Error::PoolTimedOut) } else { Ok(n) } }
+        });
+        assert_eq!(read.await.unwrap(), 1, "the second try's result");
+        let calls = AtomicU32::new(0);
+        let read = read_with_retry(|| {
+            calls.fetch_add(1, Ordering::SeqCst);
+            async { Err::<(), _>(sqlx::Error::PoolTimedOut) }
+        });
+        assert!(matches!(read.await, Err(sqlx::Error::PoolTimedOut)));
+        assert_eq!(calls.load(Ordering::SeqCst), 2, "tried twice, no more");
+    }
+
+    #[actix_web::test]
+    async fn reload_rank_keeps_old_ranks_when_the_database_cant_be_read() {
+        // A pool that can never hand out a connection: every read fails, like a pool timeout.
+        let pool = PgPoolOptions::new()
+            .acquire_timeout(std::time::Duration::from_millis(200))
+            .connect_lazy("postgres://nobody@127.0.0.1:1/none")
+            .unwrap();
+        let config: Config = serde_json::from_value(serde_json::json!({
+            "database_url": "postgres://nobody@127.0.0.1:1/none",
+            "server": { "host": "127.0.0.1", "port": 0 },
+            "proof": { "results": 500, "demo": 200, "video": 200 },
+            "steam": { "api_key": "" },
+            "backblaze": { "keyid": "", "key": "", "bucket": "" },
+        }))
+        .unwrap();
+        let map = "47458".to_string();
+        let cache = CacheState {
+            current_state: Arc::default(),
+            default_cat_ids: HashMap::from([(map.clone(), 88)]),
+            points: Arc::default(),
+            ranks: Arc::new(Mutex::new(Ranks {
+                current_ranks: HashMap::from([("p1".to_string(), HashMap::from([(map.clone(), 3)]))]),
+                map_scores: HashMap::from([(map.clone(), vec![1000, 1100, 1200])]),
+                coop_by_run: false,
+            })),
+        };
+        // Single player, co-op, and a map added since startup (not in default_cat_ids): none panic.
+        cache.reload_rank(&pool, &map, &config, false).await;
+        cache.reload_rank(&pool, &map, &config, true).await;
+        cache.reload_rank(&pool, &"new-season-map".to_string(), &config, false).await;
+        let ranks = cache.ranks.lock().await;
+        assert_eq!(ranks.current_ranks["p1"][&map], 3);
+        assert_eq!(ranks.map_scores[&map], vec![1000, 1100, 1200]);
+        assert!(!ranks.map_scores.contains_key("new-season-map"));
+    }
 }
