@@ -1,14 +1,11 @@
 import type { Player } from '@/types/runs'
 
-/** A player's entry on GET /points/game/{game_id}/{board} (the server's `Points`). */
+/** A player's entry on GET /points/game/{game_id}/{board}: what the board pages show of the server's `Points`. */
 export interface PointsRaw {
   points: number
   /** Sum of the player's times on the board's maps, in centiseconds. */
   score: number
   num_scores: number
-  total_rank_sum: number
-  worst: [number, string]
-  best: [number, string]
   user_name: string | null
   avatar: string | null
   country_id: number | null

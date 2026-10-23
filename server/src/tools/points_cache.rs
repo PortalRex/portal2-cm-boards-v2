@@ -12,7 +12,7 @@
 //! a gzipped copy, so busy boards are compressed once rather than per request.
 use crate::{
     controllers::game_boards::{pb_ranks, totals, PbRank},
-    models::points::{Points, PointsReadWrapper},
+    models::points::Points,
 };
 use sqlx::{FromRow, PgPool};
 use std::{
@@ -60,10 +60,44 @@ pub struct Board {
     pub gzip: Arc<Vec<u8>>,
 }
 
+/// The strongest gzip level: a board is compressed once per rebuild and sent to every visitor, so
+/// the smaller download (about a fifth less than the fastest level) is worth the extra moment.
 fn gzip(data: &[u8]) -> Vec<u8> {
-    let mut enc = flate2::write::GzEncoder::new(Vec::with_capacity(data.len() / 4), flate2::Compression::fast());
+    let mut enc = flate2::write::GzEncoder::new(Vec::with_capacity(data.len() / 4), flate2::Compression::best());
     let _ = enc.write_all(data);
     enc.finish().unwrap_or_default()
+}
+
+/// A board row as the site gets it: what the board pages show. The rank sum and best and worst
+/// maps stay in [Board::points] for the server's own use; leaving them out takes about a fifth
+/// off the overall board's download.
+#[derive(Serialize)]
+struct BoardRow<'a> {
+    points: f32,
+    score: i32,
+    num_scores: i32,
+    user_name: &'a Option<String>,
+    avatar: &'a Option<String>,
+    country_id: Option<i32>,
+}
+
+/// A board's response body (`{ "id": null, "points": [[profile_number, row], ...] }`) and its gzipped copy.
+fn board_body(points: &[(String, Points)]) -> (String, Vec<u8>) {
+    #[derive(Serialize)]
+    struct Body<'a> {
+        id: Option<i32>,
+        points: Vec<(&'a str, BoardRow<'a>)>,
+    }
+    let rows = points
+        .iter()
+        .map(|(profile_number, p)| {
+            let row = BoardRow { points: p.points, score: p.score, num_scores: p.num_scores, user_name: &p.user_name, avatar: &p.avatar, country_id: p.country_id };
+            (profile_number.as_str(), row)
+        })
+        .collect();
+    let json = serde_json::to_string(&Body { id: None, points: rows }).unwrap_or_default();
+    let gz = gzip(json.as_bytes());
+    (json, gz)
 }
 
 struct GameData {
@@ -186,8 +220,7 @@ impl PointsCache {
                 }
             }
             points.sort_by(|a, b| b.1.points.partial_cmp(&a.1.points).unwrap_or(std::cmp::Ordering::Equal));
-            let json = serde_json::to_string(&PointsReadWrapper { id: None, points: points.clone() }).unwrap_or_default();
-            let gz = gzip(json.as_bytes());
+            let (json, gz) = board_body(&points);
             let board = Arc::new(Board { points, json: Arc::new(json), gzip: Arc::new(gz) });
             g.boards.insert(key.to_string(), board.clone());
             board
@@ -213,5 +246,38 @@ impl PointsCache {
         let _ = self.pool.set(pool);
         let cache = self.clone();
         tokio::spawn(async move { cache.build_warm_boards().await });
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io::Read;
+
+    #[test]
+    fn board_body_has_what_the_board_pages_show() {
+        let row = |points: f32, name: &str| Points {
+            points,
+            score: 1234,
+            num_scores: 60,
+            total_rank_sum: 99,
+            worst: (40, "47808".into()),
+            best: (1, "47736".into()),
+            user_name: Some(name.into()),
+            avatar: None,
+            country_id: Some(97),
+        };
+        let (json, gz) = board_body(&[("76561198000000001".into(), row(200.5, "hero")), ("76561198000000002".into(), row(100.0, "two"))]);
+        let body: serde_json::Value = serde_json::from_str(&json).unwrap();
+        assert_eq!(
+            body,
+            serde_json::json!({ "id": null, "points": [
+                ["76561198000000001", { "points": 200.5, "score": 1234, "num_scores": 60, "user_name": "hero", "avatar": null, "country_id": 97 }],
+                ["76561198000000002", { "points": 100.0, "score": 1234, "num_scores": 60, "user_name": "two", "avatar": null, "country_id": 97 }],
+            ]})
+        );
+        let mut unzipped = String::new();
+        flate2::read::GzDecoder::new(gz.as_slice()).read_to_string(&mut unzipped).unwrap();
+        assert_eq!(unzipped, json, "the gzipped copy is the same body");
     }
 }

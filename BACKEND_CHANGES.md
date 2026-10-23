@@ -130,7 +130,7 @@ All under `/api/v1`. Auth: **public**, **signed in**, **staff** (any tier or ser
 | Method & path | Auth | Purpose |
 |---|---|---|
 | `GET /catalog` | public | Every game and season with chapters, maps (incl. links) and categories, in display order. Staff also see hidden games. The frontend loads this at startup. |
-| `GET /points/game/{game_id}/{board}` | public | Aggregated points for any game; `board` = `overall`, a chapter `game_mode` (`sp`, `coop`, `story`, …) or `chapter-{id}`. Served from the points cache, gzipped when accepted. |
+| `GET /points/game/{game_id}/{board}` | public | Aggregated points for any game; `board` = `overall`, a chapter `game_mode` (`sp`, `coop`, `story`, …) or `chapter-{id}`. Served from the points cache, gzipped when accepted. Each row has what the board pages show: `points`, `score`, `num_scores`, `user_name`, `avatar`, `country_id`. |
 | `GET /ranks/game/{game_id}/{steam_id}` | public | A player's rank per map in a game. |
 | `GET /profile/scores/{steam_id}` | public | A player's PB per Portal 2 map with rank, delta to next and to WR. |
 | `GET /profile/stats/{steam_id}?game_id=` | public | Stats: runs, maps completed, time saved, demo/video coverage, co-op partners (maps and runs together), portal counts. |
@@ -238,6 +238,10 @@ All under `/api/v1`. Auth: **public**, **signed in**, **staff** (any tier or ser
 - **Demo downloads** stream from disk through `actix-files` with ETag / Last-Modified (304s) and range requests, instead
   of reading the whole file into memory.
 - The points cache's safety refresh is hourly (it was every 10 minutes; every run change already rebuilds it).
+- **Smaller aggregated boards** (`GET /points/game/...`): rows leave out the rank sum and best/worst map (the board
+  pages don't use them; the server keeps them), and the stored gzip copy uses the strongest level (it's built once
+  per rebuild, ~50 ms more for the overall board). The Portal 2 overall board went from 824 KB to 514 KB per
+  download, single player and co-op from ~470 KB to ~295 KB.
 - **`GET /graph`** (runs per day on the score updates page) is cached for two minutes per time zone: it counted
   every run (~240 ms) for every visitor; a cached answer takes ~10 ms.
 - **`GET /profile/{id}`**: the oldest/newest personal bests are one query instead of four (~70 ms → ~28 ms), and come
