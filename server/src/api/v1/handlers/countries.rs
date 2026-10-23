@@ -93,9 +93,15 @@ async fn my_country_from_steam(user: SignedIn, pool: web::Data<PgPool>, config: 
     Ok(HttpResponse::Ok().json(json!({ "country_id": id })))
 }
 
-/// **PUT** Staff: set a player's country (`{ "country_id", "reason" }`); in the audit log.
+/// **PUT** Moderators and admins: set a player's country (`{ "country_id", "reason" }`); in the audit log.
 #[put("/admin/users/{profile_number}/country")]
 async fn admin_user_country(auth: AdminOrService, pool: web::Data<PgPool>, profile_number: web::Path<String>, body: web::Json<CountryBody>) -> Result<impl Responder> {
+    // Like names and pictures, a player's country is for moderators and admins to change.
+    if let AdminOrService::Admin(user) = &auth {
+        if !matches!(user.role.as_deref(), Some("moderator" | "admin")) {
+            return Ok(HttpResponse::Forbidden().body("Only moderators and admins can change profiles."));
+        }
+    }
     let before: Option<Option<i32>> = sqlx::query_scalar("SELECT country_id FROM users WHERE profile_number = $1").bind(profile_number.as_str()).fetch_optional(pool.get_ref()).await?;
     let Some(before) = before else {
         return Ok(HttpResponse::NotFound().body("No such player."));

@@ -203,59 +203,52 @@ impl Users {
         .await
     }
     /// Returns a [ProfileData] (Portal 2 maps) for the given `profile_number`.
+    /// The player's oldest and newest Portal 2 personal bests, in single player and co-op (empty
+    /// when they have none): their best run on each map, then the earliest and latest of those.
     pub async fn get_profile(pool: &PgPool, profile_number: &String) -> Result<ProfileData, sqlx::Error> {
-        let s1 = r#"SELECT old.steam_id AS map, old.name AS map_name, old.score, old.timestamp FROM 
-            (SELECT maps.steam_id, maps.name, changelog.score, changelog.timestamp FROM maps 
-            INNER JOIN changelog ON (maps.steam_id = changelog.map_id) WHERE changelog.timestamp = (
-            SELECT *
-                FROM (
-                    SELECT "#;
-        let s2 = r#"(o1.timestamp)
-        FROM
-        (SELECT DISTINCT ON (m1.steam_id) m1.steam_id, m1.name, cl1.score, cl1.timestamp, cl1.id
-            FROM changelog AS cl1
-            INNER JOIN maps AS m1
-                ON (cl1.map_id = m1.steam_id)
-            INNER JOIN chapters AS c1
-                ON (m1.chapter_id = c1.id)
-            WHERE cl1.profile_number = $1
-            AND c1.is_multiplayer = $2
-            AND c1.game_id = 1
-            AND cl1.banned = 'false'
-            AND cl1.verified = 'true'
-            AND cl1.category_id = m1.default_cat_id
-            ORDER BY m1.steam_id, cl1.score) AS o1) AS a)) AS old;"#;
-
-        let oldest_sp = sqlx::query_as::<_, MapScoreDate>(&format!("{}{}{}", s1, "MIN", s2))
-            .bind(profile_number)
-            .bind(false)
-            .fetch_optional(pool)
-            .await?
-            .unwrap_or_default();
-        let newest_sp = sqlx::query_as::<_, MapScoreDate>(&format!("{}{}{}", s1, "MAX", s2))
-            .bind(profile_number)
-            .bind(false)
-            .fetch_optional(pool)
-            .await?
-            .unwrap_or_default();
-        let oldest_coop = sqlx::query_as::<_, MapScoreDate>(&format!("{}{}{}", s1, "MIN", s2))
-            .bind(profile_number)
-            .bind(true)
-            .fetch_optional(pool)
-            .await?
-            .unwrap_or_default();
-        let newest_coop = sqlx::query_as::<_, MapScoreDate>(&format!("{}{}{}", s1, "MAX", s2))
-            .bind(profile_number)
-            .bind(true)
-            .fetch_optional(pool)
-            .await?
-            .unwrap_or_default();
-        Ok(ProfileData {
-            oldest_sp,
-            newest_sp,
-            oldest_coop,
-            newest_coop,
-        })
+        #[derive(sqlx::FromRow)]
+        struct Pick {
+            slot: String,
+            #[sqlx(flatten)]
+            run: MapScoreDate,
+        }
+        let picks = sqlx::query_as::<_, Pick>(
+            r#"
+            WITH pbs AS (
+                SELECT DISTINCT ON (m.steam_id) m.steam_id AS map, m.name AS map_name, cl.score, cl.timestamp, c.is_multiplayer
+                FROM changelog AS cl
+                INNER JOIN maps AS m ON (cl.map_id = m.steam_id)
+                INNER JOIN chapters AS c ON (m.chapter_id = c.id)
+                WHERE cl.profile_number = $1
+                  AND c.game_id = 1
+                  AND cl.banned = 'false'
+                  AND cl.verified = 'true'
+                  AND cl.category_id = m.default_cat_id
+                ORDER BY m.steam_id, cl.score, cl.timestamp
+            ),
+            dated AS (SELECT * FROM pbs WHERE timestamp IS NOT NULL)
+            (SELECT 'oldest_sp' AS slot, map, map_name, score, timestamp FROM dated WHERE NOT is_multiplayer ORDER BY timestamp, map LIMIT 1)
+            UNION ALL
+            (SELECT 'newest_sp', map, map_name, score, timestamp FROM dated WHERE NOT is_multiplayer ORDER BY timestamp DESC, map LIMIT 1)
+            UNION ALL
+            (SELECT 'oldest_coop', map, map_name, score, timestamp FROM dated WHERE is_multiplayer ORDER BY timestamp, map LIMIT 1)
+            UNION ALL
+            (SELECT 'newest_coop', map, map_name, score, timestamp FROM dated WHERE is_multiplayer ORDER BY timestamp DESC, map LIMIT 1)
+            "#,
+        )
+        .bind(profile_number)
+        .fetch_all(pool)
+        .await?;
+        let mut data = ProfileData::default();
+        for Pick { slot, run } in picks {
+            match slot.as_str() {
+                "oldest_sp" => data.oldest_sp = run,
+                "newest_sp" => data.newest_sp = run,
+                "oldest_coop" => data.oldest_coop = run,
+                _ => data.newest_coop = run,
+            }
+        }
+        Ok(data)
     }
     // TODO: Consider using profanity filter (only for really bad names): https://docs.rs/censor/latest/censor/
     /// Inserts a new user into the databse from a given [Users]. Returns the [Users] object.

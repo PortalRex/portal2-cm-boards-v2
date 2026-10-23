@@ -40,7 +40,7 @@ pub struct Points {
 }
 
 /// Oldest and newest `MapScoreDate` for a profile.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct ProfileData {
     pub oldest_sp: MapScoreDate,
     pub newest_sp: MapScoreDate,

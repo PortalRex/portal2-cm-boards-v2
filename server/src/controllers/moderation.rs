@@ -395,6 +395,9 @@ pub async fn remove_demo(pool: &PgPool, actor: &AdminOrService, cl_id: i64, reas
 
 /// Freezes or unfreezes a profile: frozen profiles keep their times but can't get new ones.
 pub async fn set_frozen(pool: &PgPool, actor: &AdminOrService, profile_number: &str, frozen: bool, reason: Option<&str>) -> ActionResult<()> {
+    if matches!(actor, AdminOrService::Admin(me) if me.profile_number == profile_number) {
+        return Ok(Err(Refused::Invalid("You can't freeze or unfreeze yourself.".into())));
+    }
     let mut tx = pool.begin().await?;
     let updated = sqlx::query("UPDATE users SET frozen = $2, frozen_reason = CASE WHEN $2 THEN $3 ELSE NULL END WHERE profile_number = $1 AND profile_number <> $4")
         .bind(profile_number)

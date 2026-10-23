@@ -4,10 +4,10 @@ use sqlx::PgPool;
 impl NumScores {
     /// Returns a Vec of [NumScores] for total number of valid changelog entries across the entire boards.
     pub async fn most_cl_enries_overall(pool: &PgPool) -> Result<Vec<NumScores>, sqlx::Error> {
-        sqlx::query_as::<_, NumScores>(r#"SELECT COUNT(*), changelog.profile_number, COALESCE(board_name, steam_name) AS user_name, avatar
+        sqlx::query_as::<_, NumScores>(r#"SELECT COUNT(*), changelog.profile_number, COALESCE(board_name, steam_name, changelog.profile_number) AS user_name, COALESCE(avatar, '') AS avatar
             FROM changelog INNER JOIN users ON (users.profile_number = changelog.profile_number)
             WHERE users.banned = false AND changelog.banned = false AND changelog.verified = true
-        GROUP BY changelog.profile_number, user_name, avatar
+        GROUP BY changelog.profile_number, board_name, steam_name, users.avatar
         ORDER BY COUNT(*) DESC;"#)
         .fetch_all(pool)
         .await
@@ -18,13 +18,13 @@ impl NumScores {
         pool: &PgPool,
         map_id: &str,
     ) -> Result<Vec<NumScores>, sqlx::Error> {
-        sqlx::query_as::<_, NumScores>(r#"SELECT COUNT(*), changelog.profile_number, COALESCE(board_name, steam_name) AS user_name, avatar
+        sqlx::query_as::<_, NumScores>(r#"SELECT COUNT(*), changelog.profile_number, COALESCE(board_name, steam_name, changelog.profile_number) AS user_name, COALESCE(avatar, '') AS avatar
             FROM changelog
             INNER JOIN users ON (users.profile_number = changelog.profile_number)
             INNER JOIN maps ON (changelog.map_id = maps.steam_id)
             WHERE users.banned = false AND changelog.banned = false AND changelog.verified = true
             AND map_id = $1
-        GROUP BY changelog.profile_number, user_name, avatar
+        GROUP BY changelog.profile_number, board_name, steam_name, users.avatar
         ORDER BY COUNT(*) DESC;"#)
         .bind(map_id)
         .fetch_all(pool)
@@ -44,7 +44,7 @@ impl Recap {
             FROM changelog INNER JOIN users ON (changelog.profile_number = users.profile_number)
                 WHERE post_rank = 1 AND users.banned = false AND changelog.banned = false AND changelog.verified = true
                 AND timestamp > current_date - interval '7 days'
-            GROUP BY changelog.profile_number, user_name, avatar ORDER BY COUNT(*) DESC LIMIT $1;"#)
+            GROUP BY changelog.profile_number, board_name, steam_name, users.avatar ORDER BY COUNT(*) DESC LIMIT $1;"#)
         .bind(limit)
         .fetch_all(pool)
         .await
@@ -59,7 +59,7 @@ impl Recap {
             FROM changelog INNER JOIN users ON (changelog.profile_number = users.profile_number)
                 WHERE demo_id IS NOT NULL AND users.banned = false AND changelog.banned = false AND changelog.verified = true
                 AND timestamp > current_date - interval '7 days'
-            GROUP BY changelog.profile_number, user_name, avatar ORDER BY COUNT(*) DESC LIMIT $1;"#)
+            GROUP BY changelog.profile_number, board_name, steam_name, users.avatar ORDER BY COUNT(*) DESC LIMIT $1;"#)
         .bind(limit)
         .fetch_all(pool)
         .await
@@ -79,7 +79,7 @@ impl Recap {
             INNER JOIN maps ON (changelog.map_id = maps.steam_id)
                 WHERE score_delta IS NOT NULL AND post_rank = 1 AND users.banned = false AND changelog.banned = false 
                 AND changelog.verified = true AND timestamp > current_date - interval '30 days'
-            GROUP BY changelog.profile_number, user_name, avatar, score_delta, map_id, map_name ORDER BY score_delta ASC LIMIT $1;"#)
+            GROUP BY changelog.profile_number, board_name, steam_name, users.avatar, score_delta, map_id, map_name ORDER BY score_delta ASC LIMIT $1;"#)
         .bind(limit)
         .fetch_all(pool)
         .await
@@ -94,7 +94,7 @@ impl Recap {
             FROM changelog INNER JOIN users ON (changelog.profile_number = users.profile_number)
                 WHERE users.banned = false AND changelog.banned = false AND changelog.verified = true
                 AND timestamp > current_date - interval '7 days'
-            GROUP BY changelog.profile_number, user_name, avatar ORDER BY COUNT(*) DESC LIMIT $1;"#)
+            GROUP BY changelog.profile_number, board_name, steam_name, users.avatar ORDER BY COUNT(*) DESC LIMIT $1;"#)
         .bind(limit)
         .fetch_all(pool)
         .await
@@ -111,7 +111,7 @@ impl Recap {
                 WHERE youtube_id IS NOT NULL AND users.banned = false AND changelog.banned = false
                 AND changelog.verified = true
                 AND timestamp > current_date - interval '7 days'
-            GROUP BY changelog.profile_number, user_name, avatar ORDER BY COUNT(*) DESC LIMIT $1;"#,
+            GROUP BY changelog.profile_number, board_name, steam_name, users.avatar ORDER BY COUNT(*) DESC LIMIT $1;"#,
         )
         .bind(limit)
         .fetch_all(pool)

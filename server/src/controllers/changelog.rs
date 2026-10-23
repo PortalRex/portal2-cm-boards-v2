@@ -263,9 +263,32 @@ fn daily_hash(key: &str) -> u64 {
     key.bytes().fold(0xcbf29ce484222325u64, |h, b| (h ^ b as u64).wrapping_mul(0x100000001b3))
 }
 
+/// How long [Graph::get_graph_data] keeps a time zone's counts: it counts every run (~200 ms), for
+/// every visitor of the score updates page, and a chart of runs per day barely moves in a minute.
+const GRAPH_TTL: std::time::Duration = std::time::Duration::from_secs(120);
+
+type GraphCache = std::sync::Mutex<std::collections::HashMap<String, (std::time::Instant, std::sync::Arc<Vec<Graph>>)>>;
+static GRAPH_CACHE: std::sync::OnceLock<GraphCache> = std::sync::OnceLock::new();
+
 impl Graph {
-    /// Runs per day, with days in time zone `tz` (a valid IANA name; timestamps are UTC).
-    pub async fn get_graph_data(pool: &PgPool, tz: &str) -> Result<Vec<Graph>, sqlx::Error> {
+    /// Runs per day, with days in time zone `tz` (a valid IANA name; timestamps are UTC). Kept
+    /// for [GRAPH_TTL] per time zone.
+    pub async fn get_graph_data(pool: &PgPool, tz: &str) -> Result<std::sync::Arc<Vec<Graph>>, sqlx::Error> {
+        let cache = GRAPH_CACHE.get_or_init(Default::default);
+        if let Some((at, rows)) = cache.lock().unwrap().get(tz) {
+            if at.elapsed() < GRAPH_TTL {
+                return Ok(rows.clone());
+            }
+        }
+        let rows = std::sync::Arc::new(Self::count_per_day(pool, tz).await?);
+        let mut cached = cache.lock().unwrap();
+        // Time zones come from visitors; drop expired ones so the map can't grow without bound.
+        cached.retain(|_, (at, _)| at.elapsed() < GRAPH_TTL);
+        cached.insert(tz.to_string(), (std::time::Instant::now(), rows.clone()));
+        Ok(rows)
+    }
+
+    async fn count_per_day(pool: &PgPool, tz: &str) -> Result<Vec<Graph>, sqlx::Error> {
         sqlx::query_as::<_, Graph>(
             r#"
                 SELECT DATE((timestamp AT TIME ZONE 'UTC') AT TIME ZONE $1) AS date, COUNT(*) AS count

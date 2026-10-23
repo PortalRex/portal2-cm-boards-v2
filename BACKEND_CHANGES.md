@@ -238,6 +238,12 @@ All under `/api/v1`. Auth: **public**, **signed in**, **staff** (any tier or ser
 - **Demo downloads** stream from disk through `actix-files` with ETag / Last-Modified (304s) and range requests, instead
   of reading the whole file into memory.
 - The points cache's safety refresh is hourly (it was every 10 minutes; every run change already rebuilds it).
+- **`GET /graph`** (runs per day on the score updates page) is cached for two minutes per time zone: it counted
+  every run (~240 ms) for every visitor; a cached answer takes ~10 ms.
+- **`GET /profile/{id}`**: the oldest/newest personal bests are one query instead of four (~70 ms → ~28 ms), and come
+  from the player's own run: the old queries matched any run with the same timestamp, so a season copy of a map or
+  another run at that second could be shown instead.
+- **`GET /stats/count_scores`** (and `/{map_id}`) no longer fails (500) when a player has no name or picture.
 - **Rank cache reloads can't crash the server** (`CacheState::reload_rank` in `server/src/tools/cache.rs`): a failed
   board read (e.g. a pool timeout under load) is retried once after 500 ms, then logged, and the map keeps its old
   ranks until its next change or the next start. Maps added since startup get their category from the database.
@@ -245,6 +251,12 @@ All under `/api/v1`. Auth: **public**, **signed in**, **staff** (any tier or ser
 
 ### Hardening
 
+- **Client addresses can't be spoofed** (`server/src/tools/ratelimit.rs`): behind a proxy the server takes the last
+  `X-Forwarded-For` entry, the one the proxy in front added. Before, actix's `realip_remote_addr()` preferred a
+  `Forwarded: for=` header, which clients could send themselves to get a fresh allowance from every rate limit and
+  from the SAR auth-failure lockout on each request. nginx now also drops client `Forwarded` headers.
+- **Staff tiers**: changing a player's country (`PUT /admin/users/{id}/country`) is for moderators and admins, like
+  names and pictures (any staff tier could before); staff can't freeze or unfreeze themselves.
 - **Rate limits** (`server/src/tools/ratelimit.rs`), per client address: Steam sign-in 20/min, demo uploads (preview,
   submit, add demo) 10/min, run reports 10/hour, player search 60/min, points history/peak 60/min, demo downloads
   120/min. Over the limit answers 429 with `Retry-After`.
