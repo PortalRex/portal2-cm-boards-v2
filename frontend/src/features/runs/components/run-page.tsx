@@ -4,9 +4,9 @@ import { TimerIcon } from '@/components/icons'
 import { siteBackground } from '@/components/layouts/backgrounds'
 import { Page } from '@/components/layouts/page'
 import { Panel } from '@/components/panel'
-import { ErrorState, Loading } from '@/components/status'
+import { EmptyState, ErrorState, Loading } from '@/components/status'
 import { mapPath, useCatalog } from '@/lib/catalog'
-import { runQueryOptions } from '../api/run'
+import { isMissingRun, runQueryOptions } from '../api/run'
 import { RunDetails } from './run-details'
 
 /**
@@ -22,6 +22,8 @@ export function RunPage({ runId }: { runId: number }) {
       <Panel icon={TimerIcon} title="Run" bodyClassName="p-0">
         {run.isPending ? (
           <Loading />
+        ) : isMissingRun(run.error) ? (
+          <EmptyState>No such run. It may have been deleted.</EmptyState>
         ) : run.isError ? (
           <ErrorState error={run.error} onRetry={() => void run.refetch()} />
         ) : (

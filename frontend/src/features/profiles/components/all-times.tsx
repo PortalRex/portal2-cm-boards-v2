@@ -1,5 +1,5 @@
 import { cn } from 'cn'
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { AppLink } from '@/components/app-link'
 import { Pagination } from '@/components/pagination'
 import { RankNumber } from '@/components/rank'
@@ -14,8 +14,8 @@ import { SectionTitle } from './score-tables'
 
 const PAGE = 50
 const row =
-  'grid min-h-9 grid-cols-[110px_minmax(0,1fr)_90px_80px_60px] items-center gap-3 px-3 text-base upto640:grid-cols-[84px_minmax(0,1fr)_76px_44px] upto640:gap-2'
-const wide = 'upto640:hidden'
+  'grid min-h-9 grid-cols-[110px_minmax(0,1fr)_90px_80px_60px] items-center gap-3 px-3 text-base upto600:grid-cols-[84px_minmax(0,1fr)_76px_44px] upto600:gap-2'
+const wide = 'upto600:hidden'
 
 /**
  * Every time the player has set in a game (or season), not just their bests: sortable, filterable by
@@ -27,6 +27,7 @@ export function AllTimes({ runs }: { runs: Run[] }) {
   const [mode, setMode] = useState<TimesMode>('all')
   const [query, setQuery] = useState('')
   const [page, setPage] = useState(0)
+  const top = useRef<HTMLElement>(null)
   // Each map's place in the catalog (game, chapter, map), for "Map order".
   const mapOrder = useMemo(() => new Map([...catalog.maps.values()].map((m, i) => [m.id, i])), [catalog])
   const list = useMemo(
@@ -44,9 +45,14 @@ export function AllTimes({ runs }: { runs: Run[] }) {
       set(v)
       setPage(0)
     }
+  // Paging from the bottom of the list starts the new page at its top, not halfway down.
+  const turnPage = (p: number) => {
+    setPage(p)
+    if ((top.current?.getBoundingClientRect().top ?? 0) < 0) top.current?.scrollIntoView({ block: 'start' })
+  }
 
   return (
-    <section className="flex flex-col">
+    <section ref={top} className="flex flex-col">
       <SectionTitle>All times</SectionTitle>
       <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2.5">
         <Select
@@ -133,7 +139,7 @@ export function AllTimes({ runs }: { runs: Run[] }) {
           </ol>
           {pageCount > 1 && (
             <div className="mt-3 flex justify-center">
-              <Pagination page={current} pageCount={pageCount} onChange={setPage} />
+              <Pagination page={current} pageCount={pageCount} onChange={turnPage} />
             </div>
           )}
         </>

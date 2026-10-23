@@ -30,7 +30,16 @@ describe('run page', () => {
       http.get(`${API}/changelog/999999999`, () => new HttpResponse('No such run.', { status: 404 })),
     )
     await renderRoute('/run/999999999')
-    expect(await screen.findByRole('alert')).toBeInTheDocument()
+    expect(await screen.findByText('No such run. It may have been deleted.')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument()
+  })
+
+  it('offers a retry when loading the run fails', async () => {
+    server.use(http.get(`${API}/changelog/${run.id}`, () => new HttpResponse(null, { status: 500 })))
+    await renderRoute(`/run/${run.id}`)
+    // One retry first (a second later), as for any failed load.
+    expect(await screen.findByRole('alert', {}, { timeout: 3000 })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
   })
 
   it('treats a non-number as an unknown page', async () => {

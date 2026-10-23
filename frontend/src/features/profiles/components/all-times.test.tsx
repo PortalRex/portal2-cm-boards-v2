@@ -1,6 +1,6 @@
 import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { adaptChangelog } from '@/lib/adapters/runs'
 import { BUILTIN_CATALOG } from '@/lib/catalog'
 import changelog from '@/testing/fixtures/profile-changelog.json'
@@ -52,6 +52,17 @@ describe('AllTimes', () => {
     await renderWithProviders(<AllTimes runs={many} />)
     expect(rows()).toHaveLength(50)
     expect(screen.getByRole('navigation', { name: 'Pagination' })).toBeInTheDocument()
+  })
+
+  it('starts the next page at the top of the list when paging from below it', async () => {
+    const many = Array.from({ length: 120 }, (_, i) => ({ ...history[0]!, id: 100000 + i }))
+    await renderWithProviders(<AllTimes runs={many} />)
+    const list = screen.getByRole('heading', { name: 'All times' }).closest('section')!
+    vi.spyOn(list, 'getBoundingClientRect').mockReturnValue({ top: -800 } as DOMRect)
+    const scroll = vi.spyOn(list, 'scrollIntoView')
+    await userEvent.click(screen.getByRole('button', { name: 'Next page' }))
+    expect(within(rows()[0]!).getByTitle('Open this run')).toHaveAttribute('href', '/run/100069')
+    expect(scroll).toHaveBeenCalledWith({ block: 'start' })
   })
 
   it('says so without times', async () => {

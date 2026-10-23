@@ -82,11 +82,22 @@ describe('auth queries', () => {
     expect(await createTestQueryClient().fetchQuery(meQueryOptions())).toBeNull()
   })
 
-  it('reads private mode, assuming public when /site fails', async () => {
+  it('reads private and read-only mode, assuming neither when /site fails', async () => {
     server.use(http.get(`${API}/site`, () => HttpResponse.json({ private: true })))
-    expect(await createTestQueryClient().fetchQuery(siteQueryOptions())).toEqual({ private: true })
+    expect(await createTestQueryClient().fetchQuery(siteQueryOptions())).toEqual({
+      private: true,
+      readOnly: false,
+    })
+    server.use(http.get(`${API}/site`, () => HttpResponse.json({ private: false, read_only: true })))
+    expect(await createTestQueryClient().fetchQuery(siteQueryOptions())).toEqual({
+      private: false,
+      readOnly: true,
+    })
     server.use(http.get(`${API}/site`, () => HttpResponse.error()))
-    expect(await createTestQueryClient().fetchQuery(siteQueryOptions())).toEqual({ private: false })
+    expect(await createTestQueryClient().fetchQuery(siteQueryOptions())).toEqual({
+      private: false,
+      readOnly: false,
+    })
   })
 
   it('signs out and forgets the user', async () => {
