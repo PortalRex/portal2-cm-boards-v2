@@ -14,6 +14,7 @@ import { mapPath, useCatalog } from '@/lib/catalog'
 import { formatDate, formatDateTime, formatDelta, formatScore, parseTimestamp } from '@/lib/format'
 import { changelogQueryOptions } from '@/lib/runs/changelog'
 import type { Player, Run, RunMap } from '@/types/runs'
+import { BanToggle } from './ban-toggle'
 import { AutorenderLink, CommentButton, DemoLink, YouTubeLink } from './run-media'
 
 type Person = Pick<Player, 'profileNumber' | 'name' | 'avatar'>
@@ -143,7 +144,7 @@ function RunHistoryDialog({
 }
 
 const rowGrid =
-  'grid grid-cols-[minmax(0,1fr)_110px_90px_110px_130px] items-center gap-x-3 px-2 upto700:grid-cols-[minmax(0,1fr)_76px_64px_72px] upto700:gap-x-1.5 upto700:text-[13px] upto700:[&>:nth-child(5)]:hidden'
+  'grid grid-cols-[minmax(0,1fr)_110px_90px_110px_150px] items-center gap-x-3 px-2 upto700:grid-cols-[minmax(0,1fr)_76px_64px_72px] upto700:gap-x-1.5 upto700:text-[13px] upto700:[&>:nth-child(5)]:hidden'
 
 function HistoryTable({ rows, game }: { rows: Run[]; game: string }) {
   return (
@@ -169,7 +170,8 @@ function HistoryTable({ rows, game }: { rows: Run[]; game: string }) {
             rowGrid,
             'min-h-[34px] text-[15px]',
             i % 2 === 0 && 'bg-row',
-            r.banned && 'opacity-55',
+            // Faded, except the staff ban switch (so it's clear which runs it would unban).
+            r.banned && '[&>:not(:last-child)]:opacity-55',
           )}
         >
           <span role="cell" className="text-text-muted" title={formatDateTime(r.timestamp)}>
@@ -200,6 +202,7 @@ function HistoryTable({ rows, game }: { rows: Run[]; game: string }) {
             <AutorenderLink run={r} game={game} size={20} />
             <YouTubeLink id={r.youtubeId} size={22} />
             <DemoLink demoId={r.demoId} size={20} />
+            <BanToggle run={r} />
           </span>
         </div>
       ))}

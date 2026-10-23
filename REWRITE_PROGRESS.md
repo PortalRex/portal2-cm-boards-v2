@@ -69,6 +69,9 @@
 
 ## Log
 <!-- Newest first. One entry per finished item: date, what was done, commit, tests added. -->
+- 2026-10-22: New (asked for): staff can ban / unban runs straight from a player's history on a map (the
+  dialog a time opens): a small ban switch at the end of each row (`components/runs/ban-toggle.tsx`), one click,
+  audit-logged without a reason. Hidden from players and in view-as-player.
 - 2026-10-22: New (asked for): profile activity heatmap squares can be clicked (or Enter/Space) to pin their card,
   which then lists every run that day as links to the run; Escape, a click outside or Close dismisses it. A new run
   page (`/run/{id}`, `features/runs/components/run-page.tsx`) shows one run with its Run details, from the new
