@@ -1,6 +1,6 @@
-import { screen, within } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 import { renderWithProviders } from '@/testing/test-utils'
 import { LayoutSlotsContext } from './slots'
 import { TopBar } from './top-bar'
@@ -63,6 +63,48 @@ describe('TopBar', () => {
     expect(screen.getByRole('link', { name: 'Settings' })).toHaveAttribute('href', '/more/settings')
     expect(screen.queryByRole('link', { name: 'Staff' })).toBeNull()
     expect(screen.getByRole('button', { name: 'Sign out' })).toBeEnabled()
+  })
+
+  describe('your picture', () => {
+    const touchScreen = (touch: boolean) => {
+      window.matchMedia = ((query: string) => ({ matches: touch && query === '(hover: none)' })) as never
+    }
+    afterEach(() => {
+      delete (window as { matchMedia?: unknown }).matchMedia
+    })
+
+    it('opens its menu on a touch screen instead of leaving the page, and closes it again', async () => {
+      touchScreen(true)
+      const { router } = await renderWithProviders(<TopBar />, { user: 'player', route: '/maps' })
+      const picture = screen.getByRole('link', { name: 'Your profile' })
+      expect(picture).toHaveAttribute('aria-expanded', 'false')
+      await userEvent.click(picture)
+      expect(picture).toHaveAttribute('aria-expanded', 'true')
+      expect(router.state.location.pathname).toBe('/maps')
+      expect(
+        within(within(picture.parentElement!).getByRole('menu')).getByRole('link', { name: 'My Profile' }),
+      ).toBeInTheDocument()
+      await userEvent.keyboard('{Escape}')
+      expect(picture).toHaveAttribute('aria-expanded', 'false')
+      await userEvent.click(picture)
+      await userEvent.click(within(nav()).getByRole('link', { name: 'Stats' }))
+      expect(picture).toHaveAttribute('aria-expanded', 'false')
+      // Going to your profile from the menu closes it: nothing in it keeps focus (which shows it).
+      await userEvent.click(picture)
+      await userEvent.click(
+        within(within(picture.parentElement!).getByRole('menu')).getByRole('link', { name: 'My Profile' }),
+      )
+      await waitFor(() => expect(router.state.location.pathname).toMatch(/^\/profile\//))
+      expect(picture).toHaveAttribute('aria-expanded', 'false')
+      expect(picture.parentElement!.contains(document.activeElement)).toBe(false)
+    })
+
+    it('goes to your profile when clicked with a mouse', async () => {
+      touchScreen(false)
+      const { router } = await renderWithProviders(<TopBar />, { user: 'player', route: '/maps' })
+      await userEvent.click(screen.getByRole('link', { name: 'Your profile' }))
+      expect(router.state.location.pathname).toMatch(/^\/profile\//)
+    })
   })
 
   it.each(['verifier', 'moderator', 'admin'] as const)('shows the staff link to a %s', async (user) => {

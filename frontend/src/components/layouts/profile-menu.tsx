@@ -1,6 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { Link, useLocation } from '@tanstack/react-router'
 import { cn } from 'cn'
+import { useEffect, useRef, useState } from 'react'
 import { AppLink } from '@/components/app-link'
 import { Avatar } from '@/components/avatar'
 import { SteamIcon } from '@/components/icons'
@@ -13,10 +14,45 @@ const rowClass = (active: boolean) =>
     active && 'shadow-[inset_3px_0_0_var(--brand)]',
   )
 
-/** Sign in through Steam, or the signed-in player's picture with their menu on hover. */
+/** Phones and tablets: no hovering, so a tap on the picture opens the menu instead. */
+const touchOnly = () => window.matchMedia?.('(hover: none)').matches ?? false
+
+/**
+ * Sign in through Steam, or the signed-in player's picture with their menu: on hover (a click goes
+ * to their profile), or on touch screens by tapping the picture (the menu has My Profile).
+ */
 export function ProfileMenu({ user }: { user: CurrentUser | null }) {
   const qc = useQueryClient()
   const { pathname, searchStr } = useLocation()
+  // Opened on this page; going to another page closes it.
+  const [openOn, setOpenOn] = useState<string | null>(null)
+  const open = openOn === pathname
+  const box = useRef<HTMLDivElement>(null)
+  // The menu also shows while something in it has focus (keyboard use), and a tapped link keeps
+  // focus after the page changes: let go of it, or the menu would stay over the new page.
+  const releaseFocus = () => {
+    if (box.current?.contains(document.activeElement)) (document.activeElement as HTMLElement).blur()
+  }
+  useEffect(releaseFocus, [pathname])
+  useEffect(() => {
+    if (!open) return
+    const close = () => {
+      setOpenOn(null)
+      releaseFocus()
+    }
+    const outside = (e: PointerEvent) => {
+      if (!box.current?.contains(e.target as Node)) close()
+    }
+    const escape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') close()
+    }
+    document.addEventListener('pointerdown', outside)
+    document.addEventListener('keydown', escape)
+    return () => {
+      document.removeEventListener('pointerdown', outside)
+      document.removeEventListener('keydown', escape)
+    }
+  }, [open])
   if (!user) {
     // Come back to this page, without a failed sign-in's notice.
     const back = pathname + searchStr.replace(/[?&]signin=failed/, '')
@@ -32,15 +68,34 @@ export function ProfileMenu({ user }: { user: CurrentUser | null }) {
   }
   const profile = `/profile/${user.profileNumber}`
   // Like legacy: the user is forgotten on this page even if the request fails.
-  const signOut = () => logout(qc).catch(() => qc.setQueryData(queryKeys.me(), null))
+  const signOut = () => {
+    setOpenOn(null)
+    releaseFocus()
+    return logout(qc).catch(() => qc.setQueryData(queryKeys.me(), null))
+  }
   return (
-    <div className="group/profile relative">
-      <Link to="/profile/$profileId" params={{ profileId: user.profileNumber }} aria-label="Your profile">
+    <div ref={box} className="group/profile relative">
+      <Link
+        to="/profile/$profileId"
+        params={{ profileId: user.profileNumber }}
+        aria-label="Your profile"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={(e) => {
+          if (!touchOnly()) return
+          e.preventDefault()
+          if (open) releaseFocus()
+          setOpenOn(open ? null : pathname)
+        }}
+      >
         <Avatar src={user.avatar} name={user.name} size={48} className="rounded-lg upto1320:size-10!" />
       </Link>
       <div
         role="menu"
-        className="invisible absolute top-[60px] right-0 flex w-[250px] flex-col items-stretch overflow-hidden rounded-lg bg-menu pb-3.5 opacity-0 shadow-[0_12px_30px_rgba(0,0,0,0.45)] transition-[opacity,visibility] duration-100 group-hover/profile:visible group-hover/profile:opacity-100 group-focus-within/profile:visible group-focus-within/profile:opacity-100 upto1320:hidden"
+        className={cn(
+          'invisible absolute top-[60px] right-0 z-50 flex w-[250px] max-w-[calc(100vw-24px)] flex-col items-stretch overflow-hidden rounded-lg bg-menu pb-3.5 opacity-0 shadow-[0_12px_30px_rgba(0,0,0,0.45)] transition-[opacity,visibility] duration-100 group-hover/profile:visible group-hover/profile:opacity-100 group-focus-within/profile:visible group-focus-within/profile:opacity-100 upto1320:top-[52px]',
+          open && 'visible opacity-100',
+        )}
       >
         <Link
           to="/profile/$profileId"
