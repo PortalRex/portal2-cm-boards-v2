@@ -127,6 +127,19 @@ describe('Profile page', () => {
     )
   })
 
+  it("opens the player's history on a map without a score from its dash (to find banned runs)", async () => {
+    const melRun = { ...changelog[5]!, id: 900001, map_id: '1', map_name: 'Tramride', coop_id: null }
+    serveProfile({ gameRanks: { '2': { '1': 3 } }, gameRuns: [melRun] })
+    await renderProfile(`/profile/${FIXTURE_PLAYER}?game=mel`)
+    // Every Mel map but Tramride has no score.
+    const unplayed = (await screen.findAllByText('No score'))[0]!.closest('[id]') as HTMLElement
+    const map = within(unplayed).getAllByRole('link')[0]!.textContent!
+    expect(within(unplayed).getAllByText('–').length).toBeGreaterThanOrEqual(2)
+    await userEvent.click(within(unplayed).getByTitle(new RegExp(`history on ${map}$`)))
+    const dialog = await screen.findByRole('dialog')
+    expect(within(dialog).getByRole('link', { name: map })).toBeInTheDocument()
+  })
+
   it('sorts every map of the mode into one table', async () => {
     serveProfile()
     await renderProfile()

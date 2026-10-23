@@ -22,6 +22,7 @@ type Person = Pick<Player, 'profileNumber' | 'name' | 'avatar'>
 /**
  * A run's time as a button: clicking it (without opening the row) shows that player's history on
  * the map, like the old boards' changelog for a player and chamber. Co-op runs get a tab per player.
+ * Without a score (none yet, or every run banned) it's a dash that still opens the history.
  */
 export function TimeButton({
   score,
@@ -29,14 +30,15 @@ export function TimeButton({
   map,
   className,
 }: {
-  score: number
+  score: number | null
   players: Person[]
   map: RunMap | null | undefined
   className?: string
 }) {
   const [open, setOpen] = useState(false)
   const people = players.filter((p): p is Person & { profileNumber: string } => Boolean(p?.profileNumber))
-  if (!people.length || !map) return <span className={className}>{formatScore(score)}</span>
+  const shown = score != null ? formatScore(score) : '–'
+  if (!people.length || !map) return <span className={className}>{shown}</span>
   return (
     <>
       <button
@@ -52,7 +54,7 @@ export function TimeButton({
           setOpen(true)
         }}
       >
-        {formatScore(score)}
+        {shown}
       </button>
       {open && <RunHistoryDialog players={people} map={map} onClose={() => setOpen(false)} />}
     </>

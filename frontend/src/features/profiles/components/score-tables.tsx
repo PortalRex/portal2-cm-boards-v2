@@ -220,6 +220,8 @@ export function ChapterTable({
   )
 }
 
+const Dash = () => <span className="text-text-muted">–</span>
+
 function ChapterRow({
   map: m,
   score: s,
@@ -284,17 +286,18 @@ function ChapterRow({
             {s?.timestamp ? timeAgo(s.timestamp) : s ? '' : 'No score'}
           </small>
         </span>
-        <span className="num text-right">
-          {s?.score != null ? <TimeButton score={s.score} players={players} map={m} /> : ''}
+        {/* No score: dashes, the time one still opening the history (to find banned runs). */}
+        <span className={cn('num text-right', !s && 'text-text-muted')}>
+          <TimeButton score={s?.score ?? null} players={players} map={m} />
         </span>
         <span className="num text-right upto800:text-[15px] upto800:text-text-2">
-          {s?.deltaNext != null ? formatDelta(s.deltaNext) : ''}
+          {s?.deltaNext != null ? formatDelta(s.deltaNext) : s ? '' : <Dash />}
         </span>
         <span className={cn('num text-right', desktopOnly)}>
-          {s?.deltaWr != null ? formatDelta(s.deltaWr) : ''}
+          {s?.deltaWr != null ? formatDelta(s.deltaWr) : s ? '' : <Dash />}
         </span>
         <span className={cn('num text-right', desktopOnly)}>
-          {s?.points != null ? s.points.toFixed(1) : ''}
+          {s?.points != null ? s.points.toFixed(1) : s ? '' : <Dash />}
         </span>
         {coop && (
           <span
