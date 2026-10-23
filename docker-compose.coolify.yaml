@@ -83,6 +83,24 @@ services:
       retries: 30
       start_period: 30s
 
+  backup:
+    # Daily database dumps into the `backups` volume (see db/backup/backup.sh). Coolify's own scheduled backups
+    # only cover its standalone databases, not one inside a compose file.
+    build: ./db/backup
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${SERVICE_USER_POSTGRES:-postgres}
+      POSTGRES_PASSWORD: ${SERVICE_PASSWORD_POSTGRES}
+      # When to dump, in UTC, and how many to keep (newest daily ones, plus one per month).
+      BACKUP_AT: ${BACKUP_AT:-04:00}
+      KEEP_DAILY: ${BACKUP_KEEP_DAILY:-14}
+      KEEP_MONTHLY: ${BACKUP_KEEP_MONTHLY:-6}
+    volumes:
+      - backups:/backups
+    depends_on:
+      db:
+        condition: service_healthy
+
   web:
     build: ./frontend
     restart: unless-stopped
@@ -103,3 +121,4 @@ volumes:
   uploads:
   server-points:
   server-cache:
+  backups:

@@ -196,7 +196,17 @@ docker exec $SERVER tar -xf /tmp/demos.tar -C /data/demos --strip-components=1
 docker restart $SERVER
 ```
 
-Turn on scheduled backups for the database in Coolify (they need an S3-compatible destination). The old boards' demo archive (~170 GB) isn't included: without it, imported runs' demo downloads report the file isn't available. To add it later, put the folders on the server, mount them into `server` and list them in `DEMO_ARCHIVE` (separated by `;`).
+**Backups:** the `backup` service dumps the database every day at `BACKUP_AT` (UTC, default `04:00`) into its `backups` volume, keeping the newest `BACKUP_KEEP_DAILY` (14) plus the first of each month for `BACKUP_KEEP_MONTHLY` (6) months. (Coolify's own scheduled backups only cover its standalone databases.) They're on the same server, so copy one off now and then:
+
+```bash
+B=backup-<id>   # docker ps lists it
+docker exec $B ls -lh /backups                                   # the dumps
+docker cp $B:/backups/p2boards-<date>.dump .                      # copy one out (then scp it home)
+```
+
+A dump restores with the same `pg_restore` command as above (copy it into the db container as `/tmp/p2boards.dump`).
+
+The old boards' demo archive (~170 GB) isn't included: without it, imported runs' demo downloads report the file isn't available. To add it later, put the folders on the server, mount them into `server` and list them in `DEMO_ARCHIVE` (separated by `;`).
 
 ## Original Project Team
 
