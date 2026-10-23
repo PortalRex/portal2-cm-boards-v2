@@ -52,6 +52,15 @@ describe('staffPowers', () => {
     expect(staffPowers(me('admin'), { ...target, role: 'verifier', banned: true })?.ban).toBe(true)
   })
 
+  it('lets only admins freeze other staff', () => {
+    for (const role of ['verifier', 'moderator', 'admin']) {
+      const staff = { ...target, role }
+      expect(staffPowers(me('verifier'), staff)?.freeze).toBe(false)
+      expect(staffPowers(me('moderator'), staff)?.freeze).toBe(false)
+      expect(staffPowers(me('admin'), staff)?.freeze).toBe(true)
+    }
+  })
+
   it('keeps staff from changing their own role, freezing or banning themselves', () => {
     const self = { ...target, profileNumber: users.admin.profile_number, role: 'admin' }
     expect(staffPowers(me('admin'), self)).toEqual({ role: false, freeze: false, ban: false, display: true })

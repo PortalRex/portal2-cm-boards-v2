@@ -256,7 +256,11 @@ All under `/api/v1`. Auth: **public**, **signed in**, **staff** (any tier or ser
   `Forwarded: for=` header, which clients could send themselves to get a fresh allowance from every rate limit and
   from the SAR auth-failure lockout on each request. nginx now also drops client `Forwarded` headers.
 - **Staff tiers**: changing a player's country (`PUT /admin/users/{id}/country`) is for moderators and admins, like
-  names and pictures (any staff tier could before); staff can't freeze or unfreeze themselves.
+  names and pictures (any staff tier could before); staff can't freeze or unfreeze themselves, and only admins can
+  freeze or unfreeze other staff.
+- **`Cargo.lock` is committed** (server and backend) and the server's Docker build uses it (`cargo build --locked`).
+  Before, every deploy resolved its dependencies afresh, so builds weren't reproducible and any new release of a
+  dependency went live unreviewed. Update them with `cargo update`, test, and commit the lockfile.
 - **Rate limits** (`server/src/tools/ratelimit.rs`), per client address: Steam sign-in 20/min, demo uploads (preview,
   submit, add demo) 10/min, run reports 10/hour, player search 60/min, points history/peak 60/min, demo downloads
   120/min. Over the limit answers 429 with `Retry-After`.

@@ -51,7 +51,9 @@ RUST_LOG="actix_web=info"
 - `DEMO.PARSER` and `DEMO.STORAGE` enable run submissions (the navbar's **Submit Run**). Submitted demos are read by `server/demo-parser/parse_demo.mjs` (Node 18+; run `npm install` in that folder) for the map, the scoreboard time and the players, and saved in `DEMO.STORAGE`. `DEMO.NODE` sets the node executable if it isn't on the PATH. `DEMO.ARCHIVE` lists the folders (separated by `;`) holding the old boards' demo files, so imported runs' demos can be downloaded. `RANKS.COOP` sets co-op ranking: `run` (default) gives each run one rank (1, 2, 3); `player` gives each player one (1, 1, 3), as the old boards did. `RANKS.COOP_PROOF_SINCE` (UTC, set it to the launch) makes new top-200 co-op runs wait for a demo from each player before they're verified.
 - The server can pull new Portal 2 times from Steam's leaderboards itself: `SYNC.STEAM=true` turns it on (every `SYNC.MINUTES`, 10 by default; times in each map's top `SYNC.RANK_LIMIT` on Steam, 500 by default). `STEAM.API_KEY` lets it create accounts for players it hasn't seen. Portal Stories: Mel has no public Steam leaderboards, so Mel times come from demo submissions. Until the old boards are retired, `SYNC.OLD_BOARDS=true` also pulls from them at midnight and noon (America/Chicago): Mel runs, demos, videos, comments and bans that Steam can't show (see BACKEND_CHANGES.md §13). Players can only submit demos they are in; admins (`users.role = admin`) may also enter the map, time, player or partner by hand, which is recorded in the audit log.
 
-Assuming the database is up and running, start the server with `cargo run` in `/server`
+Assuming the database is up and running, start the server with `cargo run` in `/server`. It needs a current stable Rust
+(`rustup update stable`; the committed `Cargo.lock` needs 1.88 or newer). The Docker image builds with the latest
+stable and `--locked`, so dependency updates go through `cargo update` and a commit of `Cargo.lock`.
 
 #### Games, seasons and linked leaderboards
 

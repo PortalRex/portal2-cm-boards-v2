@@ -2,10 +2,11 @@
 # Builds the web server, then runs it on a Node image: run submissions use the demo parser (node).
 FROM rust:1-bookworm AS build
 WORKDIR /src
+# Cargo.lock is committed and --locked keeps the build to it: every deploy gets the same dependencies.
 COPY . .
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/src/target \
-    cargo build --release && cp target/release/server /usr/local/bin/server
+    cargo build --release --locked && cp target/release/server /usr/local/bin/server
 
 FROM node:20-bookworm-slim
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates libssl3 \

@@ -11,7 +11,6 @@ pub mod countries;
 /// Cooperative-specific endpoints.
 pub mod coop;
 /// Demo endpoints
-///pub mod demos;
 /// Per-game aggregate endpoints computed from the changelog.
 pub mod game_boards;
 /// Mounting of the endpoints.

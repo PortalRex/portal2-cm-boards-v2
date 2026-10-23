@@ -395,8 +395,17 @@ pub async fn remove_demo(pool: &PgPool, actor: &AdminOrService, cl_id: i64, reas
 
 /// Freezes or unfreezes a profile: frozen profiles keep their times but can't get new ones.
 pub async fn set_frozen(pool: &PgPool, actor: &AdminOrService, profile_number: &str, frozen: bool, reason: Option<&str>) -> ActionResult<()> {
-    if matches!(actor, AdminOrService::Admin(me) if me.profile_number == profile_number) {
-        return Ok(Err(Refused::Invalid("You can't freeze or unfreeze yourself.".into())));
+    if let AdminOrService::Admin(me) = actor {
+        if me.profile_number == profile_number {
+            return Ok(Err(Refused::Invalid("You can't freeze or unfreeze yourself.".into())));
+        }
+        // Only admins act on other staff (a verifier freezing an admin, say).
+        if !me.is_role_admin() {
+            let role: Option<Option<String>> = sqlx::query_scalar("SELECT role FROM users WHERE profile_number = $1").bind(profile_number).fetch_optional(pool).await?;
+            if matches!(role, Some(Some(_))) {
+                return Ok(Err(Refused::Invalid("Only admins can freeze or unfreeze staff.".into())));
+            }
+        }
     }
     let mut tx = pool.begin().await?;
     let updated = sqlx::query("UPDATE users SET frozen = $2, frozen_reason = CASE WHEN $2 THEN $3 ELSE NULL END WHERE profile_number = $1 AND profile_number <> $4")

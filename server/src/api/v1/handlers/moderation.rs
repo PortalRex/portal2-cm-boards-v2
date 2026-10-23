@@ -255,7 +255,8 @@ async fn admin_run_partner(
 }
 
 /// **PUT** Freeze a profile (`{"frozen": true, "reason": ...}`): its times stay on the boards
-/// but it can't get new ones. `{"frozen": false}` unfreezes.
+/// but it can't get new ones. `{"frozen": false}` unfreezes. Any staff tier, not on themselves;
+/// only admins on other staff.
 #[put("/admin/users/{profile_number}/freeze")]
 async fn admin_user_freeze(auth: AdminOrService, pool: web::Data<PgPool>, profile_number: web::Path<String>, body: web::Json<FreezeBody>) -> Result<impl Responder> {
     Ok(match moderation::set_frozen(pool.get_ref(), &auth, &profile_number, body.frozen, reason(&body.reason)).await? {

@@ -506,3 +506,31 @@ async fn test_db_audit_search() {
     assert!(profiles.iter().any(|r| r.id == ids[0]) && !profiles.iter().any(|r| r.id == ids[2]));
     cleanup().await;
 }
+
+#[actix_web::test]
+async fn test_db_freeze_rules() {
+    use crate::controllers::moderation::{set_frozen, Refused};
+    use crate::tools::auth::{AdminOrService, AuthUser};
+    let (_, pool) = get_config().await.expect("Error getting config and DB pool");
+    // Our own rows (removed again at the end).
+    let cleanup = || async {
+        sqlx::query("DELETE FROM admin_actions WHERE target_id LIKE 'test-freeze-%'").execute(&pool).await.unwrap();
+        sqlx::query("DELETE FROM users WHERE profile_number LIKE 'test-freeze-%'").execute(&pool).await.unwrap();
+    };
+    cleanup().await;
+    for (id, role) in [("test-freeze-verifier", Some("verifier")), ("test-freeze-admin", Some("admin")), ("test-freeze-player", None)] {
+        sqlx::query("INSERT INTO users (profile_number, steam_name, role) VALUES ($1, $1, $2)").bind(id).bind(role).execute(&pool).await.unwrap();
+    }
+    let staff = |id: &str, role: &str| {
+        AdminOrService::Admin(AuthUser { profile_number: id.into(), user_name: id.into(), avatar: None, admin: 0, role: Some(role.into()), banned: false })
+    };
+    let (verifier, admin) = (staff("test-freeze-verifier", "verifier"), staff("test-freeze-admin", "admin"));
+    let refused = |r: Result<(), Refused>| matches!(r, Err(Refused::Invalid(_)));
+    assert!(refused(set_frozen(&pool, &verifier, "test-freeze-verifier", true, None).await.unwrap()), "not on themselves");
+    assert!(refused(set_frozen(&pool, &verifier, "test-freeze-admin", true, None).await.unwrap()), "a verifier on an admin");
+    assert!(set_frozen(&pool, &verifier, "test-freeze-player", true, None).await.unwrap().is_ok(), "a verifier on a player");
+    assert!(set_frozen(&pool, &admin, "test-freeze-verifier", true, None).await.unwrap().is_ok(), "an admin on staff");
+    let frozen: Vec<String> = sqlx::query_scalar("SELECT profile_number FROM users WHERE profile_number LIKE 'test-freeze-%' AND frozen ORDER BY 1").fetch_all(&pool).await.unwrap();
+    assert_eq!(frozen, ["test-freeze-player", "test-freeze-verifier"]);
+    cleanup().await;
+}

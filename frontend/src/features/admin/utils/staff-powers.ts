@@ -18,7 +18,7 @@ export interface StaffProfile {
 export interface StaffPowers {
   /** Set the staff tier (admins, not on themselves). */
   role: boolean
-  /** Freeze / unfreeze (any staff, not themselves). */
+  /** Freeze / unfreeze (any staff, not themselves; only admins on other staff). */
   freeze: boolean
   /** Ban / unban (moderators and admins, not themselves; staff lose their role first). */
   ban: boolean
@@ -33,7 +33,7 @@ export function staffPowers(user: CurrentUser | null | undefined, player: StaffP
   const mod = user.role === 'moderator' || user.role === 'admin'
   return {
     role: isRoleAdmin(user) && !self,
-    freeze: !self,
+    freeze: !self && (!player.role || isRoleAdmin(user)),
     ban: mod && !self && (!player.role || player.banned),
     display: mod,
   }
