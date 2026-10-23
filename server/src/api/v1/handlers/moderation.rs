@@ -76,7 +76,12 @@ async fn respond(result: moderation::ActionResult<Touched>, cache: &CacheState, 
 }
 
 /// **GET** The admin audit log, newest first. Filters: `admin`, `target_type`, `target_id`,
-/// `action`; page with `before=<id>`; `limit` (default 50, max 200).
+/// `action`, `kind` (`runs` / `profiles` / `catalog`) and `q`, a search: names (staff, player,
+/// co-op partner, profile), map names, the reason and catalog details containing it (ignoring
+/// case), or exactly a run id, Steam id or target id. Page with `before=<id>`; `limit` (default 50,
+/// max 200).
+///
+/// Example: `GET /api/v1/admin/audit?kind=runs&q=wall%20button`
 #[get("/admin/audit")]
 async fn admin_audit(_auth: AdminOrService, pool: web::Data<PgPool>, query: web::Query<AuditQuery>) -> Result<impl Responder> {
     Ok(web::Json(moderation::list_actions(pool.get_ref(), &query).await?))

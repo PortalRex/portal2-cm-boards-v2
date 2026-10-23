@@ -8,6 +8,7 @@ import { RankNumber } from '@/components/rank'
 import { Segmented } from '@/components/segmented'
 import { Select } from '@/components/select'
 import { EmptyState, Loading } from '@/components/status'
+import { useDebounced } from '@/hooks/use-debounced'
 import { ACTIONS } from '@/lib/admin-actions'
 import { getMap, mapPath, useCatalog } from '@/lib/catalog'
 import { formatScore } from '@/lib/format'
@@ -95,7 +96,10 @@ const actedBy = 'min-w-0 truncate pl-2'
 export function AuditLog() {
   const [kind, setKind] = useState<AuditKind>('runs')
   const [action, setAction] = useState('')
-  const log = useInfiniteQuery(auditQueryOptions(kind, action))
+  const [search, setSearch] = useState('')
+  // Asks the server once typing pauses; the log's tab and action filters still apply.
+  const query = useDebounced(search.trim(), 300)
+  const log = useInfiniteQuery(auditQueryOptions(kind, action, query))
   const tab = TABS.find((t) => t.value === kind)!
   const entries = log.data?.pages.flat() ?? []
   const options = [
@@ -126,9 +130,20 @@ export function AuditLog() {
           onChange={setAction}
           options={options}
         />
+        <input
+          type="search"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search names, maps, reasons, ids"
+          aria-label="Search the admin changelog"
+          maxLength={100}
+          className="h-[34px] w-[280px] max-w-full rounded-[4px] border border-line-strong bg-control px-2.5 text-base text-foreground"
+        />
       </div>
       {log.isError && <EmptyState>Couldn’t load the admin changelog: {log.error.message}</EmptyState>}
-      {!log.isError && !loading && !entries.length && <EmptyState>No admin actions yet.</EmptyState>}
+      {!log.isError && !loading && !entries.length && (
+        <EmptyState>{query || action ? 'No admin actions match.' : 'No admin actions yet.'}</EmptyState>
+      )}
       {entries.length > 0 && (
         <div role="table" aria-label="Admin changelog">
           {kind === 'runs' ? (

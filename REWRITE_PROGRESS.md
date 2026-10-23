@@ -69,6 +69,9 @@
 
 ## Log
 <!-- Newest first. One entry per finished item: date, what was done, commit, tests added. -->
+- 2026-10-23: New (asked for): a search field in the Admin changelog. The server searches the whole log (`q` on
+  `GET /admin/audit`: staff, player, partner and profile names, map names, reasons, catalog details, exact ids),
+  so paging still works; it combines with the tab and action filters and asks once typing pauses.
 - 2026-10-22: New (asked for): staff can ban / unban runs straight from a player's history on a map (the
   dialog a time opens): a small ban switch at the end of each row (`components/runs/ban-toggle.tsx`), one click,
   audit-logged without a reason. Hidden from players and in view-as-player.

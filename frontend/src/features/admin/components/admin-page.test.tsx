@@ -191,6 +191,42 @@ describe('the admin changelog', () => {
     expect(queries[0]).toEqual({ kind: 'runs', limit: '50' })
   })
 
+  it('searches the whole log on the server, with the tab and action filters', async () => {
+    const queries = serveAudit((q) =>
+      q.get('q') === 'wall button' && !q.get('action')
+        ? [entry({ id: 7, map_id: '47804', map_name: 'Wall Button' })]
+        : [],
+    )
+    await renderWithProviders(page(), { user: 'verifier' })
+    expect(await screen.findByText('No admin actions yet.')).toBeInTheDocument()
+    await userEvent.type(
+      screen.getByRole('searchbox', { name: 'Search the admin changelog' }),
+      '  wall button ',
+    )
+    expect(await screen.findByRole('link', { name: 'Wall Button' })).toBeInTheDocument()
+    // Asked once typing paused, trimmed, not for every key.
+    expect(queries.filter((q) => q.q)).toEqual([{ kind: 'runs', q: 'wall button', limit: '50' }])
+    await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Action' }), 'run.verify')
+    await waitFor(() =>
+      expect(queries.at(-1)).toEqual({ kind: 'runs', action: 'run.verify', q: 'wall button', limit: '50' }),
+    )
+    expect(await screen.findByText('No admin actions match.')).toBeInTheDocument()
+  })
+
+  it('pages through search results like the full log', async () => {
+    const queries = serveAudit((q) => {
+      const before = Number(q.get('before') ?? 1000)
+      return Array.from({ length: before === 1000 ? 50 : 2 }, (_, i) => entry({ id: before - 1 - i }))
+    })
+    await renderWithProviders(page(), { user: 'verifier' })
+    await userEvent.type(screen.getByRole('searchbox', { name: 'Search the admin changelog' }), 'runner')
+    await waitFor(() => expect(queries.at(-1)).toMatchObject({ q: 'runner' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Load more' }))
+    await waitFor(() =>
+      expect(queries.at(-1)).toEqual({ kind: 'runs', q: 'runner', before: '950', limit: '50' }),
+    )
+  })
+
   it('loads older entries 50 at a time', async () => {
     const queries = serveAudit((q) => {
       const before = Number(q.get('before') ?? 1000)

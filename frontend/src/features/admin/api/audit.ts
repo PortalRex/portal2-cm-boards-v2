@@ -42,16 +42,22 @@ export type AuditKind = 'runs' | 'profiles' | 'catalog'
 export const AUDIT_PAGE = 50
 
 export const getAudit = (
-  params: { kind: AuditKind; action?: string; before?: number; limit?: number },
+  params: { kind: AuditKind; action?: string; q?: string; before?: number; limit?: number },
   signal?: AbortSignal,
 ) => api.get<AuditEntry[]>('/admin/audit', { params, signal })
 
-/** The log newest first, 50 at a time ("Load more" asks for the entries before the last one). */
-export const auditQueryOptions = (kind: AuditKind, action: string) =>
+/**
+ * The log newest first, 50 at a time ("Load more" asks for the entries before the last one).
+ * `search` is looked for on the server (names, maps, reasons, ids), so it covers the whole log.
+ */
+export const auditQueryOptions = (kind: AuditKind, action: string, search = '') =>
   infiniteQueryOptions({
-    queryKey: queryKeys.admin.audit({ kind, action }),
+    queryKey: queryKeys.admin.audit({ kind, action, search }),
     queryFn: ({ pageParam, signal }) =>
-      getAudit({ kind, action: action || undefined, before: pageParam, limit: AUDIT_PAGE }, signal),
+      getAudit(
+        { kind, action: action || undefined, q: search || undefined, before: pageParam, limit: AUDIT_PAGE },
+        signal,
+      ),
     initialPageParam: undefined as number | undefined,
     getNextPageParam: (last) => (last.length < AUDIT_PAGE ? undefined : last[last.length - 1]?.id),
   })

@@ -58,6 +58,20 @@ pub struct AuditQuery {
     pub action: Option<String>,
     /// "runs" (run and co-op actions) or "profiles".
     pub kind: Option<String>,
+    /// Search: names (staff, player, co-op partner, profile), map names, the reason and catalog
+    /// details contain it (ignoring case), or it's exactly a run id, Steam id or target id.
+    pub q: Option<String>,
+}
+
+/// The search for [list_actions]: (a `LIKE` pattern for "contains", the exact text), or None for
+/// no search. `%`, `_` and `\` in the text match themselves.
+fn audit_search(q: Option<&str>) -> Option<(String, String)> {
+    let q: String = q?.trim().chars().take(100).collect();
+    if q.is_empty() {
+        return None;
+    }
+    let escaped = q.replace('\\', "\\\\").replace('%', "\\%").replace('_', "\\_");
+    Some((format!("%{escaped}%"), q))
 }
 
 /// Why an action was refused (shown to the admin).
@@ -125,9 +139,10 @@ pub async fn log_by_user(pool: &PgPool, profile_number: &str, action: &str, targ
 }
 
 pub async fn list_actions(pool: &PgPool, q: &AuditQuery) -> Result<Vec<AdminAction>, sqlx::Error> {
+    let search = audit_search(q.q.as_deref());
     sqlx::query_as::<_, AdminAction>(
         r#"
-            WITH page AS (
+            WITH filtered AS (
                 SELECT a.*,
                     -- The run an action is about: the target run, or the first run of a co-op pair.
                     CASE
@@ -145,7 +160,36 @@ pub async fn list_actions(pool: &PgPool, q: &AuditQuery) -> Result<Vec<AdminActi
                        OR ($7 = 'runs' AND a.target_type IN ('run', 'coop'))
                        OR ($7 = 'profiles' AND a.target_type = 'profile')
                        OR ($7 = 'catalog' AND a.target_type IN ('game', 'chapter', 'map', 'category')))
-                ORDER BY a.id DESC
+            ),
+            page AS (
+                SELECT f.* FROM filtered AS f
+                -- The search ($8 a "contains" pattern, $9 the exact text).
+                WHERE $8::text IS NULL
+                   OR f.reason ILIKE $8
+                   OR f.target_id = $9 OR f.admin_profile = $9 OR f.run_id::text = $9
+                   OR EXISTS (SELECT 1 FROM users AS su WHERE su.profile_number = f.admin_profile
+                                AND (su.board_name ILIKE $8 OR su.steam_name ILIKE $8))
+                   OR (f.target_type = 'profile' AND EXISTS (
+                        SELECT 1 FROM users AS tu WHERE tu.profile_number = f.target_id
+                          AND (tu.board_name ILIKE $8 OR tu.steam_name ILIKE $8)))
+                   -- Catalog changes keep the names they changed in their details.
+                   OR (f.target_type IN ('game', 'chapter', 'map', 'category') AND f.details::text ILIKE $8)
+                   OR (f.target_type = 'map' AND EXISTS (SELECT 1 FROM maps AS cm WHERE cm.steam_id = f.target_id AND cm.name ILIKE $8))
+                   -- The run's player, co-op partner and map (deleted runs: from the saved copy).
+                   OR ((f.run_id IS NOT NULL OR f.deleted IS NOT NULL) AND EXISTS (
+                        SELECT 1 FROM (
+                            SELECT COALESCE(rcl.profile_number, f.deleted ->> 'profile_number') AS player,
+                                   NULLIF(CASE WHEN rcb.p_id1 = rcl.profile_number THEN rcb.p_id2 ELSE rcb.p_id1 END, 'N/A') AS partner,
+                                   COALESCE(rcl.map_id, f.deleted ->> 'map_id') AS map_id
+                            FROM (SELECT 1) AS one
+                            LEFT JOIN changelog AS rcl ON rcl.id = f.run_id
+                            LEFT JOIN coop_bundled AS rcb ON rcb.id = rcl.coop_id
+                        ) AS r
+                        WHERE r.player = $9 OR r.partner = $9
+                           OR EXISTS (SELECT 1 FROM users AS ru WHERE ru.profile_number IN (r.player, r.partner)
+                                        AND (ru.board_name ILIKE $8 OR ru.steam_name ILIKE $8))
+                           OR EXISTS (SELECT 1 FROM maps AS rm WHERE rm.steam_id = r.map_id AND rm.name ILIKE $8)))
+                ORDER BY f.id DESC
                 LIMIT $6
             )
             SELECT p.id, p.admin_profile, COALESCE(u.board_name, u.steam_name, p.admin_profile) AS admin_name,
@@ -182,6 +226,8 @@ pub async fn list_actions(pool: &PgPool, q: &AuditQuery) -> Result<Vec<AdminActi
     .bind(q.action.as_deref())
     .bind(q.limit.unwrap_or(50).clamp(1, 200))
     .bind(q.kind.as_deref())
+    .bind(search.as_ref().map(|(like, _)| like.as_str()))
+    .bind(search.as_ref().map(|(_, exact)| exact.as_str()))
     .fetch_all(pool)
     .await
 }
@@ -827,4 +873,19 @@ pub async fn inbox_seen(pool: &PgPool, viewer: &str, id: i64) -> Result<(), sqlx
     sqlx::query("UPDATE users SET staff_inbox_seen_id = GREATEST(COALESCE(staff_inbox_seen_id, 0), $2) WHERE profile_number = $1").bind(viewer).bind(id).execute(pool).await?;
     crate::tools::staff_events::publish(crate::tools::staff_events::StaffEvent::Seen { profile: viewer.to_string(), id });
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::audit_search;
+
+    #[test]
+    fn audit_search_trims_and_escapes() {
+        assert_eq!(audit_search(None), None);
+        assert_eq!(audit_search(Some("   ")), None);
+        assert_eq!(audit_search(Some(" Wall Button ")), Some(("%Wall Button%".into(), "Wall Button".into())));
+        // Wildcards and the escape character match themselves.
+        assert_eq!(audit_search(Some(r"100%_\x")), Some((r"%100\%\_\\x%".into(), r"100%_\x".into())));
+        assert_eq!(audit_search(Some(&"a".repeat(300))).unwrap().1.len(), 100);
+    }
 }

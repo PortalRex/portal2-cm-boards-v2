@@ -161,7 +161,7 @@ All under `/api/v1`. Auth: **public**, **signed in**, **staff** (any tier or ser
 
 | Method & path | Auth | Purpose |
 |---|---|---|
-| `GET /admin/audit?kind=&action=&before=&limit=` | staff | The audit log; `kind` = `runs`, `profiles` or `catalog`. |
+| `GET /admin/audit?kind=&action=&q=&before=&limit=` | staff | The audit log; `kind` = `runs`, `profiles` or `catalog`; `q` searches names (staff, player, co-op partner, profile), map names, reasons and catalog details (ignoring case), or matches a run id, Steam id or target id exactly. |
 | `PUT /admin/runs/{id}/banned` | staff | Hide a run from the boards / restore it (both co-op halves). |
 | `PUT /admin/runs/{id}/verified` | staff | Verify a pending run / mark it pending. |
 | `PUT /admin/runs/{id}/wr_history` | staff | Remove from / restore to the map's WR history. |

@@ -449,3 +449,60 @@ async fn test_db_staff_list() {
     let expected = [("test-staff-a1", "admin"), ("test-staff-a2", "admin"), ("test-staff-m", "moderator"), ("test-staff-v", "verifier")];
     assert_eq!(ours, expected.map(|(a, b)| (a.to_string(), b.to_string())));
 }
+
+#[actix_web::test]
+async fn test_db_audit_search() {
+    use crate::controllers::moderation::{list_actions, AuditQuery};
+    let (_, pool) = get_config().await.expect("Error getting config and DB pool");
+    // Our own rows (removed again at the end): a staff member, a player, and three actions.
+    let cleanup = || async {
+        sqlx::query("DELETE FROM admin_actions WHERE admin_profile = 'test-audit-staff'").execute(&pool).await.unwrap();
+        sqlx::query("DELETE FROM users WHERE profile_number IN ('test-audit-staff', 'test-audit-player')").execute(&pool).await.unwrap();
+    };
+    cleanup().await;
+    for (id, name) in [("test-audit-staff", "Zyx Staffer"), ("test-audit-player", "Qwv Player")] {
+        sqlx::query("INSERT INTO users (profile_number, steam_name) VALUES ($1, $2)").bind(id).bind(name).execute(&pool).await.unwrap();
+    }
+    let mut ids = vec![];
+    for (action, target_type, target_id, reason, details) in [
+        ("ban_user", "profile", "test-audit-player", Some("spliced 100% demo"), "{}"),
+        ("update_map", "map", "test-audit-map", None, r#"{"name": "Qqq Chamber"}"#),
+        // A deleted run keeps a copy of itself (on Wall Button, 47804).
+        ("delete_run", "run", "999999999999", None, r#"{"runs": [{"profile_number": "test-audit-player", "map_id": "47804", "score": 3711}]}"#),
+    ] {
+        let id: i64 = sqlx::query_scalar(
+            "INSERT INTO admin_actions (admin_profile, action, target_type, target_id, reason, details) VALUES ('test-audit-staff', $1, $2, $3, $4, $5::jsonb) RETURNING id",
+        )
+        .bind(action)
+        .bind(target_type)
+        .bind(target_id)
+        .bind(reason)
+        .bind(details)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        ids.push(id);
+    }
+    // Which of our actions a search finds (other rows in the table may match too).
+    let found = |q: &str| {
+        let q = q.to_string();
+        let (pool, ids) = (pool.clone(), ids.clone());
+        async move {
+            let rows = list_actions(&pool, &AuditQuery { q: Some(q), limit: Some(200), ..Default::default() }).await.unwrap();
+            ids.iter().map(|id| rows.iter().any(|r| r.id == *id)).collect::<Vec<_>>()
+        }
+    };
+    assert_eq!(found("zyx STAF").await, [true, true, true], "the staff member's name");
+    assert_eq!(found("qwv").await, [true, false, true], "the profile's and the deleted run's player");
+    assert_eq!(found("qqq chamber").await, [false, true, false], "a catalog change's details");
+    assert_eq!(found("wall button").await, [false, false, true], "the deleted run's map");
+    assert_eq!(found("100%").await, [true, false, false], "the reason, % as itself");
+    assert_eq!(found("100_").await, [false, false, false], "_ as itself");
+    assert_eq!(found("999999999999").await, [false, false, true], "a run id");
+    assert_eq!(found("test-audit-player").await, [true, false, true], "a Steam id");
+    assert_eq!(found("  ").await, [true, true, true], "blank: no search");
+    // The search goes with the other filters.
+    let profiles = list_actions(&pool, &AuditQuery { q: Some("qwv".into()), kind: Some("profiles".into()), limit: Some(200), ..Default::default() }).await.unwrap();
+    assert!(profiles.iter().any(|r| r.id == ids[0]) && !profiles.iter().any(|r| r.id == ids[2]));
+    cleanup().await;
+}
