@@ -302,7 +302,7 @@ carrying `auth_hash`, the player's submit key (Settings → SAR auto-submit; SAR
 | `validate-user` | `{ "userId" }` for a working key. |
 | `current-pb` (`mapId`) | The player's verified, unbanned best there, score as a string (`{}` without one): a time still waiting for its demo doesn't stop SAR submitting it. |
 | `top-scores` (`mapId`, `before`, `after`, each ≤ 10) | The board around the player (or its top when they aren't on it), `userData` / `scoreData` with strings, for SAR's in-game list. |
-| `download-maps` | `{ "maps": [{ "level_name", "id" }] }`; `mel.` hosts get Mel's maps (SAR has Portal 2's built in). |
+| `download-maps` (optional `game`: `mel` / `portal2`) | `{ "maps": [{ "level_name", "id" }] }`; without `game`, `mel.` hosts get Mel's maps (SAR has Portal 2's built in). |
 | `auto-submit` (`mapId`, `score`, `demoFile`) | Records the run as `submission` 2 (the old boards' auto-submit marker), checked like Submit Run: the demo of that map, with that time (±0.01; the demo's own time is recorded), with the key's owner in it. When the Steam sync already recorded the same time without a demo, the demo goes on that run instead of a second entry. |
 
 Hardening: keys are 128 random bits, stored only as SHA-256; wrong keys count against the client's address and lock it

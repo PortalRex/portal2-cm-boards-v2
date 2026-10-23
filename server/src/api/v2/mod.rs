@@ -215,19 +215,26 @@ async fn top_scores(req: HttpRequest, pool: web::Data<PgPool>, config: web::Data
     Ok(HttpResponse::Ok().json(entries))
 }
 
-/// **POST** The game's board maps by map file (form: `auth_hash`), for SAR's Mel auto-submit (its
-/// Portal 2 map ids are built in). The game follows the address used: `mel.` hosts get Portal
-/// Stories: Mel, others Portal 2. Answers `{ "maps": [{ "level_name", "id" }] }`. Mel's Story and
-/// Advanced maps share their map files; the Story map comes first.
+/// **POST** The game's board maps by map file (form: `auth_hash`, optional `game`), for SAR's Mel
+/// auto-submit (its Portal 2 map ids are built in). The game is `game` (`mel` or `portal2`) when
+/// given, else follows the address used, as SAR expects: `mel.` hosts get Portal Stories: Mel,
+/// others Portal 2. Answers `{ "maps": [{ "level_name", "id" }] }`. Mel's Story and Advanced maps
+/// share their map files; the Story map comes first.
 ///
 /// Example: `POST /api-v2/download-maps`
 #[post("/download-maps")]
 async fn download_maps(req: HttpRequest, pool: web::Data<PgPool>, config: web::Data<Config>, payload: Multipart) -> Result<impl Responder> {
-    if let Err(refused) = open(&req, &config, &pool, payload, false).await? {
-        return Ok(refused);
-    }
+    let form = match open(&req, &config, &pool, payload, false).await? {
+        Ok((_, form)) => form,
+        Err(refused) => return Ok(refused),
+    };
     let host = req.connection_info().host().to_ascii_lowercase();
-    let game = if host.starts_with("mel.") || host.starts_with("melboard.") { 2 } else { 1 };
+    let game = match form.get("game") {
+        Some("mel") => 2,
+        Some("portal2") => 1,
+        _ if host.starts_with("mel.") || host.starts_with("melboard.") => 2,
+        _ => 1,
+    };
     let maps: Vec<_> = autosubmit::game_maps(&pool, game).await?.into_iter().map(|(level, id)| json!({ "level_name": level, "id": id })).collect();
     Ok(HttpResponse::Ok().json(json!({ "maps": maps })))
 }
