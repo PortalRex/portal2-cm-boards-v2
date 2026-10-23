@@ -45,18 +45,16 @@ describe('rankVars', () => {
 })
 
 describe('rankTileVars', () => {
-  it.each([
-    [1, { '--rank-color': 'var(--trophy)', '--rank-color-dark': 'var(--trophy)' }],
-    [2, { '--rank-color': 'hsl(275 62% 34%)', '--rank-color-dark': 'hsl(275 67% 70%)' }],
-    [5, { '--rank-color': 'hsl(255 70% 34%)', '--rank-color-dark': 'hsl(255 75% 68%)' }],
-    [10, { '--rank-color': 'hsl(223 84% 34%)', '--rank-color-dark': 'hsl(223 89% 66%)' }],
-    [15, { '--rank-color': 'hsl(205 85% 34%)', '--rank-color-dark': 'hsl(205 90% 66%)' }],
-    [40, { '--rank-color': 'hsl(125 85% 34%)', '--rank-color-dark': 'hsl(125 90% 66%)' }],
-    [75, { '--rank-color': 'hsl(55 85% 34%)', '--rank-color-dark': 'hsl(55 90% 66%)' }],
-    [125, { '--rank-color': 'hsl(30 85% 34%)', '--rank-color-dark': 'hsl(30 90% 66%)' }],
-    [200, { '--rank-color': 'hsl(0 85% 34%)', '--rank-color-dark': 'hsl(0 90% 66%)' }],
-    [350, { '--rank-color': 'hsl(0 85% 34%)', '--rank-color-dark': 'hsl(0 90% 66%)' }],
-  ])('rank %s', (rank, vars) => expect(rankTileVars(rank)).toEqual(vars))
+  it('uses the map boards’ colours, so a rank looks the same on the profile', () => {
+    for (const rank of [2, 5, 10, 15, 40, 44, 75, 125, 200, 501])
+      expect(rankTileVars(rank)).toEqual(rankVars(rank))
+  })
+
+  it('shows a world record in the trophy colour', () =>
+    expect(rankTileVars(1)).toEqual({
+      '--rank-color': 'var(--trophy)',
+      '--rank-color-dark': 'var(--trophy)',
+    }))
 
   it('is undefined without a rank', () => expect(rankTileVars(null)).toBeUndefined())
 })
