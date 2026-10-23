@@ -64,6 +64,8 @@
 //! 
 /// Controllers for admin-specific functions
 pub mod admin;
+/// SAR auto-submit: submit keys and the lookups around a run
+pub mod autosubmit;
 /// Steam sign-in: users, sessions, replay guard
 pub mod auth;
 /// Controllers for changelog

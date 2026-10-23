@@ -54,6 +54,17 @@ pub fn check(req: &HttpRequest, config: &Config, bucket: &'static str, max: u32,
     Ok(())
 }
 
+/// Whether the client is over `max` in `bucket` this window, without counting this request (for
+/// limits that only count failures, checked before the attempt).
+pub fn exceeded(req: &HttpRequest, config: &Config, bucket: &'static str, max: u32, window: Duration) -> bool {
+    let key = (bucket, client_ip(req, config));
+    let guard = BUCKETS.lock().unwrap_or_else(|p| p.into_inner());
+    guard
+        .as_ref()
+        .and_then(|b| b.get(&key))
+        .is_some_and(|(start, count)| Instant::now().duration_since(*start) < window && *count >= max)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

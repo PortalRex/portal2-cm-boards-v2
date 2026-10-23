@@ -26,7 +26,7 @@ use crate::{
 use actix_multipart::Multipart;
 use actix_files::NamedFile;
 use actix_web::{get, http::header, post, web, HttpRequest, HttpResponse, Responder};
-use futures::StreamExt;
+use futures::{future::LocalBoxFuture, StreamExt};
 use serde_json::json;
 use sqlx::PgPool;
 use std::{
@@ -38,26 +38,64 @@ use std::{
 /// Largest demo accepted.
 const MAX_DEMO_BYTES: usize = 50 * 1024 * 1024;
 const MAX_FIELD_BYTES: usize = 4096;
+/// Most fields a form may have (Submit Run sends at most 9).
+const MAX_FORM_PARTS: usize = 20;
 /// A co-op partner adding their demo of a run a second time.
 const ALREADY_ADDED: &str = "You've already added your demo of this run.";
 
-struct Form {
-    demo: Option<Vec<u8>>,
+pub(crate) struct Form {
+    pub demo: Option<Vec<u8>>,
     fields: HashMap<String, String>,
 }
 
 impl Form {
-    fn get(&self, name: &str) -> Option<&str> {
+    pub fn get(&self, name: &str) -> Option<&str> {
         self.fields.get(name).map(|s| s.trim()).filter(|s| !s.is_empty())
     }
 }
 
-async fn read_form(mut payload: Multipart) -> std::result::Result<Form, String> {
+/// Whether a form may carry a demo file.
+pub(crate) enum DemoField<'a> {
+    /// No file: refused outright (so forms that never carry one can't be used to upload 50 MB).
+    Refused,
+    Allowed,
+    /// Allowed once the check passes, given the text fields sent before the file and run before any
+    /// of it is read: SAR's auto-submit checks the key (which SAR sends first) so a client without one
+    /// can't make the server buffer an upload. A failed check stops the read with an error.
+    Checked(Box<dyn FnOnce(&HashMap<String, String>) -> LocalBoxFuture<'a, bool> + 'a>),
+}
+
+/// Reads a form: the demo file (field `demo`, or `demoFile` as SAR sends it) and short text fields.
+pub(crate) async fn read_form(payload: Multipart) -> std::result::Result<Form, String> {
+    read_form_with(payload, DemoField::Allowed).await
+}
+
+/// [read_form], with a choice about the demo file (see [DemoField]).
+pub(crate) async fn read_form_with(mut payload: Multipart, mut demo_field: DemoField<'_>) -> std::result::Result<Form, String> {
     let mut form = Form { demo: None, fields: HashMap::new() };
+    let mut parts = 0;
     while let Some(field) = payload.next().await {
         let mut field = field.map_err(|e| format!("Upload failed: {e}"))?;
-        let name = field.name().unwrap_or("").to_string();
-        let limit = if name == "demo" { MAX_DEMO_BYTES } else { MAX_FIELD_BYTES };
+        parts += 1;
+        if parts > MAX_FORM_PARTS {
+            return Err("Too many form fields.".into());
+        }
+        let is_demo = matches!(field.name(), Some("demo" | "demoFile"));
+        if is_demo {
+            if matches!(demo_field, DemoField::Refused) {
+                return Err("This request doesn't take a file.".into());
+            }
+            // The check runs once, for the first file; it stays refused or becomes allowed.
+            if matches!(demo_field, DemoField::Checked(_)) {
+                if let DemoField::Checked(check) = std::mem::replace(&mut demo_field, DemoField::Allowed) {
+                    if !check(&form.fields).await {
+                        return Err("Refused before the upload.".into());
+                    }
+                }
+            }
+        }
+        let name = if is_demo { "demo".to_string() } else { field.name().unwrap_or("").to_string() };
+        let limit = if is_demo { MAX_DEMO_BYTES } else { MAX_FIELD_BYTES };
         let mut data = Vec::new();
         while let Some(chunk) = field.next().await {
             let chunk = chunk.map_err(|e| format!("Upload failed: {e}"))?;
@@ -77,12 +115,12 @@ async fn read_form(mut payload: Multipart) -> std::result::Result<Form, String> 
     Ok(form)
 }
 
-fn bad(msg: impl Into<String>) -> HttpResponse {
+pub(crate) fn bad(msg: impl Into<String>) -> HttpResponse {
     HttpResponse::BadRequest().body(msg.into())
 }
 
 /// Saves upload bytes under the demo storage directory and returns the path.
-async fn save_demo(config: &Config, bytes: &[u8], name: &str) -> std::result::Result<PathBuf, String> {
+pub(crate) async fn save_demo(config: &Config, bytes: &[u8], name: &str) -> std::result::Result<PathBuf, String> {
     let dir = config.demo.storage.as_deref().filter(|d| !d.is_empty()).ok_or("Demo uploads aren't set up on this server.")?;
     tokio::fs::create_dir_all(dir).await.map_err(|e| {
         log::error!("demo storage: {e}");
@@ -97,7 +135,7 @@ async fn save_demo(config: &Config, bytes: &[u8], name: &str) -> std::result::Re
 }
 
 /// Parses an uploaded demo via a temporary file.
-async fn parse_upload(config: &Config, bytes: &[u8]) -> std::result::Result<DemoInfo, String> {
+pub(crate) async fn parse_upload(config: &Config, bytes: &[u8]) -> std::result::Result<DemoInfo, String> {
     if bytes.len() < 1072 || &bytes[..8] != b"HL2DEMO\0" {
         return Err("That file isn't a Source engine demo (.dem).".into());
     }
@@ -247,29 +285,6 @@ async fn submission_create(
     } else {
         None
     };
-    if let Some((pid, _)) = &partner {
-        if Users::get_user(pool.get_ref(), pid.clone()).await?.is_none() {
-            match Users::new_from_steam(&config.steam.api_key, pid).await {
-                Ok(u) => {
-                    Users::insert_new_users(pool.get_ref(), u).await?;
-                }
-                Err(_) => return Ok(bad("The co-op partner's Steam account couldn't be found.")),
-            }
-        }
-    }
-
-    // Keep the demo file.
-    let demo_file = match form.demo.as_deref() {
-        Some(bytes) => {
-            let name = format!("{}_{}_{}_{}.dem", map.steam_id, score, profile_number, &crate::tools::auth::random_token()[..10]);
-            match save_demo(&config, bytes, &name).await {
-                Ok(_) => Some(name),
-                Err(e) => return Ok(bad(e)),
-            }
-        }
-        None => None,
-    };
-
     let note = form.get("comment").map(|c| c.chars().take(500).collect::<String>());
     let youtube = match form.get("youtube") {
         Some(y) => match submissions::youtube_id(y) {
@@ -278,53 +293,127 @@ async fn submission_create(
         },
         None => None,
     };
-    let run = NewRun {
-        map: &map,
-        profile_number: &profile_number,
+    let submission = Submission {
+        map,
+        profile_number,
         score,
-        youtube_id: youtube,
+        partner,
+        demo: form.demo.as_deref(),
         note,
-        partner: partner.as_ref().map(|(p, _)| p.as_str()),
-        demo_file: demo_file.clone(),
-        demo_partner_name: partner.as_ref().and_then(|(_, n)| n.clone()),
+        youtube_id: youtube,
         // Only when the time is the demo's own.
         portals: info.as_ref().filter(|i| i.time_score == Some(score)).and_then(|i| i.portal_score),
         submission: 1,
+    };
+    let done = match record_submission(pool.get_ref(), &config, &cache, submission).await? {
+        Ok(done) => done,
+        Err(refused) => return Ok(refused),
+    };
+    if !overrides.is_empty() {
+        let details = json!({ "entered_by_hand": overrides, "map_id": done.recorded.map.steam_id, "score": score, "profile_number": done.profile_number, "partner": done.partner, "demo": done.demo_file.is_some() });
+        moderation::log_by_user(pool.get_ref(), &user.profile_number, "run.manual_submit", "run", &done.recorded.changelog_id.to_string(), details).await?;
+    }
+    Ok(HttpResponse::Ok().json(done.response()))
+}
+
+/// A run to record once its map, time and players are known (Submit Run, and SAR's auto-submit).
+pub(crate) struct Submission<'a> {
+    pub map: BoardMap,
+    pub profile_number: String,
+    pub score: i32,
+    /// Co-op partner: SteamID, and the name the demo shows for them.
+    pub partner: Option<(String, Option<String>)>,
+    pub demo: Option<&'a [u8]>,
+    pub note: Option<String>,
+    pub youtube_id: Option<String>,
+    pub portals: Option<i32>,
+    /// changelog.submission: 1 Submit Run, 2 auto-submit (as the old boards).
+    pub submission: i32,
+}
+
+/// A recorded run.
+pub(crate) struct Submitted {
+    pub recorded: submissions::Recorded,
+    pub profile_number: String,
+    pub score: i32,
+    pub partner: Option<String>,
+    pub demo_file: Option<String>,
+}
+
+impl Submitted {
+    /// The answer Submit Run gives.
+    pub fn response(&self) -> serde_json::Value {
+        json!({
+            "changelog_id": self.recorded.changelog_id,
+            "map_id": self.recorded.map.steam_id,
+            "map_name": self.recorded.map.name,
+            "score": self.score,
+            "partner": self.partner,
+            "boards": self.recorded.boards,
+            "waiting_for_partner": self.recorded.waiting_for_partner,
+        })
+    }
+}
+
+/// Records a submitted run: creates the co-op partner's account if needed, keeps the demo, records
+/// the run (refused when it isn't an improvement) and refreshes the caches it shows in. `Err` holds
+/// the answer for a refused run.
+pub(crate) async fn record_submission(pool: &PgPool, config: &Config, cache: &CacheState, s: Submission<'_>) -> Result<std::result::Result<Submitted, HttpResponse>> {
+    if let Some((pid, _)) = &s.partner {
+        if Users::get_user(pool, pid.clone()).await?.is_none() {
+            match Users::new_from_steam(&config.steam.api_key, pid).await {
+                Ok(u) => {
+                    Users::insert_new_users(pool, u).await?;
+                }
+                Err(_) => return Ok(Err(bad("The co-op partner's Steam account couldn't be found."))),
+            }
+        }
+    }
+
+    // Keep the demo file.
+    let demo_file = match s.demo {
+        Some(bytes) => {
+            let name = format!("{}_{}_{}_{}.dem", s.map.steam_id, s.score, s.profile_number, &crate::tools::auth::random_token()[..10]);
+            match save_demo(config, bytes, &name).await {
+                Ok(_) => Some(name),
+                Err(e) => return Ok(Err(bad(e))),
+            }
+        }
+        None => None,
+    };
+
+    let run = NewRun {
+        map: &s.map,
+        profile_number: &s.profile_number,
+        score: s.score,
+        youtube_id: s.youtube_id,
+        note: s.note,
+        partner: s.partner.as_ref().map(|(p, _)| p.as_str()),
+        demo_file: demo_file.clone(),
+        demo_partner_name: s.partner.as_ref().and_then(|(_, n)| n.clone()),
+        portals: s.portals,
+        submission: s.submission,
         verified: None,
     };
-    let recorded = match submissions::insert_run(pool.get_ref(), run).await? {
+    let recorded = match submissions::insert_run(pool, run).await? {
         Ok(r) => r,
         Err(refused) => {
             if let (Some(name), Some(dir)) = (&demo_file, config.demo.storage.as_deref()) {
                 let _ = tokio::fs::remove_file(Path::new(dir).join(name)).await;
             }
-            return Ok(match refused {
+            return Ok(Err(match refused {
                 Refused::NotFound(m) => HttpResponse::NotFound().body(m),
                 Refused::Invalid(m) => bad(m),
-            });
+            }));
         }
     };
 
-    let id = recorded.changelog_id;
-    if !overrides.is_empty() {
-        let details = json!({ "entered_by_hand": overrides, "map_id": map.steam_id, "score": score, "profile_number": profile_number, "partner": partner.as_ref().map(|p| &p.0), "demo": demo_file.is_some() });
-        moderation::log_by_user(pool.get_ref(), &user.profile_number, "run.manual_submit", "run", &id.to_string(), details).await?;
-    }
-    cache.update_current_state(if map.is_coop { COOP_PREVIEWS } else { SP_PREVIEWS }, false).await;
+    cache.update_current_state(if s.map.is_coop { COOP_PREVIEWS } else { SP_PREVIEWS }, false).await;
     if cache.default_cat_ids.contains_key(&recorded.map.steam_id) {
-        cache.reload_rank(pool.get_ref(), &recorded.map.steam_id, &config, map.is_coop).await;
+        cache.reload_rank(pool, &recorded.map.steam_id, config, s.map.is_coop).await;
     }
     invalidate_points().await;
-
-    Ok(HttpResponse::Ok().json(json!({
-        "changelog_id": id,
-        "map_id": recorded.map.steam_id,
-        "map_name": recorded.map.name,
-        "score": score,
-        "partner": partner.map(|p| p.0),
-        "boards": recorded.boards,
-        "waiting_for_partner": recorded.waiting_for_partner,
-    })))
+    Ok(Ok(Submitted { recorded, profile_number: s.profile_number, score: s.score, partner: s.partner.map(|p| p.0), demo_file }))
 }
 
 /// **POST** Add the demo for a pending run (form field `demo`). The demo must be of the run's

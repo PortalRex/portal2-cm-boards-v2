@@ -34,3 +34,21 @@ export const setMyCountryFromSteam = () => api.post<{ country_id: number | null 
  */
 export const setMyDisplay = (changes: { name?: string | null; avatar?: string }) =>
   api.put('/user/display', { body: changes })
+
+/** Whether you have a SAR auto-submit key, and when it was made (server api/v1/handlers/submit_key.rs). */
+export interface SubmitKeyStatus {
+  has_key: boolean
+  created: string | null
+}
+
+export const submitKeyQueryOptions = () =>
+  queryOptions({
+    queryKey: queryKeys.submitKey(),
+    queryFn: ({ signal }) => api.get<SubmitKeyStatus>('/user/submit-key', { signal }),
+  })
+
+/** Makes you a new auto-submit key (the old one stops working). The only time the key is shown. */
+export const resetSubmitKey = () => api.post<{ key: string }>('/user/submit-key')
+
+/** Removes your auto-submit key. */
+export const removeSubmitKey = () => api.delete<{ has_key: boolean }>('/user/submit-key')

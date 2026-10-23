@@ -47,6 +47,7 @@ New databases get everything from `db/dbscript/schema.sql`. An existing database
 | `20261108000000_game_branding.sql` | `games.short_name` (the name beside the logo) and uploaded `logo_file` / `background_file` with their times. |
 | `20261110000000_coop_partner_demo.sql` | `coop_bundled.partner_demo_id`: a co-op partner's demo of a run that wasn't a personal best for them (see [§8](#8-run-submissions-and-demos)); linked copies of a pairing carry it. |
 | `20261111000000_changelog_newest_index.sql` | `idx_changelog_newest` (changelog by timestamp, newest first, undated last): Score Updates read the newest runs off it instead of sorting the whole table (~175 ms → ~4 ms). |
+| `20261112000000_submit_keys.sql` | `users.submit_key_hash` / `submit_key_created`: SAR auto-submit keys, kept only as SHA-256 (unique index). The old boards' keys (`users.auth_hash`, imported) are hashed the same way, so they keep working, and their plaintext copies cleared. |
 
 `import_boards.py` builds a fresh database from the old boards' MySQL dumps and runs the BSP-name step itself (see
 [§10](#10-import-and-maintenance-scripts)).
@@ -138,6 +139,9 @@ All under `/api/v1`. Auth: **public**, **signed in**, **staff** (any tier or ser
 | `GET /map/sp/{id}?at=`, `GET /map/coop/{id}?at=` | public | `at` (a day or an ISO time, UTC) gives the map's board as it stood then; undated imported runs count from release. The WR history chart links here (click a record). |
 | `GET /profile/points_peak/{steam_id}?game_id=` | public | A player's highest points per board (`sp`, `coop`, …, `overall`) with the date reached. Exact: points only rise when the player sets a run, so each of their runs is checked (same ranking as the points-over-time chart). |
 | `GET /users/search?q=` | public | Up to 10 players by name or Steam ID, most active first. |
+| `GET /user/submit-key` | signed in | Whether you have a SAR auto-submit key (`has_key`, `created`); the key itself is never shown again. |
+| `POST /user/submit-key` | signed in | Makes you a new SAR auto-submit key (the old one stops working) and answers it once (`{ "key" }`, `Cache-Control: no-store`). 10 an hour per address. |
+| `DELETE /user/submit-key` | signed in | Removes your auto-submit key. |
 | `GET /staff` | public | Everyone with a staff role who isn't banned (id, name, avatar, `role`), admins first, then moderators, then verifiers, each by name. The About page's team list. (`GET /admins` still lists by the old `users.admin` number, which setting a role doesn't change.) |
 | `GET /recap/weekly?week=&game_id=` | public | The week's top 5 runs (best rank, then biggest improvement; one per player per map). |
 | `GET /daily?date=&game_id=` | public | That day's daily chambers (one map per board, picked from a hash of the date) and the times set on them. |
@@ -285,6 +289,29 @@ All under `/api/v1`. Auth: **public**, **signed in**, **staff** (any tier or ser
   changelog id, so `{prefix}_{changelog id}.dem` is tried; for Mel the id isn't kept, so the file is found by
   `Map_score_steamid` when only one file has it. Against the local archive this finds 182,135 of 182,364 demos (57
   Portal 2 and 172 Mel files are missing or ambiguous).
+
+### SAR auto-submit (`/api-v2`)
+
+SAR's challenge mode auto-submit (p2sr/SourceAutoRecord, `src/Features/AutoSubmit.cpp`) talks to the old boards'
+`/api-v2`; `server/src/api/v2` answers the same requests the same way (p2sr/Portal2Boards, `classes/Router.php`), at the
+site root as SAR expects (nginx passes `/api-v2/` to the server). Every endpoint is a `POST` with a multipart form
+carrying `auth_hash`, the player's submit key (Settings → SAR auto-submit; SAR reads it from `autosubmit.key`):
+
+| Path | Answers |
+|---|---|
+| `validate-user` | `{ "userId" }` for a working key. |
+| `current-pb` (`mapId`) | The player's verified, unbanned best there, score as a string (`{}` without one): a time still waiting for its demo doesn't stop SAR submitting it. |
+| `top-scores` (`mapId`, `before`, `after`, each ≤ 10) | The board around the player (or its top when they aren't on it), `userData` / `scoreData` with strings, for SAR's in-game list. |
+| `download-maps` | `{ "maps": [{ "level_name", "id" }] }`; `mel.` hosts get Mel's maps (SAR has Portal 2's built in). |
+| `auto-submit` (`mapId`, `score`, `demoFile`) | Records the run as `submission` 2 (the old boards' auto-submit marker), checked like Submit Run: the demo of that map, with that time (±0.01; the demo's own time is recorded), with the key's owner in it. When the Steam sync already recorded the same time without a demo, the demo goes on that run instead of a second entry. |
+
+Hardening: keys are 128 random bits, stored only as SHA-256; wrong keys count against the client's address and lock it
+out after 20 in 10 minutes; every endpoint is rate limited (120 a minute) and uploads 10 a minute; only `auto-submit`
+takes a file, and it checks the key when the file starts (so the key must come first, as SAR sends it) rather than
+buffering an upload from a client without one; field count and sizes are capped; banned accounts' keys don't work,
+frozen profiles can't submit, and in staff-only mode only staff players' keys work (the private-mode gate lets
+`/api-v2/` through to these checks). SAR only submits to `board.portal2.sr` / `mel.portal2.sr` (it ignores other
+addresses in `autosubmit.key`), so stock SAR reaches these boards once they're served there.
 
 ## 9. Games, seasons and linked leaderboards
 

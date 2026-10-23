@@ -28,6 +28,8 @@ pub mod runs;
 pub mod sp;
 /// Run submissions.
 pub mod submissions;
+/// Your SAR auto-submit key
+pub mod submit_key;
 /// The game catalog and its admin editor.
 pub mod catalog;
 /// Anonymous run reports.

@@ -97,6 +97,7 @@ async fn test_db_users() {
         name_locked: false,
         avatar_locked: false,
         avatar_custom: false,
+        ..Default::default()
     };
     let mut insert_user = user.clone();
     let test_user = Users::get_user(&pool, user.profile_number.clone()).await.unwrap().unwrap();
@@ -296,12 +297,13 @@ async fn test_db_changelog() {
     assert!(!banned_scores);
     let pb_history = Changelog::get_sp_pb_history(&pool, "76561198040982247", "47763", 67, 1).await.unwrap();
     assert_ne!(0, pb_history.len());
-    let mut new_cl_insert = Changelog::transaction_insert_changelog(&mut transaction, clinsert.clone()).await.unwrap();
+    // Insert, update and delete a row (the transaction_* versions of these were removed in fe740fa).
+    let new_id = Changelog::insert_changelog(&pool, clinsert.clone()).await.unwrap();
+    let mut new_cl_insert = Changelog::get_changelog(&pool, new_id).await.unwrap().unwrap();
     new_cl_insert.note = Some("fat time".to_string());
-    let _ = Changelog::transaction_update_changelog(&mut transaction, new_cl_insert.clone()).await.unwrap();
-    // let updated_changelog = Changelog::get_changelog(&pool, new_cl_insert.id).await.unwrap().unwrap();
-    let _ = Changelog::transaction_delete_changelog(&mut transaction, new_cl_insert.id).await.unwrap();
-    let _res = Changelog::get_changelog(&pool, new_cl_insert.id).await;
+    let _ = Changelog::update_changelog(&pool, new_cl_insert.clone()).await.unwrap();
+    let _ = Changelog::delete_changelog(&pool, new_id).await.unwrap();
+    let _res = Changelog::get_changelog(&pool, new_id).await;
 
     let query_params = ChangelogQueryParams {
         limit: Some(500),
@@ -318,6 +320,7 @@ async fn test_db_changelog() {
         first: None,
         last: None,
         game_id: None,
+        ..Default::default()
     };
 
     // ChangelogPage
@@ -338,6 +341,7 @@ async fn test_db_changelog() {
         first: None,
         last: None,
         game_id: None,
+        ..Default::default()
     };
     let filtered_cl_page = ChangelogPage::get_changelog_page(&pool, filter).await.unwrap();
     assert_eq!(filtered_cl_page.len(), 1);
@@ -401,6 +405,7 @@ async fn test_db_admins() {
         first: None,
         last: None,
         game_id: None,
+        ..Default::default()
     };
     let ban_page = Admin::get_admin_page(&pool, query_params).await.unwrap().unwrap();
     assert!(ban_page.len() == 5);

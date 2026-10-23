@@ -176,3 +176,60 @@ describe('Settings', () => {
     expect(signedOut).toBe(true)
   })
 })
+
+describe('SAR auto-submit key', () => {
+  const key = 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6'
+
+  function serveKey(initial: { has_key: boolean; created: string | null }) {
+    let status = initial
+    const calls: string[] = []
+    server.use(
+      http.get(`${API}/user/submit-key`, () => HttpResponse.json(status)),
+      http.post(`${API}/user/submit-key`, () => {
+        calls.push('make')
+        status = { has_key: true, created: '2026-10-23T01:00:00' }
+        return HttpResponse.json({ key })
+      }),
+      http.delete(`${API}/user/submit-key`, () => {
+        calls.push('remove')
+        status = { has_key: false, created: null }
+        return HttpResponse.json({ has_key: false })
+      }),
+    )
+    return calls
+  }
+
+  it('makes a key and shows it once, as SAR’s autosubmit.key', async () => {
+    serveUser()
+    const calls = serveKey({ has_key: false, created: null })
+    await renderWithProviders(<SettingsPage />, { user: 'player' })
+    expect(await screen.findByText("You don't have a key yet.")).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Make a key' }))
+    const file = await screen.findByLabelText('autosubmit.key')
+    expect(file.textContent).toBe(`${window.location.host}
+${key}
+`)
+    expect(screen.getByText(/it isn.t shown again/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Download autosubmit.key' })).toBeInTheDocument()
+    expect(calls).toEqual(['make'])
+  })
+
+  it('asks before replacing a key, and removes it', async () => {
+    serveUser()
+    const calls = serveKey({ has_key: true, created: '2026-10-20T12:00:00' })
+    await renderWithProviders(<SettingsPage />, { user: 'player' })
+    expect(await screen.findByText(/You have a key \(made /)).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Make a new key' }))
+    expect(screen.getByText(/Your current key stops working/)).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(calls).toEqual([])
+    await userEvent.click(screen.getByRole('button', { name: 'Remove key' }))
+    expect(await screen.findByText("You don't have a key yet.")).toBeInTheDocument()
+    expect(calls).toEqual(['remove'])
+  })
+
+  it('is only for signed-in players', async () => {
+    await renderWithProviders(<SettingsPage />)
+    expect(screen.queryByText('SAR auto-submit')).toBeNull()
+  })
+})

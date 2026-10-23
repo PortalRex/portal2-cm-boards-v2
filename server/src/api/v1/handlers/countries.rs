@@ -72,10 +72,11 @@ async fn my_country_from_steam(user: SignedIn, pool: web::Data<PgPool>, config: 
         return Ok(HttpResponse::ServiceUnavailable().body("Steam isn't set up on this server."));
     }
     let url = format!("https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/?key={key}&steamids={}", user.0.profile_number);
-    let code = match reqwest::get(&url).await {
+    // The shared client has a timeout; errors are logged without the URL, which holds the API key.
+    let code = match crate::tools::helpers::http_client().get(&url).send().await {
         Ok(res) => res.json::<SteamSummaries>().await.ok().and_then(|s| s.response.players.into_iter().next()).and_then(|p| p.loccountrycode),
         Err(e) => {
-            log::warn!("steam country: {e}");
+            log::warn!("steam country: {}", e.without_url());
             return Ok(HttpResponse::BadGateway().body("Couldn't reach Steam."));
         }
     };

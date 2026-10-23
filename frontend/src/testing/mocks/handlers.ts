@@ -32,6 +32,8 @@ export const handlers: RequestHandler[] = [
   http.get(`${API}/runs/:id/reactions`, () => HttpResponse.json({ up: 0, down: 0, mine: null })),
   // Nobody has donated unless a test says otherwise.
   http.get(`${API}/donators`, () => HttpResponse.json([])),
+  // No SAR auto-submit key unless a test says otherwise.
+  http.get(`${API}/user/submit-key`, () => HttpResponse.json({ has_key: false, created: null })),
   // No staff unless a test says otherwise.
   http.get(`${API}/staff`, () => HttpResponse.json([])),
   // Staff panel: an empty log and no open reports unless a test says otherwise.

@@ -11,9 +11,10 @@ use actix_web::{
 };
 use sqlx::PgPool;
 
-/// Paths open to everyone even in staff-only mode.
+/// Paths open to everyone even in staff-only mode. SAR's auto-submit (`/api-v2`) signs in with a
+/// key, not a session, and checks staff-only mode itself (only staff players' keys work).
 fn open(path: &str) -> bool {
-    path.starts_with("/api/v1/auth/") || path == "/api/v1/site"
+    path.starts_with("/api/v1/auth/") || path == "/api/v1/site" || path.starts_with("/api-v2/")
 }
 
 pub async fn gate(req: ServiceRequest, next: Next<impl MessageBody + 'static>) -> Result<ServiceResponse<BoxBody>, Error> {

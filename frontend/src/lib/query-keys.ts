@@ -32,6 +32,8 @@ export const queryKeys = {
   profilePointsPeak: (profileNumber: string) => ['profile', profileNumber, 'points-peak'] as const,
   profileAt: (profileNumber: string, day: string) => ['profile', profileNumber, 'at', day] as const,
   user: (profileNumber: string) => ['user', profileNumber] as const,
+  /** Whether you have a SAR auto-submit key (Settings). */
+  submitKey: () => ['auth', 'submit-key'] as const,
 
   // A run (changelog entry) and what hangs off it.
   run: (changelogId: number) => ['run', changelogId] as const,

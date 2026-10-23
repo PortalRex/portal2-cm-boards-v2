@@ -16,6 +16,7 @@ import { COUNTRY_LIST } from '@/lib/data/countries'
 import { invalidateUser } from '@/lib/invalidate'
 import { queryKeys } from '@/lib/query-keys'
 import { myUserQueryOptions, setMyCountry, setMyCountryFromSteam, setMyDisplay } from '../api/settings'
+import { AutoSubmitSetting } from './auto-submit-setting'
 
 const button =
   'inline-flex h-9 cursor-pointer items-center justify-center gap-2.5 rounded-[4px] border border-line-strong bg-control px-4 text-lg whitespace-nowrap text-foreground hover:bg-control-raised disabled:cursor-default disabled:opacity-50'
@@ -82,6 +83,13 @@ export function SettingsPage() {
 
         {signedIn && <DisplaySetting user={signedIn} />}
         {signedIn && <CountrySetting user={signedIn} />}
+        {signedIn && (
+          <AutoSubmitSetting
+            button={button}
+            note={note}
+            section={(title, children) => <Section title={title}>{children}</Section>}
+          />
+        )}
 
         {signedIn && staffRole && (
           <Section title="Staff">

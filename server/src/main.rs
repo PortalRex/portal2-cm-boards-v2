@@ -141,6 +141,7 @@ async fn main() -> Result<(), Error> {
             .app_data(points_cache.clone())
             .app_data(jobs_pool.clone())
             .configure(api::v1::handlers::init::init)
+            .configure(api::v2::init)
     })
     .bind(format!("{}:{}", host, port))?
     .run()
