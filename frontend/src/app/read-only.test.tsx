@@ -9,9 +9,9 @@ import { users } from '@/testing/data/users'
 import { API } from '@/testing/mocks/handlers'
 import { server } from '@/testing/mocks/server'
 import { renderWithProviders } from '@/testing/test-utils'
-import { ReadOnlyBanner } from './read-only-banner'
-import { LayoutSlotsContext } from './slots'
-import { TopBar } from './top-bar'
+import { ReadOnlyBanner } from '@/components/layouts/read-only-banner'
+import { LayoutSlotsContext } from '@/components/layouts/slots'
+import { TopBar } from '@/components/layouts/top-bar'
 
 const readOnly = () =>
   server.use(http.get(`${API}/site`, () => HttpResponse.json({ private: false, read_only: true })))

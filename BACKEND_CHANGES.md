@@ -145,6 +145,7 @@ All under `/api/v1`. Auth: **public**, **signed in**, **staff** (any tier or ser
 | `GET /staff` | public | Everyone with a staff role who isn't banned (id, name, avatar, `role`), admins first, then moderators, then verifiers, each by name. The About page's team list. (`GET /admins` still lists by the old `users.admin` number, which setting a role doesn't change.) |
 | `GET /recap/weekly?week=&game_id=` | public | The week's top 5 runs (best rank, then biggest improvement; one per player per map). |
 | `GET /daily?date=&game_id=` | public | That day's daily chambers (one map per board, picked from a hash of the date) and the times set on them. |
+| `GET /changelog/{id}` | public | One run by id, in the same shape as a `GET /changelog` row, from any game; 404 for an unknown id (the run page, `/run/{id}`). |
 | `GET /changelog/{id}/segments` | public | A run's mtrigger segments. |
 | `GET /coop/{coop_id}/halves` | public | Both halves of a co-op run (for the run details toggle). |
 | `GET /runs/{id}/reactions` | public | Thumbs up / down counts. |

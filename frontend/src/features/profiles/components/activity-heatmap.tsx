@@ -1,5 +1,7 @@
 import { cn } from 'cn'
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { AppLink } from '@/components/app-link'
+import { CloseIcon } from '@/components/icons'
 import { Select } from '@/components/select'
 import { formatDelta, formatScore } from '@/lib/format'
 import type { Run } from '@/types/runs'
@@ -33,15 +35,25 @@ const small = 'text-[11px] leading-[13px] whitespace-nowrap text-text-muted'
 
 interface Tip {
   d: HeatCell
+  /** The square, to place the card by (again when the page scrolls). */
+  el: Element
   x: number
   top: number
   bottom: number
+  /** Clicked: the card stays open, lists every run and links to them. */
+  pinned: boolean
+}
+
+const place = (d: HeatCell, el: Element, pinned: boolean): Tip => {
+  const box = el.getBoundingClientRect()
+  return { d, el, x: box.left + box.width / 2, top: box.top, bottom: box.bottom, pinned }
 }
 
 /**
  * GitHub-style calendar of a player's submissions: one square per day, a column per week, shaded
  * by how many runs were set that day. The past year by default, one year, or all time (the
- * same-sized grid with each square covering several days).
+ * same-sized grid with each square covering several days). Hovering a square shows its runs;
+ * clicking it keeps the card open, with every run linking to its own page.
  */
 export function ActivityHeatmap({ history }: { history: Run[] }) {
   const counts = useMemo(() => runCounts(history), [history])
@@ -53,7 +65,7 @@ export function ActivityHeatmap({ history }: { history: Run[] }) {
   const [tip, setTip] = useState<Tip | null>(null)
   const scroller = useRef<HTMLDivElement>(null)
 
-  // Phones: start scrolled to the latest weeks. A new grid drops the hover card.
+  // Phones: start scrolled to the latest weeks. A new grid drops the card.
   useEffect(() => {
     if (scroller.current) scroller.current.scrollLeft = scroller.current.scrollWidth
   }, [grid])
@@ -62,26 +74,33 @@ export function ActivityHeatmap({ history }: { history: Run[] }) {
     setTip(null)
   }
 
-  // The card is fixed in place, so drop it when the page scrolls or on a tap elsewhere.
+  // The card is fixed in place: a hover card goes when the page scrolls, a clicked one follows its
+  // square. Either goes on a tap elsewhere, or Escape.
   useEffect(() => {
     if (!tip) return
-    const hide = () => setTip(null)
+    const scrolled = () => setTip((t) => (t?.pinned && t.el.isConnected ? place(t.d, t.el, true) : null))
     const away = (e: PointerEvent) => {
-      if (!(e.target as Element | null)?.closest?.('[data-heat-cell]')) setTip(null)
+      if (!(e.target as Element | null)?.closest?.('[data-heat-cell], [data-heat-card]')) setTip(null)
     }
-    window.addEventListener('scroll', hide, true)
+    const escape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setTip(null)
+    }
+    window.addEventListener('scroll', scrolled, true)
     document.addEventListener('pointerdown', away)
+    document.addEventListener('keydown', escape)
     return () => {
-      window.removeEventListener('scroll', hide, true)
+      window.removeEventListener('scroll', scrolled, true)
       document.removeEventListener('pointerdown', away)
+      document.removeEventListener('keydown', escape)
     }
   }, [tip])
 
   if (!counts.size) return null
-  const show = (d: HeatCell, el: Element) => {
-    const box = el.getBoundingClientRect()
-    setTip({ d, x: box.left + box.width / 2, top: box.top, bottom: box.bottom })
-  }
+  // Hovering only previews while nothing is clicked; clicking the open square again closes it.
+  const hover = (d: HeatCell, el: Element) => setTip((t) => (t?.pinned ? t : place(d, el, false)))
+  const toggle = (d: HeatCell, el: Element) =>
+    setTip((t) => (t?.pinned && t.d.date.getTime() === d.date.getTime() ? null : place(d, el, true)))
+  const pinnedAt = tip?.pinned ? tip.d.date.getTime() : null
   const when =
     range === 'past'
       ? 'in the past year'
@@ -110,9 +129,9 @@ export function ActivityHeatmap({ history }: { history: Run[] }) {
       </div>
       <div className="overflow-x-auto [scrollbar-width:thin]" ref={scroller}>
         <div
-          className="mx-auto grid w-max auto-rows-[13px] gap-[3px]"
+          className="mx-auto grid w-max auto-rows-[13px] gap-[3px] p-0.5"
           style={{ gridTemplateColumns: `24px repeat(${grid.weeks.length}, 13px)` }}
-          onMouseLeave={() => setTip(null)}
+          onMouseLeave={() => setTip((t) => (t?.pinned ? t : null))}
         >
           <span />
           {grid.labels.map((l, i) => (
@@ -121,11 +140,11 @@ export function ActivityHeatmap({ history }: { history: Run[] }) {
             </span>
           ))}
           {[0, 1, 2, 3, 4, 5, 6].map((row) => (
-            <GridRow key={row} row={row} grid={grid} onShow={show} />
+            <GridRow key={row} row={row} grid={grid} pinnedAt={pinnedAt} onHover={hover} onToggle={toggle} />
           ))}
         </div>
       </div>
-      {tip && <TipCard tip={tip} span={grid.span} byDay={byDay} />}
+      {tip && <TipCard tip={tip} span={grid.span} byDay={byDay} onClose={() => setTip(null)} />}
       <div className="flex items-center justify-end gap-1 text-xs text-text-muted">
         Less
         {[0, 1, 2, 3, 4].map((l) => (
@@ -140,11 +159,16 @@ export function ActivityHeatmap({ history }: { history: Run[] }) {
 function GridRow({
   row,
   grid,
-  onShow,
+  pinnedAt,
+  onHover,
+  onToggle,
 }: {
   row: number
   grid: HeatGrid
-  onShow: (d: HeatCell, el: Element) => void
+  /** The clicked square's date (ms), if any. */
+  pinnedAt: number | null
+  onHover: (d: HeatCell, el: Element) => void
+  onToggle: (d: HeatCell, el: Element) => void
 }) {
   const { weeks, span, busiest } = grid
   return (
@@ -158,15 +182,28 @@ function GridRow({
         const runs = `${d.n} run${d.n === 1 ? '' : 's'}`
         const label = span === 1 ? `${runs} on ${fmt(d.date)}` : `${runs}, ${fmt(d.date)} – ${fmt(d.to!)}`
         const l = span === 1 ? level(d.n) : scaledLevel(d.n, busiest)
+        const pinned = pinnedAt === d.date.getTime()
         return (
           <span
             key={i}
             data-heat-cell
-            role="img"
-            className={cn(cellClass(l), 'hover:outline hover:outline-text-muted')}
+            role="button"
+            tabIndex={0}
+            aria-pressed={pinned}
             aria-label={label}
-            onMouseEnter={(e) => onShow(d, e.currentTarget)}
-            onClick={(e) => onShow(d, e.currentTarget)}
+            className={cn(
+              cellClass(l),
+              'cursor-pointer outline-offset-1 hover:outline hover:outline-text-muted focus-visible:outline focus-visible:outline-foreground',
+              pinned && 'outline-2 outline-foreground hover:outline-2 hover:outline-foreground',
+            )}
+            onMouseEnter={(e) => onHover(d, e.currentTarget)}
+            onClick={(e) => onToggle(d, e.currentTarget)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                onToggle(d, e.currentTarget)
+              }
+            }}
           />
         )
       })}
@@ -175,46 +212,107 @@ function GridRow({
 }
 
 const TIP_RUNS = 8
+const tipRow =
+  'grid grid-cols-[minmax(0,1fr)_auto_48px_34px] items-baseline gap-2 [&>span:not(:first-child)]:text-right'
 
-/** Hover / tap card: the date (or range) and the runs set then, newest last. */
-function TipCard({ tip, span, byDay }: { tip: Tip; span: number; byDay: Map<string, Run[]> }) {
-  const { d } = tip
+function TipCells({ run }: { run: Run }) {
+  return (
+    <>
+      <span className="truncate whitespace-nowrap">{run.map?.title ?? 'Unknown map'}</span>
+      <span className="num">{formatScore(run.score)}</span>
+      <span className="num text-text-muted">{run.scoreDelta != null ? formatDelta(run.scoreDelta) : ''}</span>
+      <span className="num text-text-muted">{run.postRank ? `#${run.postRank}` : ''}</span>
+    </>
+  )
+}
+
+/**
+ * Hover / tap card: the date (or range) and the runs set then, newest last. Hovering shows the
+ * latest few; a clicked (pinned) card stays, lists them all and links each to its run page.
+ */
+function TipCard({
+  tip,
+  span,
+  byDay,
+  onClose,
+}: {
+  tip: Tip
+  span: number
+  byDay: Map<string, Run[]>
+  onClose: () => void
+}) {
+  const { d, pinned } = tip
   const runs: Run[] = []
   for (let k = 0; k < span; k++) {
     const day = new Date(d.date.getTime() + k * DAY)
     if (d.to && day > d.to) break
     runs.push(...(byDay.get(dayKey(day)) ?? []))
   }
-  const width = 260
+  const width = pinned ? 300 : 260
   const left = Math.min(Math.max(8, tip.x - width / 2), window.innerWidth - width - 8)
   const above = tip.top > window.innerHeight / 2
   const style: CSSProperties = above
     ? { left, width, bottom: window.innerHeight - tip.top + 8 }
     : { left, width, top: tip.bottom + 8 }
+  const title = span === 1 ? fmt(d.date) : `${fmt(d.date)} – ${fmt(d.to!)}`
+  const shown = pinned ? runs : runs.slice(-TIP_RUNS)
   return (
     <div
-      role="tooltip"
+      data-heat-card
+      role={pinned ? 'dialog' : 'tooltip'}
+      aria-label={pinned ? `Runs on ${title}` : undefined}
       style={style}
-      className="pointer-events-none fixed z-50 flex flex-col gap-1 rounded-md border border-line bg-panel-head px-3 py-2.5 text-[13px] shadow-[0_6px_20px_rgb(0_0_0/35%)]"
+      className={cn(
+        'fixed z-50 flex flex-col gap-1 rounded-md border border-line bg-panel-head px-3 py-2.5 text-[13px] shadow-[0_6px_20px_rgb(0_0_0/35%)]',
+        !pinned && 'pointer-events-none',
+      )}
     >
-      <div className="mb-0.5 flex justify-between gap-2.5">
-        <strong>{span === 1 ? fmt(d.date) : `${fmt(d.date)} – ${fmt(d.to!)}`}</strong>
-        <span className="text-text-muted">
+      <div className="mb-0.5 flex items-center gap-2.5">
+        <strong>{title}</strong>
+        <span className="ml-auto text-text-muted">
           {runs.length} run{runs.length === 1 ? '' : 's'}
         </span>
+        {pinned && (
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="-mr-1 inline-flex cursor-pointer rounded-[3px] border-0 bg-transparent p-0.5 text-text-muted hover:text-foreground"
+          >
+            <CloseIcon className="size-4" />
+          </button>
+        )}
       </div>
-      {runs.slice(-TIP_RUNS).map((h) => (
-        <div
-          key={h.id}
-          className="grid grid-cols-[minmax(0,1fr)_auto_48px_34px] items-baseline gap-2 [&>span:not(:first-child)]:text-right"
-        >
-          <span className="truncate whitespace-nowrap">{h.map?.title ?? 'Unknown map'}</span>
-          <span className="num">{formatScore(h.score)}</span>
-          <span className="num text-text-muted">{h.scoreDelta != null ? formatDelta(h.scoreDelta) : ''}</span>
-          <span className="num text-text-muted">{h.postRank ? `#${h.postRank}` : ''}</span>
-        </div>
-      ))}
-      {runs.length > TIP_RUNS && <div className="text-text-muted">and {runs.length - TIP_RUNS} earlier</div>}
+      <div
+        className={cn(
+          'flex flex-col gap-1',
+          pinned && 'max-h-[320px] overflow-y-auto pr-1 [scrollbar-width:thin]',
+        )}
+      >
+        {shown.map((h) =>
+          pinned ? (
+            <AppLink
+              key={h.id}
+              href={`/run/${h.id}`}
+              className={cn(
+                tipRow,
+                '-mx-1 rounded-[3px] px-1 text-foreground no-underline hover:bg-control-raised',
+              )}
+            >
+              <TipCells run={h} />
+            </AppLink>
+          ) : (
+            <div key={h.id} className={tipRow}>
+              <TipCells run={h} />
+            </div>
+          ),
+        )}
+      </div>
+      {pinned ? (
+        <div className="text-text-muted">Click a run to open it.</div>
+      ) : (
+        runs.length > TIP_RUNS && <div className="text-text-muted">and {runs.length - TIP_RUNS} earlier</div>
+      )}
     </div>
   )
 }

@@ -169,7 +169,7 @@ function GameProfileTabs({
             {...state}
           />
         ) : tab === 'stats' ? (
-          <StatsTab profileNumber={player.profileNumber} game={game} />
+          <StatsTab profileNumber={player.profileNumber} game={game} portal2History={profile.history} />
         ) : tab === 'legacy' ? (
           <LegacyTab scores={profile.scores} player={player} renderRunDetails={renderRunDetails} />
         ) : (

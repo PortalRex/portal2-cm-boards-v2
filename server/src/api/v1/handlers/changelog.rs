@@ -86,6 +86,18 @@ async fn changelog(
     ))
 }
 
+/// **GET** One run (changelog entry) by id, as `GET /changelog` lists it, from any game: the run
+/// page links here. 404 for an unknown id.
+///
+/// Example: `GET /api/v1/changelog/365811`
+#[get("/changelog/{id}")]
+async fn changelog_entry(pool: web::Data<PgPool>, id: web::Path<i64>) -> Result<impl Responder> {
+    Ok(match ChangelogPage::get_one(pool.get_ref(), id.into_inner()).await? {
+        Some(run) => HttpResponse::Ok().json(run),
+        None => HttpResponse::NotFound().body("No such run."),
+    })
+}
+
 /// **POST** method for submitting a new changelog entry.
 ///
 /// Accepts field values for a new [SubmissionChangelog]

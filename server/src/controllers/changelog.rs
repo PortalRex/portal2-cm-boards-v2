@@ -152,6 +152,24 @@ impl ChangelogPage {
         query.build_query_as::<ChangelogPage>().fetch_all(pool).await
     }
 
+    /// One run, as [Self::get_changelog_page] lists it (any game), or None for an unknown id.
+    pub async fn get_one(pool: &PgPool, id: i64) -> Result<Option<ChangelogPage>, sqlx::Error> {
+        let game: Option<i32> = sqlx::query_scalar(
+            "SELECT c.game_id FROM changelog AS cl JOIN maps AS m ON m.steam_id = cl.map_id JOIN chapters AS c ON c.id = m.chapter_id WHERE cl.id = $1",
+        )
+        .bind(id)
+        .fetch_optional(pool)
+        .await?;
+        let Some(game) = game else {
+            return Ok(None);
+        };
+        let params = ChangelogQueryParams { limit: Some(1), game_id: Some(game), ..Default::default() };
+        // The id is an integer, so it's safe in the SQL.
+        let mut filters = vec![format!("cl.id = {id}\n")];
+        let mut query = build_filtered_changelog(pool, params, Some(&mut filters)).await?;
+        query.build_query_as::<ChangelogPage>().fetch_optional(pool).await
+    }
+
     /// Runs set between `start` and `end` (UTC), optionally on one map: verified, unbanned runs
     /// by unbanned players, keeping each player's fastest run per map (a co-op run once, for
     /// both players). Fastest first.

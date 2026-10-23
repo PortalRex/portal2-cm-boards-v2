@@ -69,6 +69,12 @@
 
 ## Log
 <!-- Newest first. One entry per finished item: date, what was done, commit, tests added. -->
+- 2026-10-22: New (asked for): profile activity heatmap squares can be clicked (or Enter/Space) to pin their card,
+  which then lists every run that day as links to the run; Escape, a click outside or Close dismisses it. A new run
+  page (`/run/{id}`, `features/runs/components/run-page.tsx`) shows one run with its Run details, from the new
+  `GET /changelog/{id}`. The Stats tab ends with "All times" (`components/all-times.tsx`, `utils/all-times.ts`): every
+  time the player set in the game, sortable (newest / oldest first, best rank, biggest improvement, map order),
+  filtered by single player / co-op and map name, 50 a page; other games' results now load up to 5000 runs.
 - 2026-10-21: New (not in legacy, asked for): co-op partner demos. When a co-op run wasn't a personal best for one
   player, they can now add their demo of it ("Add your demo" in Run details, also on verified runs), so the run keeps
   both players' views; their tab in Run details shows it. Server: `coop_bundled.partner_demo_id` (migration

@@ -22,6 +22,7 @@ import { Route as MoreDonatorsRouteImport } from './routes/more.donators'
 import { Route as MoreSettingsRouteImport } from './routes/more.settings'
 import { Route as MoreWallOfShameRouteImport } from './routes/more.wall-of-shame'
 import { Route as ProfileProfileIdRouteImport } from './routes/profile.$profileId'
+import { Route as RunRunIdRouteImport } from './routes/run.$runId'
 import { Route as StatsIndexRouteImport } from './routes/stats.index'
 import { Route as StatsCompareRouteImport } from './routes/stats.compare'
 import { Route as StatsCountriesRouteImport } from './routes/stats.countries'
@@ -99,6 +100,11 @@ const MoreWallOfShameRoute = MoreWallOfShameRouteImport.update({
 const ProfileProfileIdRoute = ProfileProfileIdRouteImport.update({
   id: '/profile/$profileId',
   path: '/profile/$profileId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RunRunIdRoute = RunRunIdRouteImport.update({
+  id: '/run/$runId',
+  path: '/run/$runId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const StatsIndexRoute = StatsIndexRouteImport.update({
@@ -183,6 +189,7 @@ export interface FileRoutesByFullPath {
   '/more/settings': typeof MoreSettingsRoute
   '/more/wall-of-shame': typeof MoreWallOfShameRoute
   '/profile/$profileId': typeof ProfileProfileIdRoute
+  '/run/$runId': typeof RunRunIdRoute
   '/stats/compare': typeof StatsCompareRoute
   '/stats/countries': typeof StatsCountriesRoute
   '/stats/history': typeof StatsHistoryRoute
@@ -211,6 +218,7 @@ export interface FileRoutesByTo {
   '/more/settings': typeof MoreSettingsRoute
   '/more/wall-of-shame': typeof MoreWallOfShameRoute
   '/profile/$profileId': typeof ProfileProfileIdRoute
+  '/run/$runId': typeof RunRunIdRoute
   '/stats/compare': typeof StatsCompareRoute
   '/stats/countries': typeof StatsCountriesRoute
   '/stats/history': typeof StatsHistoryRoute
@@ -240,6 +248,7 @@ export interface FileRoutesById {
   '/more/settings': typeof MoreSettingsRoute
   '/more/wall-of-shame': typeof MoreWallOfShameRoute
   '/profile/$profileId': typeof ProfileProfileIdRoute
+  '/run/$runId': typeof RunRunIdRoute
   '/stats/compare': typeof StatsCompareRoute
   '/stats/countries': typeof StatsCountriesRoute
   '/stats/history': typeof StatsHistoryRoute
@@ -270,6 +279,7 @@ export interface FileRouteTypes {
     | '/more/settings'
     | '/more/wall-of-shame'
     | '/profile/$profileId'
+    | '/run/$runId'
     | '/stats/compare'
     | '/stats/countries'
     | '/stats/history'
@@ -298,6 +308,7 @@ export interface FileRouteTypes {
     | '/more/settings'
     | '/more/wall-of-shame'
     | '/profile/$profileId'
+    | '/run/$runId'
     | '/stats/compare'
     | '/stats/countries'
     | '/stats/history'
@@ -326,6 +337,7 @@ export interface FileRouteTypes {
     | '/more/settings'
     | '/more/wall-of-shame'
     | '/profile/$profileId'
+    | '/run/$runId'
     | '/stats/compare'
     | '/stats/countries'
     | '/stats/history'
@@ -355,6 +367,7 @@ export interface RootRouteChildren {
   MoreSettingsRoute: typeof MoreSettingsRoute
   MoreWallOfShameRoute: typeof MoreWallOfShameRoute
   ProfileProfileIdRoute: typeof ProfileProfileIdRoute
+  RunRunIdRoute: typeof RunRunIdRoute
   StatsCompareRoute: typeof StatsCompareRoute
   StatsCountriesRoute: typeof StatsCountriesRoute
   StatsHistoryRoute: typeof StatsHistoryRoute
@@ -464,6 +477,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProfileProfileIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/run/$runId': {
+      id: '/run/$runId'
+      path: '/run/$runId'
+      fullPath: '/run/$runId'
+      preLoaderRoute: typeof RunRunIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/stats/': {
       id: '/stats/'
       path: '/stats'
@@ -571,6 +591,7 @@ const rootRouteChildren: RootRouteChildren = {
   MoreSettingsRoute: MoreSettingsRoute,
   MoreWallOfShameRoute: MoreWallOfShameRoute,
   ProfileProfileIdRoute: ProfileProfileIdRoute,
+  RunRunIdRoute: RunRunIdRoute,
   StatsCompareRoute: StatsCompareRoute,
   StatsCountriesRoute: StatsCountriesRoute,
   StatsHistoryRoute: StatsHistoryRoute,

@@ -64,7 +64,8 @@ export async function getGameResults(
 ): Promise<GameResults> {
   const [ranks, history] = await Promise.all([
     getGameRanks(c, profileNumber, game, signal),
-    getPlayerRuns(c, profileNumber, game, 500, signal),
+    // Every run (the Stats tab lists them all), as for Portal 2.
+    getPlayerRuns(c, profileNumber, game, 5000, signal),
   ])
   return { scores: scoresFromRanks(c, profileNumber, ranks, history, game), history }
 }

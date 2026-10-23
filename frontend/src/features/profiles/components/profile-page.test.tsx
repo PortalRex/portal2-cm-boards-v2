@@ -170,7 +170,7 @@ describe('Profile page', () => {
     await userEvent.click(tramride)
     expect(screen.getByTestId('run-details')).toHaveTextContent('Tramride · mel · 900001')
     expect(requests.asked).toContain(`/ranks/game/2/${FIXTURE_PLAYER}`)
-    expect(requests.asked).toContain(`/changelog?profile_number=${FIXTURE_PLAYER}&limit=500&game_id=2`)
+    expect(requests.asked).toContain(`/changelog?profile_number=${FIXTURE_PLAYER}&limit=5000&game_id=2`)
   })
 
   it('says so when the player has no results in a season', async () => {

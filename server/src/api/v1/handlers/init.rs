@@ -24,6 +24,7 @@ pub fn init(cfg: &mut web::ServiceConfig) {
             .service(admin_user_role)
             .service(admin_run_wr_history)
             .service(coop_halves)
+            .service(changelog_entry)
             .service(submit_key_status)
             .service(submit_key_reset)
             .service(submit_key_remove)

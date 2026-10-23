@@ -8,7 +8,10 @@ import { SeasonSelect } from '@/components/season-select'
 import { EmptyState, Loading } from '@/components/status'
 import { mapPath, useCatalog } from '@/lib/catalog'
 import { formatDate, formatScore, timeAgo } from '@/lib/format'
-import { profileStatsQueryOptions } from '../api/profile'
+import { PORTAL2 } from '@/lib/catalog'
+import type { Run } from '@/types/runs'
+import { gameResultsQueryOptions, profileStatsQueryOptions } from '../api/profile'
+import { AllTimes } from './all-times'
 import { SectionTitle } from './score-tables'
 
 const pct = (n: number, of: number) => (of ? `${Math.round((n / of) * 100)}%` : '–')
@@ -39,12 +42,29 @@ const listRow = 'grid min-h-10 grid-cols-[minmax(0,1fr)_140px_80px] items-center
 // the portals list has no header, so there it's the 2nd, 4th, ...
 const stripe = (on: boolean) => (on ? 'bg-row' : undefined)
 
-/** Activity, co-op partners and demo stats for one game (or one of its seasons). */
-export function StatsTab({ profileNumber, game }: { profileNumber: string; game: string }) {
+/**
+ * Activity, co-op partners and demo stats for one game (or one of its seasons), and every time the
+ * player has set in it. `portal2History` is the profile's own list of Portal 2 runs (already loaded);
+ * other games' and seasons' runs come with their results.
+ */
+export function StatsTab({
+  profileNumber,
+  game,
+  portal2History,
+}: {
+  profileNumber: string
+  game: string
+  portal2History: Run[]
+}) {
   const catalog = useCatalog()
   const [season, setSeason] = useState<string | null>(null)
   const source = season ?? game
   const stats = useQuery(profileStatsQueryOptions(catalog, profileNumber, source))
+  const results = useQuery({
+    ...gameResultsQueryOptions(catalog, profileNumber, source),
+    enabled: source !== PORTAL2,
+  })
+  const runs = source === PORTAL2 ? portal2History : (results.data?.history ?? [])
   const s = stats.data?.summary
   return (
     <div className="flex flex-col gap-6">
@@ -153,6 +173,11 @@ export function StatsTab({ profileNumber, game }: { profileNumber: string; game:
             </section>
           )}
         </>
+      )}
+      {source !== PORTAL2 && results.isPending ? (
+        <Loading label="Loading times" />
+      ) : (
+        <AllTimes key={source} runs={runs} />
       )}
     </div>
   )
