@@ -1,3 +1,4 @@
+use crate::tools::auth::ServiceOnly;
 use crate::{
     models::{changelog::*, demos::DemoOptions},
     tools::{
@@ -7,7 +8,7 @@ use crate::{
         helpers::get_valid_changelog_insert,
     },
 };
-use actix_web::{get, post, put, web, Responder};
+use actix_web::{get, post, put, web, HttpResponse, Responder};
 use sqlx::PgPool;
 
 /// **GET** method for changelog entiries. Utilizes [ChangelogQueryParams] as an optional addition to the query
@@ -85,6 +86,18 @@ async fn changelog(
     ))
 }
 
+/// **GET** One run (changelog entry) by id, as `GET /changelog` lists it, from any game: the run
+/// page links here. 404 for an unknown id.
+///
+/// Example: `GET /api/v1/changelog/365811`
+#[get("/changelog/{id}")]
+async fn changelog_entry(pool: web::Data<PgPool>, id: web::Path<i64>) -> Result<impl Responder> {
+    Ok(match ChangelogPage::get_one(pool.get_ref(), id.into_inner()).await? {
+        Some(run) => HttpResponse::Ok().json(run),
+        None => HttpResponse::NotFound().body("No such run."),
+    })
+}
+
 /// **POST** method for submitting a new changelog entry.
 ///
 /// Accepts field values for a new [SubmissionChangelog]
@@ -125,11 +138,16 @@ async fn changelog(
 /// ```
 #[post("/changelog")]
 pub async fn changelog_new(
+    _auth: ServiceOnly,
     pool: web::Data<PgPool>,
     cl: web::Json<SubmissionChangelog>,
     cache: web::Data<CacheState>,
     config: web::Data<Config>,
 ) -> Result<impl Responder> {
+    // Frozen profiles keep their times but can't get new ones.
+    if crate::controllers::moderation::is_frozen(pool.get_ref(), &cl.profile_number).await? {
+        return Ok(HttpResponse::Conflict().body("This profile is frozen."));
+    }
     let cache = cache.into_inner();
     let cl_i = get_valid_changelog_insert(
         pool.get_ref(),
@@ -142,16 +160,45 @@ pub async fn changelog_new(
     cache
         .update_current_states(&[SP_PREVIEWS, COOP_PREVIEWS], &[false, false])
         .await;
-    Ok(web::Json(id))
+    crate::tools::points_cache::invalidate_points().await;
+    Ok(HttpResponse::Ok().json(id))
 }
 
+/// **GET** the SAR mtrigger segments of a run's demo, as read by autorender.
+///
+/// Returns `null` when the run has no segment data (its demo has no mtriggers, or
+/// autorender hasn't processed it), and 404 for an unknown changelog id.
+///
+/// ## Example endpoint
+/// - `/api/v1/changelog/150000/segments`
+///
+/// ## Example JSON output
+/// ```json
+/// [{ "name": "Portal Gun - Door", "ticks": 141, "splits": [{ "name": "Portal Gun - Door", "ticks": 141 }] }, ...]
+/// ```
+#[get("/changelog/{id}/segments")]
+async fn changelog_segments(pool: web::Data<PgPool>, id: web::Path<i64>) -> Result<impl Responder> {
+    let segments = Changelog::get_segments(pool.get_ref(), id.into_inner()).await?;
+    Ok(match segments {
+        None => HttpResponse::NotFound().body("Unknown changelog id."),
+        Some(json) => HttpResponse::Ok()
+            .content_type("application/json")
+            .body(json.unwrap_or_else(|| "null".to_string())),
+    })
+}
+
+#[derive(serde::Deserialize)]
+pub struct GraphQuery {
+    /// The viewer's time zone (IANA name, e.g. America/Chicago): runs are counted per day there.
+    /// UTC when missing or unknown.
+    pub tz: Option<String>,
+}
+
+/// **GET** Runs per day (all games), newest first: `[{ "date", "count" }]`, days in `?tz=`.
 #[get("/graph")]
-async fn graph(
-    pool: web::Data<PgPool>
-) -> Result<impl Responder> {
-    Ok(web::Json(
-        Graph::get_graph_data(pool.get_ref()).await?,
-    ))
+async fn graph(pool: web::Data<PgPool>, query: web::Query<GraphQuery>) -> Result<impl Responder> {
+    let tz = query.tz.as_deref().and_then(|t| t.parse::<chrono_tz::Tz>().ok()).map(|t| t.name().to_string()).unwrap_or_else(|| "UTC".into());
+    Ok(web::Json(Graph::get_graph_data(pool.get_ref(), &tz).await?))
 }
 
 /// **GET** method for getting a hashmap of all default categories.
@@ -195,21 +242,86 @@ pub async fn default_categories_all(pool: web::Data<PgPool>) -> impl Responder {
 ///     "demo_id" : 1251
 /// }
 /// ```
+#[derive(Deserialize)]
+pub struct WeeklyQuery {
+    /// Any date in the week (weeks start on Monday, UTC); defaults to this week.
+    pub week: Option<chrono::NaiveDate>,
+    pub game_id: Option<i32>,
+}
+
+/// **GET** The week's top 5 runs: best rank first, then the biggest improvement.
+///
+/// ```json
+/// { "start": "2026-10-12", "end": "2026-10-19", "runs": [ ...changelog entries... ] }
+/// ```
+#[get("/recap/weekly")]
+pub async fn recap_weekly(pool: web::Data<PgPool>, query: web::Query<WeeklyQuery>) -> Result<impl Responder> {
+    use chrono::Datelike;
+    let day = query.week.unwrap_or_else(|| chrono::Utc::now().date_naive());
+    let start = day - chrono::Duration::days(day.weekday().num_days_from_monday() as i64);
+    let end = start + chrono::Duration::days(7);
+    let runs = ChangelogPage::top_runs_between(pool.get_ref(), query.game_id.unwrap_or(1), start.and_hms_opt(0, 0, 0).unwrap(), end.and_hms_opt(0, 0, 0).unwrap(), 5).await?;
+    Ok(web::Json(serde_json::json!({ "start": start, "end": end, "runs": runs })))
+}
+
+#[derive(Deserialize)]
+pub struct DailyQuery {
+    /// The day (UTC); defaults to today.
+    pub date: Option<chrono::NaiveDate>,
+    pub game_id: Option<i32>,
+}
+
+/// **GET** The day's daily chambers (one map per board) with the runs set on them that day,
+/// fastest first.
+///
+/// ```json
+/// { "date": "2026-10-13", "chambers": [{ "map": { "steam_id": "47458", "name": "Portal Gun", "game_mode": "sp", "is_coop": false }, "runs": [...] }] }
+/// ```
+#[get("/daily")]
+pub async fn daily_chambers(pool: web::Data<PgPool>, query: web::Query<DailyQuery>) -> Result<impl Responder> {
+    let day = query.date.unwrap_or_else(|| chrono::Utc::now().date_naive());
+    let game_id = query.game_id.unwrap_or(1);
+    let start = day.and_hms_opt(0, 0, 0).unwrap();
+    let end = start + chrono::Duration::days(1);
+    let mut chambers = Vec::new();
+    for map in crate::controllers::changelog::daily_maps(pool.get_ref(), game_id, day).await? {
+        let mut runs = ChangelogPage::best_runs_between(pool.get_ref(), game_id, start, end, Some(&map.steam_id)).await?;
+        runs.truncate(10);
+        chambers.push(serde_json::json!({ "map": map, "runs": runs }));
+    }
+    Ok(web::Json(serde_json::json!({ "date": day, "chambers": chambers })))
+}
+
 #[put("/changelog/demo")]
 pub async fn changelog_demo_update(
+    _auth: ServiceOnly,
     pool: web::Data<PgPool>,
     ids: web::Json<DemoOptions>,
     cache: web::Data<CacheState>,
 ) -> Result<impl Responder> {
     let ids = ids.into_inner();
-    let return_changelog = Changelog::update_demo_id_in_changelog(
-        pool.get_ref(),
-        ids.cl_id.unwrap(),
-        ids.demo_id.unwrap(),
-    )
-    .await?;
+    let (Some(cl_id), Some(demo_id)) = (ids.cl_id, ids.demo_id) else {
+        return Ok(HttpResponse::BadRequest().body("cl_id and demo_id are required."));
+    };
+    let return_changelog = Changelog::update_demo_id_in_changelog(pool.get_ref(), cl_id, demo_id).await?;
+    // A run that was pending for lack of a demo has one now (a new co-op run waits for both
+    // players' demos).
+    let mut tx = pool.begin().await?;
+    let coop_id: Option<i64> = sqlx::query_scalar("SELECT coop_id FROM changelog WHERE id = $1").bind(cl_id).fetch_optional(&mut *tx).await?.flatten();
+    let settled = match coop_id {
+        Some(coop_id) => crate::controllers::submissions::settle_coop_proof(&mut tx, coop_id).await?,
+        None => None,
+    };
+    if settled.is_none() {
+        sqlx::query("UPDATE changelog SET verified = true WHERE id = $1 AND verified IS NOT TRUE AND NOT banned")
+            .bind(cl_id)
+            .execute(&mut *tx)
+            .await?;
+    }
+    tx.commit().await?;
     cache
         .update_current_states(&[SP_PREVIEWS, COOP_PREVIEWS], &[false, false])
         .await;
-    Ok(web::Json(return_changelog))
+    crate::tools::points_cache::invalidate_points().await;
+    Ok(HttpResponse::Ok().json(return_changelog))
 }

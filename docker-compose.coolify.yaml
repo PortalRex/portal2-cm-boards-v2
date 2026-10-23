@@ -1,0 +1,126 @@
+# The board on Coolify (https://coolify.io): Postgres, the Rust web server and the site (nginx), behind Coolify's
+# proxy, which serves the domain over https. See "Coolify" in README.md for the setup.
+#
+# Settings come from Coolify's environment variables (the ${...} below; Coolify lists them in the resource's
+# Environment Variables tab). Required: PUBLIC_URL and STEAM_API_KEY. Coolify fills in SERVICE_USER_POSTGRES and
+# SERVICE_PASSWORD_POSTGRES itself, and SERVICE_FQDN_WEB_80 tells it the site is the `web` service on port 80.
+# The server's own setting names have dots (SERVER.PUBLIC_URL), which Coolify's variables can't, so they're
+# mapped here.
+
+services:
+  db:
+    # postgres:16-bookworm with schema.sql inside (see db/Dockerfile).
+    build: ./db
+    restart: unless-stopped
+    # The hot data (changelog and its indexes, ~300 MB) fits in memory with these; the image's
+    # defaults (128 MB shared buffers, 4 MB work_mem) spill the bigger sorts and joins to disk.
+    command: postgres -c shared_buffers=512MB -c work_mem=16MB -c effective_cache_size=2GB
+    environment:
+      POSTGRES_DB: p2boards
+      POSTGRES_USER: ${SERVICE_USER_POSTGRES:-postgres}
+      POSTGRES_PASSWORD: ${SERVICE_PASSWORD_POSTGRES}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      # Over TCP: while the first start creates the tables, Postgres only listens on its socket, so this
+      # reports healthy once that's done.
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U \"$${POSTGRES_USER:-postgres}\" -d p2boards"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 60s
+
+  server:
+    build: ./server
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${SERVICE_USER_POSTGRES:-postgres}:${SERVICE_PASSWORD_POSTGRES}@db:5432/p2boards
+      SERVER.HOST: 0.0.0.0
+      SERVER.PORT: "8080"
+      # The site's address with https (e.g. https://board.portal2.sr): Steam sign-in returns there and only
+      # accepts it. Must match the domain set for `web`.
+      SERVER.PUBLIC_URL: ${PUBLIC_URL:?set PUBLIC_URL to the site's address}
+      # Only nginx (web) can reach the server, so the client address comes from X-Forwarded-For.
+      SERVER.BEHIND_PROXY: "true"
+      # Staff-only mode while testing before launch (everyone else sees a sign-in page).
+      SERVER.PRIVATE: ${PRIVATE:-false}
+      # Read-only mode for the first days after opening: everyone can read, only staff can change anything.
+      SERVER.READ_ONLY: ${READ_ONLY:-false}
+      STEAM.API_KEY: ${STEAM_API_KEY:?set STEAM_API_KEY (steamcommunity.com/dev/apikey)}
+      # Only for the /backend service; empty turns service access off.
+      SERVICE.TOKEN: ${SERVICE_TOKEN:-}
+      PROOF.RESULTS: "500"
+      PROOF.DEMO: "200"
+      PROOF.VIDEO: "200"
+      # Required by the config but no longer used.
+      BACKBLAZE.KEYID: unused
+      BACKBLAZE.KEY: unused
+      BACKBLAZE.BUCKET: unused
+      DEMO.PARSER: ./demo-parser/parse_demo.mjs
+      DEMO.STORAGE: /data/demos
+      # The old boards' demo files (read-only), for downloading imported runs' demos. Unset: those downloads
+      # say the file isn't available. To add them, mount the folders on the server and list them here (;).
+      DEMO.ARCHIVE: ${DEMO_ARCHIVE:-}
+      IMAGES.STORAGE: /data/map-images
+      # New Portal 2 times from Steam's leaderboards. The old boards are shut down, so their pull stays off.
+      SYNC.STEAM: ${SYNC_STEAM:-true}
+      SYNC.OLD_BOARDS: "false"
+      # From this UTC time (the launch, e.g. 2026-11-01 00:00:00), new top-200 co-op runs need a demo from
+      # each player. Empty: off.
+      RANKS.COOP_PROOF_SINCE: ${COOP_PROOF_SINCE:-}
+      RUST_LOG: ${RUST_LOG:-warn,server::tools::steam_sync=info,server::tools::demo_parse=info}
+    volumes:
+      # Submitted demos and map images.
+      - uploads:/data
+      # The server's caches (rebuilt when empty, which takes a while after a fresh deploy).
+      - server-points:/app/points
+      - server-cache:/app/cache
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8080/api/v1/site').then(r => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  backup:
+    # Daily database dumps into the `backups` volume (see db/backup/backup.sh). Coolify's own scheduled backups
+    # only cover its standalone databases, not one inside a compose file.
+    build: ./db/backup
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${SERVICE_USER_POSTGRES:-postgres}
+      POSTGRES_PASSWORD: ${SERVICE_PASSWORD_POSTGRES}
+      # When to dump, in UTC, and how many to keep (newest daily ones, plus one per month).
+      BACKUP_AT: ${BACKUP_AT:-04:00}
+      KEEP_DAILY: ${BACKUP_KEEP_DAILY:-14}
+      KEEP_MONTHLY: ${BACKUP_KEEP_MONTHLY:-6}
+    volumes:
+      - backups:/backups
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    build: ./frontend
+    restart: unless-stopped
+    environment:
+      # Coolify: the site is this service, on port 80 (set its domain in the resource's settings).
+      - SERVICE_FQDN_WEB_80
+    depends_on:
+      server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  pgdata:
+  uploads:
+  server-points:
+  server-cache:
+  backups:

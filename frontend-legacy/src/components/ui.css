@@ -1,0 +1,501 @@
+/* Panel: dark container with a lighter header strip (icon + uppercase title). */
+.panel {
+  background: rgb(var(--panel-rgb) / 0.97);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.panel-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 48px;
+  padding: 0 20px;
+  background: var(--panel-head);
+}
+
+.panel-head h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.panel-head-icon {
+  font-size: 22px !important;
+}
+
+.panel-head-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.panel-body {
+  padding: 24px 40px 32px;
+}
+
+/* Card: rounded stat card used on the profile page. */
+.card {
+  background: var(--card);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.card-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  height: 48px;
+  padding: 0 20px;
+  background: var(--card-head);
+}
+
+.card-head h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.card-head-icon {
+  font-size: 24px !important;
+}
+
+/* Collapsible cards: the whole header toggles; collapsed cards shrink to it. */
+.card-head-toggle {
+  width: 100%;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.card-head-toggle:hover {
+  filter: brightness(1.12);
+}
+
+.card-chevron {
+  margin-left: auto;
+  color: var(--text-muted);
+  transition: transform 0.15s;
+}
+
+/* Shrinks to its header's height (not its width) whether it sits in a grid row or a column. */
+.card.is-collapsed {
+  align-self: start;
+  width: 100%;
+}
+
+.card.is-collapsed .card-chevron {
+  transform: rotate(-90deg);
+}
+
+.card-body {
+  flex: 1;
+  padding: 20px;
+}
+
+/* Pagination */
+.pagination {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 32px;
+  padding: 0 6px;
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+}
+
+.pagination button {
+  min-width: 26px;
+  height: 24px;
+  padding: 0 4px;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  font-size: 16px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pagination button:hover:not(:disabled),
+.pagination button.is-active {
+  background: var(--seg-active);
+}
+
+.pagination button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* Search */
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  width: min(428px, 100%);
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--control);
+  color: var(--text-muted);
+}
+
+.search-box input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  outline: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+}
+
+.search-box-icon,
+.search-box-filter {
+  font-size: 20px !important;
+}
+
+.search-box:focus-within {
+  border-color: var(--border-strong);
+}
+
+/* Select: native select restyled to the outlined dropdown in the design. */
+.select {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-width: 218px;
+  height: 40px;
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  background: var(--control);
+}
+
+.select select {
+  appearance: none;
+  width: 100%;
+  height: 100%;
+  padding: 0 36px 0 16px;
+  border: 0;
+  outline: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 18px;
+  text-align: center;
+  text-align-last: center;
+  cursor: pointer;
+}
+
+.select select option {
+  background: var(--control);
+}
+
+.select svg {
+  position: absolute;
+  right: 14px;
+  pointer-events: none;
+}
+
+/* Avatar / flag */
+.avatar {
+  flex: none;
+  object-fit: cover;
+  background: var(--track);
+}
+
+.avatar-empty {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.flag {
+  flex: none;
+  object-fit: cover;
+  border-radius: 2px;
+}
+
+.player-link:hover {
+  text-decoration: underline;
+}
+
+/* The signed-in player's own name, and their row, on boards and lists. */
+.player-link.is-me {
+  color: var(--accent-light);
+  font-weight: 600;
+}
+
+.is-me {
+  --me-tint: color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+/* :nth-child(n) matches every row; it's there so these beat the boards' striped (odd / even)
+   row colours on every row, not just the unstriped ones. */
+.agg-row.is-me:not(.agg-row-head):nth-child(n),
+.mc-rows li.is-me:nth-child(n),
+.mc-wr.is-me,
+.mp-entry.is-me:nth-child(n) > .mp-row {
+  background: var(--me-tint);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+/* YouTube embed (16:9) */
+.yt-embed {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #000;
+}
+
+.yt-embed iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.yt-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-dim);
+  background: var(--row-sub-alt);
+  border: 1px solid var(--track);
+}
+
+/* Previous ▶ new rank cells */
+.rank-change {
+  display: grid;
+  grid-template-columns: 1fr 0 1fr;
+  align-items: stretch;
+  height: 100%;
+  min-height: 46px;
+  font-size: 18px;
+}
+
+.rank-change > span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rank-change svg {
+  align-self: center;
+  justify-self: center;
+  position: relative;
+  z-index: 1;
+}
+
+/* Solid cells; the number carries the rank colour (bright scale on the dark-theme gray,
+   the darker scale on the light-theme gray). */
+.rank-change-prev,
+.rank-change-new {
+  background: var(--rank-cell);
+  color: var(--rank-color-dark, var(--rank-cell-text));
+  font-weight: 600;
+}
+
+:root[data-theme="light"] .rank-change-prev,
+:root[data-theme="light"] .rank-change-new {
+  color: var(--rank-color, var(--rank-cell-text));
+}
+
+.rank-change-prev {
+  box-shadow: inset -1px 0 0 var(--rank-cell-divider);
+}
+
+.rank-change > svg {
+  color: var(--rank-cell-text);
+}
+
+.rank-trophy {
+  display: inline-block !important;
+  vertical-align: middle;
+  font-size: 1.3em !important;
+}
+
+.rank-pair {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rank-change .rank-trophy {
+  font-size: 22px !important;
+}
+
+.loading,
+.empty-state {
+  padding: 40px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 18px;
+}
+
+.outline-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 40px;
+  padding: 0 20px;
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  background: var(--control);
+  font-size: 18px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.outline-button:hover {
+  background: var(--control-raised);
+}
+
+.outline-button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Segmented toggle (Map List mode, Mel mode switches) */
+.segmented {
+  display: flex;
+  gap: 6px;
+  height: 46px;
+}
+
+.segmented button {
+  min-width: 162px;
+  padding: 0 24px;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  font-size: 20px;
+  font-weight: 400;
+  color: var(--text-2);
+  cursor: pointer;
+}
+
+.segmented button.is-active {
+  background: var(--seg-active);
+  color: var(--text);
+  font-weight: 500;
+}
+
+.segmented button:hover:not(.is-active) {
+  background: var(--seg-hover);
+}
+
+/* A rank number coloured by rank (RankNumber with colored). */
+.rank-colored {
+  color: var(--rank-color-dark);
+  font-weight: 600;
+}
+
+:root[data-theme="light"] .rank-colored {
+  color: var(--rank-color);
+}
+
+/* Phones: a panel's controls drop below its title and scroll sideways if they still don't fit. */
+@media (max-width: 700px) {
+  .panel-head {
+    flex-wrap: wrap;
+    height: auto;
+    min-height: 48px;
+    padding: 10px 14px;
+    row-gap: 8px;
+  }
+
+  .panel-head-actions {
+    width: 100%;
+    margin-left: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .panel-head-actions > * {
+    flex-shrink: 0;
+  }
+}
+
+/* World records: a rich trophy fill with a bright edge and an inner glow (a cell inside a row);
+   .is-raised squares glow outwards too. On hover the glow grows and a sheen sweeps across once. */
+.wr-glow {
+  position: relative;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--trophy) 46%, var(--track)) !important;
+  color: #f6dcff !important;
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--trophy) 85%, white),
+    inset 0 0 14px color-mix(in srgb, var(--trophy) 60%, transparent) !important;
+  transition: box-shadow 0.2s;
+}
+
+.wr-glow.is-raised {
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--trophy) 85%, white),
+    0 0 10px 1px color-mix(in srgb, var(--trophy) 55%, transparent) !important;
+}
+
+.wr-glow svg {
+  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--trophy) 90%, white));
+}
+
+.wr-glow::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 35%, rgb(255 255 255 / 0.35) 50%, transparent 65%);
+  transform: translateX(-120%);
+  pointer-events: none;
+}
+
+.wr-glow:hover,
+*:hover > .wr-glow {
+  outline: none;
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--trophy) 70%, white),
+    inset 0 0 20px color-mix(in srgb, var(--trophy) 75%, transparent) !important;
+}
+
+.wr-glow.is-raised:hover {
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--trophy) 70%, white),
+    0 0 16px 3px color-mix(in srgb, var(--trophy) 70%, transparent) !important;
+}
+
+.wr-glow:hover::after,
+*:hover > .wr-glow::after {
+  transform: translateX(120%);
+  transition: transform 0.6s ease-out;
+}
+
+:root[data-theme="light"] .wr-glow {
+  background: color-mix(in srgb, var(--trophy) 30%, var(--track)) !important;
+  color: #5b1480 !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wr-glow:hover::after,
+  *:hover > .wr-glow::after {
+    transition: none;
+    transform: translateX(-120%);
+  }
+}

@@ -64,6 +64,10 @@
 //! 
 /// Controllers for admin-specific functions
 pub mod admin;
+/// SAR auto-submit: submit keys and the lookups around a run
+pub mod autosubmit;
+/// Steam sign-in: users, sessions, replay guard
+pub mod auth;
 /// Controllers for changelog
 pub mod changelog;
 /// Controllers for chapters
@@ -72,11 +76,31 @@ pub mod chapters;
 pub mod coop;
 /// Controllers for demos
 pub mod demos;
+/// Per-game aggregates computed from the changelog (points, ranks)
+pub mod game_boards;
 /// Controllers for maps
 pub mod maps;
+/// Admin actions with an audit log
+pub mod moderation;
+/// Co-op halves and reactions on runs
+pub mod runs;
 /// Controllers for sp
 pub mod sp;
 /// Controllers for stats
 pub mod stats;
+/// Run submissions from demos
+pub mod submissions;
+/// Games, seasons, chapters, maps and categories
+pub mod catalog;
+/// Player stats (activity, partners, demo stats)
+pub mod profile_stats;
+/// Site-wide runner statistics (the Stats page).
+pub mod site_stats;
+/// World record statistics (the Stats page's records, history, race and times).
+pub mod wr_stats;
+/// Anonymous run reports
+pub mod reports;
+/// Staff-only notes on runs
+pub mod staff_notes;
 /// Controllers for users
 pub mod users;

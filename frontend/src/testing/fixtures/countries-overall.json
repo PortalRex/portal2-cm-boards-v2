@@ -1,0 +1,150 @@
+[
+  {
+    "country_id": 226,
+    "players": 1542,
+    "points": 435271.12,
+    "top": [
+      {
+        "profile_number": "76561198095730281",
+        "user_name": "Bexc",
+        "avatar": "https://avatars.steamstatic.com/3b161f8a37d8e69c3244b7c23d7b461433e14c0c_full.jpg",
+        "points": 19495.264
+      },
+      {
+        "profile_number": "76561198096862334",
+        "user_name": "Unaccompanied Minor",
+        "avatar": "https://avatars.steamstatic.com/56bb21741447509747888d408363258687c2da16_full.jpg",
+        "points": 19019.021
+      },
+      {
+        "profile_number": "76561198411125245",
+        "user_name": "KiloOnline",
+        "avatar": "https://avatars.steamstatic.com/4ff11c7fe266f71b02c078e8dcc1374c3413b6f4_full.jpg",
+        "points": 17977.625
+      },
+      {
+        "profile_number": "76561198068358920",
+        "user_name": "Kendal",
+        "avatar": "https://avatars.steamstatic.com/6561779fe010c61ae679349104371f434bdffa2e_full.jpg",
+        "points": 17679.678
+      },
+      {
+        "profile_number": "76561198172465698",
+        "user_name": "Nate",
+        "avatar": "https://avatars.steamstatic.com/939f31b3de147f1054f631cd33373043b3b6ad4b_full.jpg",
+        "points": 16672.56
+      }
+    ]
+  },
+  {
+    "country_id": 225,
+    "players": 496,
+    "points": 50259.094,
+    "top": [
+      {
+        "profile_number": "76561198081168311",
+        "user_name": "unity",
+        "avatar": "https://avatars.steamstatic.com/1fcc7701ff71dce31965e10408d79aeb79bdf051_full.jpg",
+        "points": 20261.002
+      },
+      {
+        "profile_number": "76561198039912258",
+        "user_name": "hazza",
+        "avatar": "https://avatars.steamstatic.com/5a9e8d6229e67c253695136f2fee087f04b5ec05_full.jpg",
+        "points": 13191.566
+      },
+      {
+        "profile_number": "76561199221334063",
+        "user_name": "Extension",
+        "avatar": "https://avatars.steamstatic.com/dbaf3958fffebf266ce5c04316da744987e9b1fb_full.jpg",
+        "points": 8238.326
+      },
+      {
+        "profile_number": "76561198198438581",
+        "user_name": "Sneaky Pizza",
+        "avatar": "https://avatars.steamstatic.com/ed56a1d461c7a9e9ad5343c352020bc420bcc412_full.jpg",
+        "points": 1950.4099
+      },
+      {
+        "profile_number": "76561198045074889",
+        "user_name": "\u300e Jonese1234 \u300f",
+        "avatar": "https://steamcdn-a.akamaihd.net/steamcommunity/public/images/avatars/9f/9f6de098624a8f81ba6d2318e1923bdda1c710d6_full.jpg",
+        "points": 1775.0349
+      }
+    ]
+  },
+  {
+    "country_id": 80,
+    "players": 377,
+    "points": 9427.8545,
+    "top": [
+      {
+        "profile_number": "76561198071063948",
+        "user_name": "Travence",
+        "avatar": "https://avatars.steamstatic.com/30247f75ad7b7e688654a28daa6ad4b035646281_full.jpg",
+        "points": 4131.0
+      },
+      {
+        "profile_number": "76561198151558069",
+        "user_name": "Tenai",
+        "avatar": "https://avatars.steamstatic.com/16186fb1c2d7708e0ecac56c75981f884fc63cf0_full.jpg",
+        "points": 1531.625
+      },
+      {
+        "profile_number": "76561199005152534",
+        "user_name": "Weakloink",
+        "avatar": "https://avatars.akamai.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg",
+        "points": 1094.26
+      },
+      {
+        "profile_number": "76561198042765574",
+        "user_name": "Lars",
+        "avatar": "https://avatars.steamstatic.com/397f2c48b967befccca4fe00cdc0cc29bec287af_full.jpg",
+        "points": 910.01
+      },
+      {
+        "profile_number": "76561198119020724",
+        "user_name": "myrol",
+        "avatar": "https://avatars.steamstatic.com/9c4560be4ff70d339cb0de3b06c4a4059d91bf95_full.jpg",
+        "points": 663.49
+      }
+    ]
+  },
+  {
+    "country_id": 38,
+    "players": 290,
+    "points": 31310.898,
+    "top": [
+      {
+        "profile_number": "76561197961326251",
+        "user_name": "ivycomb",
+        "avatar": "https://avatars.steamstatic.com/3d0262e08363d7b2c7d7a242c10752a46f2afff9_full.jpg",
+        "points": 8077.9746
+      },
+      {
+        "profile_number": "76561198041962842",
+        "user_name": "Swiftrax",
+        "avatar": "https://avatars.steamstatic.com/938f2ed6557cb0637293a2e24b86870b8a648406_full.jpg",
+        "points": 5683.455
+      },
+      {
+        "profile_number": "76561198249670928",
+        "user_name": "Big Mukmuk",
+        "avatar": "https://avatars.steamstatic.com/a7528d6f79f38c821719906efecf1e5556bfadc3_full.jpg",
+        "points": 4658.5054
+      },
+      {
+        "profile_number": "76561198084336096",
+        "user_name": "feliser",
+        "avatar": "https://avatars.steamstatic.com/1a23caeff548e3683db8880bf48882bd9cc0e348_full.jpg",
+        "points": 2764.67
+      },
+      {
+        "profile_number": "76561198082941395",
+        "user_name": "Stevo",
+        "avatar": "https://avatars.steamstatic.com/21223a42460d8eb8bf8ca81b888e60d13af282ef_full.jpg",
+        "points": 2342.6697
+      }
+    ]
+  }
+]

@@ -1,10 +1,11 @@
+use crate::tools::auth::ServiceOnly;
 use crate::{
     models::{
         changelog::{
             Changelog, ChangelogInsert, HistoryParams, ScoreLookup, ScoreParams,
             SubmissionChangelog,
         },
-        chapters::OptIDs,
+        chapters::{GameID, OptIDs},
         sp::*,
         users::{Users, UsersPage},
     },
@@ -48,10 +49,15 @@ use sqlx::PgPool;
 ///             },...]}]
 /// ```
 #[get("/sp")]
-async fn sp(pool: web::Data<PgPool>, cache: web::Data<CacheState>) -> Result<impl Responder> {
+async fn sp(pool: web::Data<PgPool>, cache: web::Data<CacheState>, game: web::Query<GameID>) -> Result<impl Responder> {
+    // Only the Portal 2 previews are cached; other games are small enough to query directly.
+    let game_id = game.into_inner().game_id.unwrap_or(1);
+    if game_id != 1 {
+        return Ok(web::Json(SpPreview::get_sp_previews(pool.get_ref(), game_id).await?));
+    }
     // See if we can utilize the cache
     if !cache.get_current_state(SP_PREVIEWS).await {
-        let sp_previews = SpPreview::get_sp_previews(pool.get_ref()).await?;
+        let sp_previews = SpPreview::get_sp_previews(pool.get_ref(), 1).await?;
         if write_to_file("sp_previews", &sp_previews).await.is_ok() {
             cache.update_current_state(SP_PREVIEWS, true).await;
         } else {
@@ -115,23 +121,24 @@ pub async fn sp_map(
     let map_id = map_id.into_inner();
     let cat_id = ids
         .cat_id
-        .unwrap_or(cache.into_inner().default_cat_ids[&map_id]);
+        .unwrap_or(cache.default_cat(pool.get_ref(), &map_id).await);
     let sp_map = SpMap::get_sp_map_page(
         pool.get_ref(),
         &map_id,
         config.proof.results,
         cat_id,
-        ids.game_id.unwrap_or(1),
+        match ids.game_id { Some(g) => g, None => crate::tools::helpers::map_game_id(pool.get_ref(), &map_id).await },
+        ids.at.as_deref().and_then(crate::tools::helpers::parse_moment),
     )
     .await?;
-    let mut ranked_vec = Vec::with_capacity(config.proof.results as usize);
+    // Ties share a rank (and its points), and the next time down skips past them: 1, 2, 2, 4.
+    let mut ranked_vec: Vec<SpRanked> = Vec::with_capacity(config.proof.results as usize);
     for (i, entry) in sp_map.into_iter().enumerate() {
-        // TODO: Fix tied ranks.
-        ranked_vec.push(SpRanked {
-            map_data: entry,
-            rank: i as i32 + 1,
-            points: score(i as i32 + 1),
-        })
+        let rank = match ranked_vec.last() {
+            Some(prev) if prev.map_data.score == entry.score => prev.rank,
+            _ => i as i32 + 1,
+        };
+        ranked_vec.push(SpRanked { map_data: entry, rank, points: score(rank) })
     }
     Ok(web::Json(ranked_vec))
 }
@@ -201,7 +208,7 @@ async fn sp_banned(
     let cat_id = Some(
         params
             .cat_id
-            .unwrap_or(cache.into_inner().default_cat_ids[&map_id]),
+            .unwrap_or(cache.default_cat(pool.get_ref(), &map_id).await),
     );
     let is_banned = Changelog::check_banned_scores(
         pool.get_ref(),
@@ -305,7 +312,7 @@ async fn sp_history(
         &query.map_id,
         query
             .cat_id
-            .unwrap_or(cache.into_inner().default_cat_ids[&query.map_id]),
+            .unwrap_or(cache.default_cat(pool.get_ref(), &query.map_id).await),
         query.game_id.unwrap_or(1),
     )
     .await
@@ -381,7 +388,7 @@ pub async fn sp_validate(
             map_id: data.map_id.clone(),
             category_id: Some(
                 data.cat_id
-                    .unwrap_or(cache.into_inner().default_cat_ids[&data.map_id]),
+                    .unwrap_or(cache.default_cat(pool.get_ref(), &data.map_id).await),
             ),
             game_id: Some(data.game_id.unwrap_or(1)),
             note: None,
@@ -397,13 +404,27 @@ pub async fn sp_validate(
 /// Receives a new score to add to the DB.
 #[post("/sp/post_score")]
 async fn sp_post_score(
+    _auth: ServiceOnly,
     params: web::Json<ChangelogInsert>,
     pool: web::Data<PgPool>,
     cache: web::Data<CacheState>,
 ) -> Result<impl Responder> {
-    let id = Changelog::insert_changelog(pool.get_ref(), params.0).await?;
+    // Frozen profiles keep their times but can't get new ones.
+    if crate::controllers::moderation::is_frozen(pool.get_ref(), &params.profile_number).await? {
+        return Ok(actix_web::HttpResponse::Conflict().body("This profile is frozen."));
+    }
+    // Unless the caller says otherwise, a run without a demo that would rank in the top
+    // PROOF_RANK is pending until a demo is added or staff verify it.
+    let mut run = params.into_inner();
+    if run.verified.is_none() {
+        let pending = run.demo_id.is_none()
+            && crate::controllers::submissions::needs_proof(pool.get_ref(), &run.map_id, run.category_id, &run.profile_number, run.score).await?;
+        run.verified = Some(!pending);
+    }
+    let id = Changelog::insert_changelog(pool.get_ref(), run).await?;
     cache.update_current_state(SP_PREVIEWS, false).await;
-    Ok(web::Json(id))
+    crate::tools::points_cache::invalidate_points().await;
+    Ok(actix_web::HttpResponse::Ok().json(id))
 }
 
 // TODO: Make this more ergonomic? Don't require all values.
@@ -460,6 +481,7 @@ async fn sp_post_score(
 /// ```
 #[put("/sp/update")]
 async fn sp_update(
+    _auth: ServiceOnly,
     params: web::Json<Changelog>,
     pool: web::Data<PgPool>,
     cache: web::Data<CacheState>,
@@ -467,5 +489,6 @@ async fn sp_update(
     // TODO: Handle demo uploads.
     let changelog_entry = Changelog::update_changelog(pool.get_ref(), params.0).await?;
     cache.update_current_state(SP_PREVIEWS, false).await;
+    crate::tools::points_cache::invalidate_points().await;
     Ok(web::Json(changelog_entry))
 }

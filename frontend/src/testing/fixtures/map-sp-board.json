@@ -1,0 +1,82 @@
+[
+  {
+    "map_data": {
+      "cl_id": 365324,
+      "timestamp": "2026-10-16T08:56:23",
+      "profile_number": "76561198021055079",
+      "score": 1348,
+      "demo_id": 182580,
+      "youtube_id": null,
+      "submission": 0,
+      "note": null,
+      "category_id": 65,
+      "user_name": "Jarool",
+      "avatar": "https://avatars.steamstatic.com/888b6482856fbedb86671443ec67d600a368343c_full.jpg",
+      "autorender_id": "bXElGlEQmKQ",
+      "portals": 8,
+      "sar_version": "1.15.5"
+    },
+    "rank": 1,
+    "points": 200
+  },
+  {
+    "map_data": {
+      "cl_id": 258547,
+      "timestamp": "2023-07-20T22:49:21",
+      "profile_number": "76561198068358920",
+      "score": 1361,
+      "demo_id": 90043,
+      "youtube_id": "QMZDPZCETIg?start=0",
+      "submission": 2,
+      "note": "",
+      "category_id": 65,
+      "user_name": "Kendal",
+      "avatar": "https://avatars.steamstatic.com/6561779fe010c61ae679349104371f434bdffa2e_full.jpg",
+      "autorender_id": "TijkSlsouh4",
+      "portals": 9,
+      "sar_version": "1.12.8-pre10"
+    },
+    "rank": 2,
+    "points": 198.005
+  },
+  {
+    "map_data": {
+      "cl_id": 301554,
+      "timestamp": "2024-10-02T16:41:05",
+      "profile_number": "76561198083196477",
+      "score": 1401,
+      "demo_id": 123962,
+      "youtube_id": null,
+      "submission": 0,
+      "note": null,
+      "category_id": 65,
+      "user_name": "Burger40",
+      "avatar": "https://avatars.steamstatic.com/cf641d7055a784ca5b5d2b1443a299f1dc71535c_full.jpg",
+      "autorender_id": "SoLYMnzuqzU",
+      "portals": 7,
+      "sar_version": "1.13.8"
+    },
+    "rank": 3,
+    "points": 196.02
+  },
+  {
+    "map_data": {
+      "cl_id": 242075,
+      "timestamp": "2023-02-05T16:23:29",
+      "profile_number": "76561198149112443",
+      "score": 1405,
+      "demo_id": 78117,
+      "youtube_id": null,
+      "submission": 2,
+      "note": "",
+      "category_id": 65,
+      "user_name": "AngerySnek",
+      "avatar": "https://avatars.steamstatic.com/36f5af69d7f5763b4fbede1c3a067f97505e77ce_full.jpg",
+      "autorender_id": "aVC06Iut0aw",
+      "portals": 9,
+      "sar_version": "1.12.8-pre5"
+    },
+    "rank": 4,
+    "points": 194.045
+  }
+]

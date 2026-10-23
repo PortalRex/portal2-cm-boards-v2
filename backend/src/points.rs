@@ -102,7 +102,7 @@ pub fn calc_points(maps_altered: Option<Vec<i32>>) {
 
         // Post all chapters to the webserver
         for chapter in send_vec.iter() {
-            let client = reqwest::blocking::Client::new();
+            let client = crate::http::blocking_client();
             let url = "http://localhost:8080/api/v1/points/chapter".to_string();
             client
                 .post(&url)
@@ -157,7 +157,7 @@ pub fn calc_points(maps_altered: Option<Vec<i32>>) {
         let mut sorted: Vec<_> = sp_hm_clone.into_iter().collect();
         sorted.sort_by(|a, b| b.1.points.partial_cmp(&a.1.points).unwrap());
 
-        let client = reqwest::blocking::Client::new();
+        let client = crate::http::blocking_client();
         let url = "http://localhost:8080/api/v1/points/sp".to_string();
         client
             .post(&url)
@@ -172,7 +172,7 @@ pub fn calc_points(maps_altered: Option<Vec<i32>>) {
         let mut sorted: Vec<_> = coop_hm_clone.into_iter().collect();
         sorted.sort_by(|a, b| b.1.points.partial_cmp(&a.1.points).unwrap());
 
-        let client = reqwest::blocking::Client::new();
+        let client = crate::http::blocking_client();
         let url = "http://localhost:8080/api/v1/points/coop".to_string();
         client
             .post(&url)
@@ -217,7 +217,7 @@ pub fn calc_points(maps_altered: Option<Vec<i32>>) {
         let mut sorted: Vec<_> = overall_hm.into_iter().collect();
         sorted.sort_by(|a, b| b.1.points.partial_cmp(&a.1.points).unwrap());
 
-        let client = reqwest::blocking::Client::new();
+        let client = crate::http::blocking_client();
         let url = "http://localhost:8080/api/v1/points/overall".to_string();
         client
             .post(&url)

@@ -14,9 +14,40 @@ pub struct Users {
     pub title: Option<String>,
     pub admin: i32,
     pub donation_amount: Option<String>,
+    /// Private: never sent in API responses.
+    #[serde(skip_serializing)]
     pub discord_id: Option<String>,
+    /// Private (the old boards' per-user submission key): never sent in API responses.
+    #[serde(skip_serializing)]
     pub auth_hash: Option<String>,
     pub country_id: Option<i32>,
+    /// Frozen profiles keep their times but can't get new ones.
+    #[sqlx(default)]
+    pub frozen: bool,
+    #[sqlx(default)]
+    pub frozen_reason: Option<String>,
+    /// Staff tier: verifier, moderator or admin.
+    #[sqlx(default)]
+    pub role: Option<String>,
+    #[sqlx(default)]
+    #[serde(default)]
+    pub name_locked: bool,
+    #[sqlx(default)]
+    #[serde(default)]
+    pub avatar_locked: bool,
+    /// The player chose their own picture (kept through sign-ins).
+    #[sqlx(default)]
+    #[serde(default)]
+    pub avatar_custom: bool,
+    /// When the player's peak points first reached Legends (kept for good), if they have.
+    #[sqlx(default)]
+    #[serde(default)]
+    pub legends_at: Option<chrono::NaiveDateTime>,
+    /// The country on the player's Steam profile (ISO code), when read from Steam: a new
+    /// account starts with it ([Users::set_default_country]). Not stored as such.
+    #[sqlx(skip)]
+    #[serde(skip)]
+    pub steam_country: Option<String>,
 }
 
 /// One-to-one struct for countries
@@ -56,6 +87,16 @@ pub struct UsersDisplay {
     pub avatar: String,
 }
 
+/// A member of staff for the public team list: name, picture and staff tier.
+#[derive(Debug, FromRow, Deserialize, Serialize, Clone)]
+pub struct StaffMember {
+    pub profile_number: String,
+    pub user_name: String,
+    pub avatar: Option<String>,
+    /// "admin", "moderator" or "verifier".
+    pub role: String,
+}
+
 #[derive(Debug, Deserialize, Serialize, Clone, FromRow)]
 pub struct UsersDisplayCount {
     pub profile_number: String,
@@ -89,15 +130,45 @@ pub struct Players {
     pub players: Vec<GetPlayerSummaries>,
 }
 
+/// One player from GetPlayerSummaries. Steam leaves fields out for some profiles (private ones
+/// have no `lastlogoff`), so everything but the id, name and picture may be missing.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct GetPlayerSummaries {
     pub steamid: String,
+    #[serde(default)]
     pub communityvisibilitystate: i32,
+    #[serde(default)]
     pub profilestate: i32,
     pub personaname: String,
-    pub lastlogoff: i32,
+    #[serde(default)]
+    pub lastlogoff: i64,
+    #[serde(default)]
     pub profileurl: String,
+    #[serde(default)]
     pub avatar: String,
+    #[serde(default)]
     pub avatarmedium: String,
     pub avatarfull: String,
+    /// The country on the Steam profile (ISO code), if public.
+    #[serde(default)]
+    pub loccountrycode: Option<String>,
+}
+
+/// A player's personal best on a Portal 2 map, with deltas against the ranked board.
+#[derive(Serialize, Deserialize, FromRow, Debug, Clone)]
+pub struct ProfileScore {
+    pub map_id: String,
+    pub score: i32,
+    pub timestamp: Option<chrono::NaiveDateTime>,
+    pub changelog_id: i64,
+    pub is_multiplayer: bool,
+    /// Rank within the top results (`None` when outside them).
+    #[sqlx(skip)]
+    pub rank: Option<i32>,
+    /// Centiseconds behind the world record (0 for the record itself).
+    #[sqlx(skip)]
+    pub delta_to_wr: Option<i32>,
+    /// Centiseconds behind the next better distinct time (`None` for the record).
+    #[sqlx(skip)]
+    pub delta_to_next: Option<i32>,
 }

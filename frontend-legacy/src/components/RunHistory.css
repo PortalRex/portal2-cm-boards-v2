@@ -1,0 +1,150 @@
+/* A clickable time: looks like the time, underlines on hover. */
+.time-btn {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.time-btn:hover {
+  text-decoration: underline;
+}
+
+.rh-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 72px 16px 16px;
+  background: rgba(0, 0, 0, 0.6);
+  overflow-y: auto;
+  cursor: default;
+}
+
+.rh-dialog {
+  width: 100%;
+  max-width: 760px;
+  padding-bottom: 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--card);
+  color: var(--text);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+}
+
+.rh-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--card-head);
+  border-radius: 6px 6px 0 0;
+}
+
+.rh-head h2 {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  font-size: 18px;
+  font-weight: 500;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.rh-head a:hover {
+  text-decoration: underline;
+}
+
+.rh-close {
+  display: inline-flex;
+  padding: 4px;
+  border: 0;
+  background: none;
+  color: var(--text-2);
+  cursor: pointer;
+}
+
+.rh-tabs {
+  height: 30px;
+  margin: 12px 16px 0;
+}
+
+.rh-tabs button {
+  min-width: 0;
+  padding: 0 14px;
+  font-size: 15px;
+}
+
+.rh-chart {
+  margin: 12px 16px 4px;
+}
+
+.rh-table {
+  margin: 8px 16px 0;
+}
+
+.rh-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 110px 90px 110px 130px;
+  align-items: center;
+  gap: 0 12px;
+  min-height: 34px;
+  padding: 0 8px;
+  font-size: 15px;
+}
+
+.rh-row:not(.rh-row-head):nth-child(even) {
+  background: var(--row);
+}
+
+.rh-row-head {
+  min-height: 26px;
+  color: var(--text-muted);
+  font-size: 13px;
+  text-transform: uppercase;
+}
+
+.rh-row.is-banned {
+  opacity: 0.55;
+}
+
+.rh-badge {
+  margin-left: 8px;
+}
+
+.rh-icons {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.rh-icons svg {
+  display: block;
+  font-size: 20px;
+}
+
+.rh-icons .is-off {
+  opacity: 0.18;
+}
+
+@media (max-width: 700px) {
+  .rh-backdrop {
+    padding: 16px 8px;
+  }
+
+  .rh-row {
+    grid-template-columns: minmax(0, 1fr) 76px 64px 72px;
+    gap: 0 6px;
+    font-size: 13px;
+  }
+
+  .rh-row > :nth-child(5) {
+    display: none;
+  }
+}

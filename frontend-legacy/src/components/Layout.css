@@ -1,0 +1,79 @@
+.layout {
+  position: relative;
+  min-height: 100vh;
+  isolation: isolate;
+}
+
+/* The background sits at layer 0 and the page above it at layer 1. (A negative z-index under a
+   filtered fixed layer let Chromium sometimes paint the background over the panels' own
+   backgrounds, leaving only their text on top of the artwork.) */
+.layout-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background-color: var(--page);
+  background-size: cover;
+  background-position: center top;
+}
+
+.layout-bg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+
+.layout-bg.tint-dark::after {
+  background: linear-gradient(to bottom, rgb(var(--page-rgb) / 0.35), rgb(var(--page-rgb) / 0.8) 55%, var(--page));
+}
+
+/* Greyscale without a CSS filter: blending the image's luminosity onto grey keeps it part of
+   the background's own paint instead of a separately composited layer. */
+.layout-bg.tint-mono {
+  background-color: #808080;
+  background-blend-mode: luminosity;
+}
+
+.layout-bg.tint-mono::after {
+  background: linear-gradient(to bottom, rgb(var(--page-rgb) / 0.25), rgb(var(--page-rgb) / 0.85) 60%, var(--page));
+}
+
+.layout-bg.tint-warm::after {
+  background: linear-gradient(to bottom, rgba(20, 14, 6, 0.2), rgb(var(--page-rgb) / 0.85) 75%, var(--page));
+}
+
+.layout-bg.is-blurred {
+  filter: blur(18px) brightness(0.85);
+  transform: scale(1.08);
+}
+
+.layout-main {
+  position: relative;
+  z-index: 1;
+  max-width: var(--content);
+  margin: 0 auto;
+  padding: 16px 24px 80px;
+}
+
+.layout-main.is-narrow {
+  max-width: 1240px;
+}
+
+.sample-notice {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 30;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--pending);
+  color: var(--pending-text);
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 700px) {
+  .layout-main {
+    padding: 8px 10px 60px;
+  }
+}

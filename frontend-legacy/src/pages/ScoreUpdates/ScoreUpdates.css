@@ -1,0 +1,968 @@
+/* Top row: Following + Daily Activity */
+.su-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+  gap: 30px;
+  margin-bottom: 30px;
+}
+
+.su-following-body,
+.su-activity-body {
+  padding: 14px 20px 18px;
+}
+
+.following {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.following li {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.4fr) 34px 92px 78px;
+  align-items: center;
+  gap: 10px;
+  height: 28px;
+  font-size: 14px;
+}
+
+.following li:nth-child(odd) {
+  background: var(--row);
+}
+
+.following-map {
+  padding-left: 8px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.following-player {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.following-rank {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--rank-new);
+}
+
+.following-ago,
+.following-date {
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.following-date {
+  padding-right: 8px;
+}
+
+/* Weekly recap */
+.following.recap li {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) 34px 64px 60px;
+}
+
+.su-following .panel-title,
+.su-following h2 {
+  white-space: nowrap;
+}
+
+.recap .following-player {
+  gap: 0 8px;
+}
+
+.recap-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Long names end in an ellipsis instead of running into the rank. */
+.recap-name > a {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.recap-amp {
+  margin-right: 2px;
+}
+
+.recap-time {
+  text-align: right;
+}
+
+.recap-delta {
+  padding-right: 8px;
+  text-align: right;
+  font-size: 13px;
+}
+
+/* Daily chambers */
+.daily {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.daily-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 0 8px 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+.daily-mode {
+  color: var(--text-muted);
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.daily-map {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.daily-more {
+  margin-left: auto;
+  font-size: 13px;
+}
+
+.following.daily-runs li {
+  grid-template-columns: 24px minmax(0, 2fr) 34px 64px 92px;
+}
+
+.daily-place {
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.daily-empty {
+  margin: 6px 8px 0;
+  font-size: 14px;
+}
+
+/* Score updates table */
+.su-body {
+  padding: 26px 26px 30px;
+}
+
+.su-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 22px;
+}
+
+.su-toolbar-bottom {
+  justify-content: flex-end;
+  margin: 22px 0 0;
+}
+
+.score-table {
+  --su-cols: 83px 83px minmax(170px, 1.2fr) minmax(220px, 2.3fr) 110px 100px 90px 150px 156px 44px;
+}
+
+.score-head {
+  display: grid;
+  grid-template-columns: var(--su-cols);
+  align-items: center;
+  height: 30px;
+  color: var(--text-muted);
+  font-size: 16px;
+  text-transform: uppercase;
+}
+
+.score-head span {
+  padding: 0 10px;
+}
+
+.score-head span:nth-child(-n + 2) {
+  text-align: center;
+}
+
+.score-head .end {
+  text-align: right;
+}
+
+.score-row {
+  margin-top: 2px;
+  background: var(--row);
+}
+
+.score-row-main {
+  display: grid;
+  cursor: pointer;
+  grid-template-columns: var(--su-cols);
+  align-items: center;
+  min-height: 46px;
+}
+
+.sr-rank {
+  grid-column: 1 / 3;
+  align-self: stretch;
+}
+
+.sr-map {
+  position: relative;
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0 20px;
+  overflow: hidden;
+  background:
+    linear-gradient(90deg, rgb(var(--row-rgb) / 0.55), var(--row) 95%),
+    var(--map-image, none) center / cover no-repeat;
+}
+
+.sr-map-name:hover {
+  text-decoration: underline;
+}
+
+.sr-map-name {
+  align-self: flex-start;
+  max-width: 100%;
+  font-size: 18px;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sr-map-chapter {
+  font-size: 13px;
+  color: var(--text-2);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.sr-map-ago {
+  display: none;
+}
+
+.sr-players {
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+}
+
+.sr-player {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+  min-height: 46px;
+  min-width: 0;
+}
+
+.sr-player-name {
+  font-size: 18px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sr-player.tint-blue {
+  background: linear-gradient(90deg, transparent 46px, var(--portal-blue) 46px, transparent 70%);
+}
+
+.sr-player.tint-orange {
+  background: linear-gradient(90deg, transparent 46px, var(--portal-orange) 46px, transparent 70%);
+}
+
+.sr-player.tint-neutral {
+  background: linear-gradient(90deg, transparent 46px, var(--portal-neutral) 46px, transparent 70%);
+}
+
+/* A trophy in the player's colour (grey when it's unknown who was blue) marks who set a PB
+   with a co-op run. */
+.sr-pb-icon {
+  flex: none;
+  margin: 0 10px 0 auto;
+  color: rgb(195 198 204);
+  font-size: 17px !important;
+}
+
+.sr-player.tint-blue .sr-pb-icon {
+  color: rgb(127 188 255);
+}
+
+.sr-player.tint-orange .sr-pb-icon {
+  color: rgb(255 184 119);
+}
+
+/* The "Coloured name" setting: the PB player's name in their portal colour, a little bolder and
+   with a soft glow of the same colour, instead of the trophy (grey when it's unknown who was
+   blue). */
+.score-row.is-coop .sr-player.is-pb {
+  --pb-rgb: 195 198 204;
+}
+
+.score-row.is-coop .sr-player.is-pb .sr-player-name {
+  color: rgb(var(--pb-rgb));
+  font-weight: 600;
+  text-shadow: 0 0 6px rgb(var(--pb-rgb) / 55%);
+}
+
+/* ...and the partner who didn't PB has their name dimmed (neither is when both did). */
+.score-row.is-coop:has(.sr-player.is-pb) .sr-player:not(.is-pb) .sr-player-name {
+  opacity: 0.55;
+}
+
+.score-row.is-coop .sr-player.is-pb.tint-blue {
+  --pb-rgb: 127 188 255;
+}
+
+.score-row.is-coop .sr-player.is-pb.tint-orange {
+  --pb-rgb: 255 184 119;
+}
+
+/* Wide screens: a co-op run's two players side by side on one line. */
+@media (min-width: 1200px) {
+  .score-row.is-coop .sr-players {
+    flex-direction: row;
+  }
+
+  /* Same avatar-to-name gap as singleplayer rows, so the names line up down the list. */
+  .score-row.is-coop .sr-player {
+    flex: 1 1 0;
+  }
+
+  .score-row.is-coop .sr-player-name {
+    font-size: 17px;
+  }
+}
+
+.sr-time,
+.sr-delta,
+.sr-points {
+  padding: 0 10px;
+  text-align: right;
+  font-size: 18px;
+}
+
+.sr-time {
+  font-weight: 600;
+}
+
+.sr-time-delta {
+  display: none;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.sr-delta,
+.sr-points {
+  color: var(--text-2);
+}
+
+.sr-date {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  padding: 0 10px;
+  font-size: 18px;
+  line-height: 1.1;
+}
+
+.sr-date-day {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+/* Reactions, then a pending / banned icon in a fixed slot so the reactions line up across rows. */
+.sr-status {
+  display: grid;
+  grid-template-columns: auto 24px;
+  justify-content: center;
+  align-items: center;
+  column-gap: 6px;
+}
+
+.sr-status-icon {
+  display: inline-grid;
+  place-items: center;
+  grid-column: 2;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+}
+
+.sr-status-icon svg {
+  font-size: 16px;
+}
+
+.sr-status-icon.is-pending {
+  background: var(--pending);
+  color: var(--pending-text);
+}
+
+.sr-status-icon.is-banned {
+  background: var(--banned);
+  color: var(--banned-text);
+}
+
+.sr-reactions {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.sr-reactions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 17px;
+  background: rgb(var(--panel-rgb) / 0.6);
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.sr-reactions button svg {
+  font-size: 22px;
+}
+
+.sr-reactions button:hover:not(:disabled) {
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+.sr-reactions button.is-mine {
+  border-color: var(--accent);
+  color: var(--accent-light);
+}
+
+.sr-reactions button.is-mine.is-down {
+  border-color: var(--hl-red);
+  color: var(--hl-red-text);
+}
+
+.sr-reactions button:disabled {
+  cursor: default;
+}
+
+.badge-pending {
+  padding: 4px 12px;
+  border-radius: 4px;
+  background: var(--pending);
+  color: var(--pending-text);
+  font-size: 15px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.sr-toggle {
+  justify-self: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s;
+}
+
+.score-row.is-open .sr-toggle {
+  transform: rotate(180deg);
+}
+
+@media (max-width: 1400px) {
+  .score-table {
+    --su-cols: 70px 70px minmax(150px, 1.2fr) minmax(180px, 2fr) 96px 86px 76px 132px 124px 40px;
+  }
+
+  /* Smaller reaction buttons so they and the status icon fit the narrower column. */
+  .sr-reactions {
+    gap: 3px;
+  }
+
+  .sr-reactions button {
+    gap: 3px;
+    height: 30px;
+    padding: 0 6px;
+    font-size: 14px;
+  }
+
+  .sr-reactions button svg {
+    font-size: 18px;
+  }
+
+  .sr-status {
+    grid-template-columns: auto 22px;
+    column-gap: 4px;
+  }
+
+  .sr-status-icon {
+    width: 22px;
+    height: 22px;
+  }
+}
+
+@media (max-width: 1000px) {
+  .su-top {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Mobile layout ("Score Updates Mobile" frame) */
+@media (max-width: 900px) {
+  .su-body {
+    padding: 12px;
+  }
+
+  .following li {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 30px auto;
+  }
+
+  .following-date {
+    display: none;
+  }
+
+  /* Phones: the search; the page buttons are at the bottom of the list. */
+  .su-toolbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .su-toolbar:not(.su-toolbar-bottom) .pagination {
+    display: none;
+  }
+
+  .su-toolbar-bottom {
+    display: flex;
+    justify-content: center;
+  }
+
+  .score-head {
+    display: none;
+  }
+
+  .score-row-main {
+    grid-template-columns: 40px minmax(0, 1fr) auto auto 28px;
+    grid-template-areas: "rank map players time toggle";
+    gap: 0 8px;
+    min-height: 40px;
+  }
+
+  .sr-rank {
+    grid-area: rank;
+  }
+
+  .sr-rank .rank-change {
+    grid-template-columns: 1fr;
+    min-height: 40px;
+    font-size: 15px;
+  }
+
+  .sr-rank .rank-change-prev,
+  .sr-rank .rank-change svg {
+    display: none;
+  }
+
+  .sr-map {
+    grid-area: map;
+    padding: 2px 0;
+    background: none;
+  }
+
+  .sr-map-name {
+    font-size: 15px;
+  }
+
+  .sr-map-chapter {
+    display: none;
+  }
+
+  .sr-map-ago {
+    display: block;
+    font-size: 12px;
+  }
+
+  .sr-players {
+    grid-area: players;
+    flex-direction: row;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .sr-player {
+    min-height: 0;
+    flex: none;
+    background: none !important;
+  }
+
+  .sr-player .avatar {
+    width: 26px !important;
+    height: 26px !important;
+  }
+
+  .sr-player-name {
+    display: none;
+  }
+
+  .sr-time {
+    grid-area: time;
+    font-size: 15px;
+    padding: 0;
+  }
+
+  .sr-time-delta {
+    display: inline;
+  }
+
+  .sr-delta,
+  .sr-points,
+  .sr-date,
+  .sr-status {
+    display: none;
+  }
+
+  .sr-toggle {
+    grid-area: toggle;
+  }
+}
+
+/* Filter bar */
+.su-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 12px;
+  margin: -6px 0 22px;
+}
+
+.su-modes {
+  height: 32px;
+}
+
+.su-modes button {
+  min-width: 0;
+  padding: 0 14px;
+  font-size: 16px;
+}
+
+.su-filter-select {
+  min-width: 150px;
+  height: 32px;
+}
+
+.su-filter-select select {
+  font-size: 15px;
+}
+
+.su-chamber {
+  min-width: 220px;
+}
+
+.su-rank,
+.su-days,
+.su-limit {
+  min-width: 124px;
+}
+
+.su-chip {
+  height: 32px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--control);
+  color: var(--text-2);
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.su-chip:hover {
+  border-color: var(--border-strong);
+}
+
+.su-chip.is-active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+/* Desktop: the folded filters sit inline with the rest. */
+.su-more {
+  display: contents;
+}
+
+.su-more-toggle {
+  display: none;
+}
+
+.su-clear {
+  margin-left: auto;
+  border: 0;
+  background: none;
+  color: var(--accent-light);
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.su-clear:hover {
+  text-decoration: underline;
+}
+
+.badge-banned {
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--banned);
+  color: var(--banned-text);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+/* Activity chart paging */
+.su-activity-controls {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  text-transform: none;
+}
+
+.su-activity-views {
+  height: 28px;
+}
+
+.su-activity-views button {
+  min-width: 0;
+  padding: 0 12px;
+  font-size: 15px;
+}
+
+.su-activity-pager {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 15px;
+}
+
+.su-activity-pager span {
+  min-width: 118px;
+  text-align: center;
+}
+
+/* The previous week / day, faded while the next one loads. */
+.following.is-stale,
+.daily.is-stale {
+  opacity: 0.45;
+  transition: opacity 0.15s;
+}
+
+.su-activity-pager button {
+  display: inline-flex;
+  padding: 4px;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.su-activity-pager.is-placeholder {
+  visibility: hidden;
+}
+
+.su-activity-pager button:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+/* Phones: recap and daily rows keep map, players, rank and time; co-op names stack. */
+@media (max-width: 600px) {
+  /* The pager moves under the tabs when a longer label wouldn't fit beside them (it used to be
+     pushed out of view, hiding the forward arrow). */
+  .su-activity-controls {
+    flex-wrap: wrap;
+    justify-content: space-between;
+    row-gap: 8px;
+    width: 100%;
+  }
+
+  .su-activity-pager {
+    margin-left: auto;
+  }
+
+  .following.recap li {
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.3fr) 30px 58px;
+    column-gap: 10px;
+    height: auto;
+    min-height: 34px;
+    padding: 3px 0;
+  }
+
+  .following.daily-runs li {
+    grid-template-columns: 20px minmax(0, 1fr) 30px 58px;
+  }
+
+  .recap-delta {
+    display: none;
+  }
+
+  .su-activity-views button {
+    padding: 0 8px;
+    white-space: nowrap;
+  }
+
+  .su-activity-pager span {
+    min-width: 0;
+    white-space: nowrap;
+  }
+
+  .recap .following-player {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+
+  .recap-name .avatar {
+    width: 18px !important;
+    height: 18px !important;
+  }
+
+  .recap-amp {
+    display: none;
+  }
+
+  .recap-time {
+    padding-right: 6px;
+  }
+}
+
+/* Phones: player names on a second line under the map. */
+@media (max-width: 900px) {
+  .score-row-main {
+    grid-template-columns: 40px minmax(0, 1fr) auto 28px;
+    grid-template-areas:
+      "rank map time toggle"
+      "rank players players toggle";
+    padding-bottom: 4px;
+  }
+
+  .sr-players {
+    flex-wrap: wrap;
+    gap: 2px 10px;
+    min-width: 0;
+  }
+
+  .sr-player {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .sr-player .avatar {
+    width: 18px !important;
+    height: 18px !important;
+  }
+
+  .sr-player-name {
+    display: inline;
+    overflow: hidden;
+    font-size: 13px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+/* Phones: the filter bar (after the base filter styles so it wins). */
+@media (max-width: 900px) {
+  /* Mode tabs full width, chamber below, then "More filters" opening the chips and selects. */
+  .su-filters {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+    margin: 0 0 16px;
+  }
+
+  .su-modes {
+    display: flex;
+    width: 100%;
+  }
+
+  .su-modes button {
+    flex: 1;
+    padding: 0 6px;
+    font-size: 15px;
+  }
+
+  .su-filters .su-filter-select,
+  .su-filters .su-chamber {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .su-more-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 32px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--control);
+    color: var(--text);
+    font-size: 15px;
+    cursor: pointer;
+  }
+
+  .su-more-toggle svg {
+    transition: transform 0.15s;
+  }
+
+  .su-more-toggle.is-open svg {
+    transform: rotate(180deg);
+  }
+
+  .su-more-count {
+    min-width: 20px;
+    padding: 0 6px;
+    border-radius: 10px;
+    background: var(--accent);
+    color: #fff;
+    font-size: 13px;
+    line-height: 20px;
+  }
+
+  .su-more {
+    display: none;
+  }
+
+  .su-more.is-open {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .su-more .su-chip {
+    padding: 0 8px;
+  }
+
+  .su-clear {
+    margin: 0;
+    justify-self: center;
+  }
+}

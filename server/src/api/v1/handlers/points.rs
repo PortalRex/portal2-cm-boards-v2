@@ -1,3 +1,4 @@
+use crate::tools::auth::ServiceOnly;
 use crate::models::points::{PointsReadWrapper, PointsReceiveWrapper, PointsWriteWrapper};
 use crate::tools::cache::{write_to_file, CacheState};
 use actix_web::{get, post, web, HttpResponse, Responder};
@@ -61,6 +62,7 @@ use std::path::Path;
 /// ```
 #[post("/points/sp")]
 async fn points_sp_add(
+    _auth: ServiceOnly,
     data: web::Json<PointsReceiveWrapper>,
     cache: web::Data<CacheState>,
 ) -> impl Responder {
@@ -94,6 +96,7 @@ async fn points_sp() -> impl Responder {
 /// Update coop points data.
 #[post("/points/coop")]
 async fn points_coop_add(
+    _auth: ServiceOnly,
     data: web::Json<PointsReceiveWrapper>,
     cache: web::Data<CacheState>,
 ) -> impl Responder {
@@ -127,6 +130,7 @@ async fn points_coop() -> impl Responder {
 /// Update chapter data, uses JSON ID (see [PointsReceiveWrapper]).
 #[post("/points/chapter")]
 async fn points_chapter_add(
+    _auth: ServiceOnly,
     data: web::Json<PointsReceiveWrapper>,
     cache: web::Data<CacheState>,
 ) -> impl Responder {
@@ -160,6 +164,7 @@ async fn points_chapter(id: web::Path<u64>) -> impl Responder {
 /// Update overall points data.
 #[post("/points/overall")]
 async fn points_overall_add(
+    _auth: ServiceOnly,
     data: web::Json<PointsReceiveWrapper>,
     cache: web::Data<CacheState>,
 ) -> impl Responder {

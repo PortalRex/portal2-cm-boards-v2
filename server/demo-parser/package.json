@@ -1,0 +1,9 @@
+{
+  "name": "p2boards-demo-parser",
+  "private": true,
+  "description": "Reads map, time and players from submitted demos (run by the server).",
+  "type": "module",
+  "dependencies": {
+    "@nekz/sdp": "0.10.1"
+  }
+}

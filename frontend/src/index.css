@@ -1,16 +1,443 @@
-@import url('https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@300;400;500;600&display=swap');
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+@import '@fontsource/barlow-semi-condensed/300.css';
+@import '@fontsource/barlow-semi-condensed/400.css';
+@import '@fontsource/barlow-semi-condensed/500.css';
+@import '@fontsource/barlow-semi-condensed/600.css';
+@import '@fontsource/barlow-semi-condensed/700.css';
 
-html,
-body,
-#root,
-.app,
-.content {
-  height: 100%;
-  width: 100%;
-  font-family: 'Barlow Semi Condensed', sans-serif;
+/* Dark is the design default; public/theme.js and the theme toggle set data-theme="light". */
+@custom-variant dark (&:where(:root:not([data-theme="light"]), :root:not([data-theme="light"]) *));
+@custom-variant light (&:where([data-theme="light"], [data-theme="light"] *));
+
+/*
+ * Legacy's breakpoints, inclusive like its `@media (max-width: Npx)` rules: `upto900:` applies at 900px
+ * and below. (Tailwind's own `max-[900px]:` is `width < 900px`, so it misses exactly 900px.) Widest
+ * first, so a narrower breakpoint's rule wins where both apply.
+ */
+@custom-variant upto1400 (@media (max-width: 1400px));
+@custom-variant upto1320 (@media (max-width: 1320px));
+@custom-variant upto1200 (@media (max-width: 1200px));
+@custom-variant upto1100 (@media (max-width: 1100px));
+@custom-variant upto1000 (@media (max-width: 1000px));
+@custom-variant upto900 (@media (max-width: 900px));
+@custom-variant upto860 (@media (max-width: 860px));
+@custom-variant upto800 (@media (max-width: 800px));
+@custom-variant upto760 (@media (max-width: 760px));
+@custom-variant upto700 (@media (max-width: 700px));
+@custom-variant upto600 (@media (max-width: 600px));
+@custom-variant upto480 (@media (max-width: 480px));
+/* The same for the Run Details panel's container queries. */
+@custom-variant rd-upto1150 {
+  @container run-details (max-width: 1150px) {
+    @slot;
+  }
+}
+@custom-variant rd-upto640 {
+  @container run-details (max-width: 640px) {
+    @slot;
+  }
 }
 
-.app {
-  display: flex;
+/*
+ * Browser defaults that Tailwind's reset changes but legacy (no reset) kept: <small> is
+ * `smaller` (15px in 18px text) rather than 80%, code is the browser's `monospace`, and images
+ * aren't capped at their container's width (an avatar in a squeezed column keeps its size).
+ */
+@layer base {
+  small {
+    font-size: smaller;
+  }
+  code,
+  kbd,
+  samp,
+  pre {
+    font-family: monospace;
+  }
+  img,
+  video {
+    max-width: none;
+  }
+}
+
+/*
+ * Design tokens from the "Portal 2 Leaderboards 2" Figma file (the legacy site's index.css),
+ * plus the shadcn token names mapped onto them so the copied primitives use the same palette.
+ */
+:root {
+  --page: #1e1f21;
+  --panel: #141414;
+  --panel-head: #1e1f21;
+  --row: #18191b;
+  --row-alt: #141414;
+  --row-sub: #131416;
+  --row-sub-alt: #101010;
+  --control: #191a1c;
+  --control-raised: #212224;
+  --line: #3f4042;
+  --line-strong: #5c5d5f;
+
+  --text: #ffffff;
+  --text-2: #d9d9d9;
+  --text-muted: #9a9b9d;
+  --text-dim: #6f7072;
+
+  --brand: #0775bd;
+  --brand-light: #8ecbf5;
+  --green: #8ad97c;
+  --wr-row: #2c2431;
+  --trophy: #db7eff;
+
+  --rank-prev: #3e5739;
+  --rank-new: #2f3a6f;
+  --rank-cell: #262729;
+  --rank-cell-text: #b5b6b8;
+  --pending: #243548;
+  --pending-text: #9fb6cf;
+
+  --portal-blue: rgba(40, 140, 255, 0.16);
+  --portal-orange: rgba(255, 140, 30, 0.16);
+  --portal-neutral: rgba(160, 162, 166, 0.12);
+
+  --menu: #151618;
+  --seg-active: #262729;
+  --seg-hover: #1f2022;
+  --track: #2a2b2d;
+  --control-raised-2: #3a3b3d;
+  --chart-grid: #2a2b2d;
+  --chart-line: #2f9bea;
+  --hl-green: #344231;
+  --hl-green-2: #2f3d2c;
+  --hl-teal: #2a4a40;
+  --hl-red: #614144;
+  --hl-red-text: #e3c4c7;
+  --banned: #614144;
+  --banned-text: #e3c4c7;
+  --series-coop: #f28b8b;
+  --series-sp: #a3b6f5;
+  --series-overall: #a7f0a0;
+  --page-rgb: 30 31 33;
+  --panel-rgb: 20 20 20;
+  --row-rgb: 24 25 27;
+
+  /* shadcn names */
+  --background: var(--page);
+  --foreground: var(--text);
+  --card: var(--panel);
+  --card-foreground: var(--text);
+  --popover: var(--menu);
+  --popover-foreground: var(--text);
+  --primary: var(--brand);
+  --primary-foreground: #ffffff;
+  --secondary: var(--control-raised);
+  --secondary-foreground: var(--text);
+  --muted: var(--control);
+  --muted-foreground: var(--text-muted);
+  --accent: var(--seg-hover);
+  --accent-foreground: var(--text);
+  --destructive: #e5484d;
+  --border: var(--line);
+  --input: var(--line);
+  --ring: var(--brand-light);
+  --chart-1: var(--chart-line);
+  --chart-2: var(--series-sp);
+  --chart-3: var(--series-coop);
+  --chart-4: var(--series-overall);
+  --chart-5: var(--trophy);
+
+  --radius: 6px;
+  --content: 1640px;
+  color-scheme: dark;
+}
+
+:root[data-theme='light'] {
+  --page: #e9ebee;
+  --panel: #ffffff;
+  --panel-head: #f2f3f5;
+  --row: #f4f5f7;
+  --row-alt: #ffffff;
+  --row-sub: #eceef1;
+  --row-sub-alt: #e6e8eb;
+  --control: #ffffff;
+  --control-raised: #e8eaed;
+  --line: #cdd0d5;
+  --line-strong: #a5a9b0;
+
+  --text: #15171a;
+  --text-2: #33363b;
+  --text-muted: #5d626a;
+  --text-dim: #868b93;
+
+  --brand: #0775bd;
+  --brand-light: #075e98;
+  --green: #2b7f1f;
+  --wr-row: #f1e4f8;
+  --trophy: #9333c4;
+
+  --rank-prev: #d3e6cc;
+  --rank-new: #d2d9f6;
+  --rank-cell: #d9dbde;
+  --rank-cell-text: #5d626a;
+  --pending: #d8e5f4;
+  --pending-text: #2a4867;
+
+  --portal-blue: rgba(40, 140, 255, 0.14);
+  --portal-orange: rgba(255, 140, 30, 0.16);
+  --portal-neutral: rgba(90, 94, 100, 0.12);
+
+  --menu: #ffffff;
+  --seg-active: #dcdfe4;
+  --seg-hover: #eceef1;
+  --track: #dfe2e6;
+  --control-raised-2: #d5d8dd;
+  --chart-grid: #e0e3e7;
+  --chart-line: #1b7fd1;
+  --hl-green: #dcebd6;
+  --hl-green-2: #e3efdf;
+  --hl-teal: #d6ece5;
+  --hl-red: #f3dcdf;
+  --hl-red-text: #7a2e36;
+  --banned: #f3dcdf;
+  --banned-text: #7a2e36;
+  --series-coop: #d6455a;
+  --series-sp: #3c5fd6;
+  --series-overall: #2f9a3a;
+  --page-rgb: 233 235 238;
+  --panel-rgb: 255 255 255;
+  --row-rgb: 244 245 247;
+
+  --destructive: #c62a2f;
+  color-scheme: light;
+}
+
+/*
+ * Legacy never set line heights: text uses the browser's "normal". Tailwind's preflight sets 1.5
+ * and each text-* size brings its own, which made every block taller than legacy's. These keep the
+ * legacy metrics; set leading-* where a different line height is wanted.
+ */
+@theme {
+  --text-xs--line-height: normal;
+  --text-sm--line-height: normal;
+  --text-base--line-height: normal;
+  --text-lg--line-height: normal;
+  --text-xl--line-height: normal;
+  --text-2xl--line-height: normal;
+  --text-3xl--line-height: normal;
+  --text-4xl--line-height: normal;
+  --text-5xl--line-height: normal;
+  --text-6xl--line-height: normal;
+}
+
+@theme inline {
+  --font-sans: 'Barlow Semi Condensed', 'Arial Narrow', sans-serif;
+  --font-heading: var(--font-sans);
+
+  /* shadcn */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  /* Site palette: bg-panel, text-text-muted, border-line, ... */
+  --color-page: var(--page);
+  --color-panel: var(--panel);
+  --color-panel-head: var(--panel-head);
+  --color-row: var(--row);
+  --color-row-alt: var(--row-alt);
+  --color-row-sub: var(--row-sub);
+  --color-row-sub-alt: var(--row-sub-alt);
+  --color-control: var(--control);
+  --color-control-raised: var(--control-raised);
+  --color-control-raised-2: var(--control-raised-2);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-text: var(--text);
+  --color-text-2: var(--text-2);
+  --color-text-muted: var(--text-muted);
+  --color-text-dim: var(--text-dim);
+  --color-brand: var(--brand);
+  --color-brand-light: var(--brand-light);
+  --color-green: var(--green);
+  --color-wr-row: var(--wr-row);
+  --color-trophy: var(--trophy);
+  --color-rank-prev: var(--rank-prev);
+  --color-rank-new: var(--rank-new);
+  --color-rank-cell: var(--rank-cell);
+  --color-rank-cell-text: var(--rank-cell-text);
+  --color-pending: var(--pending);
+  --color-pending-text: var(--pending-text);
+  --color-portal-blue: var(--portal-blue);
+  --color-portal-orange: var(--portal-orange);
+  --color-portal-neutral: var(--portal-neutral);
+  --color-menu: var(--menu);
+  --color-seg-active: var(--seg-active);
+  --color-seg-hover: var(--seg-hover);
+  --color-track: var(--track);
+  --color-chart-grid: var(--chart-grid);
+  --color-chart-line: var(--chart-line);
+  --color-hl-green: var(--hl-green);
+  --color-hl-green-2: var(--hl-green-2);
+  --color-hl-teal: var(--hl-teal);
+  --color-hl-red: var(--hl-red);
+  --color-hl-red-text: var(--hl-red-text);
+  --color-banned: var(--banned);
+  --color-banned-text: var(--banned-text);
+  --color-series-coop: var(--series-coop);
+  --color-series-sp: var(--series-sp);
+  --color-series-overall: var(--series-overall);
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: var(--radius);
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --container-content: var(--content);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    line-height: normal;
+  }
+  html,
+  body,
+  #root {
+    min-height: 100%;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-size: 16px;
+  }
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+}
+
+@utility num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* A rank number in its colour (style={rankVars(rank)}): the bright scale on dark, the deeper one on light. */
+@utility rank-tint {
+  color: var(--rank-color-dark, inherit);
+  font-weight: 600;
+  :root[data-theme='light'] & {
+    color: var(--rank-color, inherit);
+  }
+}
+
+/* A rank tile (profile summary, chapter tables): tinted with the rank colour, the number in it. */
+@utility rank-tile {
+  background: color-mix(in srgb, var(--rank-color-dark) 32%, var(--track)) !important;
+  color: var(--rank-color-dark) !important;
+  font-weight: 600;
+  :root[data-theme='light'] & {
+    background: color-mix(in srgb, var(--rank-color) 20%, var(--track)) !important;
+    color: var(--rank-color) !important;
+  }
+}
+
+/* The signed-in player's own row on boards and lists. */
+@utility me-row {
+  background: color-mix(in srgb, var(--brand) 22%, transparent) !important;
+  box-shadow: inset 3px 0 0 var(--brand);
+}
+
+/* With me-row: the bar sits just outside the row, clear of a rank tag at its left edge. */
+@utility me-row-outside {
   position: relative;
+  box-shadow: none !important;
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: -8px;
+    width: 3px;
+    border-radius: 2px;
+    background: var(--brand);
+  }
+}
+
+/*
+ * World records: a rich trophy fill with a bright edge and an inner glow (a cell inside a row);
+ * wr-glow-raised squares glow outwards too. On hover (of it or its parent, unless it has
+ * wr-glow-self) the glow grows and a sheen sweeps across once.
+ */
+@utility wr-glow {
+  position: relative;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--trophy) 46%, var(--track)) !important;
+  color: #f6dcff !important;
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--trophy) 85%, white),
+    inset 0 0 14px color-mix(in srgb, var(--trophy) 60%, transparent) !important;
+  transition: box-shadow 0.2s;
+  & svg {
+    filter: drop-shadow(0 0 4px color-mix(in srgb, var(--trophy) 90%, white));
+  }
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(105deg, transparent 35%, rgb(255 255 255 / 0.35) 50%, transparent 65%);
+    transform: translateX(-120%);
+    pointer-events: none;
+  }
+  &:hover,
+  *:hover > &:not(.wr-glow-self) {
+    outline: none;
+    box-shadow:
+      inset 0 0 0 1px color-mix(in srgb, var(--trophy) 70%, white),
+      inset 0 0 20px color-mix(in srgb, var(--trophy) 75%, transparent) !important;
+  }
+  &:hover::after,
+  *:hover > &:not(.wr-glow-self)::after {
+    transform: translateX(120%);
+    transition: transform 0.6s ease-out;
+  }
+  :root[data-theme='light'] & {
+    background: color-mix(in srgb, var(--trophy) 30%, var(--track)) !important;
+    color: #5b1480 !important;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    &:hover::after,
+    *:hover > &:not(.wr-glow-self)::after {
+      transition: none;
+      transform: translateX(-120%);
+    }
+  }
+}
+
+@utility wr-glow-raised {
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--trophy) 85%, white),
+    0 0 10px 1px color-mix(in srgb, var(--trophy) 55%, transparent) !important;
+  &:hover {
+    box-shadow:
+      inset 0 0 0 1px color-mix(in srgb, var(--trophy) 70%, white),
+      0 0 16px 3px color-mix(in srgb, var(--trophy) 70%, transparent) !important;
+  }
 }

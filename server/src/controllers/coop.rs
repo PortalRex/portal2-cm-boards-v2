@@ -62,32 +62,38 @@ impl CoopMap {
         map_id: &str,
         cat_id: i32,
         game_id: i32,
+        at: Option<chrono::NaiveDateTime>,
     ) -> Result<Vec<CoopMap>, sqlx::Error> {
         sqlx::query_as::<_, CoopMap>(
             r#"
-                SELECT c1.timestamp, 
+                SELECT cb.id AS coop_id, c1.id AS cl_id1, c2.id AS cl_id2, c1.timestamp,
                     c1.score, cb.p1_is_host, c1.note AS note1, c2.note AS note2,
-                    COALESCE(p1.board_name, p1.steam_name) AS user_name1,
-                    COALESCE(p2.board_name, p2.steam_name) AS user_name2,
-                    c1.profile_number AS profile_number1, c2.profile_number AS profile_number2, 
-                    c1.demo_id AS demo_id1, c2.demo_id AS demo_id2, 
+                    COALESCE(p1.board_name, p1.steam_name, p1.profile_number) AS user_name1,
+                    COALESCE(p2.board_name, p2.steam_name, p2.profile_number) AS user_name2,
+                    cb.p_id1 AS profile_number1, cb.p_id2 AS profile_number2, 
+                    -- A partner without a run of their own (the placeholder entry): their partner demo.
+                    COALESCE(c1.demo_id, CASE WHEN c1.profile_number = 'N/A' THEN cb.partner_demo_id END) AS demo_id1,
+                    COALESCE(c2.demo_id, CASE WHEN c2.profile_number = 'N/A' THEN cb.partner_demo_id END) AS demo_id2,
                     c1.youtube_id AS youtube_id1, c2.youtube_id AS youtube_id2,
                     c1.submission AS submission1, c2.submission AS submission2, 
-                    c1.category_id, p1.avatar AS avatar1, p2.avatar AS avatar2
-                FROM (SELECT * FROM 
-                coop_bundled 
-                WHERE id IN 
-                    (SELECT coop_id
-                    FROM changelog
-                    WHERE map_id = $1
-                    AND coop_id IS NOT NULL)) as cb 
-                INNER JOIN changelog AS c1 ON (c1.id = cb.cl_id1)
+                    c1.category_id, p1.avatar AS avatar1, p2.avatar AS avatar2,
+                    c1.autorender_id AS autorender_id1, c2.autorender_id AS autorender_id2,
+                    c1.portals AS portals1, c2.portals AS portals2,
+                    d1.sar_version AS sar_version1, d2.sar_version AS sar_version2
+                -- The map's runs come from changelog (map_id, score) and are joined to their
+                -- bundle, rather than filtering coop_bundled by a sub-select (a scan of every bundle).
+                FROM changelog AS c1
+                INNER JOIN coop_bundled AS cb ON (cb.cl_id1 = c1.id)
                 INNER JOIN changelog AS c2 ON (c2.id = cb.cl_id2)
                 INNER JOIN users AS p1 ON (p1.profile_number = cb.p_id1)
                 INNER JOIN users AS p2 ON (p2.profile_number = cb.p_id2)
                 INNER JOIN maps ON (c1.map_id = maps.steam_id)
                 INNER JOIN chapters ON (maps.chapter_id = chapters.id)
-                WHERE p1.banned=False
+                LEFT JOIN demos AS d1 ON (d1.id = COALESCE(c1.demo_id, CASE WHEN c1.profile_number = 'N/A' THEN cb.partner_demo_id END))
+                LEFT JOIN demos AS d2 ON (d2.id = COALESCE(c2.demo_id, CASE WHEN c2.profile_number = 'N/A' THEN cb.partner_demo_id END))
+                WHERE c1.map_id = $1
+                    AND c1.coop_id IS NOT NULL
+                    AND p1.banned=False
                     AND p2.banned = False
                     AND c1.banned = False
                     AND c2.banned = False
@@ -95,12 +101,16 @@ impl CoopMap {
                     AND c2.verified = True
                     AND c1.category_id = $2
                     AND chapters.game_id = $3
-                ORDER BY score ASC
+                    -- As of a moment: set when its first half was logged (undated runs count from release).
+                    AND ($4::timestamp IS NULL OR COALESCE(LEAST(c1.timestamp, c2.timestamp), TIMESTAMP '2011-04-19 00:00:00') <= $4)
+                -- Equal times: the earlier run first (the order was otherwise left to the planner).
+                ORDER BY score ASC, c1.timestamp ASC NULLS LAST, cb.id ASC
                 "#,
         )
         .bind(map_id)
         .bind(cat_id)
         .bind(game_id)
+        .bind(at)
         .fetch_all(pool)
         .await
     }
@@ -114,11 +124,12 @@ impl CoopPreview {
         let res = sqlx::query_as::<_, CoopPreview>(
             r#"
                 SELECT
-                    c1.profile_number AS profile_number1, c2.profile_number AS profile_number2,
+                    cb.p_id1 AS profile_number1, cb.p_id2 AS profile_number2,
                     c1.score,
                     c1.youtube_id AS youtube_id1, c2.youtube_id AS youtube_id2, c1.category_id,
-                    COALESCE(p1.board_name, p1.steam_name) AS user_name1, 
-                    COALESCE(p2.board_name, p2.steam_name) AS user_name2, c1.map_id
+                    COALESCE(p1.board_name, p1.steam_name, p1.profile_number) AS user_name1, 
+                    COALESCE(p2.board_name, p2.steam_name, p2.profile_number) AS user_name2, c1.map_id,
+                    COALESCE(c1.autorender_id, c2.autorender_id) AS autorender_id
                 FROM (SELECT * FROM 
                 coop_bundled 
                 WHERE id IN 
@@ -163,8 +174,8 @@ impl CoopPreview {
         Ok(vec_final)
     }
     /// Collects the top 7 preview data for all Coop maps.
-    pub async fn get_coop_previews(pool: &PgPool) -> Result<Vec<Vec<CoopPreview>>, sqlx::Error> {
-        let map_id_vec = Maps::get_steam_ids(pool, true).await?;
+    pub async fn get_coop_previews(pool: &PgPool, game_id: i32) -> Result<Vec<Vec<CoopPreview>>, sqlx::Error> {
+        let map_id_vec = Maps::get_steam_ids(pool, true, game_id).await?;
         let futures: Vec<_> = map_id_vec
             .iter()
             .map(|map_id| CoopPreview::get_coop_preview(pool, map_id))
@@ -183,7 +194,7 @@ impl CoopBanned {
         // TODO: Handle verified and handle if one is banned/not verified but the other isn't.
         // TODO: How to handle one player in coop not-being banned/unverified but the other is.
         sqlx::query_as::<_, CoopBanned>(r#"
-                SELECT c1.score, c1.profile_number AS profile_number1, c2.profile_number AS profile_number2
+                SELECT c1.score, cb.p_id1 AS profile_number1, cb.p_id2 AS profile_number2
                 FROM (SELECT * FROM 
                     coop_bundled 
                     WHERE id IN 

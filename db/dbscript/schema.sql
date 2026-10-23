@@ -156,7 +156,13 @@ CREATE TABLE changelog (
     score_delta integer,
     verified boolean,
     admin_note character varying(200),
-    updated timestamp(6) without time zone
+    updated timestamp(6) without time zone,
+    autorender_id character varying(11),
+    -- SAR mtrigger segments read from the demo by autorender:
+    -- [{"name": ..., "ticks": ..., "splits": [{"name": ..., "ticks": ...}]}]
+    segments jsonb,
+    -- Removed from the map's world-record history by staff (the run itself is unaffected).
+    wr_hidden boolean DEFAULT false NOT NULL
 );
 
 -- Trigger to update `updated` when a row is updated.
@@ -192,7 +198,9 @@ CREATE TABLE chapters (
     id integer NOT NULL,
     chapter_name character varying(50),
     is_multiplayer boolean DEFAULT false NOT NULL,
-    game_id integer DEFAULT 1 NOT NULL
+    game_id integer DEFAULT 1 NOT NULL,
+    -- Board the chapter belongs to within its game: sp/coop (Portal 2), story/advanced (Mel).
+    game_mode character varying(20) DEFAULT 'sp' NOT NULL
 );
 
 
@@ -336,7 +344,10 @@ CREATE TABLE maps (
     name character varying(50) NOT NULL,
     chapter_id integer,
     default_cat_id integer,
-    is_public boolean DEFAULT false NOT NULL
+    is_public boolean DEFAULT false NOT NULL,
+    -- Map file name (e.g. sp_a1_intro3), to match submitted demos; Mel's Story and Advanced
+    -- maps share theirs. Filled by import_boards.py.
+    bsp_name character varying(64)
 );
 
 
@@ -476,7 +487,13 @@ CREATE TABLE users (
     donation_amount character varying(11),
     discord_id character varying(40),
     auth_hash character varying(64),
-    country_id integer
+    country_id integer,
+    -- Frozen profiles keep their existing times but can't get new ones.
+    frozen boolean DEFAULT false NOT NULL,
+    frozen_reason character varying(500),
+    -- Staff tier (verifier, moderator, admin); NULL = not staff. users.admin keeps the old
+    -- board's listing levels (1 standard, 2 shadow, 3 developer).
+    role character varying(20) CHECK (role IN ('verifier', 'moderator', 'admin'))
 );
 
 --
@@ -930,6 +947,676 @@ ALTER TABLE ONLY mtrigger_entries
 
 
 --
+-- Thumbs up / down on runs (a co-op run's are stored against the first entry of its pair).
+--
+
+CREATE TABLE run_reactions (
+    changelog_id bigint NOT NULL REFERENCES changelog(id) ON DELETE CASCADE,
+    profile_number character varying(50) NOT NULL REFERENCES users(profile_number) ON DELETE CASCADE,
+    reaction smallint NOT NULL CHECK (reaction IN (-1, 1)),
+    created_at timestamp without time zone NOT NULL DEFAULT now(),
+    PRIMARY KEY (changelog_id, profile_number)
+);
+
+--
+-- Every reaction change (up, down, cleared), kept for staff.
+--
+
+CREATE TABLE run_reaction_events (
+    id bigserial PRIMARY KEY,
+    changelog_id bigint NOT NULL REFERENCES changelog(id) ON DELETE CASCADE,
+    profile_number character varying(50) NOT NULL REFERENCES users(profile_number) ON DELETE CASCADE,
+    -- 1 up, -1 down, NULL cleared.
+    reaction smallint CHECK (reaction IN (-1, 1)),
+    created_at timestamp without time zone NOT NULL DEFAULT now()
+);
+CREATE INDEX run_reaction_events_run ON run_reaction_events (changelog_id, created_at DESC);
+
+--
+-- Admin audit log.
+--
+
+-- Every change made by an admin (or by the board's own services), newest first.
+CREATE TABLE admin_actions (
+    id bigserial PRIMARY KEY,
+    -- The admin who acted; NULL when the board's services did (see via_service).
+    admin_profile character varying(50) REFERENCES users(profile_number),
+    via_service boolean NOT NULL DEFAULT false,
+    action character varying(50) NOT NULL,
+    target_type character varying(30) NOT NULL,
+    target_id character varying(50) NOT NULL,
+    reason character varying(500),
+    -- Before/after values, or the full row for deletions.
+    details jsonb,
+    created_at timestamp without time zone NOT NULL DEFAULT now()
+);
+CREATE INDEX admin_actions_created ON admin_actions (created_at DESC);
+CREATE INDEX admin_actions_target ON admin_actions (target_type, target_id);
+
+--
+-- Steam sign-in.
+--
+
+-- One row per signed-in browser. Only a SHA-256 hash of the session cookie is stored.
+CREATE TABLE sessions (
+    token_hash bytea PRIMARY KEY,
+    profile_number character varying(50) NOT NULL REFERENCES users(profile_number) ON DELETE CASCADE,
+    created_at timestamp without time zone NOT NULL DEFAULT now(),
+    last_seen timestamp without time zone NOT NULL DEFAULT now(),
+    expires_at timestamp without time zone NOT NULL,
+    user_agent character varying(200)
+);
+CREATE INDEX sessions_profile_number ON sessions (profile_number);
+
+-- Steam login responses already accepted (openid.response_nonce), so one can't be replayed.
+CREATE TABLE openid_nonces (
+    nonce character varying(255) PRIMARY KEY,
+    seen_at timestamp without time zone NOT NULL DEFAULT now()
+);
+
+--
+-- Name: legacy_changelog_ids; Type: TABLE;
+-- Maps changelog IDs from the boards this one replaces (board.portal2.sr, mel board)
+-- to IDs in this database, so old links and autorender requests can be resolved.
+--
+
+CREATE TABLE legacy_changelog_ids (
+    game_id integer NOT NULL REFERENCES games(id),
+    legacy_id bigint NOT NULL,
+    changelog_id bigint NOT NULL REFERENCES changelog(id),
+    PRIMARY KEY (game_id, legacy_id)
+);
+
+--
 -- PostgreSQL database dump complete
 --
 
+
+--
+-- Games, seasons and linked leaderboards (migrations/20261021000000_games_seasons.sql).
+--
+
+-- Games, seasons, linked leaderboards and the admin catalog editor. Apply to databases created
+-- from an older schema.sql.
+--
+-- Two maps (leaderboards) can be linked (map_links). A run set on one is also evaluated for
+-- the other: if it beats the player's best there, it's recorded there too (a mirror row,
+-- changelog.mirror_of). Linking doesn't copy existing times; only runs set after the link.
+-- Links to a season's maps only apply inside the season's dates. Triggers create the mirrors
+-- and keep them in step with the original (bans, verification, demos, deletion and co-op
+-- pairing), so every board query works for linked boards unchanged.
+--
+-- A season is a game whose maps are copies of a base game's maps (maps.source_map), normally
+-- linked to them.
+
+-- Lookups by map, player and pairing (the changelog had none, so per-map queries scanned it all).
+CREATE INDEX IF NOT EXISTS idx_changelog_map_score ON changelog (map_id, score);
+CREATE INDEX IF NOT EXISTS idx_changelog_profile ON changelog (profile_number);
+CREATE INDEX IF NOT EXISTS idx_changelog_coop ON changelog (coop_id) WHERE coop_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_changelog_timestamp ON changelog (timestamp);
+-- World record history (post_rank = 1, verified, not banned or hidden), newest first.
+CREATE INDEX IF NOT EXISTS idx_changelog_wr ON changelog (timestamp DESC NULLS LAST) WHERE post_rank = 1 AND verified IS TRUE AND banned = false AND wr_hidden = false;
+CREATE INDEX IF NOT EXISTS idx_coop_bundled_cl1 ON coop_bundled (cl_id1);
+CREATE INDEX IF NOT EXISTS idx_coop_bundled_cl2 ON coop_bundled (cl_id2);
+
+-- Season copies need longer map ids than Steam leaderboard ids ("s3-47458").
+ALTER TABLE maps ALTER COLUMN steam_id TYPE character varying(32);
+ALTER TABLE changelog ALTER COLUMN map_id TYPE character varying(32);
+ALTER TABLE categories ALTER COLUMN map_id TYPE character varying(32);
+ALTER TABLE mtriggers ALTER COLUMN map_id TYPE character varying(32);
+
+ALTER TABLE games ADD COLUMN IF NOT EXISTS slug character varying(32);
+ALTER TABLE games ADD COLUMN IF NOT EXISTS kind character varying(10) NOT NULL DEFAULT 'game' CHECK (kind IN ('game', 'season'));
+ALTER TABLE games ADD COLUMN IF NOT EXISTS base_game_id integer REFERENCES games(id);
+ALTER TABLE games ADD COLUMN IF NOT EXISTS starts_at timestamp without time zone;
+ALTER TABLE games ADD COLUMN IF NOT EXISTS ends_at timestamp without time zone;
+ALTER TABLE games ADD COLUMN IF NOT EXISTS sort_order integer NOT NULL DEFAULT 0;
+ALTER TABLE games ADD COLUMN IF NOT EXISTS hidden boolean NOT NULL DEFAULT false;
+UPDATE games SET slug = 'portal2', sort_order = 1 WHERE id = 1 AND slug IS NULL;
+UPDATE games SET slug = 'mel', sort_order = 2 WHERE id = 2 AND slug IS NULL;
+UPDATE games SET slug = 'game-' || id WHERE slug IS NULL;
+ALTER TABLE games ALTER COLUMN slug SET NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS unq_games_slug ON games (slug);
+ALTER TABLE games ALTER COLUMN game_name TYPE character varying(80);
+
+ALTER TABLE chapters ADD COLUMN IF NOT EXISTS sort_order integer NOT NULL DEFAULT 0;
+UPDATE chapters SET sort_order = id WHERE sort_order = 0;
+
+ALTER TABLE maps ADD COLUMN IF NOT EXISTS sort_order integer NOT NULL DEFAULT 0;
+ALTER TABLE maps ADD COLUMN IF NOT EXISTS source_map character varying(32) REFERENCES maps(steam_id);
+UPDATE maps SET sort_order = id WHERE sort_order = 0;
+CREATE INDEX IF NOT EXISTS idx_maps_source_map ON maps (source_map) WHERE source_map IS NOT NULL;
+
+ALTER TABLE changelog ADD COLUMN IF NOT EXISTS mirror_of bigint REFERENCES changelog(id);
+CREATE INDEX IF NOT EXISTS idx_changelog_mirror_of ON changelog (mirror_of) WHERE mirror_of IS NOT NULL;
+ALTER TABLE coop_bundled ADD COLUMN IF NOT EXISTS mirror_of bigint REFERENCES coop_bundled(id);
+CREATE INDEX IF NOT EXISTS idx_coop_bundled_mirror_of ON coop_bundled (mirror_of) WHERE mirror_of IS NOT NULL;
+
+-- Rank a time would have on a map: 1 + players whose best (verified, unbanned) is faster.
+CREATE OR REPLACE FUNCTION season_rank(p_map character varying, p_score integer, p_player character varying) RETURNS integer AS $$
+    SELECT 1 + COUNT(DISTINCT x.profile_number)::integer
+    FROM changelog AS x JOIN users AS u ON u.profile_number = x.profile_number
+    WHERE x.map_id = p_map AND x.score < p_score AND x.verified AND NOT x.banned AND NOT u.banned
+      AND x.profile_number <> p_player AND x.profile_number <> 'N/A';
+$$ LANGUAGE sql STABLE;
+
+CREATE TABLE IF NOT EXISTS map_links (
+    map_a character varying(32) NOT NULL REFERENCES maps(steam_id) ON DELETE CASCADE,
+    map_b character varying(32) NOT NULL REFERENCES maps(steam_id) ON DELETE CASCADE,
+    created_at timestamp without time zone NOT NULL DEFAULT (now() AT TIME ZONE 'utc'),
+    PRIMARY KEY (map_a, map_b),
+    CHECK (map_a < map_b)
+);
+CREATE INDEX IF NOT EXISTS idx_map_links_b ON map_links (map_b);
+
+-- The maps linked to a map, with the time from which the link applies, as of a moment:
+-- links to a season's map only inside the season's dates.
+CREATE OR REPLACE FUNCTION linked_maps(p_map character varying, p_at timestamp without time zone)
+RETURNS TABLE (steam_id character varying, default_cat_id integer) AS $$
+    SELECT m.steam_id, m.default_cat_id
+    FROM map_links AS l
+        JOIN maps AS m ON m.steam_id = CASE WHEN l.map_a = p_map THEN l.map_b ELSE l.map_a END
+        JOIN chapters AS c ON c.id = m.chapter_id
+        JOIN games AS g ON g.id = c.game_id
+    WHERE (l.map_a = p_map OR l.map_b = p_map)
+      AND p_at >= l.created_at
+      AND (g.kind <> 'season' OR (p_at >= g.starts_at AND (g.ends_at IS NULL OR p_at < g.ends_at)))
+      AND m.default_cat_id IS NOT NULL;
+$$ LANGUAGE sql STABLE;
+
+-- Records an original run on each linked map where it beats the player's best there.
+CREATE OR REPLACE FUNCTION link_mirror_run(src_id bigint) RETURNS void AS $$
+DECLARE
+    src changelog%ROWTYPE;
+    cp RECORD;
+    prev_id bigint;
+    prev_score integer;
+BEGIN
+    SELECT * INTO src FROM changelog WHERE id = src_id;
+    IF NOT FOUND OR src.mirror_of IS NOT NULL OR src.profile_number = 'N/A' OR src.banned THEN
+        RETURN;
+    END IF;
+    -- Only main-category runs carry over.
+    IF src.category_id IS DISTINCT FROM (SELECT default_cat_id FROM maps WHERE steam_id = src.map_id) THEN
+        RETURN;
+    END IF;
+    FOR cp IN SELECT * FROM linked_maps(src.map_id, src.timestamp) LOOP
+        CONTINUE WHEN EXISTS (SELECT 1 FROM changelog AS x WHERE x.mirror_of = src.id AND x.map_id = cp.steam_id);
+        prev_id := NULL;
+        prev_score := NULL;
+        SELECT x.id, x.score INTO prev_id, prev_score
+        FROM changelog AS x
+        WHERE x.map_id = cp.steam_id AND x.profile_number = src.profile_number AND x.verified AND NOT x.banned AND x.category_id = cp.default_cat_id
+        ORDER BY x.score, x.timestamp LIMIT 1;
+        -- Each board keeps only improvements on the player's best there.
+        CONTINUE WHEN prev_id IS NOT NULL AND src.score >= prev_score;
+        INSERT INTO changelog (timestamp, profile_number, score, map_id, demo_id, banned, youtube_id, previous_id,
+            post_rank, pre_rank, submission, note, category_id, score_delta, verified, admin_note, autorender_id,
+            segments, wr_hidden, mirror_of)
+        VALUES (src.timestamp, src.profile_number, src.score, cp.steam_id, src.demo_id, src.banned, src.youtube_id, prev_id,
+            season_rank(cp.steam_id, src.score, src.profile_number),
+            CASE WHEN prev_id IS NULL THEN NULL ELSE season_rank(cp.steam_id, prev_score, src.profile_number) END,
+            src.submission, src.note, cp.default_cat_id,
+            CASE WHEN prev_id IS NULL THEN NULL ELSE src.score - prev_score END,
+            src.verified, src.admin_note, src.autorender_id, src.segments, COALESCE(src.wr_hidden, false), src.id);
+    END LOOP;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP FUNCTION IF EXISTS season_mirror_run(bigint);
+DROP FUNCTION IF EXISTS season_backfill(integer);
+
+-- Mirrors an original co-op pairing onto each linked map where either half is mirrored.
+CREATE OR REPLACE FUNCTION season_mirror_bundle(bundle_id bigint) RETURNS void AS $$
+DECLARE
+    b coop_bundled%ROWTYPE;
+    copy_map character varying;
+    c1 bigint;
+    c2 bigint;
+    filler bigint;
+    mb bigint;
+BEGIN
+    SELECT * INTO b FROM coop_bundled WHERE id = bundle_id;
+    IF NOT FOUND OR b.mirror_of IS NOT NULL THEN
+        RETURN;
+    END IF;
+    FOR copy_map IN
+        SELECT DISTINCT x.map_id FROM changelog AS x WHERE x.mirror_of IN (b.cl_id1, b.cl_id2)
+    LOOP
+        SELECT id INTO filler FROM changelog WHERE profile_number = 'N/A' AND map_id = copy_map ORDER BY id LIMIT 1;
+        SELECT id INTO c1 FROM changelog WHERE mirror_of = b.cl_id1 AND map_id = copy_map;
+        SELECT id INTO c2 FROM changelog WHERE mirror_of = b.cl_id2 AND map_id = copy_map;
+        c1 := COALESCE(c1, filler);
+        c2 := COALESCE(c2, filler);
+        CONTINUE WHEN c1 IS NULL OR c2 IS NULL;
+        SELECT mbx.id INTO mb FROM coop_bundled AS mbx JOIN changelog AS x ON x.id = mbx.cl_id1
+        WHERE mbx.mirror_of = b.id AND x.map_id = copy_map;
+        IF mb IS NULL THEN
+            INSERT INTO coop_bundled (p_id1, p_id2, p1_is_host, cl_id1, cl_id2, mirror_of)
+            VALUES (b.p_id1, b.p_id2, b.p1_is_host, c1, c2, b.id) RETURNING id INTO mb;
+        ELSE
+            UPDATE coop_bundled SET p_id1 = b.p_id1, p_id2 = b.p_id2, p1_is_host = b.p1_is_host, cl_id1 = c1, cl_id2 = c2 WHERE id = mb;
+        END IF;
+        UPDATE changelog SET coop_id = NULL WHERE coop_id = mb AND id NOT IN (c1, c2);
+        UPDATE changelog SET coop_id = mb WHERE id IN (c1, c2) AND profile_number <> 'N/A';
+        mb := NULL;
+    END LOOP;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Drops the mirrored runs on a game's maps (before deleting it).
+CREATE OR REPLACE FUNCTION season_clear(p_game integer) RETURNS void AS $$
+BEGIN
+    CREATE TEMP TABLE IF NOT EXISTS season_clear_ids (id bigint) ON COMMIT DROP;
+    DELETE FROM season_clear_ids;
+    INSERT INTO season_clear_ids
+        SELECT x.id FROM changelog AS x JOIN maps AS m ON m.steam_id = x.map_id JOIN chapters AS c ON c.id = m.chapter_id
+        WHERE c.game_id = p_game AND x.mirror_of IS NOT NULL;
+    UPDATE changelog SET coop_id = NULL WHERE id IN (SELECT id FROM season_clear_ids);
+    DELETE FROM coop_bundled WHERE cl_id1 IN (SELECT id FROM season_clear_ids) OR cl_id2 IN (SELECT id FROM season_clear_ids);
+    UPDATE changelog SET previous_id = NULL WHERE previous_id IN (SELECT id FROM season_clear_ids);
+    DELETE FROM changelog WHERE id IN (SELECT id FROM season_clear_ids);
+END;
+$$ LANGUAGE plpgsql;
+
+-- Triggers keeping mirrors in step with the originals.
+CREATE OR REPLACE FUNCTION season_changelog_insert() RETURNS trigger AS $$
+BEGIN
+    IF NEW.mirror_of IS NULL AND NEW.profile_number <> 'N/A'
+       AND EXISTS (SELECT 1 FROM map_links WHERE map_a = NEW.map_id OR map_b = NEW.map_id) THEN
+        PERFORM link_mirror_run(NEW.id);
+    END IF;
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION season_changelog_update() RETURNS trigger AS $$
+BEGIN
+    IF NEW.mirror_of IS NULL THEN
+        UPDATE changelog SET timestamp = NEW.timestamp, profile_number = NEW.profile_number, score = NEW.score,
+            banned = NEW.banned, verified = NEW.verified, demo_id = NEW.demo_id, youtube_id = NEW.youtube_id,
+            note = NEW.note, admin_note = NEW.admin_note, autorender_id = NEW.autorender_id, segments = NEW.segments,
+            wr_hidden = COALESCE(NEW.wr_hidden, false), submission = NEW.submission
+        WHERE mirror_of = NEW.id;
+    END IF;
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION season_changelog_delete() RETURNS trigger AS $$
+BEGIN
+    IF OLD.mirror_of IS NULL AND EXISTS (SELECT 1 FROM changelog WHERE mirror_of = OLD.id) THEN
+        UPDATE changelog SET coop_id = NULL
+        WHERE coop_id IN (SELECT cb.id FROM coop_bundled AS cb JOIN changelog AS x ON x.id IN (cb.cl_id1, cb.cl_id2) WHERE x.mirror_of = OLD.id);
+        DELETE FROM coop_bundled WHERE cl_id1 IN (SELECT id FROM changelog WHERE mirror_of = OLD.id)
+            OR cl_id2 IN (SELECT id FROM changelog WHERE mirror_of = OLD.id);
+        UPDATE changelog SET previous_id = NULL WHERE previous_id IN (SELECT id FROM changelog WHERE mirror_of = OLD.id);
+        DELETE FROM mtrigger_entries WHERE changelog_id IN (SELECT id FROM changelog WHERE mirror_of = OLD.id);
+        DELETE FROM changelog WHERE mirror_of = OLD.id;
+    END IF;
+    RETURN OLD;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION season_bundle_upsert() RETURNS trigger AS $$
+BEGIN
+    IF NEW.mirror_of IS NULL THEN
+        PERFORM season_mirror_bundle(NEW.id);
+    END IF;
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION season_bundle_delete() RETURNS trigger AS $$
+BEGIN
+    IF OLD.mirror_of IS NULL THEN
+        UPDATE changelog SET coop_id = NULL WHERE coop_id IN (SELECT id FROM coop_bundled WHERE mirror_of = OLD.id);
+        DELETE FROM coop_bundled WHERE mirror_of = OLD.id;
+    END IF;
+    RETURN OLD;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS season_changelog_insert ON changelog;
+CREATE TRIGGER season_changelog_insert AFTER INSERT ON changelog FOR EACH ROW EXECUTE FUNCTION season_changelog_insert();
+DROP TRIGGER IF EXISTS season_changelog_update ON changelog;
+CREATE TRIGGER season_changelog_update AFTER UPDATE ON changelog FOR EACH ROW
+    WHEN (OLD.mirror_of IS NULL AND (OLD.timestamp, OLD.profile_number, OLD.score, OLD.banned, OLD.verified, OLD.demo_id, OLD.youtube_id,
+          OLD.note, OLD.admin_note, OLD.autorender_id, OLD.wr_hidden, OLD.submission)
+      IS DISTINCT FROM (NEW.timestamp, NEW.profile_number, NEW.score, NEW.banned, NEW.verified, NEW.demo_id, NEW.youtube_id,
+          NEW.note, NEW.admin_note, NEW.autorender_id, NEW.wr_hidden, NEW.submission) OR OLD.segments IS DISTINCT FROM NEW.segments)
+    EXECUTE FUNCTION season_changelog_update();
+DROP TRIGGER IF EXISTS season_changelog_delete ON changelog;
+CREATE TRIGGER season_changelog_delete BEFORE DELETE ON changelog FOR EACH ROW EXECUTE FUNCTION season_changelog_delete();
+DROP TRIGGER IF EXISTS season_bundle_upsert ON coop_bundled;
+CREATE TRIGGER season_bundle_upsert AFTER INSERT OR UPDATE OF p_id1, p_id2, p1_is_host, cl_id1, cl_id2 ON coop_bundled FOR EACH ROW EXECUTE FUNCTION season_bundle_upsert();
+DROP TRIGGER IF EXISTS season_bundle_delete ON coop_bundled;
+CREATE TRIGGER season_bundle_delete BEFORE DELETE ON coop_bundled FOR EACH ROW EXECUTE FUNCTION season_bundle_delete();
+
+--
+-- Per-run stats from demos (migrations/20261022000000_run_stats.sql).
+--
+
+-- Per-run stats read from demos. Apply to databases created from an older schema.sql.
+--
+-- portals: portals placed in the run, from the challenge mode scoreboard the game sends at the
+-- end of a run (stored for submitted demos; db/dbscript/import_demo_stats.py fills it in for the
+-- archived board demos). Linked copies of a run (see 20261021000000_games_seasons.sql) carry it too.
+
+ALTER TABLE changelog ADD COLUMN IF NOT EXISTS portals smallint;
+
+CREATE OR REPLACE FUNCTION link_mirror_run(src_id bigint) RETURNS void AS $$
+DECLARE
+    src changelog%ROWTYPE;
+    cp RECORD;
+    prev_id bigint;
+    prev_score integer;
+BEGIN
+    SELECT * INTO src FROM changelog WHERE id = src_id;
+    IF NOT FOUND OR src.mirror_of IS NOT NULL OR src.profile_number = 'N/A' OR src.banned THEN
+        RETURN;
+    END IF;
+    -- Only main-category runs carry over.
+    IF src.category_id IS DISTINCT FROM (SELECT default_cat_id FROM maps WHERE steam_id = src.map_id) THEN
+        RETURN;
+    END IF;
+    FOR cp IN SELECT * FROM linked_maps(src.map_id, src.timestamp) LOOP
+        CONTINUE WHEN EXISTS (SELECT 1 FROM changelog AS x WHERE x.mirror_of = src.id AND x.map_id = cp.steam_id);
+        prev_id := NULL;
+        prev_score := NULL;
+        SELECT x.id, x.score INTO prev_id, prev_score
+        FROM changelog AS x
+        WHERE x.map_id = cp.steam_id AND x.profile_number = src.profile_number AND x.verified AND NOT x.banned AND x.category_id = cp.default_cat_id
+        ORDER BY x.score, x.timestamp LIMIT 1;
+        -- Each board keeps only improvements on the player's best there.
+        CONTINUE WHEN prev_id IS NOT NULL AND src.score >= prev_score;
+        INSERT INTO changelog (timestamp, profile_number, score, map_id, demo_id, banned, youtube_id, previous_id,
+            post_rank, pre_rank, submission, note, category_id, score_delta, verified, admin_note, autorender_id,
+            segments, wr_hidden, mirror_of, portals)
+        VALUES (src.timestamp, src.profile_number, src.score, cp.steam_id, src.demo_id, src.banned, src.youtube_id, prev_id,
+            season_rank(cp.steam_id, src.score, src.profile_number),
+            CASE WHEN prev_id IS NULL THEN NULL ELSE season_rank(cp.steam_id, prev_score, src.profile_number) END,
+            src.submission, src.note, cp.default_cat_id,
+            CASE WHEN prev_id IS NULL THEN NULL ELSE src.score - prev_score END,
+            src.verified, src.admin_note, src.autorender_id, src.segments, COALESCE(src.wr_hidden, false), src.id, src.portals);
+    END LOOP;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION season_changelog_update() RETURNS trigger AS $$
+BEGIN
+    IF NEW.mirror_of IS NULL THEN
+        UPDATE changelog SET timestamp = NEW.timestamp, profile_number = NEW.profile_number, score = NEW.score,
+            banned = NEW.banned, verified = NEW.verified, demo_id = NEW.demo_id, youtube_id = NEW.youtube_id,
+            note = NEW.note, admin_note = NEW.admin_note, autorender_id = NEW.autorender_id, segments = NEW.segments,
+            wr_hidden = COALESCE(NEW.wr_hidden, false), submission = NEW.submission, portals = NEW.portals
+        WHERE mirror_of = NEW.id;
+    END IF;
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS season_changelog_update ON changelog;
+CREATE TRIGGER season_changelog_update AFTER UPDATE ON changelog FOR EACH ROW
+    WHEN (OLD.mirror_of IS NULL AND (OLD.timestamp, OLD.profile_number, OLD.score, OLD.banned, OLD.verified, OLD.demo_id, OLD.youtube_id,
+          OLD.note, OLD.admin_note, OLD.autorender_id, OLD.wr_hidden, OLD.submission)
+      IS DISTINCT FROM (NEW.timestamp, NEW.profile_number, NEW.score, NEW.banned, NEW.verified, NEW.demo_id, NEW.youtube_id,
+          NEW.note, NEW.admin_note, NEW.autorender_id, NEW.wr_hidden, NEW.submission) OR OLD.segments IS DISTINCT FROM NEW.segments OR OLD.portals IS DISTINCT FROM NEW.portals)
+    EXECUTE FUNCTION season_changelog_update();
+
+--
+-- Anonymous run reports (migrations/20261023000000_run_reports.sql).
+--
+
+-- Anonymous run reports. Apply to databases created from an older schema.sql.
+--
+-- Anyone can report a run; staff see the report but not who sent it. reporter_key is a salted
+-- hash of the reporter (account or address), used only to stop duplicate reports and spam.
+CREATE TABLE IF NOT EXISTS run_reports (
+    id bigserial PRIMARY KEY,
+    changelog_id bigint NOT NULL REFERENCES changelog(id) ON DELETE CASCADE,
+    reason character varying(20) NOT NULL CHECK (reason IN ('cheating', 'wrong_time', 'wrong_player', 'bad_proof', 'other')),
+    details character varying(1000),
+    reporter_key character varying(64) NOT NULL,
+    status character varying(10) NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'resolved', 'dismissed')),
+    resolved_by character varying(50) REFERENCES users(profile_number),
+    resolved_at timestamp without time zone,
+    resolution_note character varying(500),
+    created_at timestamp without time zone NOT NULL DEFAULT (now() AT TIME ZONE 'utc')
+);
+CREATE INDEX IF NOT EXISTS idx_run_reports_status ON run_reports (status, id DESC);
+CREATE INDEX IF NOT EXISTS idx_run_reports_reporter ON run_reports (reporter_key, created_at);
+CREATE UNIQUE INDEX IF NOT EXISTS unq_run_reports_open ON run_reports (changelog_id, reporter_key) WHERE status = 'open';
+
+--
+-- Staff-set profile names and pictures (migrations/20261024000000_profile_overrides.sql).
+--
+
+-- Staff-set profile names and pictures. Apply to databases created from an older schema.sql.
+--
+-- Staff can replace a player's displayed name (users.board_name) and picture; the locks keep
+-- Steam sign-ins and avatar refreshes from undoing that until staff reset them.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS name_locked boolean NOT NULL DEFAULT false;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_locked boolean NOT NULL DEFAULT false;
+
+--
+-- Empty Mel chapters removed (migrations/20261026000000_empty_chapters.sql).
+--
+
+-- Removes chapters without maps that the Mel import created (the Mel board's empty Advanced
+-- "1952" chapter, imported as a second Story chapter). Apply to databases created from an
+-- older schema.sql; the importer now skips them.
+DELETE FROM chapters AS c
+WHERE c.game_id = 2 AND NOT EXISTS (SELECT 1 FROM maps AS m WHERE m.chapter_id = c.id);
+
+-- Player search matches names with ILIKE '%text%'; a trigram index serves that directly instead
+-- of scanning every user.
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+CREATE INDEX IF NOT EXISTS idx_users_name_trgm
+    ON users USING gin (COALESCE(board_name, steam_name) gin_trgm_ops);
+-- State of the Steam leaderboard sync. A map's first pass only records what Steam shows (the
+-- baseline): times the board doesn't have by then are never pulled in (Steam has no dates, and
+-- the old board leaves some Steam times out on purpose). After that, only entries that change on
+-- Steam between passes are considered as new runs.
+CREATE TABLE IF NOT EXISTS steam_sync_maps (
+    map_id character varying PRIMARY KEY REFERENCES maps(steam_id),
+    last_hash bigint,
+    last_pass timestamp without time zone
+);
+
+-- The leaderboard entries seen on the last pass (each player's score), to spot changes.
+CREATE TABLE IF NOT EXISTS steam_sync_entries (
+    map_id character varying NOT NULL REFERENCES maps(steam_id) ON DELETE CASCADE,
+    profile_number character varying NOT NULL,
+    score integer NOT NULL,
+    PRIMARY KEY (map_id, profile_number)
+);
+
+-- The old boards' changelog entries as last pulled (tools/old_boards_sync.rs), to tell what
+-- changed there since: only those changes are applied, so edits made here aren't undone.
+CREATE TABLE IF NOT EXISTS old_board_runs (
+    game_id integer NOT NULL REFERENCES games(id),
+    legacy_id bigint NOT NULL,
+    banned boolean NOT NULL,
+    pending boolean NOT NULL,
+    youtube_id character varying(30),
+    note character varying(100),
+    has_demo boolean NOT NULL,
+    autorender_id character varying(11),
+    seen_at timestamp without time zone NOT NULL,
+    PRIMARY KEY (game_id, legacy_id)
+);
+
+-- What's read from each demo by the demo parsing job (server/src/tools/demo_parse.rs).
+-- parsed_at is null until the job has read the demo (new submissions, demos pulled from the old
+-- boards, and demos whose file was restored are read again).
+ALTER TABLE demos ADD COLUMN IF NOT EXISTS parsed_at timestamp without time zone;
+-- The end-of-run scoreboard: time (centiseconds) and portal count; null without a finished run.
+ALTER TABLE demos ADD COLUMN IF NOT EXISTS time_score integer;
+ALTER TABLE demos ADD COLUMN IF NOT EXISTS portal_score integer;
+-- The players in the demo ([{ "steamId", "name" }]) and, for co-op, who hosted (played blue).
+ALTER TABLE demos ADD COLUMN IF NOT EXISTS players jsonb;
+ALTER TABLE demos ADD COLUMN IF NOT EXISTS host_steam_id character varying(20);
+-- The CRC32 of the SAR build that recorded it (as of the release's sar.dll / sar.so); sar_version
+-- is what SAR echoed into the demo, or the version another demo with the same build echoed.
+ALTER TABLE demos ADD COLUMN IF NOT EXISTS sar_checksum character varying(8);
+-- True when the build is on the old boards' list of approved SAR builds; null when unknown.
+ALTER TABLE demos ADD COLUMN IF NOT EXISTS sar_approved boolean;
+-- SAR's record of pauses and timescale cheats: { "pauseTicks", "timescale": [...] }.
+ALTER TABLE demos ADD COLUMN IF NOT EXISTS sar_checks jsonb;
+ALTER TABLE demos ADD COLUMN IF NOT EXISTS parse_error character varying(200);
+
+CREATE INDEX IF NOT EXISTS idx_demos_unparsed ON demos (id) WHERE parsed_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_demos_sar_checksum ON demos (sar_checksum) WHERE sar_checksum IS NOT NULL;
+-- Runs by demo (finding a demo's run).
+CREATE INDEX IF NOT EXISTS idx_changelog_demo ON changelog (demo_id) WHERE demo_id IS NOT NULL;
+
+-- Notes on runs that only staff see (a thread per run; both halves of a co-op run share one,
+-- kept on its first half, as reactions are).
+CREATE TABLE IF NOT EXISTS run_staff_notes (
+    id bigserial PRIMARY KEY,
+    changelog_id bigint NOT NULL REFERENCES changelog(id) ON DELETE CASCADE,
+    -- Null for notes written by the board's own services (syncs).
+    author character varying(50) REFERENCES users(profile_number),
+    body character varying(1000) NOT NULL,
+    created_at timestamp without time zone NOT NULL DEFAULT (now() AT TIME ZONE 'utc')
+);
+CREATE INDEX IF NOT EXISTS idx_run_staff_notes_run ON run_staff_notes (changelog_id, id);
+
+-- Uploaded map images (server/src/api/v1/handlers/catalog.rs): the file in IMAGES.STORAGE, and
+-- when it was set (part of the image's address, so browsers fetch a new one when it changes).
+-- Maps without one use the site's built-in image, if any.
+ALTER TABLE maps ADD COLUMN IF NOT EXISTS image_file character varying(200);
+ALTER TABLE maps ADD COLUMN IF NOT EXISTS image_updated timestamp without time zone;
+
+-- When a player's peak points first reached Legends (Portal 2). Legends can't be lost, so it's
+-- recorded once (tools/points_history.rs) and profiles show the role without working the peak out.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS legends_at timestamp without time zone;
+
+-- A game's own names for its boards ("modes"), by chapter game_mode: {"sp": "No hair"}. Modes
+-- without one keep the site's default name (Singleplayer, Cooperative, ...).
+ALTER TABLE games ADD COLUMN IF NOT EXISTS mode_names jsonb NOT NULL DEFAULT '{}'::jsonb;
+
+-- The staff inbox next to the avatar: the newest audit-log entry each staff member has seen, so
+-- the badge counts what's new to them.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS staff_inbox_seen_id bigint;
+
+-- Live staff inbox: announce each new audit-log entry (NOTIFY staff_inbox, {"id", "admin"}) so the
+-- server can pass it on to staff browsers straight away (server/src/tools/staff_events.rs).
+CREATE OR REPLACE FUNCTION notify_staff_inbox() RETURNS trigger AS $$
+BEGIN
+    PERFORM pg_notify('staff_inbox', json_build_object('id', NEW.id, 'admin', NEW.admin_profile)::text);
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS admin_actions_notify ON admin_actions;
+CREATE TRIGGER admin_actions_notify AFTER INSERT ON admin_actions FOR EACH ROW EXECUTE PROCEDURE notify_staff_inbox();
+
+-- Imported runs the old board had no date for get one estimated from the runs around them: the
+-- date of the last dated run before them in the same game (runs were added in id order). Marked
+-- here so they can be told apart (and put back: SET timestamp = NULL, date_estimated = false).
+ALTER TABLE changelog ADD COLUMN IF NOT EXISTS date_estimated boolean NOT NULL DEFAULT false;
+
+-- Players choose their own name and picture (Settings). A name of their own goes in users.board_name like before;
+-- a picture of their own is marked here so Steam sign-ins and avatar refreshes keep it (staff-set ones use users.avatar_locked).
+ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_custom boolean NOT NULL DEFAULT false;
+
+-- Each game's header branding, set in the games editor: the name beside the logo (NULL = the site's default)
+-- and uploaded logo / background files in IMAGES.STORAGE (NULL = the site's built-in ones).
+ALTER TABLE games ADD COLUMN IF NOT EXISTS short_name character varying(16);
+ALTER TABLE games ADD COLUMN IF NOT EXISTS logo_file character varying(200);
+ALTER TABLE games ADD COLUMN IF NOT EXISTS logo_updated timestamp without time zone;
+ALTER TABLE games ADD COLUMN IF NOT EXISTS background_file character varying(200);
+ALTER TABLE games ADD COLUMN IF NOT EXISTS background_updated timestamp without time zone;
+
+--
+-- A co-op partner's demo of a run that wasn't a personal best for them (migrations/20261110000000_coop_partner_demo.sql).
+--
+
+-- When only one player of a co-op run improved, the other player's slot in the pairing is the map's
+-- placeholder entry ('N/A'): they have no changelog entry of their own to put a demo on. Their demo
+-- (their view of the same run) is kept here instead, so the run still has both players' demos. Its
+-- demos row has the run's own entry as cl_id, so removing the run's demos (or the run) removes it
+-- too. Linked copies of a pairing (20261021000000_games_seasons.sql) carry it as well.
+ALTER TABLE coop_bundled ADD COLUMN IF NOT EXISTS partner_demo_id bigint;
+DO $$
+BEGIN
+    ALTER TABLE coop_bundled ADD CONSTRAINT fk_coop_bundled_partner_demo
+        FOREIGN KEY (partner_demo_id) REFERENCES demos(id) ON DELETE SET NULL;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END;
+$$;
+-- Few pairings have one; also keeps deleting a demo (ON DELETE SET NULL) from scanning every pairing.
+CREATE INDEX IF NOT EXISTS idx_coop_bundled_partner_demo ON coop_bundled (partner_demo_id) WHERE partner_demo_id IS NOT NULL;
+
+-- Mirrors an original co-op pairing onto each linked map where either half is mirrored.
+CREATE OR REPLACE FUNCTION season_mirror_bundle(bundle_id bigint) RETURNS void AS $$
+DECLARE
+    b coop_bundled%ROWTYPE;
+    copy_map character varying;
+    c1 bigint;
+    c2 bigint;
+    filler bigint;
+    mb bigint;
+BEGIN
+    SELECT * INTO b FROM coop_bundled WHERE id = bundle_id;
+    IF NOT FOUND OR b.mirror_of IS NOT NULL THEN
+        RETURN;
+    END IF;
+    FOR copy_map IN
+        SELECT DISTINCT x.map_id FROM changelog AS x WHERE x.mirror_of IN (b.cl_id1, b.cl_id2)
+    LOOP
+        SELECT id INTO filler FROM changelog WHERE profile_number = 'N/A' AND map_id = copy_map ORDER BY id LIMIT 1;
+        SELECT id INTO c1 FROM changelog WHERE mirror_of = b.cl_id1 AND map_id = copy_map;
+        SELECT id INTO c2 FROM changelog WHERE mirror_of = b.cl_id2 AND map_id = copy_map;
+        c1 := COALESCE(c1, filler);
+        c2 := COALESCE(c2, filler);
+        CONTINUE WHEN c1 IS NULL OR c2 IS NULL;
+        SELECT mbx.id INTO mb FROM coop_bundled AS mbx JOIN changelog AS x ON x.id = mbx.cl_id1
+        WHERE mbx.mirror_of = b.id AND x.map_id = copy_map;
+        IF mb IS NULL THEN
+            INSERT INTO coop_bundled (p_id1, p_id2, p1_is_host, cl_id1, cl_id2, partner_demo_id, mirror_of)
+            VALUES (b.p_id1, b.p_id2, b.p1_is_host, c1, c2, b.partner_demo_id, b.id) RETURNING id INTO mb;
+        ELSE
+            UPDATE coop_bundled SET p_id1 = b.p_id1, p_id2 = b.p_id2, p1_is_host = b.p1_is_host, cl_id1 = c1, cl_id2 = c2,
+                partner_demo_id = b.partner_demo_id
+            WHERE id = mb;
+        END IF;
+        UPDATE changelog SET coop_id = NULL WHERE coop_id = mb AND id NOT IN (c1, c2);
+        UPDATE changelog SET coop_id = mb WHERE id IN (c1, c2) AND profile_number <> 'N/A';
+        mb := NULL;
+    END LOOP;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS season_bundle_upsert ON coop_bundled;
+CREATE TRIGGER season_bundle_upsert AFTER INSERT OR UPDATE OF p_id1, p_id2, p1_is_host, cl_id1, cl_id2, partner_demo_id ON coop_bundled
+    FOR EACH ROW EXECUTE FUNCTION season_bundle_upsert();
+
+--
+-- Newest-first changelog index (migrations/20261111000000_changelog_newest_index.sql).
+--
+
+-- Score Updates (and every changelog list) reads the newest runs first: ORDER BY timestamp DESC NULLS LAST
+-- (undated imported runs last). idx_changelog_timestamp is in the other order (ASC, nulls last), which can't
+-- give that, so each page load sorted the whole table (~180 ms, spilling to disk). This one is in that order,
+-- so the newest rows are read straight off it.
+CREATE INDEX IF NOT EXISTS idx_changelog_newest ON changelog (timestamp DESC NULLS LAST);
+
+--
+-- SAR auto-submit keys (migrations/20261112000000_submit_keys.sql).
+--
+
+-- SAR auto-submit keys (/api-v2, server/src/api/v2): a player's key goes in SAR's autosubmit.key, and SAR
+-- sends it with every submission. Only its SHA-256 is kept, so a copy of the database doesn't hand out keys;
+-- the player sees a key once, when it's made in Settings.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS submit_key_hash bytea;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS submit_key_created timestamp without time zone;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_submit_key_hash ON users (submit_key_hash) WHERE submit_key_hash IS NOT NULL;
+
+-- The old boards' keys (users.auth_hash, imported) keep working: hashed the same way, then the plaintext
+-- copies are cleared.
+UPDATE users SET submit_key_hash = sha256(convert_to(auth_hash, 'UTF8'))
+WHERE auth_hash ~ '^[A-Za-z0-9]{1,64}$' AND submit_key_hash IS NULL;
+UPDATE users SET auth_hash = NULL WHERE auth_hash IS NOT NULL;

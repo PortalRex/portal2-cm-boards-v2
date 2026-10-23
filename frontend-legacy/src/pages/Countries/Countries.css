@@ -1,0 +1,79 @@
+.ct-body {
+  padding: 20px 28px 28px;
+}
+
+.ct-intro {
+  margin: 0 0 16px;
+  font-size: 16px;
+}
+
+.ct-intro a {
+  color: var(--accent-light);
+}
+
+.ct-row {
+  display: grid;
+  grid-template-columns: 40px minmax(160px, 1fr) 80px 100px minmax(0, 3fr);
+  align-items: center;
+  gap: 0 16px;
+  min-height: 44px;
+  padding: 6px 12px;
+  font-size: 16px;
+}
+
+.ct-row:nth-child(even):not(.ct-head) {
+  background: var(--row);
+}
+
+.ct-head {
+  min-height: 30px;
+  color: var(--text-muted);
+  font-size: 14px;
+  text-transform: uppercase;
+}
+
+.ct-rank {
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.ct-country {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-weight: 600;
+}
+
+.ct-country:hover {
+  text-decoration: underline;
+}
+
+.ct-top {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  min-width: 0;
+}
+
+.ct-player {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+@media (max-width: 800px) {
+  .ct-body {
+    padding: 16px;
+  }
+
+  .ct-row {
+    grid-template-columns: 30px minmax(0, 1fr) 60px;
+  }
+
+  .ct-row > :nth-child(4),
+  .ct-row > :nth-child(5) {
+    display: none;
+  }
+}

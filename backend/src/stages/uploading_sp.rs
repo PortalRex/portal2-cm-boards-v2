@@ -6,7 +6,7 @@ use std::cmp::Ordering;
 /// Upload sp PB to the database
 pub fn post_sp_pb(params: PostSP) -> Result<()> {
     let new_score = construct_sp_score(params)?;
-    let client = reqwest::blocking::Client::new();
+    let client = crate::http::blocking_client();
     let post_url = "http://localhost:8080/api/v1/sp/post_score".to_string();
     let _ = client
         .post(&post_url)

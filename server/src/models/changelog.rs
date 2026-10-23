@@ -83,6 +83,8 @@ pub struct ChangelogPage {
     pub score_delta: Option<i32>,
     pub verified: Option<bool>,
     pub admin_note: Option<String>,
+    /// Autorender share ID of the run's rendered video, if any.
+    pub autorender_id: Option<String>,
     pub map_name: String,
     pub user_name: String,
     pub avatar: String,
@@ -90,6 +92,23 @@ pub struct ChangelogPage {
     pub orange_name: Option<String>,
     pub blue_avatar: Option<String>,
     pub orange_avatar: Option<String>,
+    pub blue_profile_number: Option<String>,
+    pub orange_profile_number: Option<String>,
+    /// Whether it's known which co-op player was blue (the host); null for single player.
+    pub coop_roles_known: Option<bool>,
+    /// Removed from the map's WR history by staff.
+    pub wr_hidden: bool,
+    /// Portals placed, from the demo (when known).
+    pub portals: Option<i16>,
+    /// The SAR version that recorded the run's demo (when known).
+    #[sqlx(default)]
+    pub sar_version: Option<String>,
+    /// The old board had no date for the run; `timestamp` is estimated from the runs around it.
+    #[sqlx(default)]
+    pub date_estimated: bool,
+    /// Thumbs up / down counts (a co-op run's halves share them).
+    pub reactions_up: i64,
+    pub reactions_down: i64,
 }
 
 /// Indlues additional information from joins that includes details like map name, username and profile image.
@@ -106,7 +125,8 @@ pub struct Graph {
 pub struct BannedTimeDetails {
     pub profile_number: String,
     pub user_name: String,
-    pub avatar: String,
+    /// None for players the old board stored without a picture.
+    pub avatar: Option<String>,
     pub total_runs: i64,
     pub banned_runs: Option<i64>,
     pub non_verified_runs: Option<i64>,
@@ -152,8 +172,20 @@ pub struct ChangelogQueryParams {
     pub wr_gain: Option<bool>,
     pub has_demo: Option<bool>,
     pub yt: Option<bool>,
+    /// `true` shows only banned runs, `false` hides them; omitted shows both.
+    pub banned: Option<bool>,
+    /// `false` shows only pending runs, `true` only verified ones; omitted shows both.
+    pub verified: Option<bool>,
+    /// With `wr_gain`: also include runs staff removed from the WR history.
+    pub include_hidden_wr: Option<bool>,
     pub first: Option<i64>,
     pub last: Option<i64>,
+    /// Game to show entries for (`games.id`). Defaults to 1 (Portal 2).
+    pub game_id: Option<i32>,
+    /// Only runs that ranked this high or better when they were set (e.g. 100 = top 100).
+    pub max_rank: Option<i32>,
+    /// Only runs from the last this many days.
+    pub since_days: Option<i32>,
 }
 
 /// Query parameters for searching for a given
@@ -189,7 +221,7 @@ pub struct ScoreLookup {
 }
 
 /// Map ID & Name, score and timestamp for a given score.
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, FromRow)]
 pub struct MapScoreDate {
     pub map: String,
     pub map_name: String,

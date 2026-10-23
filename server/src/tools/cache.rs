@@ -48,13 +48,13 @@
 //!
 use crate::{
     models::{coop::CoopMap, maps::Maps, points::Points, sp::SpMap},
-    tools::config::Config,
+    tools::{config::Config, helpers::filter_coop_entries},
 };
 use anyhow::Result;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use std::{
-    collections::{HashMap, HashSet},
+    collections::HashMap,
     fs::File,
     io::BufReader,
     path::Path,
@@ -86,10 +86,32 @@ pub const POINTS_OVERALL: &'static str = "points_overall";
 /// Cache for the current ranks all players have within the top X scores (defined by [crate::tools::config::ProofConfig])
 ///
 /// The mapping is as follows:
-/// - profile_number -> map_id -> rank
+/// - `current_ranks`: profile_number -> map_id -> rank
+/// - `map_scores`: map_id -> distinct ranked scores, ascending (for deltas to WR / next rank)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Ranks {
     pub current_ranks: HashMap<String, HashMap<String, i32>>,
+    #[serde(default)]
+    pub map_scores: HashMap<String, Vec<i32>>,
+    /// Whether co-op was ranked by run when this was built (rebuilt when the setting changes).
+    #[serde(default)]
+    pub coop_by_run: bool,
+}
+
+/// SP ranks with ties sharing a rank (entries are ordered by score).
+fn sp_ranks(entries: &[SpMap]) -> Vec<i32> {
+    let mut ranks = Vec::with_capacity(entries.len());
+    for (i, entry) in entries.iter().enumerate() {
+        let rank = if i > 0 && entries[i - 1].score == entry.score { ranks[i - 1] } else { (i + 1) as i32 };
+        ranks.push(rank);
+    }
+    ranks
+}
+
+fn sorted_scores(mut scores: Vec<i32>) -> Vec<i32> {
+    scores.sort_unstable();
+    scores.dedup();
+    scores
 }
 
 /// Holds a thread-sharable hashmap that we use to control cache invalidation.
@@ -169,6 +191,39 @@ impl CacheState {
             ranks: Arc::new(Mutex::new(current_ranks)),
         }
     }
+    /// Rebuilds every map's ranks from the database in the background and swaps them in (and
+    /// saves them for the next start). The ranks loaded from the file at startup are only as
+    /// recent as that file: changes since (bans, sync passes, edits) were only kept in memory.
+    pub fn refresh_ranks_in_background(&self, pool: PgPool, config: Config) {
+        let cache = self.clone();
+        tokio::spawn(async move {
+            let started = std::time::Instant::now();
+            match CacheState::load_all_ranks(&cache.default_cat_ids, &pool, &config, false).await {
+                Ok(fresh) => {
+                    *cache.ranks.lock().await = fresh;
+                    log::info!("rank cache rebuilt in {:?}", started.elapsed());
+                }
+                Err(e) => log::warn!("rank cache: rebuild failed, keeping the saved ranks: {e}"),
+            }
+        });
+    }
+
+    /// A map's default category: from the startup cache, else the database (maps added since
+    /// startup, e.g. a new season). 0 when the map has none, which matches no runs.
+    pub async fn default_cat(&self, pool: &PgPool, map_id: &str) -> i32 {
+        if let Some(id) = self.default_cat_ids.get(map_id) {
+            return *id;
+        }
+        sqlx::query_scalar::<_, Option<i32>>("SELECT default_cat_id FROM maps WHERE steam_id = $1")
+            .bind(map_id)
+            .fetch_optional(pool)
+            .await
+            .ok()
+            .flatten()
+            .flatten()
+            .unwrap_or(0)
+    }
+
     /// Try to load points data from files rather than expecting that the backend must send over the data fresh every time the web server is run.
     async fn load(x: &'static str) -> Result<HashMap<String, Points>> {
         read_from_file::<HashMap<String, Points>>(x).await
@@ -188,29 +243,34 @@ impl CacheState {
         // Try to load using a file on startup.
         if try_from_file {
             match read_from_file::<Ranks>(id).await {
-                Ok(r) => {
+                // Cache files written before `map_scores` existed are rebuilt.
+                Ok(r) if !r.map_scores.is_empty() && r.coop_by_run == crate::tools::config::coop_by_run() => {
                     // let elapsed = now.elapsed();
                     // println!("Elapsed: {:.2?}", elapsed);
                     return Ok(r);
                 }
+                Ok(_) => {}
                 Err(e) => {
                     eprintln!("Error grabbing rank cache from file -> {}", e);
                 }
             }
         }
 
-        let coop = Maps::get_steam_ids(pool, true).await?;
-        let sp = Maps::get_steam_ids(pool, false).await?;
+        let coop = Maps::get_steam_ids(pool, true, 1).await?;
+        let sp = Maps::get_steam_ids(pool, false, 1).await?;
         let mut current_ranks = HashMap::with_capacity(1000);
+        let mut map_scores = HashMap::with_capacity(coop.len() + sp.len());
         for map in sp {
             let res =
-                SpMap::get_sp_map_page(pool, &map, config.proof.results, default_cat_ids[&map], 1)
+                SpMap::get_sp_map_page(pool, &map, config.proof.results, default_cat_ids[&map], 1, None)
                     .await?;
-            for (i, entry) in res.into_iter().enumerate() {
+            let ranks = sp_ranks(&res);
+            map_scores.insert(map.clone(), sorted_scores(res.iter().map(|e| e.score).collect()));
+            for (entry, rank) in res.into_iter().zip(ranks) {
                 let user = current_ranks
                     .entry(entry.profile_number)
                     .or_insert_with(HashMap::new);
-                user.insert(map.clone(), (i + 1) as i32);
+                user.insert(map.clone(), rank);
             }
         }
         for map in coop {
@@ -219,24 +279,20 @@ impl CacheState {
                 &map,
                 default_cat_ids[&map],
                 1,
+                None,
             )
             .await?;
-            for (i, entry) in res.into_iter().enumerate() {
-                let user = current_ranks
-                    .entry(entry.profile_number1)
-                    .or_insert_with(HashMap::new);
-                if user.get(&map).is_none() {
-                    user.insert(map.clone(), (i + 1) as i32);
-                }
-                let user = current_ranks
-                    .entry(entry.profile_number2)
-                    .or_insert_with(HashMap::new);
-                if user.get(&map).is_none() {
-                    user.insert(map.clone(), (i + 1) as i32);
+            // Same filtering and ranking as the co-op map page (one entry per player, ties shared).
+            let ranked = filter_coop_entries(res, config.proof.results as usize).await;
+            map_scores.insert(map.clone(), sorted_scores(ranked.iter().map(|e| e.map_data.score).collect()));
+            for entry in ranked {
+                for profile_number in [entry.map_data.profile_number1, entry.map_data.profile_number2] {
+                    let user = current_ranks.entry(profile_number).or_insert_with(HashMap::new);
+                    user.entry(map.clone()).or_insert(entry.rank);
                 }
             }
         }
-        let fin = Ranks { current_ranks };
+        let fin = Ranks { current_ranks, map_scores, coop_by_run: crate::tools::config::coop_by_run() };
         write_to_file(id, &fin).await.unwrap();
         // let elapsed = now.elapsed();
         // println!("Elapsed: {:.2?}", elapsed);
@@ -258,34 +314,22 @@ impl CacheState {
                 map_id,
                 self.default_cat_ids[map_id],
                 1,
+                None,
             )
             .await
             .unwrap();
+            let ranked = filter_coop_entries(res, config.proof.results as usize).await;
             let r = &mut self.ranks.lock().await;
-            // TODO:
-            // This logic is super unfortunate, we cannot reuse the logic for the inital setup because
-            // the user will most likely already exist in our hashmap. This means we have to allocate
-            // **another** hashmap, this is really unfortunate, and I want to fix it somehow in the future.
-            let mut checker = HashSet::with_capacity(500);
-
-            for (i, entry) in res.into_iter().enumerate() {
-                if !checker.insert(entry.profile_number1.clone()) {
-                    let user = r
-                        .current_ranks
-                        .entry(entry.profile_number1)
-                        .or_insert_with(HashMap::new);
-                    if user.get(map_id).is_none() {
-                        user.insert(map_id.clone(), (i + 1) as i32);
-                    }
-                }
-                if !checker.insert(entry.profile_number2.clone()) {
-                    let user = r
-                        .current_ranks
-                        .entry(entry.profile_number2)
-                        .or_insert_with(HashMap::new);
-                    if user.get(map_id).is_none() {
-                        user.insert(map_id.clone(), (i + 1) as i32);
-                    }
+            r.map_scores.insert(map_id.clone(), sorted_scores(ranked.iter().map(|e| e.map_data.score).collect()));
+            // Start the map over (players can drop off it), then keep each player's best rank: a
+            // player is listed again with every partner whose own best run they're in, best first.
+            for user in r.current_ranks.values_mut() {
+                user.remove(map_id);
+            }
+            for entry in ranked {
+                for profile_number in [entry.map_data.profile_number1, entry.map_data.profile_number2] {
+                    let user = r.current_ranks.entry(profile_number).or_insert_with(HashMap::new);
+                    user.entry(map_id.clone()).or_insert(entry.rank);
                 }
             }
         } else {
@@ -295,16 +339,23 @@ impl CacheState {
                 config.proof.results,
                 self.default_cat_ids[map_id],
                 1,
+                None,
             )
             .await
             .unwrap();
+            let ranks = sp_ranks(&res);
             let r = &mut self.ranks.lock().await;
-            for (i, entry) in res.into_iter().enumerate() {
+            r.map_scores.insert(map_id.clone(), sorted_scores(res.iter().map(|e| e.score).collect()));
+            // Start the map over: a player who dropped off it (banned, run removed) has no rank there.
+            for user in r.current_ranks.values_mut() {
+                user.remove(map_id);
+            }
+            for (entry, rank) in res.into_iter().zip(ranks) {
                 let user = r
                     .current_ranks
                     .entry(entry.profile_number)
                     .or_insert_with(HashMap::new);
-                user.insert(map_id.clone(), (i + 1) as i32);
+                user.insert(map_id.clone(), rank);
             }
         }
     }

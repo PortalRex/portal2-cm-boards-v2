@@ -1,0 +1,109 @@
+.run-video {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #000;
+}
+
+.run-video video {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.run-video-source {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  padding: 2px 8px;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.6);
+  color: var(--text-2);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.run-video-source:hover {
+  color: var(--text);
+}
+
+.run-video-empty {
+  flex-direction: column;
+  gap: 8px;
+}
+
+.run-video-empty a {
+  color: var(--accent-light);
+  font-size: 16px;
+}
+
+.run-video-empty a:hover {
+  text-decoration: underline;
+}
+
+.run-link {
+  display: inline-flex;
+}
+
+.run-link svg {
+  display: block;
+}
+
+.run-link.is-request {
+  opacity: 0.55;
+}
+
+.run-link.is-request:hover {
+  opacity: 1;
+}
+
+/* Comment icon and its bubble (fixed, so table rows can't clip it). */
+.comment-btn {
+  display: inline-flex;
+}
+
+.comment-btn > button {
+  display: inline-flex;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.comment-bubble {
+  position: fixed;
+  z-index: 1100; /* above dialogs (history popup) */
+  width: max-content;
+  max-width: min(320px, 80vw);
+  padding: 7px 11px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--menu);
+  box-shadow: 0 6px 18px rgb(0 0 0 / 35%);
+  color: var(--text);
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 1.35;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  transform: translate(-50%, calc(-100% - 8px));
+  pointer-events: none;
+}
+
+.comment-bubble::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -6px;
+  width: 10px;
+  height: 10px;
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  background: var(--menu);
+  transform: translateX(-50%) rotate(45deg);
+}

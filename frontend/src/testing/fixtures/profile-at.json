@@ -1,0 +1,80 @@
+{
+  "at": "2024-01-01T23:59:59",
+  "points": {
+    "coop": 9415.5,
+    "overall": 20994.5,
+    "sp": 11579.0
+  },
+  "places": {
+    "coop": 3,
+    "overall": 1,
+    "sp": 3
+  },
+  "country_place": 1,
+  "maps": [
+    {
+      "map_id": "45467",
+      "score": 948,
+      "rank": 3,
+      "points": 196.02000427246094,
+      "changelog_id": 252471,
+      "timestamp": "2023-05-01T13:41:07"
+    },
+    {
+      "map_id": "46362",
+      "score": 1270,
+      "rank": 4,
+      "points": 194.0449981689453,
+      "changelog_id": 228503,
+      "timestamp": "2022-10-20T19:43:18"
+    },
+    {
+      "map_id": "47106",
+      "score": 2026,
+      "rank": 3,
+      "points": 196.02000427246094,
+      "changelog_id": 233975,
+      "timestamp": "2022-11-27T22:16:15"
+    },
+    {
+      "map_id": "47452",
+      "score": 1233,
+      "rank": 3,
+      "points": 196.02000427246094,
+      "changelog_id": 226323,
+      "timestamp": "2022-10-04T18:33:00"
+    },
+    {
+      "map_id": "47455",
+      "score": 2141,
+      "rank": 7,
+      "points": 188.17999267578125,
+      "changelog_id": 192525,
+      "timestamp": "2022-02-22T08:50:23"
+    },
+    {
+      "map_id": "47456",
+      "score": 19820,
+      "rank": 7,
+      "points": 188.17999267578125,
+      "changelog_id": 217821,
+      "timestamp": "2022-08-25T14:14:20"
+    },
+    {
+      "map_id": "47458",
+      "score": 2331,
+      "rank": 7,
+      "points": 188.17999267578125,
+      "changelog_id": 234060,
+      "timestamp": "2022-11-28T22:10:22"
+    },
+    {
+      "map_id": "47465",
+      "score": 1498,
+      "rank": 6,
+      "points": 190.125,
+      "changelog_id": 226322,
+      "timestamp": "2022-10-04T18:19:03"
+    }
+  ]
+}

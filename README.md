@@ -6,6 +6,8 @@ A re-write of the original Portal 2 Challenge Mode Leaderboards designed to take
 
 ## Web-Server
 
+Everything this fork changes in the server, database and backend service (endpoints, migrations, config, permissions) is summarised in [BACKEND_CHANGES.md](BACKEND_CHANGES.md).
+
 ### Building
 
 Using sqlx to pass queries to our database. REST API to be documented. Requires the Database to be up and operational.
@@ -25,11 +27,47 @@ STEAM.API_KEY=
 BACKBLAZE.KEYID=
 BACKBLAZE.KEY=
 BACKBLAZE.BUCKET=
+SERVER.PUBLIC_URL=http://localhost:3000
+# SERVER.BEHIND_PROXY=true
+SERVICE.TOKEN=
+DEMO.PARSER=./demo-parser/parse_demo.mjs
+DEMO.STORAGE=./demos
+# DEMO.ARCHIVE=/srv/demos/p2;/srv/demos/mel
+# RANKS.COOP=run
+# SYNC.STEAM=true
+# SYNC.MINUTES=10
+# SYNC.RANK_LIMIT=500
+# SYNC.OLD_BOARDS=true
+# SYNC.OLD_BOARDS_HOURS=0,12
+# SYNC.OLD_BOARDS_TZ=America/Chicago
+# RANKS.COOP_PROOF_SINCE=2026-11-01 00:00:00
 RUST_LOG=1
 RUST_LOG="actix_web=info"
 ```
 
+- `SERVER.PUBLIC_URL` is the address people use to reach the site, which serves the API under `/api` (e.g. `https://board.portal2.sr`). Steam sign-in sends users back to it, and session cookies are marked Secure when it's https. Defaults to `http://localhost:3000`. Set `SERVER.BEHIND_PROXY=true` when a reverse proxy is in front (and bind `SERVER.HOST` to `127.0.0.1`), so rate limits and report de-duplication see the real client address from `X-Forwarded-For`.
+- `STEAM.API_KEY` is used to fill in a user's Steam name and avatar when they sign in (sign-in itself works without it).
+- `SERVICE.TOKEN` is a long random string shared with the board's own services in `/backend` (set the same value as `SERVICE_TOKEN` in `backend/.env`). They send it in an `X-Service-Token` header. Every endpoint that changes data requires either that token or a signed-in admin (`users.admin > 0`); when it's unset, only admins can make changes.
+- `DEMO.PARSER` and `DEMO.STORAGE` enable run submissions (the navbar's **Submit Run**). Submitted demos are read by `server/demo-parser/parse_demo.mjs` (Node 18+; run `npm install` in that folder) for the map, the scoreboard time and the players, and saved in `DEMO.STORAGE`. `DEMO.NODE` sets the node executable if it isn't on the PATH. `DEMO.ARCHIVE` lists the folders (separated by `;`) holding the old boards' demo files, so imported runs' demos can be downloaded. `RANKS.COOP` sets co-op ranking: `run` (default) gives each run one rank (1, 2, 3); `player` gives each player one (1, 1, 3), as the old boards did. `RANKS.COOP_PROOF_SINCE` (UTC, set it to the launch) makes new top-200 co-op runs wait for a demo from each player before they're verified.
+- The server can pull new Portal 2 times from Steam's leaderboards itself: `SYNC.STEAM=true` turns it on (every `SYNC.MINUTES`, 10 by default; times in each map's top `SYNC.RANK_LIMIT` on Steam, 500 by default). `STEAM.API_KEY` lets it create accounts for players it hasn't seen. Portal Stories: Mel has no public Steam leaderboards, so Mel times come from demo submissions. Until the old boards are retired, `SYNC.OLD_BOARDS=true` also pulls from them at midnight and noon (America/Chicago): Mel runs, demos, videos, comments and bans that Steam can't show (see BACKEND_CHANGES.md §13). Players can only submit demos they are in; admins (`users.role = admin`) may also enter the map, time, player or partner by hand, which is recorded in the audit log.
+
 Assuming the database is up and running, start the server with `cargo run` in `/server`
+
+#### Games, seasons and linked leaderboards
+
+Admins manage games, chapters, maps and categories from the staff panel (**Staff → Games**), including dragging maps between chapters. The site loads this catalog from `GET /api/v1/catalog` at startup, so new games and seasons appear in the map list, leaderboards, profiles and score updates without code changes.
+
+- A **season** copies a game's map pool and is open between a start and an optional end date (UTC).
+- Maps can be **linked** (each season's maps are linked to the originals by default; a whole game can be linked to another, e.g. Season 1 to Season 0). A run set on one linked map is also recorded on the other if it beats the player's best there; times set before the link aren't copied, and links to a season only apply inside its dates. A submission that isn't an improvement on the submitted map is recorded on the first linked board where it is, and refused if it improves none.
+- This is done by database triggers (`migrations/20261021000000_games_seasons.sql`), which keep the linked copies in step with the original run (bans, verification, demos, deletion, co-op pairing).
+
+#### Run reports
+
+Anyone can report a run from its details (`POST /api/v1/runs/{id}/report`). Reports are anonymous: staff see the run, the reason and the details, and the reporter is kept only as a salted hash (from `SERVICE.TOKEN`, else `STEAM.API_KEY`) to stop duplicates and spam (5 reports an hour). Staff work through them under **Staff → Reports**, resolving or dismissing each (recorded in the audit log).
+
+#### Demo stats
+
+Portal counts come from the challenge mode scoreboard in each demo: submitted demos store theirs, and for the archived board demos run `node server/demo-parser/demo_stats.mjs <demo dir> stats.csv` (one CSV per game) then `python db/dbscript/import_demo_stats.py --db <url> --p2 p2.csv --mel mel.csv`. Profiles show them on the Stats tab with activity and co-op partners (`GET /api/v1/profile/stats/{steam id}?game_id=`).
 
 #### Features
 
@@ -85,91 +123,90 @@ The front-end build can be done with `npm install` in the `/board-portal-2` fold
 * Light and dark theme support.
 * Prototyped page designs for many auxiliary pages.
 
-## Should I set up this environment with Docker? Or set it up locally?
+## Docker
 
-[@cesarila](https://github.com/cesarila) has contributed a working Docker solution to building the boards.
-For those unfamiliar with Docker, it allows you to run different container environments that act similar to to lightweight Virtual Machines, where you can define ahead of time what is installed on the containers when they're built.
+`docker-compose.yaml` runs the whole board: Postgres (`db`), the web server (`server`) and the site (`web`, nginx serving the built frontend and passing `/api` to the server), at <http://localhost:3000>. You need Docker with the Compose plugin (Docker Desktop includes it; on WSL, either Docker Desktop or Docker Engine inside WSL works).
 
-This means minimal technical knowledge needed outside of learning to use Docker (details below). The main drawback of this is that you have less direct control over your environment, and the performance is much worse.
+### First start
 
-If you're familiar with development on Linux/WSL, I would recommend installing Postgres, Rust and Node locally, but if you're looking to mess around and learn as a beginner, or only want to work on the Front-end, I would recommend using Docker.
+1. Copy `server/.env.example` to `server/.env` and fill it in. Only `SERVICE.TOKEN` (a long random string, e.g. `openssl rand -hex 32`) and, optionally, `STEAM.API_KEY` matter here: the database address, host, port and storage paths are set in `docker-compose.yaml`. If you serve the site somewhere other than `http://localhost:3000`, set `SERVER.PUBLIC_URL` to match (and `WEB_PORT=<port>` in a `.env` next to `docker-compose.yaml` for another local port).
+2. `docker compose up -d --build`
 
-Additionally, if you want to focus on entirely front-end contributions, contact Daniel for information on a publicly accessible IP you can use to hit the backend API endpoints without needing to build it on your machine.
-
-## Docker Setup Guide (Web-Server & Database)
-
-### Prerequisites
-
-1. Docker
-    1. [Get Docker](https://docs.docker.com/get-docker/)
-    2. Optional Post-Installation Steps:
-        * [Linux](https://docs.docker.com/engine/install/linux-postinstall/)
-1. Have docker-compose available (Linux only, comes bundled with Docker desktop for Mac and Windows):
-    * [Linux Install](https://docs.docker.com/compose/cli-command/#install-on-linux)
-    * Short Version:
-
-        ```bash
-        mkdir -p ~/.docker/cli-plugins/
-        sudo curl -L "https://github.com/docker/compose/releases/download/v2.1.0/docker-compose-$(uname -s)-$(uname -m)" -o ~/.docker/cli-plugins/docker-compose
-        sudo chmod +x ~/.docker/cli-plugins
-        ```
-
-        * Note: v2.1.0 is the latest release at the time of writing this. All releases are available [here](https://github.com/docker/compose/releases/)
-    * [Shortest Version](https://gist.github.com/cesarila/a58504fbc3924bcef6ae8ce83a652071)
-
-### Building
-
-Assuming you've satisfied the prerequisites, you can build the containers from the root directory of this repo with:
-`docker compose build`
-This only needs to be done on changes to entrypoint scripts, dockerfiles, and docker-compose.yaml. This includes changes made by people other than you.
-If you don't want to think about it, always rebuild your containers after pulling from the repo.
-
-### Running
-
-Run containers in the foreground:
-
-* `docker compose up`
-
-Run containers in the background with logging visible:
-
-* `docker compose up &`
-
-Run containers detached from the current shell (no logging visible):
-
-* `docker compose up -d`
-
-### .env for Docker
-
-Copy the `.env.example` file in the `/server` folder, and rename it to `.env`, change the contents to follow the convention below.
-The `DATABASE_URL` field should be identical if the docker files are unchanged, and the `SERVER.HOST` should bind to `0.0.0.0` rather than `127.0.0.1` for running in a Docker container.
-
-```txt
-DATABASE_URL=postgresql://docker:docker@postgres/p2boards
-SERVER.HOST=0.0.0.0
-SERVER.PORT=8080
-PROOF.RESULTS=500
-PROOF.DEMO=200
-PROOF.VIDEO=200
-STEAM.API_KEY=
-BACKBLAZE.KEYID=
-BACKBLAZE.KEY=
-BACKBLAZE.BUCKET=
-RUST_LOG=1
-RUST_LOG="actix_web=info"
-```
-
-### Troubleshooting Database
-
-To rebuild the database volume from the database dump, do the following:
+An empty database gets the tables from `db/dbscript/schema.sql` (no runs, games or maps). To load a database dump (`pg_dump -Fc` file or plain `.sql`):
 
 ```bash
-docker compose down # make sure all containers are stopped
-docker volume rm portal2-cm-boards-v2_postgres_data
-docker compose build
-docker compose up
+./scripts/restore-db.sh ~/path/to/p2boards.dump
 ```
 
-If this doesn't work for any reason, one thing to check is that the file copied in db/Dockerfile is the same as the dump in db/dbdump. If these files don't match, make them match, save your changes, and try the above steps again.
+It replaces everything in the database, runs `ANALYZE` (a restore has no planner statistics, which makes some pages take seconds) and restarts the server.
+
+### Day to day
+
+```bash
+docker compose up -d --build   # start, or rebuild and restart after pulling changes
+docker compose logs -f server  # follow the server's log
+docker compose down            # stop (the data stays)
+docker compose exec db psql -U docker p2boards   # database shell
+```
+
+### Developing the frontend
+
+The site is being rewritten (React + Vite + TypeScript, see [FRONTEND_REWRITE.md](FRONTEND_REWRITE.md)). The new app lives in `./frontend`; the old Create React App site is in `./frontend-legacy`, kept only as a reference until the rewrite reaches parity. Don't modify it.
+
+`docker-compose.dev.yaml` runs the site on Vite's dev server from `./frontend` instead of the nginx build, so changes reload in the browser as you save:
+
+```bash
+docker compose -f docker-compose.yaml -f docker-compose.dev.yaml up -d
+```
+
+To run the legacy site next to the new one for comparison, run `npm start` in `frontend-legacy/` with `REACT_APP_API_URL=/api/v1 DEV_API_PROXY=http://localhost:8080 PORT=3001`.
+
+To make that the default on your machine, copy `.env.example` to `.env` (it's gitignored) and uncomment `COMPOSE_FILE`. Server changes still need `docker compose up -d --build server`.
+
+The database lives in the `p2boards_pgdata` volume and submitted demos and map images in `p2boards_uploads`; `docker compose down -v` deletes both.
+
+## Coolify
+
+`docker-compose.coolify.yaml` runs the same three services on [Coolify](https://coolify.io), behind its proxy, which serves your domain over https. Coolify builds the images on the server (the Rust release build wants 2–4 GB of RAM while it runs).
+
+1. In Coolify: **+ New → Resource → Public Repository** (or your GitHub App for a private fork), this repository and branch, build pack **Docker Compose**, compose file `/docker-compose.coolify.yaml`.
+2. Under **Environment Variables** set:
+   - `PUBLIC_URL`: the site's address, e.g. `https://board.portal2.sr` (Steam sign-in only accepts this one)
+   - `STEAM_API_KEY`: a Steam Web API key (<https://steamcommunity.com/dev/apikey>; players' names and pictures come from it)
+   - optional: `PRIVATE=true` (staff-only while testing), `READ_ONLY=true` (after opening: everyone reads, only staff change anything), `COOP_PROOF_SINCE` (the launch time in UTC, e.g. `2026-11-01 00:00:00`), `SERVICE_TOKEN` (only for `/backend`), `DEMO_ARCHIVE`, `SYNC_STEAM=false`
+
+   Coolify generates the database user and password (`SERVICE_USER_POSTGRES`, `SERVICE_PASSWORD_POSTGRES`) itself.
+3. Set the domain of the `web` service to the same address as `PUBLIC_URL` (DNS for it pointing at the server), then **Deploy**.
+
+A first deploy starts with empty tables (from `schema.sql`). To bring over an existing board instead, dump it where it runs now and restore it on the Coolify server (over SSH; Coolify names the containers `<service>-<id>`):
+
+```bash
+# Where the board runs now (the local Docker setup: docker compose exec db ...):
+pg_dump -U <user> -Fc --no-owner --no-privileges -f p2boards.dump p2boards
+
+# On the Coolify server, with the resource deployed (docker ps lists its db-<id> and server-<id> containers):
+DB=db-<id> SERVER=server-<id>
+docker cp p2boards.dump $DB:/tmp/p2boards.dump
+docker exec $DB sh -c 'pg_restore -U "$POSTGRES_USER" -d p2boards --clean --if-exists --no-owner --no-privileges /tmp/p2boards.dump'
+# A restore brings no planner statistics: build them, or queries are slow at first.
+docker exec $DB sh -c 'vacuumdb -U "$POSTGRES_USER" -d p2boards --analyze'
+# Submitted demos (a tar of the old DEMO.STORAGE folder, here demo-storage/):
+docker cp demos.tar $SERVER:/tmp/demos.tar
+docker exec $SERVER tar -xf /tmp/demos.tar -C /data/demos --strip-components=1
+docker restart $SERVER
+```
+
+**Backups:** the `backup` service dumps the database every day at `BACKUP_AT` (UTC, default `04:00`) into its `backups` volume, keeping the newest `BACKUP_KEEP_DAILY` (14) plus the first of each month for `BACKUP_KEEP_MONTHLY` (6) months. (Coolify's own scheduled backups only cover its standalone databases.) They're on the same server, so copy one off now and then:
+
+```bash
+B=backup-<id>   # docker ps lists it
+docker exec $B ls -lh /backups                                   # the dumps
+docker cp $B:/backups/p2boards-<date>.dump .                      # copy one out (then scp it home)
+```
+
+A dump restores with the same `pg_restore` command as above (copy it into the db container as `/tmp/p2boards.dump`).
+
+The old boards' demo archive (~170 GB) isn't included: without it, imported runs' demo downloads report the file isn't available. To add it later, put the folders on the server, mount them into `server` and list them in `DEMO_ARCHIVE` (separated by `;`).
 
 ## Original Project Team
 

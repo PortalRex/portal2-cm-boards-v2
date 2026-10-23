@@ -1,0 +1,190 @@
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@300;400;500;600;700&display=swap');
+
+/* Design tokens taken from the "Portal 2 Leaderboards 2" Figma file. */
+:root {
+  --font: 'Barlow Semi Condensed', 'Arial Narrow', sans-serif;
+
+  --page: #1e1f21;
+  --panel: #141414;
+  --panel-head: #1e1f21;
+  --card: #18191c;
+  --card-head: #1e1f21;
+  --row: #18191b;
+  --row-alt: #141414;
+  --row-sub: #131416;
+  --row-sub-alt: #101010;
+  --control: #191a1c;
+  --control-raised: #212224;
+  --border: #3f4042;
+  --border-strong: #5c5d5f;
+
+  --text: #ffffff;
+  --text-2: #d9d9d9;
+  --text-muted: #9a9b9d;
+  --text-dim: #6f7072;
+
+  --accent: #0775bd;
+  --accent-light: #8ecbf5;
+  --green: #8ad97c;
+  --wr-row: #2c2431;
+  --trophy: #db7eff;
+
+  --rank-prev: #3e5739;
+  --rank-new: #2f3a6f;
+  --rank-cell: #262729;
+  --rank-cell-text: #b5b6b8;
+  --rank-cell-divider: #1a1b1d;
+  --pending: #243548;
+  --pending-text: #9fb6cf;
+
+  --portal-blue: rgba(40, 140, 255, 0.16);
+  --portal-orange: rgba(255, 140, 30, 0.16);
+  --portal-neutral: rgba(160, 162, 166, 0.12);
+
+  /* Surfaces that had no token in the Figma file. */
+  --menu: #151618;
+  --seg-active: #262729;
+  --seg-hover: #1f2022;
+  --track: #2a2b2d;
+  --control-raised-2: #3a3b3d;
+  --chart-grid: #2a2b2d;
+  --chart-line: #2f9bea;
+  --hl-green: #344231;
+  --hl-green-2: #2f3d2c;
+  --hl-teal: #2a4a40;
+  --hl-red: #614144;
+  --hl-red-text: #e3c4c7;
+  --banned: #614144;
+  --banned-text: #e3c4c7;
+  --series-coop: #f28b8b;
+  --series-sp: #a3b6f5;
+  --series-overall: #a7f0a0;
+  /* Channel triplets for translucent overlays: rgb(var(--panel-rgb) / 0.9). */
+  --page-rgb: 30 31 33;
+  --panel-rgb: 20 20 20;
+  --row-rgb: 24 25 27;
+
+  color-scheme: dark;
+
+  --radius: 6px;
+  --radius-lg: 12px;
+  --content: 1640px;
+}
+
+:root[data-theme="light"] {
+  --page: #e9ebee;
+  --panel: #ffffff;
+  --panel-head: #f2f3f5;
+  --card: #fafbfc;
+  --card-head: #eff1f3;
+  --row: #f4f5f7;
+  --row-alt: #ffffff;
+  --row-sub: #eceef1;
+  --row-sub-alt: #e6e8eb;
+  --control: #ffffff;
+  --control-raised: #e8eaed;
+  --border: #cdd0d5;
+  --border-strong: #a5a9b0;
+
+  --text: #15171a;
+  --text-2: #33363b;
+  --text-muted: #5d626a;
+  --text-dim: #868b93;
+
+  --accent: #0775bd;
+  --accent-light: #075e98;
+  --green: #2b7f1f;
+  --wr-row: #f1e4f8;
+  --trophy: #9333c4;
+
+  --rank-prev: #d3e6cc;
+  --rank-new: #d2d9f6;
+  --rank-cell: #d9dbde;
+  --rank-cell-text: #5d626a;
+  --rank-cell-divider: #c3c6cb;
+  --pending: #d8e5f4;
+  --pending-text: #2a4867;
+
+  --portal-blue: rgba(40, 140, 255, 0.14);
+  --portal-orange: rgba(255, 140, 30, 0.16);
+  --portal-neutral: rgba(90, 94, 100, 0.12);
+
+  --menu: #ffffff;
+  --seg-active: #dcdfe4;
+  --seg-hover: #eceef1;
+  --track: #dfe2e6;
+  --control-raised-2: #d5d8dd;
+  --chart-grid: #e0e3e7;
+  --chart-line: #1b7fd1;
+  --hl-green: #dcebd6;
+  --hl-green-2: #e3efdf;
+  --hl-teal: #d6ece5;
+  --hl-red: #f3dcdf;
+  --hl-red-text: #7a2e36;
+  --banned: #f3dcdf;
+  --banned-text: #7a2e36;
+  --series-coop: #d6455a;
+  --series-sp: #3c5fd6;
+  --series-overall: #2f9a3a;
+  --page-rgb: 233 235 238;
+  --panel-rgb: 255 255 255;
+  --row-rgb: 244 245 247;
+
+  color-scheme: light;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font-family: inherit;
+  color: inherit;
+}
+
+img {
+  display: block;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+.muted {
+  color: var(--text-muted);
+}
+
+.green {
+  color: var(--green);
+}

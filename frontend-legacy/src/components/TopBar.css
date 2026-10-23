@@ -1,0 +1,625 @@
+.topbar {
+  position: relative;
+  z-index: 20;
+  background: linear-gradient(to bottom, rgb(var(--page-rgb) / 0.55), rgb(var(--page-rgb) / 0.25));
+}
+
+.topbar-inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 48px;
+  height: 110px;
+  max-width: var(--content);
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.brand img {
+  height: 46px;
+  width: auto;
+}
+
+.brand span {
+  font-size: 40px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.topbar-nav ul {
+  display: flex;
+  align-items: center;
+  gap: 36px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.nav-item {
+  position: relative;
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 110px;
+  font-size: 20px;
+  font-weight: 500;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.nav-icon {
+  font-size: 30px !important;
+}
+
+.nav-link.is-active span,
+.nav-link:hover span {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-decoration-thickness: 1px;
+}
+
+/* Dropdown menus (Leaderboard / More) */
+.nav-menu {
+  position: absolute;
+  top: 92px;
+  left: -12px;
+  min-width: 220px;
+  padding: 10px 0;
+  background: var(--menu);
+  border-radius: var(--radius);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-4px);
+  transition: opacity 0.12s, transform 0.12s, visibility 0.12s;
+}
+
+.nav-item.has-menu:hover .nav-menu,
+.nav-item.has-menu:focus-within .nav-menu {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 18px;
+  font-size: 22px;
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+/* Dropdown arrows for the phone menu (hidden on wider screens, where menus open on hover). */
+.nav-expand,
+.menu-expand {
+  display: none;
+  position: absolute;
+  right: 12px;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  border: 0;
+  border-radius: var(--radius);
+  background: none;
+  color: var(--text-2);
+  cursor: pointer;
+}
+
+.nav-expand {
+  top: 0;
+  height: 52px;
+}
+
+.menu-expand {
+  top: 0;
+  height: 40px;
+}
+
+.nav-expand svg,
+.menu-expand svg {
+  transition: transform 0.15s;
+}
+
+.nav-expand.is-open svg,
+.menu-expand.is-open svg {
+  transform: rotate(180deg);
+}
+
+/* Aggregate: nested flyouts (game → board → Total and chapters). */
+.menu-group {
+  position: relative;
+}
+
+.menu-sub {
+  position: absolute;
+  top: -10px;
+  left: 100%;
+  min-width: 200px;
+  padding: 10px 0;
+  background: var(--menu);
+  border-radius: var(--radius);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.1s, visibility 0.1s;
+}
+
+.menu-group:hover > .menu-sub,
+.menu-group:focus-within > .menu-sub {
+  opacity: 1;
+  visibility: visible;
+}
+
+.menu-group:hover > .menu-item {
+  background: var(--control-raised);
+}
+
+.menu-sub .menu-item {
+  font-size: 19px;
+}
+
+.menu-sub-chapters {
+  min-width: 240px;
+}
+
+.menu-label {
+  flex: 1;
+}
+
+.menu-caret {
+  display: inline-flex;
+  margin-left: 12px;
+  color: var(--text-muted);
+}
+
+.menu-num {
+  display: inline-block;
+  width: 24px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.menu-item:hover {
+  background: var(--control-raised);
+}
+
+/* Every menu icon in the same box, whether it's a Material icon (sized by font) or one of our own
+   SVGs (sized by width), so the labels line up. */
+.menu-item-icon {
+  flex: none;
+  width: 28px !important;
+  height: 28px !important;
+  font-size: 28px !important;
+}
+
+.menu-item.is-highlight span {
+  color: var(--accent-light);
+  text-transform: uppercase;
+}
+
+/* User area */
+.topbar-user {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.topbar-avatar {
+  border-radius: 8px;
+}
+
+.sign-in {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 18px;
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  background: var(--control);
+  font-size: 18px;
+  white-space: nowrap;
+}
+
+.sign-in:hover {
+  border-color: var(--text-muted);
+}
+
+/* Sits on the darkened banner image, so it's light in both themes. */
+.profile-hover-name {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  padding: 0 18px 10px;
+  color: #fff;
+  text-align: left;
+  font-size: 20px;
+  font-weight: 400;
+  text-shadow: 0 1px 3px rgb(0 0 0 / 60%);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.signin-failed {
+  max-width: var(--content);
+  margin: 0 auto;
+  padding: 8px 24px;
+  background: var(--hl-red);
+  color: var(--hl-red-text);
+  text-align: center;
+}
+
+.profile-menu {
+  position: relative;
+}
+
+.profile-hover {
+  position: absolute;
+  top: 60px;
+  right: 0;
+  width: 250px;
+  padding-bottom: 14px;
+  background: var(--menu);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.12s, visibility 0.12s;
+}
+
+.profile-menu:hover .profile-hover,
+.profile-menu:focus-within .profile-hover {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* The avatar, blurred and darkened. The image overhangs the banner, which clips it, so the
+   blur doesn't soften the edges into the menu. */
+.profile-hover-banner {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  height: 125px;
+  margin-bottom: 8px;
+  overflow: hidden;
+  background: #2a2d33;
+}
+
+.profile-hover-banner::before {
+  content: "";
+  position: absolute;
+  inset: -8px;
+  background: var(--banner, none) center / cover no-repeat;
+  filter: blur(2px) brightness(0.55);
+  transition: filter 0.12s;
+}
+
+/* It links to the profile: not styled like the menu's other links, it brightens on hover instead. */
+.profile-hover a.profile-hover-banner {
+  padding: 0;
+  background: #2a2d33;
+}
+
+.profile-hover a.profile-hover-banner:hover::before {
+  filter: blur(2px) brightness(0.7);
+}
+
+/* The same items as the top bar's other menus (More, Aggregate). */
+.profile-hover a,
+.profile-hover button {
+  padding: 6px 18px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 22px;
+  font-weight: 400;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.profile-hover button:disabled {
+  cursor: default;
+}
+
+.profile-hover a:hover,
+.profile-hover button:hover:not(:disabled) {
+  background: var(--control-raised);
+}
+
+.theme-toggle {
+  display: inline-flex;
+  padding: 6px;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--text-2);
+  cursor: pointer;
+}
+
+.theme-toggle:hover {
+  background: var(--control-raised);
+  color: var(--text);
+}
+
+.theme-toggle svg {
+  font-size: 26px;
+}
+
+.menu-toggle {
+  display: none;
+  border: 0;
+  background: none;
+  padding: 4px;
+  cursor: pointer;
+}
+
+.menu-toggle svg {
+  font-size: 34px;
+}
+
+/* Mobile: brand + hamburger, nav collapses into a sheet. */
+@media (max-width: 1320px) {
+  .topbar-inner {
+    justify-content: space-between;
+    gap: 16px;
+    height: 72px;
+  }
+
+  .brand img {
+    height: 34px;
+  }
+
+  .brand span {
+    font-size: 30px;
+  }
+
+  .menu-toggle {
+    display: inline-flex;
+    order: 99;
+  }
+
+  .topbar-user {
+    gap: 12px;
+  }
+
+  .topbar-avatar {
+    width: 40px !important;
+    height: 40px !important;
+  }
+
+  .topbar-nav {
+    display: none;
+    position: absolute;
+    top: 72px;
+    left: 0;
+    right: 0;
+    background: var(--menu);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+  }
+
+  .topbar.is-open .topbar-nav {
+    display: block;
+  }
+
+  .topbar-nav ul {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    padding: 8px 0;
+  }
+
+  .nav-link {
+    height: 52px;
+    padding: 0 24px;
+  }
+
+  .nav-menu {
+    position: static;
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+    box-shadow: none;
+    padding: 0 0 8px 40px;
+    background: none;
+  }
+
+  .menu-item {
+    font-size: 18px;
+  }
+
+  /* Phones and narrow windows: menus are dropdowns, closed until their arrow is tapped; in
+     Aggregate each game opens the same way to list its boards (no chapter level). */
+  .nav-item.has-menu {
+    position: relative;
+  }
+
+  .nav-item.has-menu > .nav-menu {
+    display: none;
+  }
+
+  .nav-item.has-menu.is-expanded > .nav-menu {
+    display: block;
+  }
+
+  .nav-expand,
+  .menu-expand {
+    display: inline-flex;
+  }
+
+  .menu-sub {
+    display: none;
+    position: static;
+    opacity: 1;
+    visibility: visible;
+    box-shadow: none;
+    background: none;
+    padding: 0 0 4px 28px;
+  }
+
+  .menu-group.is-expanded > .menu-sub {
+    display: block;
+  }
+
+  .menu-sub-chapters,
+  .menu-caret {
+    display: none;
+  }
+
+  .menu-group:hover > .menu-item {
+    background: none;
+  }
+
+  .profile-hover {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .topbar-user .flag {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .topbar-inner {
+    padding: 0 14px;
+  }
+
+  .brand span {
+    font-size: 26px;
+  }
+
+  .sign-in {
+    padding: 0 10px;
+  }
+
+  .sign-in-label {
+    display: none;
+  }
+}
+
+/* The logo: home on click, the games under it on hover. */
+.brand-menu {
+  position: relative;
+  display: flex;
+  align-items: center;
+  align-self: stretch;
+}
+
+.brand-games {
+  position: absolute;
+  top: 100%;
+  left: -12px;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  min-width: 260px;
+  padding: 8px 0;
+  background: var(--menu);
+  border-radius: var(--radius);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-4px);
+  transition: opacity 0.12s, transform 0.12s, visibility 0.12s;
+}
+
+.brand-menu:hover .brand-games,
+.brand-menu:focus-within .brand-games,
+.brand-menu.is-open .brand-games {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+}
+
+.brand-menu.is-picked .brand-games {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.brand-game {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 8px 18px;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 19px;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.brand-game:hover {
+  background: var(--control-raised);
+}
+
+.brand-game.is-active,
+.menu-item.is-active,
+.profile-hover a.is-active {
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.brand-game img {
+  flex: none;
+  width: auto;
+  height: 36px;
+}
+
+/* Touch screens can't hover: an arrow beside the logo opens the games. */
+.brand-expand {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 40px;
+  margin-left: 2px;
+  border: 0;
+  background: none;
+  color: var(--text-2);
+  cursor: pointer;
+}
+
+.brand-expand svg {
+  transition: transform 0.15s;
+}
+
+.brand-expand.is-open svg {
+  transform: rotate(180deg);
+}
+
+@media (hover: none) {
+  .brand-expand {
+    display: inline-flex;
+  }
+
+  .brand-menu:hover .brand-games {
+    opacity: 0;
+    visibility: hidden;
+  }
+
+  .brand-menu.is-open .brand-games {
+    opacity: 1;
+    visibility: visible;
+  }
+}

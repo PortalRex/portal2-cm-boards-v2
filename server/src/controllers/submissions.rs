@@ -1,0 +1,572 @@
+//! Run submissions from demos.
+//!
+//! A submitted demo is parsed by the Node script in `server/demo-parser` (map, the
+//! challenge mode scoreboard time, and the players in it). Players submit their own runs
+//! straight from their demo: the map and time are what the demo says. Admins can also enter
+//! the map, time, player or partner by hand (with or without a demo), and those submissions
+//! are recorded in the audit log.
+use crate::{
+    controllers::moderation::{self, Refused, FILLER},
+    tools::config::DemoConfig,
+};
+use sqlx::{FromRow, PgPool};
+use std::{path::Path, time::Duration};
+
+/// How long the demo parser may take.
+const PARSE_TIMEOUT: Duration = Duration::from_secs(30);
+
+/// A player found in a demo.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DemoPlayer {
+    pub steam_id: String,
+    pub name: String,
+}
+
+/// What the parser reads from a demo.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DemoInfo {
+    pub map_name: Option<String>,
+    pub game_directory: Option<String>,
+    pub client_name: Option<String>,
+    /// Board time in centiseconds, from the end-of-run scoreboard (None: no finished run).
+    pub time_score: Option<i32>,
+    pub portal_score: Option<i32>,
+    #[serde(default)]
+    pub players: Vec<DemoPlayer>,
+}
+
+/// Runs the demo parser on a saved demo.
+pub async fn parse_demo(config: &DemoConfig, path: &Path) -> Result<DemoInfo, String> {
+    let parser = config.parser.as_deref().filter(|p| !p.is_empty()).ok_or("Demo checking isn't set up on this server.")?;
+    let node = config.node.as_deref().filter(|n| !n.is_empty()).unwrap_or("node");
+    let run = tokio::process::Command::new(node).arg(parser).arg(path).kill_on_drop(true).output();
+    let output = match tokio::time::timeout(PARSE_TIMEOUT, run).await {
+        Err(_) => return Err("Reading the demo took too long.".into()),
+        Ok(Err(e)) => {
+            log::error!("demo parser failed to start: {e}");
+            return Err("Demo checking isn't available right now.".into());
+        }
+        Ok(Ok(o)) => o,
+    };
+    if !output.status.success() {
+        log::warn!("demo parser: {}", String::from_utf8_lossy(&output.stderr).trim());
+        return Err("That file couldn't be read as a Portal 2 demo.".into());
+    }
+    serde_json::from_slice(&output.stdout).map_err(|e| {
+        log::error!("demo parser output: {e}");
+        "That file couldn't be read as a Portal 2 demo.".to_string()
+    })
+}
+
+/// A board map a demo can be for.
+#[derive(Debug, Clone, Serialize, FromRow)]
+pub struct BoardMap {
+    pub steam_id: String,
+    pub name: String,
+    pub game_id: i32,
+    pub game_mode: String,
+    pub is_coop: bool,
+    pub default_cat_id: Option<i32>,
+}
+
+/// Board maps for a demo's map file (Mel's Story and Advanced maps share one).
+pub async fn maps_for_bsp(pool: &PgPool, bsp: &str) -> Result<Vec<BoardMap>, sqlx::Error> {
+    sqlx::query_as::<_, BoardMap>(
+        r#"
+            SELECT m.steam_id, m.name, c.game_id, c.game_mode, c.is_multiplayer AS is_coop, m.default_cat_id
+            FROM maps AS m JOIN chapters AS c ON c.id = m.chapter_id
+            WHERE lower(m.bsp_name) = lower($1) AND m.source_map IS NULL
+            ORDER BY c.game_id, m.id
+        "#,
+    )
+    .bind(bsp)
+    .fetch_all(pool)
+    .await
+}
+
+pub async fn map_by_id(pool: &PgPool, steam_id: &str) -> Result<Option<BoardMap>, sqlx::Error> {
+    sqlx::query_as::<_, BoardMap>(
+        r#"
+            SELECT m.steam_id, m.name, c.game_id, c.game_mode, c.is_multiplayer AS is_coop, m.default_cat_id
+            FROM maps AS m JOIN chapters AS c ON c.id = m.chapter_id
+            WHERE m.steam_id = $1
+        "#,
+    )
+    .bind(steam_id)
+    .fetch_optional(pool)
+    .await
+}
+
+/// The run to insert, after checks.
+pub struct NewRun<'a> {
+    pub map: &'a BoardMap,
+    pub profile_number: &'a str,
+    pub score: i32,
+    pub youtube_id: Option<String>,
+    pub note: Option<String>,
+    pub partner: Option<&'a str>,
+    /// File name of the saved demo (in the demo storage directory), if any.
+    pub demo_file: Option<String>,
+    pub demo_partner_name: Option<String>,
+    /// Portals placed, from the demo's scoreboard.
+    pub portals: Option<i32>,
+    /// `changelog.submission`: 1 for site submissions, 0 for times pulled from Steam.
+    pub submission: i32,
+    /// None: verified (site submissions carry their demo). Some(false): pending.
+    pub verified: Option<bool>,
+}
+
+/// Runs that would rank this high or better need a demo; without one they're pending (no
+/// points, not on the boards) until a demo is added or staff verify them.
+pub const PROOF_RANK: i32 = 200;
+
+/// Whether a co-op run has a demo from each player: `halves` says, for each player with a run of
+/// their own in it, whether that run has a demo. A partner without a run of their own (the run
+/// wasn't a personal best for them) counts through the run's partner demo, which needs both
+/// players known (`partner_demo`).
+fn coop_proven(halves: &[bool], partner_demo: bool) -> bool {
+    match halves {
+        [a, b] => *a && *b,
+        [own] => *own && partner_demo,
+        _ => false,
+    }
+}
+
+/// Applies the co-op proof rule to a run's halves after a demo or partner change: co-op runs from
+/// `RANKS.COOP_PROOF_SINCE` on that rank in the top [PROOF_RANK] need a demo from each player
+/// (see [coop_proven]), and until they have them (and the partner is known) both stay pending.
+/// Returns whether the run is now verified, or None when the rule doesn't apply (it's off, an
+/// older run, or one outside the top [PROOF_RANK]), leaving its halves as they were.
+pub async fn settle_coop_proof(tx: &mut sqlx::Transaction<'_, sqlx::Postgres>, coop_id: i64) -> Result<Option<bool>, sqlx::Error> {
+    let Some(since) = crate::tools::config::coop_proof_since() else {
+        return Ok(None);
+    };
+    // (id, is the placeholder, has a demo, rank when submitted, submitted since the cutoff)
+    let halves: Vec<(i64, bool, bool, Option<i32>, bool)> = sqlx::query_as(
+        r#"
+            SELECT cl.id, cl.profile_number = $2, cl.demo_id IS NOT NULL, cl.post_rank,
+                COALESCE(cl.timestamp >= $3::timestamp, false)
+            FROM coop_bundled AS cb JOIN changelog AS cl ON cl.id IN (cb.cl_id1, cb.cl_id2)
+            WHERE cb.id = $1
+        "#,
+    )
+    .bind(coop_id)
+    .bind(FILLER)
+    .bind(since)
+    .fetch_all(&mut **tx)
+    .await?;
+    let real: Vec<_> = halves.iter().filter(|h| !h.1).collect();
+    let is_new = !real.is_empty() && real.iter().all(|h| h.4);
+    let needs_proof = real.iter().any(|h| h.3.is_some_and(|r| r <= PROOF_RANK));
+    if !is_new || !needs_proof {
+        return Ok(None);
+    }
+    let partner_demo: bool = sqlx::query_scalar(
+        "SELECT partner_demo_id IS NOT NULL AND p_id1 <> $2 AND COALESCE(p_id2, $2) <> $2 FROM coop_bundled WHERE id = $1",
+    )
+    .bind(coop_id)
+    .bind(FILLER)
+    .fetch_optional(&mut **tx)
+    .await?
+    .unwrap_or(false);
+    let verified = coop_proven(&real.iter().map(|h| h.2).collect::<Vec<_>>(), partner_demo);
+    let ids: Vec<i64> = real.iter().map(|h| h.0).collect();
+    sqlx::query("UPDATE changelog SET verified = $2 WHERE id = ANY($1)").bind(&ids).bind(verified).execute(&mut **tx).await?;
+    Ok(Some(verified))
+}
+
+/// Players whose best (verified, unbanned, in the category) is faster than a time.
+const FASTER_PLAYERS: &str = r#"
+    SELECT COUNT(DISTINCT cl.profile_number) FROM changelog AS cl
+    JOIN users AS u ON u.profile_number = cl.profile_number
+    WHERE cl.map_id = $1 AND cl.category_id = $2 AND cl.score < $3
+      AND cl.verified AND NOT cl.banned AND NOT u.banned
+      AND cl.profile_number <> $4 AND cl.profile_number <> $5
+      -- A co-op run counts once both halves are verified and neither half nor player is banned
+      -- (as on the co-op map page).
+      AND NOT EXISTS (
+          SELECT 1 FROM coop_bundled AS cb
+              JOIN changelog AS o ON o.id IN (cb.cl_id1, cb.cl_id2) AND o.id <> cl.id
+              JOIN users AS ou ON ou.profile_number = o.profile_number
+          WHERE cb.id = cl.coop_id AND (NOT o.verified OR o.banned OR ou.banned)
+      )
+"#;
+
+/// Like [FASTER_PLAYERS], counting runs instead: faster players' bests, with both halves of a
+/// co-op run (same coop_id) counted once.
+const FASTER_RUNS: &str = r#"
+    SELECT COUNT(DISTINCT pb.run_key) FROM (
+        SELECT DISTINCT ON (cl.profile_number) COALESCE('c' || cl.coop_id, 'r' || cl.id) AS run_key
+        FROM changelog AS cl
+        JOIN users AS u ON u.profile_number = cl.profile_number
+        WHERE cl.map_id = $1 AND cl.category_id = $2 AND cl.score < $3
+          AND cl.verified AND NOT cl.banned AND NOT u.banned
+          AND cl.profile_number <> $4 AND cl.profile_number <> $5
+          -- A co-op run counts once both halves are verified and neither half nor player is banned
+          -- (as on the co-op map page).
+          AND NOT EXISTS (
+              SELECT 1 FROM coop_bundled AS cb
+                  JOIN changelog AS o ON o.id IN (cb.cl_id1, cb.cl_id2) AND o.id <> cl.id
+                  JOIN users AS ou ON ou.profile_number = o.profile_number
+              WHERE cb.id = cl.coop_id AND (NOT o.verified OR o.banned OR ou.banned)
+          )
+        ORDER BY cl.profile_number, cl.score, cl.timestamp
+    ) AS pb
+"#;
+
+fn faster_query() -> &'static str {
+    if crate::tools::config::coop_by_run() { FASTER_RUNS } else { FASTER_PLAYERS }
+}
+
+/// Rank a time would have on a map: 1 + players whose best is faster, the same ranking the
+/// boards use.
+async fn rank_for(tx: &mut sqlx::Transaction<'_, sqlx::Postgres>, map: &BoardMap, profile_number: &str, score: i32) -> Result<i32, sqlx::Error> {
+    let faster: i64 = sqlx::query_scalar(faster_query())
+        .bind(&map.steam_id)
+        .bind(map.default_cat_id)
+        .bind(score)
+        .bind(profile_number)
+        .bind(FILLER)
+        .fetch_one(&mut **tx)
+        .await?;
+    Ok(faster as i32 + 1)
+}
+
+/// Whether a new run without a demo would be pending: it would rank within [PROOF_RANK].
+pub async fn needs_proof(pool: &PgPool, map_id: &str, category_id: i32, profile_number: &str, score: i32) -> Result<bool, sqlx::Error> {
+    let faster: i64 = sqlx::query_scalar(faster_query())
+        .bind(map_id)
+        .bind(category_id)
+        .bind(score)
+        .bind(profile_number)
+        .bind(FILLER)
+        .fetch_one(pool)
+        .await?;
+    Ok(faster as i32 + 1 <= PROOF_RANK)
+}
+
+/// A run a demo is being added to.
+#[derive(Debug, FromRow)]
+pub struct ProofTarget {
+    pub id: i64,
+    pub profile_number: String,
+    pub score: i32,
+    pub map_id: String,
+    pub bsp_name: Option<String>,
+    pub is_coop: bool,
+    pub coop_id: Option<i64>,
+    pub demo_id: Option<i64>,
+    pub banned: bool,
+    pub verified: Option<bool>,
+    /// Both players of a co-op run (None for singleplayer).
+    pub p_id1: Option<String>,
+    pub p_id2: Option<String>,
+}
+
+pub async fn proof_target(pool: &PgPool, cl_id: i64) -> Result<Option<ProofTarget>, sqlx::Error> {
+    sqlx::query_as::<_, ProofTarget>(
+        r#"
+            SELECT cl.id, cl.profile_number, cl.score, cl.map_id, m.bsp_name, c.is_multiplayer AS is_coop,
+                cl.coop_id, cl.demo_id, cl.banned, cl.verified, cb.p_id1, cb.p_id2
+            FROM changelog AS cl
+            JOIN maps AS m ON m.steam_id = cl.map_id JOIN chapters AS c ON c.id = m.chapter_id
+            LEFT JOIN coop_bundled AS cb ON cb.id = cl.coop_id
+            WHERE cl.id = $1 AND cl.profile_number <> $2
+        "#,
+    )
+    .bind(cl_id)
+    .bind(FILLER)
+    .fetch_optional(pool)
+    .await
+}
+
+/// Attaches a demo to a pending run and verifies it (both halves of a co-op run). A new co-op run
+/// in the top [PROOF_RANK] is only verified once both players have added a demo (see
+/// [settle_coop_proof]); returns whether the run is verified now.
+pub async fn attach_proof(pool: &PgPool, run: &ProofTarget, demo_file: &str, partner_name: Option<&str>, portals: Option<i32>) -> Result<bool, sqlx::Error> {
+    let mut tx = pool.begin().await?;
+    let demo_id: i64 = sqlx::query_scalar("INSERT INTO demos (file_id, partner_name, parsed_successfully, cl_id) VALUES ($1, $2, true, $3) RETURNING id")
+        .bind(demo_file)
+        .bind(partner_name)
+        .bind(run.id)
+        .fetch_one(&mut *tx)
+        .await?;
+    sqlx::query("UPDATE changelog SET demo_id = $2, verified = true, portals = $3 WHERE id = $1").bind(run.id).bind(demo_id).bind(portals).execute(&mut *tx).await?;
+    let verified = match run.coop_id {
+        Some(coop_id) => settle_coop_demos(&mut tx, coop_id).await?,
+        None => true,
+    };
+    tx.commit().await?;
+    Ok(verified)
+}
+
+/// After a demo is added to a co-op run: the proof rule decides ([settle_coop_proof]), or where
+/// it doesn't apply, the demo proves the run and both halves are verified. Returns whether the
+/// run is verified now.
+async fn settle_coop_demos(tx: &mut sqlx::Transaction<'_, sqlx::Postgres>, coop_id: i64) -> Result<bool, sqlx::Error> {
+    if let Some(verified) = settle_coop_proof(tx, coop_id).await? {
+        return Ok(verified);
+    }
+    sqlx::query("UPDATE changelog SET verified = true WHERE id IN (SELECT unnest(ARRAY[cl_id1, cl_id2]) FROM coop_bundled WHERE id = $1) AND profile_number <> $2")
+        .bind(coop_id)
+        .bind(FILLER)
+        .execute(&mut **tx)
+        .await?;
+    Ok(true)
+}
+
+/// For a player in a co-op run without a run of their own in it (it wasn't a personal best for
+/// them): whether the run already has their demo. None when they have a run of their own in it,
+/// or aren't in it.
+pub async fn partner_demo_slot(pool: &PgPool, coop_id: i64, profile_number: &str) -> Result<Option<bool>, sqlx::Error> {
+    sqlx::query_scalar(
+        r#"
+            SELECT cb.partner_demo_id IS NOT NULL FROM coop_bundled AS cb
+            JOIN changelog AS f ON f.id = CASE WHEN cb.p_id1 = $2 THEN cb.cl_id1 WHEN cb.p_id2 = $2 THEN cb.cl_id2 END
+            WHERE cb.id = $1 AND f.profile_number = $3 AND $2 <> $3
+        "#,
+    )
+    .bind(coop_id)
+    .bind(profile_number)
+    .bind(FILLER)
+    .fetch_optional(pool)
+    .await
+}
+
+/// Adds a co-op partner's demo to a run that wasn't a personal best for them (see
+/// [partner_demo_slot]): `run` is the half of the player who improved. The demo is the run's
+/// partner demo (`coop_bundled.partner_demo_id`), with no changelog entry of its own. Returns
+/// whether the run is verified now, or None if the run got a partner demo in the meantime.
+pub async fn attach_partner_demo(pool: &PgPool, run: &ProofTarget, demo_file: &str, partner_name: Option<&str>) -> Result<Option<bool>, sqlx::Error> {
+    let Some(coop_id) = run.coop_id else {
+        return Ok(None);
+    };
+    let mut tx = pool.begin().await?;
+    let demo_id: i64 = sqlx::query_scalar("INSERT INTO demos (file_id, partner_name, parsed_successfully, cl_id) VALUES ($1, $2, true, $3) RETURNING id")
+        .bind(demo_file)
+        .bind(partner_name)
+        .bind(run.id)
+        .fetch_one(&mut *tx)
+        .await?;
+    let set = sqlx::query("UPDATE coop_bundled SET partner_demo_id = $2 WHERE id = $1 AND partner_demo_id IS NULL")
+        .bind(coop_id)
+        .bind(demo_id)
+        .execute(&mut *tx)
+        .await?;
+    if set.rows_affected() == 0 {
+        return Ok(None); // dropped with the transaction
+    }
+    let verified = settle_coop_demos(&mut tx, coop_id).await?;
+    tx.commit().await?;
+    Ok(Some(verified))
+}
+
+/// Where a submitted run was recorded.
+#[derive(Debug, Serialize)]
+pub struct Recorded {
+    pub changelog_id: i64,
+    /// The map the run was recorded on first (the submitted map, unless it wasn't an
+    /// improvement there but was on a linked board).
+    pub map: BoardMap,
+    /// Every board it counts on: "Game · Map".
+    pub boards: Vec<String>,
+    /// A co-op run waiting for a demo from the other player (or for its partner to be known).
+    pub waiting_for_partner: bool,
+}
+
+async fn personal_best(tx: &mut sqlx::Transaction<'_, sqlx::Postgres>, map: &BoardMap, profile_number: &str) -> Result<Option<(i64, i32)>, sqlx::Error> {
+    sqlx::query_as(
+        r#"
+            SELECT id, score FROM changelog
+            WHERE profile_number = $1 AND map_id = $2 AND category_id = $3 AND verified AND NOT banned
+            ORDER BY score ASC, timestamp ASC LIMIT 1
+        "#,
+    )
+    .bind(profile_number)
+    .bind(&map.steam_id)
+    .bind(map.default_cat_id)
+    .fetch_optional(&mut **tx)
+    .await
+}
+
+/// Inserts a submitted run (with its demo and co-op pairing) in one transaction. Each board
+/// only takes improvements on the player's best there: the run goes on the submitted map if
+/// it's an improvement, else on the first linked board where it is (the database then records
+/// it on any other linked board it improves). Refused when it improves none of them.
+pub async fn insert_run(pool: &PgPool, run: NewRun<'_>) -> Result<Result<Recorded, Refused>, sqlx::Error> {
+    if run.map.default_cat_id.is_none() {
+        return Ok(Err(Refused::Invalid("That map has no board category.".into())));
+    }
+    let mut tx = pool.begin().await?;
+    let linked: Vec<String> = sqlx::query_scalar("SELECT steam_id FROM linked_maps($1, (now() AT TIME ZONE 'utc')::timestamp)")
+        .bind(&run.map.steam_id)
+        .fetch_all(&mut *tx)
+        .await?;
+    let mut candidates = vec![run.map.clone()];
+    for id in linked {
+        if let Some(m) = map_by_id(pool, &id).await? {
+            candidates.push(m);
+        }
+    }
+    let mut chosen = None;
+    let mut submitted_pb = None;
+    for (i, map) in candidates.into_iter().enumerate() {
+        let previous = personal_best(&mut tx, &map, run.profile_number).await?;
+        if i == 0 {
+            submitted_pb = previous.map(|p| p.1);
+        }
+        if previous.map_or(true, |(_, pb)| run.score < pb) {
+            chosen = Some((map, previous));
+            break;
+        }
+    }
+    let Some((board, previous)) = chosen else {
+        return Ok(Err(Refused::Invalid(format!(
+            "This isn't faster than your current best on {} ({}).",
+            run.map.name,
+            format_time(submitted_pb.unwrap_or(run.score))
+        ))));
+    };
+    let category = board.default_cat_id.unwrap_or_default();
+    let run = NewRun { map: &board, ..run };
+    let pre_rank = match previous {
+        Some((_, pb)) => Some(rank_for(&mut tx, run.map, run.profile_number, pb).await?),
+        None => None,
+    };
+    let post_rank = rank_for(&mut tx, run.map, run.profile_number, run.score).await?;
+    let id: i64 = sqlx::query_scalar(
+        r#"
+            INSERT INTO changelog (timestamp, profile_number, score, map_id, banned, youtube_id, previous_id,
+                post_rank, pre_rank, submission, note, category_id, score_delta, verified)
+            VALUES (now() AT TIME ZONE 'utc', $1, $2, $3, false, $4, $5, $6, $7, $11, $8, $9, $10, $12)
+            RETURNING id
+        "#,
+    )
+    .bind(run.profile_number)
+    .bind(run.score)
+    .bind(&run.map.steam_id)
+    .bind(&run.youtube_id)
+    .bind(previous.map(|p| p.0))
+    .bind(post_rank)
+    .bind(pre_rank)
+    .bind(&run.note)
+    .bind(category)
+    .bind(previous.map(|p| run.score - p.1))
+    .bind(run.submission)
+    .bind(run.verified.unwrap_or(true))
+    .fetch_one(&mut *tx)
+    .await?;
+    if let Some(file) = &run.demo_file {
+        let demo_id: i64 = sqlx::query_scalar(
+            "INSERT INTO demos (file_id, partner_name, parsed_successfully, cl_id) VALUES ($1, $2, true, $3) RETURNING id",
+        )
+        .bind(file)
+        .bind(&run.demo_partner_name)
+        .bind(id)
+        .fetch_one(&mut *tx)
+        .await?;
+        sqlx::query("UPDATE changelog SET demo_id = $2, portals = $3 WHERE id = $1").bind(id).bind(demo_id).bind(run.portals).execute(&mut *tx).await?;
+    }
+    if run.map.is_coop {
+        match run.partner {
+            Some(partner) => {
+                if let Err(refused) = moderation::pair_partner(&mut tx, id, partner).await? {
+                    return Ok(Err(refused));
+                }
+            }
+            None => {
+                let filler: Option<i64> = sqlx::query_scalar("SELECT id FROM changelog WHERE profile_number = $1 AND map_id = $2 ORDER BY id LIMIT 1")
+                    .bind(FILLER)
+                    .bind(&run.map.steam_id)
+                    .fetch_optional(&mut *tx)
+                    .await?;
+                if let Some(filler) = filler {
+                    moderation::pair_with_filler(&mut tx, id, run.profile_number, filler).await?;
+                }
+            }
+        }
+    }
+    let mut waiting_for_partner = false;
+    if run.map.is_coop {
+        let coop_id: Option<i64> = sqlx::query_scalar("SELECT coop_id FROM changelog WHERE id = $1").bind(id).fetch_one(&mut *tx).await?;
+        if let Some(coop_id) = coop_id {
+            waiting_for_partner = settle_coop_proof(&mut tx, coop_id).await? == Some(false);
+        }
+    }
+    let boards: Vec<String> = sqlx::query_scalar(
+        r#"
+            SELECT g.game_name || ' · ' || m.name FROM changelog AS x
+                JOIN maps AS m ON m.steam_id = x.map_id JOIN chapters AS c ON c.id = m.chapter_id JOIN games AS g ON g.id = c.game_id
+            WHERE x.id = $1 OR x.mirror_of = $1
+            ORDER BY x.id
+        "#,
+    )
+    .bind(id)
+    .fetch_all(&mut *tx)
+    .await?;
+    tx.commit().await?;
+    Ok(Ok(Recorded { changelog_id: id, map: board, boards, waiting_for_partner }))
+}
+
+/// Board time format: 1:23.45 / 23.45.
+pub fn format_time(cs: i32) -> String {
+    let (m, s, h) = (cs / 6000, (cs % 6000) / 100, cs % 100);
+    if m > 0 {
+        format!("{m}:{s:02}.{h:02}")
+    } else {
+        format!("{s}.{h:02}")
+    }
+}
+
+/// The YouTube video id from a link or id (None when it isn't one).
+pub fn youtube_id(input: &str) -> Option<String> {
+    let s = input.trim();
+    if s.is_empty() {
+        return None;
+    }
+    let id = if let Some(rest) = s.split("youtu.be/").nth(1) {
+        rest.to_string()
+    } else if let Some(rest) = s.split("v=").nth(1) {
+        rest.to_string()
+    } else if let Some(rest) = s.split("/shorts/").nth(1) {
+        rest.to_string()
+    } else {
+        s.to_string()
+    };
+    let id: String = id.chars().take_while(|c| c.is_ascii_alphanumeric() || *c == '-' || *c == '_').collect();
+    (id.len() == 11).then_some(id)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn coop_proof_needs_each_players_demo() {
+        // Both players improved: a demo on each half.
+        assert!(coop_proven(&[true, true], false));
+        assert!(!coop_proven(&[true, false], false));
+        assert!(!coop_proven(&[false, false], true));
+        // Only one improved: their half's demo and the partner's demo of the run.
+        assert!(coop_proven(&[true], true));
+        assert!(!coop_proven(&[true], false));
+        assert!(!coop_proven(&[false], true));
+        assert!(!coop_proven(&[], true));
+    }
+
+    #[test]
+    fn youtube_ids() {
+        assert_eq!(youtube_id("https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=3").as_deref(), Some("dQw4w9WgXcQ"));
+        assert_eq!(youtube_id("https://youtu.be/dQw4w9WgXcQ?t=1").as_deref(), Some("dQw4w9WgXcQ"));
+        assert_eq!(youtube_id("dQw4w9WgXcQ").as_deref(), Some("dQw4w9WgXcQ"));
+        assert_eq!(youtube_id("not a video"), None);
+    }
+
+    #[test]
+    fn times() {
+        assert_eq!(format_time(2243), "22.43");
+        assert_eq!(format_time(11783), "1:57.83");
+    }
+}

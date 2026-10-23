@@ -1,0 +1,72 @@
+{
+  "summary": {
+    "runs": 1740,
+    "verified_runs": 1722,
+    "runs_with_demo": 1145,
+    "runs_with_video": 115,
+    "first_run": "2020-06-14T23:02:53",
+    "latest_run": "2026-10-08T19:43:23",
+    "sp_maps": 60,
+    "coop_maps": 48,
+    "sp_map_count": 60,
+    "coop_map_count": 48,
+    "time_saved": 96299,
+    "runs_with_portals": 1139,
+    "portals_total": 9443,
+    "pbs_with_portals": 108,
+    "pb_portals_total": 865,
+    "wr_runs": 122,
+    "wr_maps": 55
+  },
+  "unique_partners": 19,
+  "partners": [
+    {
+      "profile_number": "76561198295368421",
+      "user_name": "Rex",
+      "avatar": "https://avatars.steamstatic.com/09bb27cf013dc71da9175902304b17548adb322a_full.jpg",
+      "maps": 36,
+      "runs": 178
+    },
+    {
+      "profile_number": "76561198095730281",
+      "user_name": "Bexc",
+      "avatar": "https://avatars.steamstatic.com/3b161f8a37d8e69c3244b7c23d7b461433e14c0c_full.jpg",
+      "maps": 28,
+      "runs": 44
+    },
+    {
+      "profile_number": "76561198823602829",
+      "user_name": "RealCreative",
+      "avatar": "https://avatars.steamstatic.com/ace8efdb0d060e2bbc8d9d210429fbfea6d247e5_full.jpg",
+      "maps": 19,
+      "runs": 57
+    },
+    {
+      "profile_number": "76561198795823814",
+      "user_name": "i spider",
+      "avatar": "https://avatars.steamstatic.com/527b3525c820a11df2aa81ff8876806de3bf012f_full.jpg",
+      "maps": 17,
+      "runs": 90
+    }
+  ],
+  "fewest_portals": [
+    {
+      "map_id": "62761",
+      "map_name": "Container Ride",
+      "score": 34486,
+      "portals": 0
+    },
+    {
+      "map_id": "52671",
+      "map_name": "Cooperative Polarity",
+      "score": 796,
+      "portals": 0
+    },
+    {
+      "map_id": "62758",
+      "map_name": "Portal Carousel",
+      "score": 2383,
+      "portals": 0
+    }
+  ]
+}

@@ -1,0 +1,206 @@
+.agg-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 4px 0 34px;
+  text-align: center;
+}
+
+.agg-kicker {
+  margin: 0;
+  font-size: 40px;
+  font-weight: 300;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.agg-title {
+  margin: 0 0 22px;
+  font-size: 64px;
+  font-weight: 700;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+.agg-selects {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+}
+
+.agg-select {
+  min-width: 222px;
+  height: 40px;
+  border: 2px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--card-head);
+}
+
+.agg-select select {
+  font-size: 18px;
+}
+
+.agg-panel {
+  max-width: 1440px;
+  margin: 0 auto;
+}
+
+/* Two panels with the background showing between them, so the boards read as separate. */
+.agg-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+.agg-board {
+  min-width: 0;
+  padding: 0 0 20px;
+  background: rgb(var(--panel-rgb) / 0.97);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.agg-board-head {
+  display: flex;
+  align-items: center;
+  height: 48px;
+  margin: 0 0 18px;
+  padding: 0 20px;
+  background: var(--panel-head);
+  font-size: 16px;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.agg-board .agg-pagination,
+.agg-board .agg-row {
+  margin-left: 20px;
+  margin-right: 20px;
+}
+
+.agg-pagination {
+  display: flex;
+  justify-content: center;
+  min-height: 32px;
+  margin-bottom: 18px;
+}
+
+.agg-row {
+  display: grid;
+  grid-template-columns: 46px 40px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0 8px;
+  min-height: 46px;
+  padding-right: 10px;
+  font-size: 18px;
+}
+
+.agg-row:not(.agg-row-head):nth-child(odd) {
+  background: var(--row);
+}
+
+.agg-row-head {
+  min-height: 30px;
+  color: var(--text-muted);
+  font-size: 15px;
+  text-transform: uppercase;
+}
+
+.agg-rank {
+  text-align: center;
+}
+
+.agg-player {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.agg-player a {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.agg-value {
+  font-weight: 400;
+}
+
+@media (max-width: 860px) {
+  .agg-columns {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .agg-board .agg-pagination,
+  .agg-board .agg-row {
+    margin-left: 8px;
+    margin-right: 8px;
+  }
+
+  .agg-kicker {
+    font-size: 26px;
+  }
+
+  .agg-title {
+    font-size: 44px;
+  }
+}
+
+.agg-modes {
+  display: flex;
+  gap: 6px;
+  margin-top: 16px;
+}
+
+.agg-modes a {
+  padding: 8px 20px;
+  border-radius: 4px;
+  font-size: 18px;
+  color: var(--text-2);
+}
+
+.agg-modes a.is-active {
+  background: var(--seg-active);
+  color: var(--text);
+  font-weight: 500;
+}
+
+.agg-modes a:hover:not(.is-active) {
+  background: var(--seg-hover);
+}
+
+@media (max-width: 600px) {
+  .agg-row {
+    grid-template-columns: 34px 30px minmax(0, 1fr) auto;
+    min-height: 40px;
+    padding: 0 8px 0 4px;
+    font-size: 16px;
+  }
+
+  .agg-row .avatar {
+    width: 30px !important;
+    height: 30px !important;
+    border-radius: 4px;
+  }
+
+  .agg-title {
+    font-size: 38px;
+  }
+
+  .agg-modes {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}
+
+/* The player a profile's rank link pointed at. */
+.agg-row.is-focus:not(.agg-row-head):nth-child(n) {
+  background: color-mix(in srgb, var(--accent) 30%, transparent);
+  box-shadow: inset 3px 0 0 var(--accent-light);
+}

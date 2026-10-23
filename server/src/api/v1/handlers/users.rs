@@ -1,12 +1,16 @@
+use crate::tools::auth::ServiceOnly;
 use crate::{
     models::{
-        points::{PointsProfileWrapper, ProfilePage},
-        users::{AvatarInsert, Users},
+        points::{Points, PointsProfileWrapper, ProfilePage},
+        users::{AvatarInsert, ProfileScore, Users},
     },
     tools::cache::CacheState,
+    tools::points_cache::{PointsCache, Scope},
     tools::error::Result,
 };
-use actix_web::{get, post, put, web, Responder};
+use crate::tools::ratelimit;
+use actix_web::{get, post, put, web, HttpRequest, HttpResponse, Responder};
+use std::time::Duration;
 use sqlx::PgPool;
 use std::collections::HashMap;
 
@@ -88,14 +92,14 @@ async fn banned_users_all(pool: web::Data<PgPool>) -> Result<impl Responder> {
 /// ``` json
 /// true
 /// ```
+#[derive(Deserialize)]
+pub struct BannedQuery {
+    pub profile_number: String,
+}
+
 #[get("/banned_user")]
-async fn banned_user(
-    profile_number: web::Query<String>,
-    pool: web::Data<PgPool>,
-) -> Result<impl Responder> {
-    Ok(web::Json(
-        Users::check_banned(pool.get_ref(), &profile_number).await?,
-    ))
+async fn banned_user(query: web::Query<BannedQuery>, pool: web::Data<PgPool>) -> Result<impl Responder> {
+    Ok(web::Json(Users::check_banned(pool.get_ref(), &query.profile_number).await?))
 }
 
 /// **POST** method to upload a new user to the boards.
@@ -151,7 +155,7 @@ async fn banned_user(
 /// ```
 // TODO: Just return whole user, not boolean.
 #[post("/user")]
-async fn user_add(pool: web::Data<PgPool>, new_user: web::Json<Users>) -> Result<impl Responder> {
+async fn user_add(_auth: ServiceOnly, pool: web::Data<PgPool>, new_user: web::Json<Users>) -> Result<impl Responder> {
     Ok(web::Json(
         Users::insert_new_users(pool.get_ref(), new_user.0.clone()).await?,
     ))
@@ -182,6 +186,7 @@ async fn user_add(pool: web::Data<PgPool>, new_user: web::Json<Users>) -> Result
 /// ```
 #[put("/user/avatar/{profile_number}")]
 async fn avatar_update(
+    _auth: ServiceOnly,
     pool: web::Data<PgPool>,
     profile_number: web::Path<String>,
     data: web::Json<AvatarInsert>,
@@ -223,6 +228,37 @@ async fn avatar_update(
 #[get("/donators")]
 async fn donators(pool: web::Data<PgPool>) -> Result<impl Responder> {
     Ok(web::Json(Users::get_donators(pool.get_ref()).await?))
+}
+
+/// **GET** The board's staff: everyone with a staff role who isn't banned, admins first, then
+/// moderators, then verifiers, each by name. Public (the About page lists the team).
+///
+/// ## Example endpoints:
+///  - **Default**
+///     - `/api/v1/staff`
+///
+/// Makes a call to the underlying [Users::get_staff]
+///
+/// ## Example JSON output
+///
+/// ```json
+/// [
+///     {
+///         "profile_number": "76561198045074889",
+///         "user_name": "Jonese1234",
+///         "avatar": "https://avatars.steamstatic.com/9f6de098624a8f81ba6d2318e1923bdda1c710d6_full.jpg",
+///         "role": "admin"
+///     },
+///     {
+///         "profile_number": "76561198040982247",
+///         "user_name": "Daniel",
+///         "avatar": null,
+///         "role": "verifier"
+///     },...]
+/// ```
+#[get("/staff")]
+async fn staff_list(pool: web::Data<PgPool>) -> Result<impl Responder> {
+    Ok(web::Json(Users::get_staff(pool.get_ref()).await?))
 }
 
 /// **GET** method to return [UsersDisplay](crate::models::users::UsersDisplay) for all banned users on the boards.
@@ -312,17 +348,182 @@ async fn profile(
     pool: web::Data<PgPool>,
     profile_number: web::Path<String>,
     cache: web::Data<CacheState>,
+    points_cache: web::Data<PointsCache>,
 ) -> Result<impl Responder> {
     // TODO : Scores on drop down are queried individually by the frontend
     let profile_number = profile_number.into_inner();
     let data = Users::get_profile(pool.get_ref(), &profile_number).await?;
-    let (points, ranks) = profile_from_cache(cache, &profile_number).await?;
+    let (_, ranks) = profile_from_cache(cache, &profile_number).await?;
+    // Points and placements from the server's points cache (the same boards the leaderboards show).
+    let points = profile_points(pool.get_ref(), &points_cache, &profile_number).await?;
     let profile_page = ProfilePage {
         points,
         ranks,
         data,
     };
     Ok(web::Json(profile_page))
+}
+
+/// **GET** a player's Portal 2 personal bests with their rank and deltas to the
+/// world record and to the next better time, from the rank cache.
+///
+/// ## Example endpoints:
+///  - `/api/v1/profile/scores/76561198040982247`
+#[derive(Deserialize)]
+pub struct SearchQuery {
+    pub q: String,
+}
+
+#[derive(Serialize, sqlx::FromRow)]
+pub struct FoundUser {
+    pub profile_number: String,
+    pub user_name: String,
+    pub avatar: Option<String>,
+    pub runs: i64,
+}
+
+/// **GET** Players matching a name or Steam ID (up to 10, most active first), for pickers.
+#[get("/users/search")]
+async fn users_search(req: HttpRequest, config: web::Data<crate::tools::config::Config>, pool: web::Data<PgPool>, query: web::Query<SearchQuery>) -> Result<impl Responder> {
+    if let Err(limited) = ratelimit::check(&req, &config, "search", 60, Duration::from_secs(60)) {
+        return Ok(limited);
+    }
+    let q = query.q.trim();
+    if q.chars().count() < 2 {
+        return Ok(HttpResponse::Ok().json(Vec::<FoundUser>::new()));
+    }
+    // LIKE wildcards in the name are matched literally.
+    let like = format!("%{}%", q.replace('\\', "\\\\").replace('%', "\\%").replace('_', "\\_"));
+    // Name matches come from the trigram index (migration 20261027000000); run counts are only
+    // worked out for the candidates, not every match.
+    let found = sqlx::query_as::<_, FoundUser>(
+        r#"
+            SELECT c.profile_number, c.user_name, c.avatar,
+                (SELECT COUNT(*) FROM changelog AS cl WHERE cl.profile_number = c.profile_number AND NOT cl.banned) AS runs
+            FROM (
+                SELECT u.profile_number, COALESCE(u.board_name, u.steam_name, u.profile_number) AS user_name, u.avatar
+                FROM users AS u
+                WHERE u.profile_number <> 'N/A' AND NOT u.banned
+                  AND (u.profile_number = $1 OR COALESCE(u.board_name, u.steam_name) ILIKE $2)
+                ORDER BY (u.profile_number = $1) DESC, (COALESCE(u.board_name, u.steam_name) ILIKE $3) DESC
+                LIMIT 300
+            ) AS c
+            ORDER BY (c.profile_number = $1) DESC, runs DESC
+            LIMIT 10
+        "#,
+    )
+    .bind(q)
+    .bind(&like)
+    // Names starting with the query rank first among the candidates.
+    .bind(like.trim_start_matches('%'))
+    .fetch_all(pool.get_ref())
+    .await?;
+    Ok(HttpResponse::Ok().json(found))
+}
+
+/// **GET** A player's points over time in a game (default Portal 2), ranks recomputed against
+/// everyone's best times at each date: `[{ "date": "2024-01-07", "sp": 1234.5, "coop": 980.0, "overall": 2214.5 }, ...]`.
+#[get("/profile/points_history/{profile_number}")]
+async fn profile_points_history(req: HttpRequest, config: web::Data<crate::tools::config::Config>, pool: web::Data<PgPool>, profile_number: web::Path<String>, query: web::Query<StatsQuery>) -> Result<impl Responder> {
+    if let Err(limited) = ratelimit::check(&req, &config, "points", 60, Duration::from_secs(60)) {
+        return Ok(limited);
+    }
+    Ok(HttpResponse::Ok().json(crate::tools::points_history::points_history(pool.get_ref(), query.game_id.unwrap_or(1), &profile_number).await?))
+}
+
+/// **GET** A player's peak points per board in a game (default Portal 2), each with the date it
+/// was reached: `{ "sp": { "points": 10450.2, "date": "2024-05-01" }, "coop": ..., "overall": ... }`.
+#[derive(serde::Deserialize)]
+pub struct ProfileAtQuery {
+    /// The day (YYYY-MM-DD, as of its end in UTC) or moment (ISO, UTC) to look back at.
+    pub at: String,
+    pub game_id: Option<i32>,
+}
+
+/// **GET** Where a player stood at a past moment: points and global place per board, and their
+/// best time, rank and points on each map then (ranks against everyone's times as of then).
+/// `?at=2021-04-06` or `?at=2021-04-06T12:00:00`.
+#[get("/profile/at/{profile_number}")]
+async fn profile_at(req: HttpRequest, config: web::Data<crate::tools::config::Config>, pool: web::Data<PgPool>, profile_number: web::Path<String>, query: web::Query<ProfileAtQuery>) -> Result<impl Responder> {
+    if let Err(limited) = crate::tools::ratelimit::check(&req, &config, "points", 60, std::time::Duration::from_secs(60)) {
+        return Ok(limited);
+    }
+    let Some(at) = crate::tools::helpers::parse_moment(&query.at) else {
+        return Ok(HttpResponse::BadRequest().body("Give the date as YYYY-MM-DD."));
+    };
+    match crate::tools::points_history::profile_at(pool.get_ref(), query.game_id.unwrap_or(1), &profile_number, at).await? {
+        Some(standing) => Ok(HttpResponse::Ok().json(standing)),
+        None => Ok(HttpResponse::NotFound().body("No runs for this player.")),
+    }
+}
+
+#[get("/profile/points_peak/{profile_number}")]
+async fn profile_points_peak(req: HttpRequest, config: web::Data<crate::tools::config::Config>, pool: web::Data<PgPool>, profile_number: web::Path<String>, query: web::Query<StatsQuery>) -> Result<impl Responder> {
+    if let Err(limited) = ratelimit::check(&req, &config, "points", 60, Duration::from_secs(60)) {
+        return Ok(limited);
+    }
+    Ok(HttpResponse::Ok().json(crate::tools::points_history::points_peak(pool.get_ref(), query.game_id.unwrap_or(1), &profile_number).await?))
+}
+
+#[derive(Deserialize)]
+pub struct StatsQuery {
+    pub game_id: Option<i32>,
+}
+
+/// **GET** A player's stats in a game (default Portal 2): activity, co-op partners (maps and
+/// runs together) and portal counts from demos.
+#[get("/profile/stats/{profile_number}")]
+async fn profile_stats(pool: web::Data<PgPool>, profile_number: web::Path<String>, query: web::Query<StatsQuery>) -> Result<impl Responder> {
+    Ok(web::Json(crate::controllers::profile_stats::profile_stats(pool.get_ref(), &profile_number, query.game_id.unwrap_or(1)).await?))
+}
+
+#[get("/profile/scores/{profile_number}")]
+async fn profile_scores(
+    pool: web::Data<PgPool>,
+    profile_number: web::Path<String>,
+    cache: web::Data<CacheState>,
+) -> Result<impl Responder> {
+    let profile_number = profile_number.into_inner();
+    let mut scores = ProfileScore::get_profile_scores(pool.get_ref(), &profile_number).await?;
+    let r = &*cache.ranks.lock().await;
+    let ranks = r.current_ranks.get(&profile_number);
+    for pb in scores.iter_mut() {
+        pb.rank = ranks.and_then(|m| m.get(&pb.map_id)).copied();
+        if let Some(board) = r.map_scores.get(&pb.map_id).filter(|b| !b.is_empty()) {
+            pb.delta_to_wr = Some(pb.score - board[0]);
+            // Distinct scores are ascending; the next better time is the last one below ours.
+            let better = board.partition_point(|&s| s < pb.score);
+            pb.delta_to_next = better.checked_sub(1).map(|i| pb.score - board[i]);
+        }
+    }
+    Ok(web::Json(scores))
+}
+
+/// A player's sp (-1), coop (-2) and overall (-3) points with placements, from the points cache.
+async fn profile_points(pool: &PgPool, cache: &PointsCache, profile_number: &str) -> anyhow::Result<Vec<PointsProfileWrapper>> {
+    let mut out = Vec::new();
+    for (id, key, scope) in [(-1, "sp", Scope::Modes(&["sp"])), (-2, "coop", Scope::Modes(&["coop"])), (-3, "overall", Scope::All)] {
+        let board = cache.board(pool, 1, key, scope).await?;
+        let board_map: HashMap<String, Points> = board.points.iter().cloned().collect();
+        if let Some(x) = board_map.get(profile_number) {
+            let (place, score_place) = placement(&board_map, x);
+            let country_place = x.country_id.map(|c| board_map.values().filter(|p| p.country_id == Some(c) && p.points > x.points).count() as i32 + 1);
+            out.push(PointsProfileWrapper { id, points: x.clone(), place, score_place, country_place });
+        }
+    }
+    Ok(out)
+}
+
+/// Placement of `player` on a points board: by points, and by total time among
+/// players with the same number of scores (time totals are only comparable then).
+fn placement(board: &HashMap<String, Points>, player: &Points) -> (i32, i32) {
+    let place = board.values().filter(|p| p.points > player.points).count() as i32 + 1;
+    let score_place = board
+        .values()
+        .filter(|p| p.num_scores == player.num_scores && p.score < player.score)
+        .count() as i32
+        + 1;
+    (place, score_place)
 }
 
 /// Pulls & clones the data from the ranks cache to be used for the profile endpoint.
@@ -335,38 +536,55 @@ pub async fn profile_from_cache(
     for i in 1..16 {
         if let Some(points_cache) = points_hm.get(&*format!("points{}", i)) {
             if let Some(x) = points_cache.get(profile_number) {
+                let (place, score_place) = placement(points_cache, x);
                 points.push(PointsProfileWrapper {
                     id: i,
                     points: x.clone(),
+                    place,
+                    score_place,
+                    country_place: None,
                 });
             }
         }
     }
     if let Some(points_cache) = points_hm.get("points_sp") {
         if let Some(x) = points_cache.get(profile_number) {
+            let (place, score_place) = placement(points_cache, x);
             points.push(PointsProfileWrapper {
                 id: -1,
                 points: x.clone(),
+                place,
+                score_place,
+                country_place: None,
             });
         }
     }
     if let Some(points_cache) = points_hm.get("points_coop") {
         if let Some(x) = points_cache.get(profile_number) {
+            let (place, score_place) = placement(points_cache, x);
             points.push(PointsProfileWrapper {
                 id: -2,
                 points: x.clone(),
+                place,
+                score_place,
+                country_place: None,
             });
         }
     }
     if let Some(points_cache) = points_hm.get("points_overall") {
         if let Some(x) = points_cache.get(profile_number) {
+            let (place, score_place) = placement(points_cache, x);
             points.push(PointsProfileWrapper {
                 id: -3,
                 points: x.clone(),
+                place,
+                score_place,
+                country_place: None,
             });
         }
     }
     let r = &*cache.ranks.lock().await;
-    let ranks = r.current_ranks.get(profile_number).unwrap().clone();
+    // Players with no ranked runs have no entry in the rank cache.
+    let ranks = r.current_ranks.get(profile_number).cloned().unwrap_or_default();
     Ok((points, ranks))
 }

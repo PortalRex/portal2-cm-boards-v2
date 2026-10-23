@@ -307,7 +307,7 @@ pub async fn create_coop_bundled(v: Vec<(ChangelogInsert, Option<DemoInsert>)>) 
 
 pub async fn update_changelog_with_coop_id(cl_id: i64, coop_id: i64) -> Result<()> {
     let url = format!("http://localhost:8080/api/v1/coop/update_changelog/{cl_id}/{coop_id}");
-    let _ = reqwest::Client::new()
+    let _ = crate::http::client()
         .put(&url)
         .send()
         .await?
@@ -317,7 +317,7 @@ pub async fn update_changelog_with_coop_id(cl_id: i64, coop_id: i64) -> Result<(
 }
 
 pub async fn cl_no_demo(cl: &ChangelogInsert) -> Result<i64> {
-    Ok(reqwest::Client::new()
+    Ok(crate::http::client()
         .post("http://localhost:8080/api/v1/sp/post_score")
         .json(cl)
         .send()

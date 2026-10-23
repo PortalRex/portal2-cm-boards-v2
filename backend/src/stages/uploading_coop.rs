@@ -7,7 +7,7 @@ use std::cmp::Ordering;
 pub fn post_coop_pb(params: PostCoop) -> Result<()> {
     let profile_number1 = params.profile_number1.clone();
     let profile_number2 = params.profile_number2.clone();
-    let client = reqwest::blocking::Client::new();
+    let client = crate::http::blocking_client();
     if let Some(profile_number2) = profile_number2 {
         let (score1, score2) = construct_coop_score(params)?;
         // Insert both changelog entries, retrieve their IDs, create bundle
@@ -241,7 +241,7 @@ pub fn construct_coop_score_from_one(params: PostCoop) -> Result<(ChangelogInser
 }
 
 pub async fn upload_coop_bundled(cb: CoopBundledInsert) -> Result<i64> {
-    Ok(reqwest::Client::new()
+    Ok(crate::http::client()
         .post("http://localhost:8080/api/v1/coop/post_score")
         .json(&cb)
         .send()

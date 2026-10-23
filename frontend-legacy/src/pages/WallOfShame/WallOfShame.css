@@ -1,0 +1,53 @@
+.wos-body {
+  padding: 24px 32px 32px;
+}
+
+.wos-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 20px;
+  margin-bottom: 20px;
+}
+
+.wos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.wos-card {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-items: center;
+  column-gap: 12px;
+  padding: 8px;
+  border-radius: var(--radius);
+  background: var(--row);
+}
+
+.wos-card:hover {
+  background: var(--seg-hover);
+}
+
+.wos-card .avatar {
+  grid-row: 1 / 3;
+  border-radius: 6px;
+}
+
+.wos-name {
+  align-self: end;
+  overflow: hidden;
+  font-size: 18px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.wos-id {
+  align-self: start;
+  font-size: 13px;
+}

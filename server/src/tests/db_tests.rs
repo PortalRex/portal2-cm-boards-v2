@@ -20,8 +20,8 @@ async fn get_config() -> Result<(Config, PgPool)> {
 async fn test_db_maps() {
     use crate::models::maps::*;
     let (_, pool) = get_config().await.expect("Error getting config and DB pool");
-    let sp = Maps::get_steam_ids(&pool, false).await.unwrap();
-    let coop = Maps::get_steam_ids(&pool, true).await.unwrap();
+    let sp = Maps::get_steam_ids(&pool, false, 1).await.unwrap();
+    let coop = Maps::get_steam_ids(&pool, true, 1).await.unwrap();
     assert_eq!(sp.len(), 60);
     assert_eq!(coop.len(), 48);
     let map_name = Maps::get_map_name(&pool, sp[0].clone()).await.unwrap().unwrap();
@@ -91,6 +91,13 @@ async fn test_db_users() {
         discord_id: None,
         auth_hash: None,
         country_id: None,
+        frozen: false,
+        frozen_reason: None,
+        role: None,
+        name_locked: false,
+        avatar_locked: false,
+        avatar_custom: false,
+        ..Default::default()
     };
     let mut insert_user = user.clone();
     let test_user = Users::get_user(&pool, user.profile_number.clone()).await.unwrap().unwrap();
@@ -290,12 +297,13 @@ async fn test_db_changelog() {
     assert!(!banned_scores);
     let pb_history = Changelog::get_sp_pb_history(&pool, "76561198040982247", "47763", 67, 1).await.unwrap();
     assert_ne!(0, pb_history.len());
-    let mut new_cl_insert = Changelog::transaction_insert_changelog(&mut transaction, clinsert.clone()).await.unwrap();
+    // Insert, update and delete a row (the transaction_* versions of these were removed in fe740fa).
+    let new_id = Changelog::insert_changelog(&pool, clinsert.clone()).await.unwrap();
+    let mut new_cl_insert = Changelog::get_changelog(&pool, new_id).await.unwrap().unwrap();
     new_cl_insert.note = Some("fat time".to_string());
-    let _ = Changelog::transaction_update_changelog(&mut transaction, new_cl_insert.clone()).await.unwrap();
-    // let updated_changelog = Changelog::get_changelog(&pool, new_cl_insert.id).await.unwrap().unwrap();
-    let _ = Changelog::transaction_delete_changelog(&mut transaction, new_cl_insert.id).await.unwrap();
-    let _res = Changelog::get_changelog(&pool, new_cl_insert.id).await;
+    let _ = Changelog::update_changelog(&pool, new_cl_insert.clone()).await.unwrap();
+    let _ = Changelog::delete_changelog(&pool, new_id).await.unwrap();
+    let _res = Changelog::get_changelog(&pool, new_id).await;
 
     let query_params = ChangelogQueryParams {
         limit: Some(500),
@@ -306,9 +314,13 @@ async fn test_db_changelog() {
         coop: None,
         wr_gain: None,
         has_demo: None,
+        banned: None,
+        include_hidden_wr: None,
         yt: None,
         first: None,
         last: None,
+        game_id: None,
+        ..Default::default()
     };
 
     // ChangelogPage
@@ -323,9 +335,13 @@ async fn test_db_changelog() {
         coop: Some(true),
         wr_gain: Some(true),
         has_demo: Some(true),
+        banned: None,
+        include_hidden_wr: None,
         yt: None,
         first: None,
         last: None,
+        game_id: None,
+        ..Default::default()
     };
     let filtered_cl_page = ChangelogPage::get_changelog_page(&pool, filter).await.unwrap();
     assert_eq!(filtered_cl_page.len(), 1);
@@ -342,9 +358,9 @@ async fn test_db_pages() {
 
     let sp_map_id = "47763".to_string();
     let coop_map_id = "52642".to_string();
-    let smp = SpMap::get_sp_map_page(&pool, &sp_map_id, DEFAULT_PAGE_SIZE as i32, 67, 1).await.unwrap();
+    let smp = SpMap::get_sp_map_page(&pool, &sp_map_id, DEFAULT_PAGE_SIZE as i32, 67, 1, None).await.unwrap();
     assert_ne!(smp.len(), 0);
-    let cmp = CoopMap::get_coop_map_page(&pool, &coop_map_id, 21, 1).await.unwrap();
+    let cmp = CoopMap::get_coop_map_page(&pool, &coop_map_id, 21, 1, None).await.unwrap();
     assert_ne!(cmp.len(), 0);
     let coop_entries_filtered = filter_coop_entries(cmp, config.proof.results as usize).await;
     // Ensure we didn't mess up the ranking/points algorithm.
@@ -360,9 +376,9 @@ async fn test_db_pages() {
         }
     }
 
-    let sppres = SpPreview::get_sp_previews(&pool).await.unwrap();
+    let sppres = SpPreview::get_sp_previews(&pool, 1).await.unwrap();
     assert_eq!(sppres.len(), 60);
-    let cooppres = CoopPreview::get_coop_previews(&pool).await.unwrap();
+    let cooppres = CoopPreview::get_coop_previews(&pool, 1).await.unwrap();
     assert_eq!(cooppres.len(), 48);
 
     let _spbanned = SpBanned::get_sp_banned(&pool, sp_map_id).await.unwrap();
@@ -383,13 +399,53 @@ async fn test_db_admins() {
         coop: None,
         wr_gain: None,
         has_demo: None,
+        banned: None,
+        include_hidden_wr: None,
         yt: None,
         first: None,
         last: None,
+        game_id: None,
+        ..Default::default()
     };
     let ban_page = Admin::get_admin_page(&pool, query_params).await.unwrap().unwrap();
     assert!(ban_page.len() == 5);
 
     let ban_stats = Admin::get_user_banned_time_stats(&pool).await.unwrap().unwrap();
     assert!(!ban_stats.is_empty());
+}
+#[actix_web::test]
+async fn test_db_staff_list() {
+    use crate::models::users::*;
+    let (_, pool) = get_config().await.expect("Error getting config and DB pool");
+    // Our own rows (removed again at the end): one per tier, plus a banned admin who isn't listed.
+    let rows = [
+        ("test-staff-v", "aaa verifier", "verifier", false),
+        ("test-staff-m", "zzz moderator", "moderator", false),
+        ("test-staff-a2", "Bbb admin", "admin", false),
+        ("test-staff-a1", "aaa admin", "admin", false),
+        ("test-staff-banned", "banned admin", "admin", true),
+    ];
+    let cleanup = || sqlx::query("DELETE FROM users WHERE profile_number LIKE 'test-staff-%'").execute(&pool);
+    cleanup().await.unwrap();
+    for (id, name, role, banned) in rows {
+        sqlx::query("INSERT INTO users (profile_number, steam_name, role, banned) VALUES ($1, $2, $3, $4)")
+            .bind(id)
+            .bind(name)
+            .bind(role)
+            .bind(banned)
+            .execute(&pool)
+            .await
+            .unwrap();
+    }
+    let staff = Users::get_staff(&pool).await;
+    cleanup().await.unwrap();
+    let ours: Vec<(String, String)> = staff
+        .unwrap()
+        .into_iter()
+        .filter(|s| s.profile_number.starts_with("test-staff-"))
+        .map(|s| (s.profile_number, s.role))
+        .collect();
+    // Admins first (by name, ignoring case), then moderators, then verifiers; banned staff left out.
+    let expected = [("test-staff-a1", "admin"), ("test-staff-a2", "admin"), ("test-staff-m", "moderator"), ("test-staff-v", "verifier")];
+    assert_eq!(ours, expected.map(|(a, b)| (a.to_string(), b.to_string())));
 }

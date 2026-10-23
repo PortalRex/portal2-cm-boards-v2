@@ -12,11 +12,15 @@ impl Users {
             "https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/?key={}&steamids={}",
             steam_api_key, profile_number
         );
-        let user = reqwest::get(&steam_api_url)
-            .await?
+        // Errors without the URL: it holds the API key.
+        let user = crate::tools::helpers::http_client()
+            .get(&steam_api_url)
+            .send()
+            .await
+            .map_err(reqwest::Error::without_url)?
             .json::<GetPlayerSummariesWrapper>()
-            .await?;
-        println!("{user:#?}");
+            .await
+            .map_err(reqwest::Error::without_url)?;
         if user.response.players.is_empty() {
             return Err(ServerError {
                 error_message: format!("User not found"),
@@ -30,8 +34,22 @@ impl Users {
             banned: false,
             registered: 0,
             avatar: Some(user.response.players[0].avatarfull.clone()),
+            steam_country: user.response.players[0].loccountrycode.clone(),
             ..Default::default()
         })
+    }
+
+    /// Gives a new account the country on its Steam profile (ISO code), unless it has one.
+    pub async fn set_default_country(pool: &PgPool, profile_number: &str, steam_country: Option<&str>) -> Result<(), sqlx::Error> {
+        let Some(code) = steam_country.filter(|c| !c.is_empty()) else {
+            return Ok(());
+        };
+        sqlx::query("UPDATE users SET country_id = (SELECT id FROM countries WHERE upper(iso) = upper($2)) WHERE profile_number = $1 AND country_id IS NULL")
+            .bind(profile_number)
+            .bind(code)
+            .execute(pool)
+            .await?;
+        Ok(())
     }
     /// Returns a [Users] from the given `profile_number`.
     #[allow(dead_code)]
@@ -87,7 +105,7 @@ impl Users {
     pub async fn get_banned_display(pool: &PgPool) -> Result<Vec<UsersDisplay>, sqlx::Error> {
         sqlx::query_as::<_, UsersDisplay>(
             r#" SELECT users.profile_number,
-            COALESCE(users.board_name, users.steam_name) as user_name, 
+            COALESCE(users.board_name, users.steam_name, users.profile_number) as user_name, 
             users.avatar
                 FROM users WHERE users.banned = 'true'"#,
         )
@@ -145,7 +163,7 @@ impl Users {
             sqlx::query_as::<_, UsersDisplay>(
                 r#"
                 SELECT users.profile_number, 
-                    COALESCE(users.board_name, users.steam_name) AS user_name,
+                    COALESCE(users.board_name, users.steam_name, users.profile_number) AS user_name,
                     users.avatar
                 FROM users
                 WHERE users.admin = $1
@@ -154,6 +172,24 @@ impl Users {
             .bind(admin_value)
             .fetch_all(pool)
             .await
+    }
+    /// Everyone with a staff role (admin, moderator, verifier) who isn't banned: highest tier
+    /// first, then by name.
+    pub async fn get_staff(pool: &PgPool) -> Result<Vec<StaffMember>, sqlx::Error> {
+        sqlx::query_as::<_, StaffMember>(
+            r#"
+            SELECT users.profile_number,
+                COALESCE(users.board_name, users.steam_name, users.profile_number) AS user_name,
+                users.avatar,
+                users.role
+            FROM users
+            WHERE users.role IS NOT NULL AND NOT users.banned
+            ORDER BY CASE users.role WHEN 'admin' THEN 0 WHEN 'moderator' THEN 1 ELSE 2 END,
+                LOWER(COALESCE(users.board_name, users.steam_name, users.profile_number))
+            "#,
+        )
+        .fetch_all(pool)
+        .await
     }
     /// Returns all users that have donated to the board. Ordered by highest amount.
     pub async fn get_donators(pool: &PgPool) -> Result<Vec<Users>, sqlx::Error> {
@@ -166,7 +202,7 @@ impl Users {
         .fetch_all(pool)
         .await
     }
-    /// Returns a [ProfileData] for the given `profile_number`.
+    /// Returns a [ProfileData] (Portal 2 maps) for the given `profile_number`.
     pub async fn get_profile(pool: &PgPool, profile_number: &String) -> Result<ProfileData, sqlx::Error> {
         let s1 = r#"SELECT old.steam_id AS map, old.name AS map_name, old.score, old.timestamp FROM 
             (SELECT maps.steam_id, maps.name, changelog.score, changelog.timestamp FROM maps 
@@ -184,6 +220,7 @@ impl Users {
                 ON (m1.chapter_id = c1.id)
             WHERE cl1.profile_number = $1
             AND c1.is_multiplayer = $2
+            AND c1.game_id = 1
             AND cl1.banned = 'false'
             AND cl1.verified = 'true'
             AND cl1.category_id = m1.default_cat_id
@@ -192,23 +229,27 @@ impl Users {
         let oldest_sp = sqlx::query_as::<_, MapScoreDate>(&format!("{}{}{}", s1, "MIN", s2))
             .bind(profile_number)
             .bind(false)
-            .fetch_one(pool)
-            .await?;
+            .fetch_optional(pool)
+            .await?
+            .unwrap_or_default();
         let newest_sp = sqlx::query_as::<_, MapScoreDate>(&format!("{}{}{}", s1, "MAX", s2))
             .bind(profile_number)
             .bind(false)
-            .fetch_one(pool)
-            .await?;
+            .fetch_optional(pool)
+            .await?
+            .unwrap_or_default();
         let oldest_coop = sqlx::query_as::<_, MapScoreDate>(&format!("{}{}{}", s1, "MIN", s2))
             .bind(profile_number)
             .bind(true)
-            .fetch_one(pool)
-            .await?;
+            .fetch_optional(pool)
+            .await?
+            .unwrap_or_default();
         let newest_coop = sqlx::query_as::<_, MapScoreDate>(&format!("{}{}{}", s1, "MAX", s2))
             .bind(profile_number)
             .bind(true)
-            .fetch_one(pool)
-            .await?;
+            .fetch_optional(pool)
+            .await?
+            .unwrap_or_default();
         Ok(ProfileData {
             oldest_sp,
             newest_sp,
@@ -219,6 +260,13 @@ impl Users {
     // TODO: Consider using profanity filter (only for really bad names): https://docs.rs/censor/latest/censor/
     /// Inserts a new user into the databse from a given [Users]. Returns the [Users] object.
     pub async fn insert_new_users(pool: &PgPool, new_user: Users) -> Result<Users, sqlx::Error> {
+        let (profile_number, steam_country) = (new_user.profile_number.clone(), new_user.steam_country.clone());
+        let inserted = Self::insert_user_row(pool, new_user).await?;
+        Self::set_default_country(pool, &profile_number, steam_country.as_deref()).await?;
+        Ok(inserted)
+    }
+
+    async fn insert_user_row(pool: &PgPool, new_user: Users) -> Result<Users, sqlx::Error> {
         // let mut res = String::new();
         // We do not care about the returning profile_number. As it is not generated and we already have it
         sqlx::query_as::<_, Users>(
@@ -282,7 +330,7 @@ impl Users {
             r#"WITH old AS (
                 SELECT avatar FROM users WHERE profile_number = $2
             )
-            UPDATE users SET avatar = $1 
+            UPDATE users SET avatar = CASE WHEN avatar_locked OR avatar_custom THEN avatar ELSE $1 END
                 WHERE profile_number = $2 RETURNING (SELECT avatar FROM old)"#,
         )
         .bind(avatar)
@@ -299,6 +347,29 @@ impl Users {
         )
         .bind(profile_number)
         .fetch_one(pool)
+        .await
+    }
+}
+
+impl ProfileScore {
+    /// The player's best verified, unbanned time on each Portal 2 map (default category).
+    pub async fn get_profile_scores(pool: &PgPool, profile_number: &str) -> Result<Vec<ProfileScore>, sqlx::Error> {
+        sqlx::query_as::<_, ProfileScore>(
+            r#"
+            SELECT DISTINCT ON (cl.map_id) cl.map_id, cl.score, cl.timestamp, cl.id AS changelog_id, c.is_multiplayer
+                FROM changelog AS cl
+                INNER JOIN maps AS m ON (m.steam_id = cl.map_id)
+                INNER JOIN chapters AS c ON (c.id = m.chapter_id)
+                WHERE cl.profile_number = $1
+                AND c.game_id = 1
+                AND cl.banned = 'false'
+                AND cl.verified = 'true'
+                AND cl.category_id = m.default_cat_id
+                ORDER BY cl.map_id, cl.score ASC, cl.timestamp ASC
+            "#,
+        )
+        .bind(profile_number)
+        .fetch_all(pool)
         .await
     }
 }

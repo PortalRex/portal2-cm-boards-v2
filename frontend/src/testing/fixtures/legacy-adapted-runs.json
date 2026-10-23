@@ -1,0 +1,977 @@
+{
+  "changelog": [
+    {
+      "id": 365561,
+      "game": "portal2",
+      "timestamp": "2026-10-17T22:40:08.480612",
+      "score": 7206,
+      "preRank": 304,
+      "postRank": 297,
+      "scoreDelta": -27,
+      "pointsDelta": 0,
+      "players": [
+        {
+          "profileNumber": "76561199338573372",
+          "name": "Nebula",
+          "avatar": "https://avatars.steamstatic.com/893800eaa251a5f7f3b38bc29c92f8ff5b5d0cd6_full.jpg"
+        }
+      ],
+      "submitter": "76561199338573372",
+      "youtubeId": null,
+      "autorenderId": null,
+      "demoId": null,
+      "portals": null,
+      "note": null,
+      "verified": true,
+      "banned": false,
+      "coopId": null,
+      "reactionsUp": 0,
+      "reactionsDown": 0,
+      "rolesKnown": null,
+      "sarVersion": null,
+      "dateEstimated": false
+    },
+    {
+      "id": 365535,
+      "game": "portal2",
+      "timestamp": "2026-10-17T19:03:24.656064",
+      "score": 5371,
+      "preRank": null,
+      "postRank": 343,
+      "scoreDelta": null,
+      "pointsDelta": 0,
+      "players": [
+        {
+          "profileNumber": "76561199094036087",
+          "name": "carlalockhart",
+          "avatar": "https://avatars.steamstatic.com/9bcc312f89c4a8dfcd5828d97aa09850f5a58757_full.jpg"
+        }
+      ],
+      "submitter": "76561199094036087",
+      "youtubeId": null,
+      "autorenderId": null,
+      "demoId": null,
+      "portals": null,
+      "note": null,
+      "verified": true,
+      "banned": false,
+      "coopId": null,
+      "reactionsUp": 0,
+      "reactionsDown": 0,
+      "rolesKnown": null,
+      "sarVersion": null,
+      "dateEstimated": false
+    },
+    {
+      "id": 365103,
+      "game": "portal2",
+      "timestamp": "2026-10-14T16:09:23.067275",
+      "score": 2226,
+      "preRank": null,
+      "postRank": 343,
+      "scoreDelta": null,
+      "pointsDelta": null,
+      "players": [
+        {
+          "profileNumber": "76561199074883856",
+          "name": "76561199074883856",
+          "avatar": null
+        },
+        {
+          "profileNumber": "76561199071031425",
+          "name": "76561199071031425",
+          "avatar": null
+        }
+      ],
+      "submitter": "76561199074883856",
+      "youtubeId": null,
+      "autorenderId": null,
+      "demoId": null,
+      "portals": null,
+      "note": null,
+      "verified": true,
+      "banned": true,
+      "coopId": 68126,
+      "reactionsUp": 0,
+      "reactionsDown": 0,
+      "rolesKnown": false,
+      "sarVersion": null,
+      "dateEstimated": false
+    },
+    {
+      "id": 365565,
+      "game": "portal2",
+      "timestamp": "2026-10-18T00:52:52.205596",
+      "score": 1260,
+      "preRank": 35,
+      "postRank": 22,
+      "scoreDelta": -11,
+      "pointsDelta": null,
+      "players": [
+        {
+          "profileNumber": "76561198411125245",
+          "name": "KiloOnline",
+          "avatar": "https://avatars.steamstatic.com/4ff11c7fe266f71b02c078e8dcc1374c3413b6f4_full.jpg"
+        }
+      ],
+      "submitter": "76561198411125245",
+      "youtubeId": null,
+      "autorenderId": null,
+      "demoId": null,
+      "portals": null,
+      "note": null,
+      "verified": false,
+      "banned": false,
+      "coopId": null,
+      "reactionsUp": 0,
+      "reactionsDown": 0,
+      "rolesKnown": null,
+      "sarVersion": null,
+      "dateEstimated": false
+    },
+    {
+      "id": 365462,
+      "game": "portal2",
+      "timestamp": "2026-10-17T16:55:02",
+      "score": 2709,
+      "preRank": 94,
+      "postRank": 82,
+      "scoreDelta": -47,
+      "pointsDelta": 14,
+      "players": [
+        {
+          "profileNumber": "76561198842803939",
+          "name": "Snow",
+          "avatar": "https://avatars.steamstatic.com/64b513f2c1f8a490670aa3d004d71b95207035b8_full.jpg"
+        },
+        {
+          "profileNumber": "76561199013726692",
+          "name": "savvydruid",
+          "avatar": "https://avatars.steamstatic.com/687d290c9238b42a790216892cc21f718741bd83_full.jpg"
+        }
+      ],
+      "submitter": "76561198842803939",
+      "youtubeId": null,
+      "autorenderId": null,
+      "demoId": 182633,
+      "portals": 7,
+      "note": null,
+      "verified": true,
+      "banned": false,
+      "coopId": 68238,
+      "reactionsUp": 0,
+      "reactionsDown": 0,
+      "rolesKnown": true,
+      "sarVersion": "1.15.5",
+      "dateEstimated": false
+    },
+    {
+      "id": 365541,
+      "game": "portal2",
+      "timestamp": "2026-10-17T19:44:57.641111",
+      "score": 2463,
+      "preRank": null,
+      "postRank": 366,
+      "scoreDelta": null,
+      "pointsDelta": 0,
+      "players": [
+        {
+          "profileNumber": "76561199508681039",
+          "name": "Whiteout",
+          "avatar": "https://avatars.steamstatic.com/6dae2652c12a6d5ea21805ebaab9c0cdaf0cc0dd_full.jpg"
+        },
+        {
+          "profileNumber": "76561199362883901",
+          "name": "Qwerty",
+          "avatar": "https://avatars.steamstatic.com/19f20a97bb7892e02687eeccf77777ff9fc01cd4_full.jpg"
+        }
+      ],
+      "submitter": "76561199508681039",
+      "youtubeId": null,
+      "autorenderId": null,
+      "demoId": null,
+      "portals": null,
+      "note": null,
+      "verified": true,
+      "banned": false,
+      "coopId": 68288,
+      "reactionsUp": 0,
+      "reactionsDown": 0,
+      "rolesKnown": false,
+      "sarVersion": null,
+      "dateEstimated": false
+    },
+    {
+      "id": 365517,
+      "game": "portal2",
+      "timestamp": "2026-10-17T18:11:24.450584",
+      "score": 2566,
+      "preRank": 76,
+      "postRank": 34,
+      "scoreDelta": -143,
+      "pointsDelta": null,
+      "players": [
+        {
+          "profileNumber": "76561198842803939",
+          "name": "Snow",
+          "avatar": "https://avatars.steamstatic.com/64b513f2c1f8a490670aa3d004d71b95207035b8_full.jpg"
+        },
+        {
+          "profileNumber": null,
+          "name": "Unknown partner",
+          "avatar": "/unknown-partner.svg",
+          "unknown": true
+        }
+      ],
+      "submitter": "76561198842803939",
+      "youtubeId": null,
+      "autorenderId": null,
+      "demoId": null,
+      "portals": null,
+      "note": null,
+      "verified": false,
+      "banned": false,
+      "coopId": 68272,
+      "reactionsUp": 0,
+      "reactionsDown": 0,
+      "rolesKnown": false,
+      "sarVersion": null,
+      "dateEstimated": false
+    },
+    {
+      "id": 365437,
+      "game": "mel",
+      "timestamp": "2026-10-16T19:36:16",
+      "score": 8575,
+      "preRank": 2,
+      "postRank": 1,
+      "scoreDelta": -50,
+      "pointsDelta": 2,
+      "players": [
+        {
+          "profileNumber": "76561199006050430",
+          "name": "SilentiumGradas",
+          "avatar": "https://avatars.steamstatic.com/86ad30b1d8b0eba6ebfb91e482d2f10386bc7279_full.jpg"
+        }
+      ],
+      "submitter": "76561199006050430",
+      "youtubeId": null,
+      "autorenderId": "ceNxOBJLG_0",
+      "demoId": 182614,
+      "portals": 71,
+      "note": "Юнити бридж флинг нарица смотреть видео",
+      "verified": true,
+      "banned": false,
+      "coopId": null,
+      "reactionsUp": 0,
+      "reactionsDown": 0,
+      "rolesKnown": null,
+      "sarVersion": "1.15.5",
+      "dateEstimated": false
+    },
+    {
+      "id": 172828,
+      "game": "portal2",
+      "timestamp": "2021-11-27T23:45:17",
+      "score": 5056,
+      "preRank": null,
+      "postRank": 325,
+      "scoreDelta": null,
+      "pointsDelta": 0,
+      "players": [
+        {
+          "profileNumber": "76561198102155435",
+          "name": "Swedish Submarine",
+          "avatar": "https://steamcdn-a.akamaihd.net/steamcommunity/public/images/avatars/4f/4fbdd839db1f833fb1b33c85526380bca78475f8_full.jpg"
+        }
+      ],
+      "submitter": "76561198102155435",
+      "youtubeId": null,
+      "autorenderId": null,
+      "demoId": null,
+      "portals": null,
+      "note": null,
+      "verified": true,
+      "banned": false,
+      "coopId": null,
+      "reactionsUp": 0,
+      "reactionsDown": 0,
+      "rolesKnown": null,
+      "sarVersion": null,
+      "dateEstimated": true
+    }
+  ],
+  "spBoard": [
+    {
+      "changelogId": 365324,
+      "rank": 1,
+      "score": 1348,
+      "points": 200,
+      "timestamp": "2026-10-16T08:56:23",
+      "youtubeId": null,
+      "autorenderId": "bXElGlEQmKQ",
+      "demoId": 182580,
+      "note": null,
+      "portals": 8,
+      "sarVersion": "1.15.5",
+      "players": [
+        {
+          "profileNumber": "76561198021055079",
+          "name": "Jarool",
+          "avatar": "https://avatars.steamstatic.com/888b6482856fbedb86671443ec67d600a368343c_full.jpg"
+        }
+      ]
+    },
+    {
+      "changelogId": 258547,
+      "rank": 2,
+      "score": 1361,
+      "points": 198.005,
+      "timestamp": "2023-07-20T22:49:21",
+      "youtubeId": "QMZDPZCETIg?start=0",
+      "autorenderId": "TijkSlsouh4",
+      "demoId": 90043,
+      "note": "",
+      "portals": 9,
+      "sarVersion": "1.12.8-pre10",
+      "players": [
+        {
+          "profileNumber": "76561198068358920",
+          "name": "Kendal",
+          "avatar": "https://avatars.steamstatic.com/6561779fe010c61ae679349104371f434bdffa2e_full.jpg"
+        }
+      ]
+    },
+    {
+      "changelogId": 301554,
+      "rank": 3,
+      "score": 1401,
+      "points": 196.02,
+      "timestamp": "2024-10-02T16:41:05",
+      "youtubeId": null,
+      "autorenderId": "SoLYMnzuqzU",
+      "demoId": 123962,
+      "note": null,
+      "portals": 7,
+      "sarVersion": "1.13.8",
+      "players": [
+        {
+          "profileNumber": "76561198083196477",
+          "name": "Burger40",
+          "avatar": "https://avatars.steamstatic.com/cf641d7055a784ca5b5d2b1443a299f1dc71535c_full.jpg"
+        }
+      ]
+    },
+    {
+      "changelogId": 242075,
+      "rank": 4,
+      "score": 1405,
+      "points": 194.045,
+      "timestamp": "2023-02-05T16:23:29",
+      "youtubeId": null,
+      "autorenderId": "aVC06Iut0aw",
+      "demoId": 78117,
+      "note": "",
+      "portals": 9,
+      "sarVersion": "1.12.8-pre5",
+      "players": [
+        {
+          "profileNumber": "76561198149112443",
+          "name": "AngerySnek",
+          "avatar": "https://avatars.steamstatic.com/36f5af69d7f5763b4fbede1c3a067f97505e77ce_full.jpg"
+        }
+      ]
+    }
+  ],
+  "coopBoard": [
+    {
+      "changelogId": 323967,
+      "changelogIds": [323967, 365041],
+      "coopId": 27332,
+      "rolesKnown": true,
+      "rank": 2,
+      "score": 736,
+      "points": 198.005,
+      "timestamp": "2025-05-29T19:01:53",
+      "youtubeId": null,
+      "autorenderId": "mCiwnfK_VUk",
+      "demoId": 144521,
+      "note": "RealCreative",
+      "portals": 5,
+      "sarVersion": "1.14.1",
+      "players": [
+        {
+          "profileNumber": "76561198081168311",
+          "name": "unity",
+          "avatar": "https://avatars.steamstatic.com/1fcc7701ff71dce31965e10408d79aeb79bdf051_full.jpg"
+        },
+        {
+          "profileNumber": "76561198823602829",
+          "name": "RealCreative",
+          "avatar": "https://avatars.steamstatic.com/ace8efdb0d060e2bbc8d9d210429fbfea6d247e5_full.jpg"
+        }
+      ]
+    },
+    {
+      "changelogId": 261284,
+      "changelogIds": [261284, 261285],
+      "coopId": 18448,
+      "rolesKnown": true,
+      "rank": 1,
+      "score": 733,
+      "points": 200,
+      "timestamp": "2023-08-20T20:22:45",
+      "youtubeId": null,
+      "autorenderId": "-c9-hoa_cv8",
+      "demoId": 91973,
+      "note": "Suola",
+      "portals": 5,
+      "sarVersion": "1.12.8-pre10",
+      "players": [
+        {
+          "profileNumber": "76561198917972968",
+          "name": "Suola",
+          "avatar": "https://avatars.steamstatic.com/f86dcc2d065a87a603427bb382d26e96c1d61060_full.jpg"
+        },
+        {
+          "profileNumber": "76561198823602829",
+          "name": "RealCreative",
+          "avatar": "https://avatars.steamstatic.com/ace8efdb0d060e2bbc8d9d210429fbfea6d247e5_full.jpg"
+        }
+      ]
+    },
+    {
+      "changelogId": 52015,
+      "changelogIds": [52015, 52016],
+      "coopId": 37898,
+      "rolesKnown": false,
+      "rank": 102,
+      "score": 878,
+      "points": 49.005,
+      "timestamp": "2016-08-25T18:05:18",
+      "youtubeId": null,
+      "autorenderId": null,
+      "demoId": null,
+      "note": null,
+      "portals": null,
+      "sarVersion": null,
+      "players": [
+        {
+          "profileNumber": "76561198036324314",
+          "name": "zhendiac",
+          "avatar": "https://avatars.akamai.steamstatic.com/d7d350ad47edbfa3acfe74761fe196b1d89f4e17_full.jpg"
+        },
+        {
+          "profileNumber": "76561198039230536",
+          "name": "Zypeh",
+          "avatar": "https://avatars.steamstatic.com/4efac9cdae134d89bc22d70b22b236a11f4bda72_full.jpg"
+        }
+      ]
+    },
+    {
+      "changelogId": 160450,
+      "changelogIds": [160450, 365041],
+      "coopId": 60054,
+      "rolesKnown": false,
+      "rank": 31,
+      "score": 808,
+      "points": 144.5,
+      "timestamp": "2021-09-28T21:23:02",
+      "youtubeId": null,
+      "autorenderId": "os9zUncHxR4",
+      "demoId": 28994,
+      "note": null,
+      "portals": null,
+      "sarVersion": "1.12.5-pre2",
+      "players": [
+        {
+          "profileNumber": "76561199221334063",
+          "name": "Extension",
+          "avatar": "https://avatars.steamstatic.com/dbaf3958fffebf266ce5c04316da744987e9b1fb_full.jpg"
+        },
+        {
+          "profileNumber": null,
+          "name": "Unknown partner",
+          "avatar": "/unknown-partner.svg",
+          "unknown": true
+        }
+      ]
+    }
+  ],
+  "spPreviews": [
+    {
+      "score": 34473,
+      "youtubeId": null,
+      "autorenderId": "rhvRYqDsgbM",
+      "demoId": null,
+      "players": [
+        {
+          "profileNumber": "76561198099281433",
+          "name": "MilkyFrenchToast",
+          "avatar": null
+        }
+      ]
+    },
+    {
+      "score": 34476,
+      "youtubeId": "kruJ9oeehLc?start=13",
+      "autorenderId": "px62iTqY78E",
+      "demoId": null,
+      "players": [
+        {
+          "profileNumber": "76561198118049581",
+          "name": "Flaming Bag of Shit",
+          "avatar": null
+        }
+      ]
+    },
+    {
+      "score": 34480,
+      "youtubeId": null,
+      "autorenderId": "dDkZ6z1TMc8",
+      "demoId": null,
+      "players": [
+        {
+          "profileNumber": "76561198083196477",
+          "name": "Burger40",
+          "avatar": null
+        }
+      ]
+    },
+    {
+      "score": 34483,
+      "youtubeId": null,
+      "autorenderId": "Za_mUP4-J9k",
+      "demoId": null,
+      "players": [
+        {
+          "profileNumber": "76561199175950732",
+          "name": "turkey",
+          "avatar": null
+        }
+      ]
+    },
+    {
+      "score": 34486,
+      "youtubeId": null,
+      "autorenderId": "72B3gNu3IWU",
+      "demoId": null,
+      "players": [
+        {
+          "profileNumber": "76561198149112443",
+          "name": "AngerySnek",
+          "avatar": null
+        }
+      ]
+    },
+    {
+      "score": 34486,
+      "youtubeId": null,
+      "autorenderId": "fwCEFxl95DQ",
+      "demoId": null,
+      "players": [
+        {
+          "profileNumber": "76561198254956991",
+          "name": "hero",
+          "avatar": null
+        }
+      ]
+    },
+    {
+      "score": 34496,
+      "youtubeId": null,
+      "autorenderId": "KYsJxLEAaxI",
+      "demoId": null,
+      "players": [
+        {
+          "profileNumber": "76561198823602829",
+          "name": "RealCreative",
+          "avatar": null
+        }
+      ]
+    },
+    {
+      "score": 2363,
+      "youtubeId": "F_VBWvTGH2M?start=0",
+      "autorenderId": "ypD9ua9zs4Y",
+      "demoId": null,
+      "players": [
+        {
+          "profileNumber": "76561198795823814",
+          "name": "i spider",
+          "avatar": null
+        }
+      ]
+    },
+    {
+      "score": 2373,
+      "youtubeId": null,
+      "autorenderId": "n1fR5_c8M5k",
+      "demoId": null,
+      "players": [
+        {
+          "profileNumber": "76561198810570115",
+          "name": "jamal gameing",
+          "avatar": null
+        }
+      ]
+    },
+    {
+      "score": 2383,
+      "youtubeId": null,
+      "autorenderId": "UNGKe8R4-pQ",
+      "demoId": null,
+      "players": [
+        {
+          "profileNumber": "76561198254956991",
+          "name": "hero",
+          "avatar": null
+        }
+      ]
+    },
+    {
+      "score": 2393,
+      "youtubeId": null,
+      "autorenderId": "8kaYNZSbh9E",
+      "demoId": null,
+      "players": [
+        {
+          "profileNumber": "76561198096862334",
+          "name": "Unaccompanied Minor",
+          "avatar": null
+        }
+      ]
+    },
+    {
+      "score": 2400,
+      "youtubeId": null,
+      "autorenderId": "nYOhofNnnbQ",
+      "demoId": null,
+      "players": [
+        {
+          "profileNumber": "76561198371867367",
+          "name": "Rattlé",
+          "avatar": null
+        }
+      ]
+    },
+    {
+      "score": 2406,
+      "youtubeId": "kruJ9oeehLc?start=31",
+      "autorenderId": "Oo57cSzf5is",
+      "demoId": null,
+      "players": [
+        {
+          "profileNumber": "76561198118049581",
+          "name": "Flaming Bag of Shit",
+          "avatar": null
+        }
+      ]
+    },
+    {
+      "score": 2410,
+      "youtubeId": null,
+      "autorenderId": "HtZLGvnoY5Y",
+      "demoId": null,
+      "players": [
+        {
+          "profileNumber": "76561198295368421",
+          "name": "Rex",
+          "avatar": null
+        }
+      ]
+    }
+  ],
+  "coopPreviews": [
+    {
+      "score": 733,
+      "youtubeId": null,
+      "autorenderId": "-c9-hoa_cv8",
+      "demoId": null,
+      "players": [
+        {
+          "profileNumber": "76561198823602829",
+          "name": "RealCreative",
+          "avatar": null
+        },
+        {
+          "profileNumber": "76561198917972968",
+          "name": "Suola",
+          "avatar": null
+        }
+      ]
+    },
+    {
+      "score": 736,
+      "youtubeId": null,
+      "autorenderId": "mCiwnfK_VUk",
+      "demoId": null,
+      "players": [
+        {
+          "profileNumber": "76561198081168311",
+          "name": "unity",
+          "avatar": null
+        },
+        {
+          "profileNumber": "76561198823602829",
+          "name": "RealCreative",
+          "avatar": null
+        }
+      ]
+    },
+    {
+      "score": 738,
+      "youtubeId": "VM46KhhTr0E?start=269",
+      "autorenderId": "UNPWLIu0TM4",
+      "demoId": null,
+      "players": [
+        {
+          "profileNumber": "76561198795823814",
+          "name": "i spider",
+          "avatar": null
+        },
+        {
+          "profileNumber": "76561198254956991",
+          "name": "hero",
+          "avatar": null
+        }
+      ]
+    },
+    {
+      "score": 740,
+      "youtubeId": null,
+      "autorenderId": "lQsGjq2Bm8Q",
+      "demoId": null,
+      "players": [
+        {
+          "profileNumber": "76561198295368421",
+          "name": "Rex",
+          "avatar": null
+        },
+        {
+          "profileNumber": "76561198254956991",
+          "name": "hero",
+          "avatar": null
+        }
+      ]
+    },
+    {
+      "score": 741,
+      "youtubeId": null,
+      "autorenderId": "Fu3rNz1p7bI",
+      "demoId": null,
+      "players": [
+        {
+          "profileNumber": "76561198404861950",
+          "name": "Lathil",
+          "avatar": null
+        },
+        {
+          "profileNumber": "76561198172465698",
+          "name": "Nate",
+          "avatar": null
+        }
+      ]
+    },
+    {
+      "score": 750,
+      "youtubeId": null,
+      "autorenderId": "5VtdzBRN95Q",
+      "demoId": null,
+      "players": [
+        {
+          "profileNumber": "76561198048179892",
+          "name": "Betsruner",
+          "avatar": null
+        },
+        {
+          "profileNumber": "76561198095730281",
+          "name": "Bexc",
+          "avatar": null
+        }
+      ]
+    },
+    {
+      "score": 761,
+      "youtubeId": null,
+      "autorenderId": "L8tDcT4JVdA",
+      "demoId": null,
+      "players": [
+        {
+          "profileNumber": "76561198823602829",
+          "name": "RealCreative",
+          "avatar": null
+        },
+        {
+          "profileNumber": "76561197983463719",
+          "name": "Misha",
+          "avatar": null
+        }
+      ]
+    },
+    {
+      "score": 1756,
+      "youtubeId": null,
+      "autorenderId": "f3CC4UFRK0o",
+      "demoId": null,
+      "players": [
+        {
+          "profileNumber": "76561198823602829",
+          "name": "RealCreative",
+          "avatar": null
+        },
+        {
+          "profileNumber": "76561198048179892",
+          "name": "Betsruner",
+          "avatar": null
+        }
+      ]
+    },
+    {
+      "score": 1756,
+      "youtubeId": null,
+      "autorenderId": "0T_sr8pa0Zg",
+      "demoId": null,
+      "players": [
+        {
+          "profileNumber": "76561198254956991",
+          "name": "hero",
+          "avatar": null
+        },
+        {
+          "profileNumber": "76561198295368421",
+          "name": "Rex",
+          "avatar": null
+        }
+      ]
+    },
+    {
+      "score": 1760,
+      "youtubeId": null,
+      "autorenderId": "401A4Ca74mY",
+      "demoId": null,
+      "players": [
+        {
+          "profileNumber": "76561198823602829",
+          "name": "RealCreative",
+          "avatar": null
+        },
+        {
+          "profileNumber": "76561198081168311",
+          "name": "unity",
+          "avatar": null
+        }
+      ]
+    },
+    {
+      "score": 1765,
+      "youtubeId": null,
+      "autorenderId": "hFXcoAFAJ30",
+      "demoId": null,
+      "players": [
+        {
+          "profileNumber": "76561198039230536",
+          "name": "Zypeh",
+          "avatar": null
+        },
+        {
+          "profileNumber": "76561198081168311",
+          "name": "unity",
+          "avatar": null
+        }
+      ]
+    },
+    {
+      "score": 1770,
+      "youtubeId": null,
+      "autorenderId": "syOtcffaDZg",
+      "demoId": null,
+      "players": [
+        {
+          "profileNumber": "76561198095730281",
+          "name": "Bexc",
+          "avatar": null
+        },
+        {
+          "profileNumber": "76561198295368421",
+          "name": "Rex",
+          "avatar": null
+        }
+      ]
+    },
+    {
+      "score": 1781,
+      "youtubeId": null,
+      "autorenderId": "NpPXdYkOsaY",
+      "demoId": null,
+      "players": [
+        {
+          "profileNumber": "76561198404861950",
+          "name": "Lathil",
+          "avatar": null
+        },
+        {
+          "profileNumber": "76561198823602829",
+          "name": "RealCreative",
+          "avatar": null
+        }
+      ]
+    },
+    {
+      "score": 1790,
+      "youtubeId": null,
+      "autorenderId": "__vzqJca6fc",
+      "demoId": null,
+      "players": [
+        {
+          "profileNumber": "76561198149112443",
+          "name": "AngerySnek",
+          "avatar": null
+        },
+        {
+          "profileNumber": "76561198823602829",
+          "name": "RealCreative",
+          "avatar": null
+        }
+      ]
+    }
+  ],
+  "coopHalves": [
+    {
+      "player": {
+        "profileNumber": "76561198029622986",
+        "name": "0.4 Artificial Intelligence",
+        "avatar": "https://avatars.steamstatic.com/95c63e2c999d23de1df2bad0499f8749520f4f2b_full.jpg"
+      },
+      "isHost": true,
+      "changelogId": 17634,
+      "score": 1691,
+      "timestamp": "2013-07-14T15:45:47",
+      "note": null,
+      "youtubeId": null,
+      "autorenderId": "yd5__Iov7K8",
+      "demoId": 50,
+      "hasSegments": false,
+      "portals": 5,
+      "sarVersion": null
+    },
+    {
+      "player": {
+        "profileNumber": "76561197974616889",
+        "name": "Imanex",
+        "avatar": "https://avatars.steamstatic.com/82d1ac52aeddb7f08eb0f85d4f7d96160af30bb9_full.jpg"
+      },
+      "isHost": false,
+      "changelogId": null,
+      "score": null,
+      "timestamp": null,
+      "note": null,
+      "youtubeId": null,
+      "autorenderId": null,
+      "demoId": null,
+      "hasSegments": false,
+      "portals": null,
+      "sarVersion": null
+    }
+  ]
+}

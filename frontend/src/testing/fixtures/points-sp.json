@@ -1,0 +1,89 @@
+{
+  "id": null,
+  "points": [
+    [
+      "76561198295368421",
+      {
+        "points": 9166.121,
+        "score": 171462,
+        "num_scores": 57,
+        "total_rank_sum": 1325,
+        "worst": [110, "62776"],
+        "best": [2, "47738"],
+        "user_name": "Rex",
+        "avatar": "https://avatars.steamstatic.com/09bb27cf013dc71da9175902304b17548adb322a_full.jpg",
+        "country_id": null
+      }
+    ],
+    [
+      "76561198254956991",
+      {
+        "points": 11582.278,
+        "score": 235083,
+        "num_scores": 60,
+        "total_rank_sum": 272,
+        "worst": [17, "47808"],
+        "best": [1, "47736"],
+        "user_name": "hero",
+        "avatar": "https://avatars.steamstatic.com/2643702d4c2a40854d868d36afb5bf9037df4404_full.jpg",
+        "country_id": 97
+      }
+    ],
+    [
+      "76561199002945649",
+      {
+        "points": 0.0,
+        "score": 527972,
+        "num_scores": 60,
+        "total_rank_sum": 55528,
+        "worst": [1578, "47452"],
+        "best": [439, "62771"],
+        "user_name": "Super82553",
+        "avatar": "https://avatars.steamstatic.com/a8091fa7e1c73cf1289ef49f74e105e0c0f5562f_full.jpg",
+        "country_id": 97
+      }
+    ],
+    [
+      "76561198149112443",
+      {
+        "points": 11544.433,
+        "score": 235944,
+        "num_scores": 60,
+        "total_rank_sum": 293,
+        "worst": [27, "47817"],
+        "best": [1, "47472"],
+        "user_name": "AngerySnek",
+        "avatar": "https://avatars.steamstatic.com/36f5af69d7f5763b4fbede1c3a067f97505e77ce_full.jpg",
+        "country_id": null
+      }
+    ],
+    [
+      "76561198118049581",
+      {
+        "points": 11206.43,
+        "score": 239729,
+        "num_scores": 60,
+        "total_rank_sum": 470,
+        "worst": [42, "47817"],
+        "best": [1, "47468"],
+        "user_name": "Flaming Bag",
+        "avatar": "https://avatars.steamstatic.com/1aa57ae65716c4e6110f625d070a7d8e9d96953f_full.jpg",
+        "country_id": 13
+      }
+    ],
+    [
+      "76561198275753891",
+      {
+        "points": 0.0,
+        "score": 4121,
+        "num_scores": 1,
+        "total_rank_sum": 1452,
+        "worst": [1452, "47458"],
+        "best": [1452, "47458"],
+        "user_name": null,
+        "avatar": null,
+        "country_id": null
+      }
+    ]
+  ]
+}

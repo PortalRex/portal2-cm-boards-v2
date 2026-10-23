@@ -170,3 +170,52 @@ pub async fn users_badges(
         BadgeEntries::get_badge_by_user(pool.get_ref(), &profile_number).await?,
     ))
 }
+
+#[derive(Deserialize)]
+pub struct SiteStatsQuery {
+    pub game_id: Option<i32>,
+}
+
+/// **GET** Site-wide runner statistics for a game (default Portal 2), for the Stats page:
+/// `totals`, `leaders` (per list: `wr_held`, `wr_set`, `runs`, `runs_year`, `demos`, `portals`,
+/// `time_saved`, `partners`), `longest_wrs` and `peaks` (per board key, highest peak points
+/// first, each with the date reached and the player's points now).
+///
+/// - `/api/v1/stats/site`
+/// - `/api/v1/stats/site?game_id=2`
+#[get("/stats/site")]
+async fn site_stats(
+    req: actix_web::HttpRequest,
+    config: web::Data<crate::tools::config::Config>,
+    pool: web::Data<PgPool>,
+    points_cache: web::Data<crate::tools::points_cache::PointsCache>,
+    query: web::Query<SiteStatsQuery>,
+) -> Result<impl Responder> {
+    if let Err(limited) = crate::tools::ratelimit::check(&req, &config, "stats", 30, std::time::Duration::from_secs(60)) {
+        return Ok(limited);
+    }
+    let game_id = query.game_id.unwrap_or(1);
+    let stats = crate::controllers::site_stats::for_game(pool.get_ref(), &points_cache, game_id).await?;
+    Ok(actix_web::HttpResponse::Ok().json(&*stats))
+}
+
+/// **GET** World record statistics for a game (default Portal 2): every map's current record
+/// (`records`, `total_time`), `holders` (maps held now, days holding records, record runs set),
+/// `longest` (longest-lasting records), `domination` (one player holding a map through several
+/// record times), `improvements`, and the `race` (records held per player at the start of each
+/// month, per board and overall, with `race_players`).
+///
+/// - `/api/v1/stats/wr`
+#[get("/stats/wr")]
+async fn wr_stats(
+    req: actix_web::HttpRequest,
+    config: web::Data<crate::tools::config::Config>,
+    pool: web::Data<PgPool>,
+    query: web::Query<SiteStatsQuery>,
+) -> Result<impl Responder> {
+    if let Err(limited) = crate::tools::ratelimit::check(&req, &config, "stats", 30, std::time::Duration::from_secs(60)) {
+        return Ok(limited);
+    }
+    let stats = crate::controllers::wr_stats::wr_stats(pool.get_ref(), query.game_id.unwrap_or(1)).await?;
+    Ok(actix_web::HttpResponse::Ok().json(&*stats))
+}

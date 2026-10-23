@@ -37,6 +37,20 @@ pub async fn get_default_cat_ids(pool: &PgPool) -> HashMap<String, i32> {
 
 /// Filters out all obsolete times from the result, then truncates to x entries.
 pub async fn filter_coop_entries(coop_entries: Vec<CoopMap>, limit: usize) -> Vec<CoopRanked> {
+    let mut ranked = filter_coop_entries_raw(coop_entries, limit);
+    // Ranking by run: runs with the same time share a rank, like single player.
+    if crate::tools::config::coop_by_run() {
+        for i in 1..ranked.len() {
+            if ranked[i].map_data.score == ranked[i - 1].map_data.score {
+                ranked[i].rank = ranked[i - 1].rank;
+                ranked[i].points = ranked[i - 1].points;
+            }
+        }
+    }
+    ranked
+}
+
+fn filter_coop_entries_raw(coop_entries: Vec<CoopMap>, limit: usize) -> Vec<CoopRanked> {
     let mut coop_entries_filtered = Vec::new();
     let mut remove_dups: HashSet<String> = HashSet::with_capacity(limit);
     remove_dups.insert("N/A".to_string());
@@ -136,6 +150,7 @@ pub async fn check_for_valid_score(
         limit,
         cl.category_id.unwrap(),
         cl.game_id.unwrap_or(1),
+        None,
     )
     .await
     .unwrap();
@@ -195,4 +210,38 @@ pub async fn get_valid_changelog_insert(
     };
     // Step 4
     Ok(ChangelogInsert::new_from_submission(cl, values, &cache.default_cat_ids).await)
+}
+
+/// The game a map belongs to (1, Portal 2, if it's unknown).
+/// A moment from a query: a day (YYYY-MM-DD, meaning its end, UTC) or a time (ISO, UTC; a
+/// trailing Z or fraction is fine).
+pub fn parse_moment(input: &str) -> Option<chrono::NaiveDateTime> {
+    let s = input.trim().trim_end_matches('Z');
+    if let Ok(d) = chrono::NaiveDate::parse_from_str(s, "%Y-%m-%d") {
+        return d.and_hms_opt(23, 59, 59);
+    }
+    chrono::NaiveDateTime::parse_from_str(s, "%Y-%m-%dT%H:%M:%S%.f").ok()
+}
+
+pub async fn map_game_id(pool: &PgPool, map_id: &str) -> i32 {
+    sqlx::query_scalar::<_, i32>("SELECT c.game_id FROM maps AS m JOIN chapters AS c ON c.id = m.chapter_id WHERE m.steam_id = $1")
+        .bind(map_id)
+        .fetch_optional(pool)
+        .await
+        .ok()
+        .flatten()
+        .unwrap_or(1)
+}
+
+/// One HTTP client for calls to Steam and the like (connection pool and TLS set-up are shared,
+/// rather than built per request).
+pub fn http_client() -> &'static reqwest::Client {
+    static CLIENT: std::sync::OnceLock<reqwest::Client> = std::sync::OnceLock::new();
+    CLIENT.get_or_init(|| {
+        reqwest::Client::builder()
+            .timeout(std::time::Duration::from_secs(10))
+            .user_agent("p2cm-boards")
+            .build()
+            .expect("http client")
+    })
 }

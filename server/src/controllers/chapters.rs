@@ -40,43 +40,26 @@ impl Chapters {
             .fetch_optional(pool)
             .await
     }
-    /// Makes a call to [build_filtered_chapter] with the [ChapterQueryParams] to returned a filtered list of chapters.
+    /// Chapters filtered by name (contains, case-insensitive), single/multiplayer and game.
     pub async fn get_filtered_chapters(
         pool: &PgPool,
         params: ChapterQueryParams,
     ) -> Result<Vec<Chapters>, sqlx::Error> {
-        sqlx::query_as::<_, Chapters>(&build_filtered_chapter(params).await)
-            .fetch_all(pool)
-            .await
+        let name = params.chapter_name.filter(|n| !n.trim().is_empty()).map(|n| format!("%{}%", n.trim()));
+        sqlx::query_as::<_, Chapters>(
+            r#"
+                SELECT * FROM chapters
+                WHERE ($1::text IS NULL OR LOWER(chapter_name) LIKE LOWER($1))
+                  AND ($2::bool IS NULL OR is_multiplayer = $2)
+                  AND ($3::int IS NULL OR game_id = $3)
+                ORDER BY id
+            "#,
+        )
+        .bind(name)
+        .bind(params.is_multiplayer)
+        .bind(params.game_id)
+        .fetch_all(pool)
+        .await
     }
 }
 
-// TODO: Do we want to return a chapter/map bundled information?
-/// Helper function to build out a query string based on [ChapterQueryParams] passed by the user.
-pub async fn build_filtered_chapter(params: ChapterQueryParams) -> String {
-    let mut query_string: String = String::from(r#"SELECT * FROM chapters"#);
-    let mut filters: Vec<String> = Vec::new();
-    if let Some(chapter_name) = params.chapter_name {
-        filters.push(format!(
-            "LOWER(chapter_name) LIKE LOWER('%{}%')\n",
-            chapter_name
-        ));
-    }
-    if let Some(is_multiplayer) = params.is_multiplayer {
-        match is_multiplayer {
-            true => filters.push("is_multiplayer = 'true'\n".to_string()),
-            false => filters.push("is_multiplayer = 'false'\n".to_string()),
-        }
-    }
-    if let Some(game_id) = params.game_id {
-        filters.push(format!("game_id = {}\n", game_id));
-    }
-    // Build the statement based off the elements we added to our vector (used to make sure only first statement is WHERE, and additional are OR)
-    for (i, entry) in filters.iter().enumerate() {
-        match i {
-            0 => query_string = format!("{} WHERE {}", query_string, entry),
-            _ => query_string = format!("{} AND {}", query_string, entry),
-        }
-    }
-    query_string
-}

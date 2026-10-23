@@ -122,3 +122,7 @@ Cargo.lock
 .bak
 
 .DS_Store
+
+# Submitted demos (DEMO.STORAGE)
+server/demos/
+*.dem

@@ -34,6 +34,9 @@ pub struct Points {
     pub best: (i32, String),
     pub user_name: Option<String>,
     pub avatar: Option<String>,
+    /// The player's country (countries.id), when they've set one.
+    #[serde(default)]
+    pub country_id: Option<i32>,
 }
 
 /// Oldest and newest `MapScoreDate` for a profile.
@@ -50,6 +53,12 @@ pub struct ProfileData {
 pub struct PointsProfileWrapper {
     pub id: i32,
     pub points: Points,
+    /// 1-based placement by points on this board.
+    pub place: i32,
+    /// 1-based placement by total time among players with the same number of scores.
+    pub score_place: i32,
+    /// 1-based placement by points among players of the same country (when they've set one).
+    pub country_place: Option<i32>,
 }
 
 /// Profile Page that includes a Vec of PointsProfileWrappers, ProfileData and a hasmap of map_ids to current ranks.
