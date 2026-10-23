@@ -69,6 +69,9 @@
 
 ## Log
 <!-- Newest first. One entry per finished item: date, what was done, commit, tests added. -->
+- 2026-10-23: New (asked for): WR announcements on Discord, one webhook per game (seasons too): a "WR
+  announcements" card in the games editor (admins) to set, test or remove it (`GameWebhookCard` in
+  `game-panel.tsx`); the server posts newly verified WRs (BACKEND_CHANGES §5, `tools/wr_webhooks.rs`).
 - 2026-10-23: New (asked for): a search field in the Admin changelog. The server searches the whole log (`q` on
   `GET /admin/audit`: staff, player, partner and profile names, map names, reasons, catalog details, exact ids),
   so paging still works; it combines with the tab and action filters and asks once typing pauses.

@@ -21,5 +21,7 @@ pub mod jobs;
 /// Live updates for the staff inbox
 pub mod staff_events;
 pub mod steam_sync;
+/// Discord announcements of new world records, one webhook per game
+pub mod wr_webhooks;
 
 pub mod error;

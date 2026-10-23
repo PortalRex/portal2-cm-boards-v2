@@ -534,3 +534,145 @@ async fn test_db_freeze_rules() {
     assert_eq!(frozen, ["test-freeze-player", "test-freeze-verifier"]);
     cleanup().await;
 }
+
+#[actix_web::test]
+async fn test_db_wr_webhooks() {
+    use crate::tools::wr_webhooks::{check, PostError};
+    use serde_json::Value;
+    use std::sync::{Arc, Mutex};
+    let (_, pool) = get_config().await.expect("Error getting config and DB pool");
+    // Our own rows (removed again at the end); the games' webhooks and the announcer's start are put back.
+    let saved: Vec<(i32, Option<String>)> = sqlx::query_as("SELECT id, wr_webhook_url FROM games").fetch_all(&pool).await.unwrap();
+    let after: i64 = sqlx::query_scalar("SELECT after_id FROM wr_announcer_state").fetch_one(&pool).await.unwrap();
+    let cleanup = || async {
+        for sql in [
+            "DELETE FROM legacy_changelog_ids WHERE changelog_id IN (SELECT id FROM changelog WHERE profile_number LIKE 'test-wr-%')",
+            "UPDATE changelog SET coop_id = NULL WHERE profile_number LIKE 'test-wr-%'",
+            "DELETE FROM coop_bundled WHERE mirror_of IN (SELECT id FROM coop_bundled WHERE p_id1 LIKE 'test-wr-%')",
+            "DELETE FROM coop_bundled WHERE p_id1 LIKE 'test-wr-%'",
+            "DELETE FROM changelog WHERE mirror_of IN (SELECT id FROM changelog WHERE profile_number LIKE 'test-wr-%')",
+            "DELETE FROM changelog WHERE profile_number LIKE 'test-wr-%'",
+            "DELETE FROM users WHERE profile_number LIKE 'test-wr-%'",
+        ] {
+            sqlx::query(sql).execute(&pool).await.unwrap();
+        }
+    };
+    cleanup().await;
+    sqlx::query("UPDATE wr_announcer_state SET after_id = (SELECT max(id) FROM changelog)").execute(&pool).await.unwrap();
+    sqlx::query("UPDATE games SET wr_webhook_url = NULL").execute(&pool).await.unwrap();
+    sqlx::query("UPDATE games SET wr_webhook_url = 'https://discord.com/api/webhooks/1/portal2' WHERE id = 1").execute(&pool).await.unwrap();
+    for (id, banned) in [("test-wr-a", false), ("test-wr-b", false), ("test-wr-banned", true), ("test-wr-blue", false), ("test-wr-orange", false)] {
+        sqlx::query("INSERT INTO users (profile_number, steam_name, banned) VALUES ($1, $1, $2)").bind(id).bind(banned).execute(&pool).await.unwrap();
+    }
+    // Runs on Laser Stairs (single player) and Turret Assassin (co-op), in their default categories.
+    let run = |who: &'static str, map: &'static str, cat: i32, score: i32, verified: bool| {
+        let pool = pool.clone();
+        async move {
+            sqlx::query_scalar::<_, i64>(
+                "INSERT INTO changelog (timestamp, profile_number, score, map_id, banned, submission, category_id, verified) VALUES (now(), $1, $2, $3, false, 1, $4, $5) RETURNING id",
+            )
+            .bind(who)
+            .bind(score)
+            .bind(map)
+            .bind(cat)
+            .bind(verified)
+            .fetch_one(&pool)
+            .await
+            .unwrap()
+        }
+    };
+    // What a check posts (webhook, body), answering each post with the next queued result (else Ok).
+    let sent: Arc<Mutex<Vec<(String, Value)>>> = Arc::default();
+    let answers: Arc<Mutex<Vec<Result<(), PostError>>>> = Arc::default();
+    let send = |url: String, body: Value| {
+        let (sent, answers) = (sent.clone(), answers.clone());
+        async move {
+            let answer = answers.lock().unwrap().pop().unwrap_or(Ok(()));
+            if answer.is_ok() {
+                sent.lock().unwrap().push((url, body));
+            }
+            answer
+        }
+    };
+    let field = |body: &Value, i: usize| body["embeds"][0]["fields"][i]["value"].as_str().unwrap().to_string();
+    let posted = || sent.lock().unwrap().drain(..).map(|(url, body)| (url, field(&body, 0), field(&body, 1))).collect::<Vec<_>>();
+    let marked = |id: i64| {
+        let pool = pool.clone();
+        async move { sqlx::query_scalar::<_, bool>("SELECT posted FROM wr_announcements WHERE changelog_id = $1").bind(id).fetch_optional(&pool).await.unwrap() }
+    };
+
+    // A new WR is posted to Portal 2's webhook; slower, banned and unverified runs aren't.
+    let wr = run("test-wr-a", "47736", 54, 1, true).await;
+    let slower = run("test-wr-b", "47736", 54, 2, true).await;
+    let banned = run("test-wr-banned", "47736", 54, 1, true).await;
+    let pending = run("test-wr-b", "47736", 54, 1, false).await;
+    check(&pool, "https://b", send).await.unwrap();
+    let p = posted();
+    assert_eq!(p.len(), 1, "{p:?}");
+    assert_eq!(p[0].0, "https://discord.com/api/webhooks/1/portal2");
+    // The improvement is over the map's best time before this run (the real WR), not later runs.
+    // (Banned players' runs don't count; the test data has some junk ones at i32::MIN.)
+    let before: i32 = sqlx::query_scalar(
+        "SELECT min(cl.score) FROM changelog AS cl JOIN users AS u ON u.profile_number = cl.profile_number WHERE cl.map_id = '47736' AND cl.category_id = 54 AND cl.verified AND NOT cl.banned AND NOT u.banned AND cl.id < $1",
+    )
+        .bind(wr)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert_eq!(p[0].1, format!("0.01 (-{})", crate::controllers::submissions::format_time(before - 1)));
+    assert!(p[0].2.contains("test-wr-a"), "{p:?}");
+    assert_eq!((marked(wr).await, marked(slower).await, marked(banned).await, marked(pending).await), (Some(true), Some(false), Some(false), None));
+    check(&pool, "https://b", send).await.unwrap();
+    assert!(posted().is_empty(), "nothing twice");
+
+    // A tie: Discord busy the first time (kept for the next check), then posted once.
+    let tie = run("test-wr-b", "47736", 54, 1, true).await;
+    answers.lock().unwrap().push(Err(PostError::Retry("429".into())));
+    check(&pool, "https://b", send).await.unwrap();
+    assert!(posted().is_empty() && marked(tie).await.is_none());
+    check(&pool, "https://b", send).await.unwrap();
+    let p = posted();
+    assert_eq!((p.len(), p[0].1.as_str()), (1, "0.01 (tie)"));
+
+    // Refused by Discord: not tried again. From the old boards' sync: never posted.
+    let refused = run("test-wr-a", "47736", 54, 0, true).await;
+    answers.lock().unwrap().push(Err(PostError::Refused("404".into())));
+    check(&pool, "https://b", send).await.unwrap();
+    assert_eq!(marked(refused).await, Some(false));
+    let synced = run("test-wr-b", "47736", 54, -1, true).await;
+    sqlx::query("INSERT INTO legacy_changelog_ids (game_id, legacy_id, changelog_id) VALUES (1, -1, $1)").bind(synced).execute(&pool).await.unwrap();
+    check(&pool, "https://b", send).await.unwrap();
+    assert!(posted().is_empty());
+    assert_eq!(marked(synced).await, Some(false));
+
+    // A co-op WR: one post naming both players.
+    let (h1, h2) = (run("test-wr-blue", "52642", 21, 1, true).await, run("test-wr-orange", "52642", 21, 1, true).await);
+    let coop: i64 = sqlx::query_scalar(
+        "INSERT INTO coop_bundled (p_id1, p_id2, p1_is_host, cl_id1, cl_id2) VALUES ('test-wr-blue', 'test-wr-orange', true, $1, $2) RETURNING id",
+    )
+    .bind(h1)
+    .bind(h2)
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    sqlx::query("UPDATE changelog SET coop_id = $1 WHERE id IN ($2, $3)").bind(coop).bind(h1).bind(h2).execute(&pool).await.unwrap();
+    check(&pool, "https://b", send).await.unwrap();
+    let p = posted();
+    assert_eq!(p.len(), 1, "{p:?}");
+    assert!(p[0].2.contains("test-wr-blue") && p[0].2.contains("test-wr-orange"), "{p:?}");
+
+    // A game without a webhook posts nothing, and its runs aren't posted later when one is added.
+    sqlx::query("UPDATE games SET wr_webhook_url = NULL WHERE id = 1").execute(&pool).await.unwrap();
+    let quiet = run("test-wr-a", "47736", 54, -2, true).await;
+    check(&pool, "https://b", send).await.unwrap();
+    sqlx::query("UPDATE games SET wr_webhook_url = 'https://discord.com/api/webhooks/1/portal2' WHERE id = 1").execute(&pool).await.unwrap();
+    check(&pool, "https://b", send).await.unwrap();
+    assert!(posted().is_empty());
+    assert_eq!(marked(quiet).await, Some(false));
+
+    cleanup().await;
+    for (id, url) in saved {
+        sqlx::query("UPDATE games SET wr_webhook_url = $2 WHERE id = $1").bind(id).bind(url).execute(&pool).await.unwrap();
+    }
+    sqlx::query("UPDATE wr_announcer_state SET after_id = $1").bind(after).execute(&pool).await.unwrap();
+}

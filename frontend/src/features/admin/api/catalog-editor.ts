@@ -1,4 +1,6 @@
+import { queryOptions } from '@tanstack/react-query'
 import { api } from '@/lib/api-client'
+import { queryKeys } from '@/lib/query-keys'
 
 // The games editor's calls (server handlers/catalog.rs). Each change is logged in the audit log.
 
@@ -36,6 +38,22 @@ export const setGameImage = (id: number, kind: GameImageKind, file: File) =>
 export const removeGameImage = (id: number, kind: GameImageKind) =>
   api.delete(`/admin/games/${id}/images/${kind}`)
 export type GameImageKind = 'logo' | 'background'
+
+/** A game's Discord webhook for WR announcements, its secret part hidden (admins only). */
+export interface GameWebhook {
+  set: boolean
+  /** e.g. "https://discord.com/api/webhooks/123/…abcd"; null when there's none. */
+  url: string | null
+}
+export const gameWebhookQueryOptions = (id: number) =>
+  queryOptions({
+    queryKey: queryKeys.admin.gameWebhook(id),
+    queryFn: ({ signal }) => api.get<GameWebhook>(`/admin/games/${id}/webhook`, { signal }),
+  })
+/** Sets the webhook (a Discord webhook address), or removes it with null. */
+export const setGameWebhook = (id: number, url: string | null) =>
+  api.put<GameWebhook>(`/admin/games/${id}/webhook`, { body: { url } })
+export const testGameWebhook = (id: number) => api.post(`/admin/games/${id}/webhook/test`)
 
 export const createChapter = (
   gameId: number,

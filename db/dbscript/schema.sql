@@ -1620,3 +1620,22 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_users_submit_key_hash ON users (submit_key
 UPDATE users SET submit_key_hash = sha256(convert_to(auth_hash, 'UTF8'))
 WHERE auth_hash ~ '^[A-Za-z0-9]{1,64}$' AND submit_key_hash IS NULL;
 UPDATE users SET auth_hash = NULL WHERE auth_hash IS NOT NULL;
+
+-- 20261113000000_wr_webhooks.sql
+-- The game's Discord webhook for its WRs (admins set it in the games editor); NULL posts nothing.
+ALTER TABLE games ADD COLUMN IF NOT EXISTS wr_webhook_url character varying(300);
+
+-- Runs the announcer has checked, so each is announced at most once (posted: it was a WR and was sent).
+CREATE TABLE IF NOT EXISTS wr_announcements (
+    changelog_id bigint PRIMARY KEY REFERENCES changelog(id) ON DELETE CASCADE,
+    posted boolean NOT NULL,
+    checked_at timestamp without time zone NOT NULL DEFAULT (now() AT TIME ZONE 'utc')
+);
+
+-- The announcer only looks at runs after this one: the newest run when announcing was set up, so
+-- no old WR is ever posted.
+CREATE TABLE IF NOT EXISTS wr_announcer_state (
+    id boolean PRIMARY KEY DEFAULT true CHECK (id),
+    after_id bigint NOT NULL
+);
+INSERT INTO wr_announcer_state (after_id) SELECT COALESCE(max(id), 0) FROM changelog ON CONFLICT DO NOTHING;

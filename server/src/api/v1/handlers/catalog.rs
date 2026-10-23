@@ -9,6 +9,7 @@ use crate::{
         auth::{AdminOrService, MaybeUser},
         error::Result,
         points_cache::invalidate_points,
+        wr_webhooks,
     },
 };
 use actix_multipart::Multipart;
@@ -17,7 +18,7 @@ use futures::StreamExt;
 use serde_json::json;
 use std::path::Path;
 use chrono::NaiveDateTime;
-use serde::Deserializer;
+use serde::{Deserialize, Deserializer};
 use sqlx::PgPool;
 
 /// **GET** Every game and season with its chapters, maps and categories, in display order.
@@ -447,6 +448,84 @@ async fn admin_game_image_delete(auth: AdminOrService, pool: web::Data<PgPool>, 
         crate::controllers::moderation::log_admin(pool.get_ref(), &auth, &format!("game.{kind}_remove"), "game", &id.to_string(), json!({})).await?;
     }
     Ok(HttpResponse::NoContent().finish())
+}
+
+#[derive(Deserialize)]
+pub struct WebhookBody {
+    /// A Discord webhook address, or null (or "") for none.
+    pub url: Option<String>,
+}
+
+/// **GET** A game's Discord webhook for WR announcements (admin tier), with its secret part hidden:
+/// `{ "set": true, "url": "https://discord.com/api/webhooks/123/…abcd" }` or `{ "set": false, "url": null }`.
+#[get("/admin/games/{id}/webhook")]
+async fn admin_game_webhook_get(auth: AdminOrService, pool: web::Data<PgPool>, id: web::Path<i32>) -> Result<impl Responder> {
+    if let Some(r) = admin_only(&auth) {
+        return Ok(r);
+    }
+    let url: Option<Option<String>> = sqlx::query_scalar("SELECT wr_webhook_url FROM games WHERE id = $1").bind(id.into_inner()).fetch_optional(pool.get_ref()).await?;
+    let Some(url) = url else {
+        return Ok(HttpResponse::NotFound().body("No such game."));
+    };
+    let url = url.filter(|u| !u.is_empty());
+    Ok(HttpResponse::Ok().json(json!({ "set": url.is_some(), "url": url.as_deref().map(wr_webhooks::masked) })))
+}
+
+/// **PUT** Set (`{ "url": "https://discord.com/api/webhooks/..." }`) or remove (`{ "url": null }`) a
+/// game's Discord webhook for WR announcements (admin tier). Each game, season included, has its
+/// own; only Discord webhook addresses are accepted. The audit log notes the change, not the address.
+#[put("/admin/games/{id}/webhook")]
+async fn admin_game_webhook_set(auth: AdminOrService, pool: web::Data<PgPool>, id: web::Path<i32>, body: web::Json<WebhookBody>) -> Result<impl Responder> {
+    if let Some(r) = admin_only(&auth) {
+        return Ok(r);
+    }
+    let id = id.into_inner();
+    let url = body.url.as_deref().map(str::trim).filter(|u| !u.is_empty());
+    if url.is_some_and(|u| !wr_webhooks::valid_webhook(u)) {
+        return Ok(HttpResponse::BadRequest().body("That isn't a Discord webhook address (https://discord.com/api/webhooks/...)."));
+    }
+    let updated = sqlx::query("UPDATE games SET wr_webhook_url = $2 WHERE id = $1").bind(id).bind(url).execute(pool.get_ref()).await?;
+    if updated.rows_affected() == 0 {
+        return Ok(HttpResponse::NotFound().body("No such game."));
+    }
+    crate::controllers::moderation::log_admin(pool.get_ref(), &auth, "game.wr_webhook", "game", &id.to_string(), json!({ "set": url.is_some() })).await?;
+    Ok(HttpResponse::Ok().json(json!({ "set": url.is_some(), "url": url.map(wr_webhooks::masked) })))
+}
+
+/// **POST** Send a test message to a game's WR webhook (admin tier), to check it reaches the right channel.
+#[post("/admin/games/{id}/webhook/test")]
+async fn admin_game_webhook_test(
+    req: HttpRequest,
+    auth: AdminOrService,
+    pool: web::Data<PgPool>,
+    config: web::Data<crate::tools::config::Config>,
+    id: web::Path<i32>,
+) -> Result<impl Responder> {
+    if let Some(r) = admin_only(&auth) {
+        return Ok(r);
+    }
+    if let Err(limited) = crate::tools::ratelimit::check(&req, &config, "webhook-test", 5, std::time::Duration::from_secs(60)) {
+        return Ok(limited);
+    }
+    let game: Option<(String, Option<String>)> = sqlx::query_as("SELECT game_name, wr_webhook_url FROM games WHERE id = $1").bind(id.into_inner()).fetch_optional(pool.get_ref()).await?;
+    let Some((name, url)) = game else {
+        return Ok(HttpResponse::NotFound().body("No such game."));
+    };
+    let Some(url) = url.filter(|u| !u.is_empty()) else {
+        return Ok(HttpResponse::BadRequest().body("This game has no webhook yet."));
+    };
+    let body = json!({
+        "username": name.chars().take(80).collect::<String>(),
+        "content": format!("Test from {}: new {name} world records will be posted here.", config.server.public_url().trim_end_matches('/')),
+        "allowed_mentions": { "parse": [] },
+    });
+    Ok(match wr_webhooks::post(&url, &body).await {
+        Ok(()) => HttpResponse::NoContent().finish(),
+        Err(wr_webhooks::PostError::Retry(why) | wr_webhooks::PostError::Refused(why)) => {
+            log::warn!("WR webhook test for {name} failed: {why}");
+            HttpResponse::BadGateway().body("Discord didn't take the message: check the webhook still exists.")
+        }
+    })
 }
 
 /// **GET** A game's uploaded logo or background (the address the catalog gives, `?v=` changes with each upload).

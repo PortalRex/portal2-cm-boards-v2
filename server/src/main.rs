@@ -108,6 +108,7 @@ async fn main() -> Result<(), Error> {
     crate::tools::demo_parse::start(jobs_pool.clone(), config.clone(), init_data.clone());
     crate::tools::points_history::start_legends_check(jobs_pool.clone());
     crate::tools::staff_events::start(jobs_pool.clone());
+    crate::tools::wr_webhooks::start(jobs_pool.clone(), config.clone());
     let jobs_pool = web::Data::new(crate::tools::jobs::JobsPool(jobs_pool));
     println!(
         "Server starting at http://{}:{}/",

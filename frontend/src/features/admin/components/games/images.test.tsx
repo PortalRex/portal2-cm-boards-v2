@@ -56,7 +56,9 @@ function serve() {
     http.all(`${API}/admin/*`, async ({ request }) => {
       const path = new URL(request.url).pathname.replace(/^\/api\/v1/, '')
       const image = request.method === 'POST' ? (await request.formData()).get('image') : null
-      sent.push({ method: request.method, path, file: image instanceof File ? image.name : null })
+      // The changes only (the editor also loads each game's webhook).
+      if (request.method !== 'GET')
+        sent.push({ method: request.method, path, file: image instanceof File ? image.name : null })
       return new HttpResponse(null, { status: 200 })
     }),
   )

@@ -48,6 +48,7 @@ New databases get everything from `db/dbscript/schema.sql`. An existing database
 | `20261110000000_coop_partner_demo.sql` | `coop_bundled.partner_demo_id`: a co-op partner's demo of a run that wasn't a personal best for them (see [§8](#8-run-submissions-and-demos)); linked copies of a pairing carry it. |
 | `20261111000000_changelog_newest_index.sql` | `idx_changelog_newest` (changelog by timestamp, newest first, undated last): Score Updates read the newest runs off it instead of sorting the whole table (~175 ms → ~4 ms). |
 | `20261112000000_submit_keys.sql` | `users.submit_key_hash` / `submit_key_created`: SAR auto-submit keys, kept only as SHA-256 (unique index). The old boards' keys (`users.auth_hash`, imported) are hashed the same way, so they keep working, and their plaintext copies cleared. |
+| `20261113000000_wr_webhooks.sql` | `games.wr_webhook_url` (each game's Discord webhook for WR announcements), `wr_announcements` (runs the announcer checked, so each is posted at most once) and `wr_announcer_state` (it starts after the newest run when the migration ran, so no old WR is posted). |
 
 `import_boards.py` builds a fresh database from the old boards' MySQL dumps and runs the BSP-name step itself (see
 [§10](#10-import-and-maintenance-scripts)).
@@ -162,6 +163,8 @@ All under `/api/v1`. Auth: **public**, **signed in**, **staff** (any tier or ser
 | Method & path | Auth | Purpose |
 |---|---|---|
 | `GET /admin/audit?kind=&action=&q=&before=&limit=` | staff | The audit log; `kind` = `runs`, `profiles` or `catalog`; `q` searches names (staff, player, co-op partner, profile), map names, reasons and catalog details (ignoring case), or matches a run id, Steam id or target id exactly. |
+| `GET/PUT /admin/games/{id}/webhook` | admin tier | A game's Discord webhook for WR announcements: `GET` answers `{ set, url }` with the token hidden; `PUT { "url" }` sets it (Discord webhook addresses only) or removes it (`null`). Never in `/catalog`; the audit log notes the change, not the address. |
+| `POST /admin/games/{id}/webhook/test` | admin tier | Sends a test message to the game's webhook (5 a minute). |
 | `PUT /admin/runs/{id}/banned` | staff | Hide a run from the boards / restore it (both co-op halves). |
 | `PUT /admin/runs/{id}/verified` | staff | Verify a pending run / mark it pending. |
 | `PUT /admin/runs/{id}/wr_history` | staff | Remove from / restore to the map's WR history. |
@@ -457,6 +460,15 @@ The admin tier can give any map its own image in the games editor (`POST /admin/
 `image`: PNG, JPEG or WebP up to 5 MB; `DELETE` goes back to the site's built-in image). Files are kept in
 `IMAGES.STORAGE` (migration `20261101000000_map_images.sql`), served at `GET /maps/{steam_id}/image?v=` and cached for
 good since the catalog's `image_version` changes with each upload. Uploads and removals are in the audit log.
+
+**WR announcements** (`server/src/tools/wr_webhooks.rs`), like the old boards' and the Mel board's Discord WR webhooks,
+but one webhook per game, seasons included (set in the games editor), so Portal 2, Mel and every other game post to
+their own channels. Every 30 s the server checks newly verified runs: a run that holds rank 1 on its map (ties
+count; banned players' runs and the co-op `N/A` placeholder don't) is posted to its game's webhook as the old embed
+(map with its page and thumbnail, "WR: time (-improvement)", "By" with profile links; both players for co-op, one
+post), with mentions turned off. Each run is checked once; a post Discord can't take right now is retried, one it
+refuses isn't. Runs from the old boards' sync are never posted (the old boards announce those), and nothing from
+before the migration is. Games without a webhook post nothing.
 
 Games have the same for their header branding: `POST /admin/games/{id}/images/logo` or `.../images/background`
 (form field `image`, same limits; `DELETE` goes back to the site's built-in one), served at

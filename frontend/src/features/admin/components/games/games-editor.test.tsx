@@ -97,7 +97,7 @@ const catalog = (): CatalogGameRaw[] => [
   }),
 ]
 
-/** Serves the catalog and records every editor request (method, path, body). */
+/** Serves the catalog and records every change the editor sends (method, path, body; not GETs). */
 function serveEditor(
   answer: (method: string, path: string, body: unknown) => Response | undefined = () => undefined,
 ) {
@@ -111,7 +111,7 @@ function serveEditor(
     http.all(`${API}/admin/*`, async ({ request }) => {
       const path = new URL(request.url).pathname.replace(/^\/api\/v1/, '')
       const body = await request.json().catch(() => null)
-      sent.push({ method: request.method, path, body })
+      if (request.method !== 'GET') sent.push({ method: request.method, path, body })
       return answer(request.method, path, body) ?? HttpResponse.json({ id: 99 })
     }),
   )
@@ -397,5 +397,77 @@ describe('chapters and maps', () => {
       { method: 'POST', path: '/admin/maps/srm-1/links', body: { map: '47455' } },
       { method: 'DELETE', path: '/admin/maps/srm-1', body: null },
     ])
+  })
+})
+
+describe('WR announcements', () => {
+  const webhook = (url: string | null) => HttpResponse.json({ set: url != null, url })
+
+  it("sets a game's own Discord webhook, tests it, and stops posting", async () => {
+    let current: string | null = null
+    const { sent } = serveEditor((method, path, body) => {
+      if (path !== '/admin/games/1/webhook')
+        return path === '/admin/games/1/webhook/test' ? new Response(null, { status: 204 }) : undefined
+      if (method === 'PUT')
+        current = (body as { url: string | null }).url ? 'https://discord.com/api/webhooks/1/…oken' : null
+      return webhook(current)
+    })
+    await renderWithProviders(<GamesEditor />, { user: 'admin' })
+    await pick('Portal 2')
+    const card = within(await screen.findByRole('region', { name: 'WR announcements' }))
+    expect(await card.findByText('Not posting anywhere yet.')).toBeInTheDocument()
+    expect(card.queryByRole('button', { name: 'Send a test' })).toBeNull()
+    await userEvent.type(
+      card.getByRole('textbox', { name: 'Discord webhook' }),
+      'https://discord.com/api/webhooks/1/token',
+    )
+    await userEvent.click(card.getByRole('button', { name: 'Save' }))
+    expect(await card.findByText('https://discord.com/api/webhooks/1/…oken')).toBeInTheDocument()
+    await userEvent.click(card.getByRole('button', { name: 'Send a test' }))
+    expect(await card.findByRole('status')).toHaveTextContent('Test message sent.')
+    await userEvent.click(card.getByRole('button', { name: 'Stop posting' }))
+    expect(await card.findByText('Not posting anywhere yet.')).toBeInTheDocument()
+    expect(sent.filter((s) => s.path.startsWith('/admin/games/1/webhook') && s.method !== 'GET')).toEqual([
+      {
+        method: 'PUT',
+        path: '/admin/games/1/webhook',
+        body: { url: 'https://discord.com/api/webhooks/1/token' },
+      },
+      { method: 'POST', path: '/admin/games/1/webhook/test', body: null },
+      { method: 'PUT', path: '/admin/games/1/webhook', body: { url: null } },
+    ])
+  })
+
+  it('shows why a webhook was refused', async () => {
+    serveEditor((method, path) =>
+      path === '/admin/games/1/webhook'
+        ? method === 'PUT'
+          ? new HttpResponse("That isn't a Discord webhook address.", { status: 400 })
+          : webhook(null)
+        : undefined,
+    )
+    await renderWithProviders(<GamesEditor />, { user: 'admin' })
+    await pick('Portal 2')
+    const card = within(await screen.findByRole('region', { name: 'WR announcements' }))
+    await userEvent.type(card.getByRole('textbox', { name: 'Discord webhook' }), 'https://evil.example/hook')
+    await userEvent.click(card.getByRole('button', { name: 'Save' }))
+    expect(await card.findByText("That isn't a Discord webhook address.")).toBeInTheDocument()
+  })
+
+  it('gives each game and season its own webhook', async () => {
+    const asked: string[] = []
+    serveEditor((_method, path) => {
+      if (!path.endsWith('/webhook')) return undefined
+      asked.push(path)
+      return webhook(null)
+    })
+    await renderWithProviders(<GamesEditor />, { user: 'admin' })
+    await pick('Portal 2')
+    await screen.findByRole('region', { name: 'WR announcements' })
+    const season = catalog().find((g) => g.kind === 'season')!
+    await pick(season.name)
+    await waitFor(() =>
+      expect(asked).toEqual(['/admin/games/1/webhook', `/admin/games/${season.id}/webhook`]),
+    )
   })
 })
