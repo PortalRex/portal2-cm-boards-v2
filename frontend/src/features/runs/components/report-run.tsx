@@ -1,14 +1,16 @@
 import { useMutation } from '@tanstack/react-query'
 import { useState, type FormEvent } from 'react'
 import { FlagIcon } from '@/components/icons'
+import { useReadOnly } from '@/hooks/use-read-only'
 import { REPORT_REASONS, reportRun, type ReportReason } from '@/lib/runs/reports'
 
 const field = 'rounded-[4px] border border-line bg-control px-2.5 py-1.5 text-[15px] text-foreground'
 const action =
   'h-8 cursor-pointer rounded-[4px] border border-line-strong bg-control px-3.5 text-[15px] text-foreground disabled:cursor-default disabled:opacity-50'
 
-/** Anyone can report a run; staff see the report but not who sent it. */
+/** Anyone can report a run (not while the boards are read-only); staff see the report but not who sent it. */
 export function ReportRun({ changelogId }: { changelogId: number }) {
+  const { blocked } = useReadOnly()
   const [open, setOpen] = useState(false)
   const [reason, setReason] = useState<ReportReason | ''>('')
   const [details, setDetails] = useState('')
@@ -16,6 +18,7 @@ export function ReportRun({ changelogId }: { changelogId: number }) {
     mutationFn: () => reportRun(changelogId, reason as ReportReason, details.trim()),
   })
 
+  if (blocked) return null
   if (send.isSuccess) {
     return (
       <p className="mt-2.5 mb-0 text-sm text-green">Thanks, staff will take a look. Reports are anonymous.</p>

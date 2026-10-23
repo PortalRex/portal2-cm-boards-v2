@@ -9,6 +9,7 @@ import { Panel } from '@/components/panel'
 import { Segmented } from '@/components/segmented'
 import { COOP_PB_STYLES, useCoopPbStyle } from '@/hooks/use-coop-pb-style'
 import { useCurrentUser } from '@/hooks/use-current-user'
+import { useReadOnly } from '@/hooks/use-read-only'
 import { useTheme, type Theme } from '@/hooks/use-theme'
 import { useViewAsPlayer } from '@/hooks/use-view-as-player'
 import { logout, ROLE_LABELS, steamLoginUrl, type CurrentUser } from '@/lib/auth'
@@ -50,6 +51,9 @@ export function SettingsPage() {
   const [, setViewAsPlayer] = useViewAsPlayer()
   const user = useCurrentUser()
   const signedIn = user && !user.sample ? user : null
+  // Read-only mode: players' profile settings wait (the server refuses them anyway).
+  const { blocked } = useReadOnly()
+  const editable = signedIn && !blocked ? signedIn : null
   // The real staff tier, also while viewing as a player.
   const staffRole = signedIn ? (signedIn.staffRole ?? signedIn.role) : null
 
@@ -81,9 +85,17 @@ export function SettingsPage() {
           </p>
         </Section>
 
-        {signedIn && <DisplaySetting user={signedIn} />}
-        {signedIn && <CountrySetting user={signedIn} />}
-        {signedIn && (
+        {editable && <DisplaySetting user={editable} />}
+        {editable && <CountrySetting user={editable} />}
+        {signedIn && blocked && (
+          <Section title="Your profile">
+            <p className="m-0 max-w-[640px] text-base text-text-2">
+              Your name, picture, country and SAR auto-submit key can be changed once the boards open for
+              changes.
+            </p>
+          </Section>
+        )}
+        {editable && (
           <AutoSubmitSetting
             button={button}
             note={note}

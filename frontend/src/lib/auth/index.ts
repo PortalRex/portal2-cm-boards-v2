@@ -81,14 +81,18 @@ export const meQueryOptions = () =>
 export interface SiteInfo {
   /** Staff-only mode (SERVER.PRIVATE): everyone else sees the sign-in gate. */
   private: boolean
+  /** Read-only mode (SERVER.READ_ONLY): everyone reads, only staff change anything. */
+  readOnly: boolean
 }
 
 export const siteQueryOptions = () =>
   queryOptions({
     queryKey: queryKeys.site(),
     queryFn: async ({ signal }): Promise<SiteInfo> => {
-      const site = await api.get<SiteInfo>('/site', { signal }).catch(() => null)
-      return { private: Boolean(site?.private) }
+      const site = await api
+        .get<{ private?: boolean; read_only?: boolean }>('/site', { signal })
+        .catch(() => null)
+      return { private: Boolean(site?.private), readOnly: Boolean(site?.read_only) }
     },
     staleTime: Infinity,
   })

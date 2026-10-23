@@ -2,6 +2,7 @@ import { cn } from 'cn'
 import { useState } from 'react'
 import { ThumbDownIcon, ThumbUpIcon } from '@/components/icons'
 import { useCurrentUser } from '@/hooks/use-current-user'
+import { useReadOnly } from '@/hooks/use-read-only'
 import { setReaction, type Reaction, type Reactions } from '@/lib/runs/reactions'
 import type { Run } from '@/types/runs'
 
@@ -12,13 +13,14 @@ const button =
 export function RowReactions({ entry, myReaction }: { entry: Run; myReaction: Reaction | null | undefined }) {
   const user = useCurrentUser()
   const signedIn = Boolean(user) && !user?.sample
+  const { blocked } = useReadOnly()
   // The counts after reacting here (legacy kept them in the row too).
   const [state, setState] = useState<Reactions | null>(null)
   const [busy, setBusy] = useState(false)
   const r = state ?? { up: entry.reactionsUp, down: entry.reactionsDown, mine: myReaction ?? null }
 
   const react = async (value: 'up' | 'down') => {
-    if (!signedIn || busy) return
+    if (!signedIn || blocked || busy) return
     setBusy(true)
     try {
       const mine = value === 'up' ? 1 : -1
@@ -29,14 +31,14 @@ export function RowReactions({ entry, myReaction }: { entry: Run; myReaction: Re
       setBusy(false)
     }
   }
-  const hint = signedIn ? undefined : 'Sign in to react'
+  const hint = blocked ? 'Reactions open soon' : signedIn ? undefined : 'Sign in to react'
   const icon = 'size-[22px] upto1400:size-[18px]'
   return (
     <span className="inline-flex gap-1 upto1400:gap-[3px]">
       <button
         type="button"
         className={cn(button, r.mine === 1 && 'border-brand text-brand-light')}
-        disabled={!signedIn || busy}
+        disabled={!signedIn || blocked || busy}
         onClick={() => void react('up')}
         title={hint ?? 'Thumbs up'}
         aria-pressed={r.mine === 1}
@@ -48,7 +50,7 @@ export function RowReactions({ entry, myReaction }: { entry: Run; myReaction: Re
       <button
         type="button"
         className={cn(button, r.mine === -1 && 'border-hl-red text-hl-red-text')}
-        disabled={!signedIn || busy}
+        disabled={!signedIn || blocked || busy}
         onClick={() => void react('down')}
         title={hint ?? 'Thumbs down'}
         aria-pressed={r.mine === -1}

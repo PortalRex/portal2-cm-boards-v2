@@ -15,6 +15,7 @@ import {
   UploadIcon,
 } from '@/components/icons'
 import { useCurrentUser } from '@/hooks/use-current-user'
+import { useReadOnly } from '@/hooks/use-read-only'
 import { useGame } from '@/hooks/use-game'
 import { useTheme } from '@/hooks/use-theme'
 import { isStaff } from '@/lib/auth'
@@ -80,6 +81,7 @@ function TopNavItem({ item }: { item: NavItem }) {
 export function TopBar() {
   const { pathname, searchStr } = useLocation()
   const user = useCurrentUser()
+  const readOnly = useReadOnly()
   const { theme, toggleTheme } = useTheme()
   const slots = useLayoutSlots()
   // The phone menu is open for the page it was opened on, so going to another page closes it.
@@ -108,7 +110,7 @@ export function TopBar() {
         </nav>
 
         <div className="flex items-center gap-5 upto1320:gap-3">
-          {user && !user.sample && slots.submitRun && (
+          {user && !user.sample && !readOnly.blocked && slots.submitRun && (
             <button
               type="button"
               onClick={() => setSubmitting(true)}

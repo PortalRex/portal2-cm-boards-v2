@@ -446,6 +446,16 @@ request needs a signed-in staff account (verifier, moderator or admin) or the se
 sign-in (`/auth/...`) and `GET /site` (`{ "private": bool }`) stay open, and the frontend shows non-staff a sign-in
 page instead of the site (`components/PrivateGate.jsx`).
 
+### Read-only mode
+
+`SERVER.READ_ONLY=true` (Coolify: `READ_ONLY`), for the first days after opening: everyone can read, but any request
+that changes something (not GET / HEAD / OPTIONS) needs a signed-in staff account or the service token, so players
+can't submit runs or demos, react, report or change their settings while staff and the Steam sync carry on. Refusals
+are 403 with "The boards are read-only for now: only staff can make changes." Sign-in and sign-out (`/auth/...`) stay
+open, and SAR's `/api-v2` checks it itself (its key checks only read and keep working; `auto-submit` is staff-only).
+`GET /site` reports it (`{ "private", "read_only" }`); the site then shows a banner and hides what would fail. Same gate
+as staff-only mode (`server/src/tools/private_site.rs`).
+
 ### Demo parsing
 
 `server/src/tools/demo_parse.rs` reads every demo the boards have with `server/demo-parser/parse_batch.mjs` (many at

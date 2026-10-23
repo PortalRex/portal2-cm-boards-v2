@@ -9,8 +9,9 @@
 //!
 //! Hardening: the key is checked by its SHA-256; wrong keys count against the client's address and
 //! lock it out after [AUTH_FAILURES] in [AUTH_WINDOW]; every endpoint is rate limited, uploads more
-//! tightly; banned accounts' keys don't work, frozen profiles can't submit, and while the site is in
-//! staff-only mode only staff players' keys work. A submitted demo is checked like Submit Run's: of
+//! tightly; banned accounts' keys don't work, frozen profiles can't submit, while the site is in
+//! staff-only mode only staff players' keys work, and in read-only mode only staff can submit (the
+//! other endpoints only read, so SAR still sees a working key). A submitted demo is checked like Submit Run's: of
 //! the map named, with the time named, and with the key's owner in it.
 use crate::{
     api::v1::handlers::submissions::{bad, parse_upload, read_form_with, record_submission, save_demo, DemoField, Form, Submission},
@@ -268,6 +269,9 @@ async fn auto_submit(req: HttpRequest, pool: web::Data<PgPool>, config: web::Dat
     };
     if owner.frozen {
         return Ok(HttpResponse::Forbidden().body("This profile is frozen and can't get new times."));
+    }
+    if config.server.read_only() && !owner.staff {
+        return Ok(HttpResponse::Forbidden().body(crate::tools::private_site::READ_ONLY_MESSAGE));
     }
 
     let info = match parse_upload(&config, bytes).await {

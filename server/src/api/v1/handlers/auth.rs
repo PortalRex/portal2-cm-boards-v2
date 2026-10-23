@@ -213,10 +213,11 @@ async fn steam_callback(
 /// ```json
 /// { "profile_number": "76561198039230536", "user_name": "Zypeh", "avatar": "https://...", "admin": 0, "banned": false }
 /// ```
-/// **GET** About the site: `{ "private": bool }` (staff-only mode, `SERVER.PRIVATE`).
+/// **GET** About the site: `{ "private": bool, "read_only": bool }`: staff-only mode
+/// (`SERVER.PRIVATE`) and read-only mode (`SERVER.READ_ONLY`: only staff can change anything).
 #[get("/site")]
 async fn site_info(config: web::Data<Config>) -> impl Responder {
-    web::Json(serde_json::json!({ "private": config.server.private() }))
+    web::Json(serde_json::json!({ "private": config.server.private(), "read_only": config.server.read_only() }))
 }
 
 #[get("/auth/me")]

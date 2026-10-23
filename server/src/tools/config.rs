@@ -20,11 +20,18 @@ pub struct ServerConfig {
     pub behind_proxy: Option<bool>,
     /// Staff-only mode ([crate::tools::private_site]): the data needs a signed-in staff account.
     pub private: Option<bool>,
+    /// Read-only mode ([crate::tools::private_site]): everyone can read, only staff (and the service
+    /// token) can change anything. For the first days after opening.
+    pub read_only: Option<bool>,
 }
 
 impl ServerConfig {
     pub fn private(&self) -> bool {
         self.private.unwrap_or(false)
+    }
+
+    pub fn read_only(&self) -> bool {
+        self.read_only.unwrap_or(false)
     }
 
     pub fn behind_proxy(&self) -> bool {

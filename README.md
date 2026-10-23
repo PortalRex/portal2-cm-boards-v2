@@ -173,7 +173,7 @@ The database lives in the `p2boards_pgdata` volume and submitted demos and map i
 2. Under **Environment Variables** set:
    - `PUBLIC_URL`: the site's address, e.g. `https://board.portal2.sr` (Steam sign-in only accepts this one)
    - `STEAM_API_KEY`: a Steam Web API key (<https://steamcommunity.com/dev/apikey>; players' names and pictures come from it)
-   - optional: `PRIVATE=true` (staff-only while testing), `COOP_PROOF_SINCE` (the launch time in UTC, e.g. `2026-11-01 00:00:00`), `SERVICE_TOKEN` (only for `/backend`), `DEMO_ARCHIVE`, `SYNC_STEAM=false`
+   - optional: `PRIVATE=true` (staff-only while testing), `READ_ONLY=true` (after opening: everyone reads, only staff change anything), `COOP_PROOF_SINCE` (the launch time in UTC, e.g. `2026-11-01 00:00:00`), `SERVICE_TOKEN` (only for `/backend`), `DEMO_ARCHIVE`, `SYNC_STEAM=false`
 
    Coolify generates the database user and password (`SERVICE_USER_POSTGRES`, `SERVICE_PASSWORD_POSTGRES`) itself.
 3. Set the domain of the `web` service to the same address as `PUBLIC_URL` (DNS for it pointing at the server), then **Deploy**.

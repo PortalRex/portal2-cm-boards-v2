@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { cn } from 'cn'
 import { ThumbDownIcon, ThumbUpIcon } from '@/components/icons'
 import { useCurrentUser } from '@/hooks/use-current-user'
+import { useReadOnly } from '@/hooks/use-read-only'
 import { reactionsQueryOptions, setReaction, type Reactions } from '@/lib/runs/reactions'
 
 const button =
@@ -12,6 +13,7 @@ export function ReactionsBar({ changelogId }: { changelogId: number }) {
   const qc = useQueryClient()
   const user = useCurrentUser()
   const signedIn = Boolean(user) && !user?.sample
+  const { blocked } = useReadOnly()
   // Like legacy: without the counts the bar isn't shown.
   const counts = useQuery({ ...reactionsQueryOptions(changelogId), retry: false })
   const react = useMutation({
@@ -23,14 +25,14 @@ export function ReactionsBar({ changelogId }: { changelogId: number }) {
   })
   const r = counts.data
   if (!r) return null
-  const hint = signedIn ? undefined : 'Sign in to react'
+  const hint = blocked ? 'Reactions open soon' : signedIn ? undefined : 'Sign in to react'
   return (
     <div className="mt-3.5 flex flex-wrap items-center gap-2">
       <button
         type="button"
         className={cn(button, r.mine === 1 && 'border-brand text-brand-light')}
         onClick={() => react.mutate('up')}
-        disabled={!signedIn}
+        disabled={!signedIn || blocked}
         title={hint ?? 'Thumbs up'}
         aria-pressed={r.mine === 1}
         aria-label={`Thumbs up (${r.up})`}
@@ -42,7 +44,7 @@ export function ReactionsBar({ changelogId }: { changelogId: number }) {
         type="button"
         className={cn(button, r.mine === -1 && 'border-hl-red text-hl-red-text')}
         onClick={() => react.mutate('down')}
-        disabled={!signedIn}
+        disabled={!signedIn || blocked}
         title={hint ?? 'Thumbs down'}
         aria-pressed={r.mine === -1}
         aria-label={`Thumbs down (${r.down})`}

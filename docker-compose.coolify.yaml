@@ -44,6 +44,8 @@ services:
       SERVER.BEHIND_PROXY: "true"
       # Staff-only mode while testing before launch (everyone else sees a sign-in page).
       SERVER.PRIVATE: ${PRIVATE:-false}
+      # Read-only mode for the first days after opening: everyone can read, only staff can change anything.
+      SERVER.READ_ONLY: ${READ_ONLY:-false}
       STEAM.API_KEY: ${STEAM_API_KEY:?set STEAM_API_KEY (steamcommunity.com/dev/apikey)}
       # Only for the /backend service; empty turns service access off.
       SERVICE.TOKEN: ${SERVICE_TOKEN:-}

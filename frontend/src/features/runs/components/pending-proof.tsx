@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query'
 import { cn } from 'cn'
 import { useCurrentUser } from '@/hooks/use-current-user'
+import { useReadOnly } from '@/hooks/use-read-only'
 import { isStaff } from '@/lib/auth'
 import { invalidateRun } from '@/lib/invalidate'
 import type { CoopHalf, Player } from '@/types/runs'
@@ -37,10 +38,12 @@ function useAddDemo(run: PendingRun) {
  */
 export function PendingProof({ run, halves }: { run: PendingRun; halves?: CoopHalf[] | null }) {
   const user = useCurrentUser()
+  const { blocked } = useReadOnly()
   const upload = useAddDemo(run)
   const players = run.players ?? []
   const coop = players.length > 1
-  if (!user || user.sample || run.verified !== false || run.banned || (run.demoId && !coop)) return null
+  if (!user || user.sample || blocked || run.verified !== false || run.banned || (run.demoId && !coop))
+    return null
   const mine = players.some((p) => p.profileNumber === user.profileNumber)
   if (!mine && !isStaff(user)) return null
   const added = halves?.some((h) => h.player?.profileNumber === user.profileNumber && h.demoId != null)
@@ -70,8 +73,9 @@ export function PendingProof({ run, halves }: { run: PendingRun; halves?: CoopHa
  */
 export function PartnerDemo({ run, halves }: { run: PendingRun; halves?: CoopHalf[] | null }) {
   const user = useCurrentUser()
+  const { blocked } = useReadOnly()
   const upload = useAddDemo(run)
-  if (!user || user.sample || run.verified === false || run.banned || !halves) return null
+  if (!user || user.sample || blocked || run.verified === false || run.banned || !halves) return null
   const half = halves.find((h) => h.player?.profileNumber === user.profileNumber)
   // Their demo shows on their half once it's in; the message stays until then.
   if (!half || half.changelogId != null || (half.demoId != null && !upload.isSuccess)) return null
