@@ -685,3 +685,70 @@ async fn test_db_points_timeline_in_time_order() {
         assert!(crate::tools::points_history::runs_in_time_order(&pool, game).await.unwrap(), "game {game}");
     }
 }
+
+#[actix_web::test]
+async fn test_db_old_boards_hides_superseded_steam_copies() {
+    use crate::tools::old_boards_sync::{hide_superseded, BoardReport};
+    use std::collections::HashSet;
+    let (_, pool) = get_config().await.expect("Error getting config and DB pool");
+    // Our own rows (removed again at the end): one player's runs on Turret Intro.
+    let cleanup = || async {
+        for sql in [
+            "DELETE FROM admin_actions WHERE target_type = 'run' AND target_id IN (SELECT id::text FROM changelog WHERE profile_number = 'test-sup-p')",
+            "DELETE FROM legacy_changelog_ids WHERE changelog_id IN (SELECT id FROM changelog WHERE profile_number = 'test-sup-p')",
+            "DELETE FROM changelog WHERE mirror_of IN (SELECT id FROM changelog WHERE profile_number = 'test-sup-p')",
+            "DELETE FROM changelog WHERE profile_number = 'test-sup-p'",
+            "DELETE FROM users WHERE profile_number = 'test-sup-p'",
+        ] {
+            sqlx::query(sql).execute(&pool).await.unwrap();
+        }
+    };
+    cleanup().await;
+    sqlx::query("INSERT INTO users (profile_number, steam_name) VALUES ('test-sup-p', 'test-sup-p')").execute(&pool).await.unwrap();
+    let cat: i32 = sqlx::query_scalar("SELECT default_cat_id FROM maps WHERE steam_id = '47756'").fetch_one(&pool).await.unwrap();
+    // A run `hours_ago` hours back: submission 0 is a Steam sync run, 1 a demo submission.
+    let run = |score: i32, hours_ago: i32, submission: i32| {
+        let pool = pool.clone();
+        async move {
+            sqlx::query_scalar::<_, i64>(
+                "INSERT INTO changelog (timestamp, profile_number, score, map_id, banned, submission, category_id, verified) VALUES (now() - make_interval(hours => $1), 'test-sup-p', $2, '47756', false, $3, $4, $3 = 1) RETURNING id",
+            )
+            .bind(hours_ago)
+            .bind(score)
+            .bind(submission)
+            .bind(cat)
+            .fetch_one(&pool)
+            .await
+            .unwrap()
+        }
+    };
+    let banned = |id: i64| {
+        let pool = pool.clone();
+        async move { sqlx::query_scalar::<_, bool>("SELECT banned FROM changelog WHERE id = $1").bind(id).fetch_one(&pool).await.unwrap() }
+    };
+    // The old board's run: 14.98 with its demo, two hours ago.
+    let theirs = run(1498, 2, 1).await;
+    sqlx::query("INSERT INTO legacy_changelog_ids (game_id, legacy_id, changelog_id) VALUES (1, -9001, $1)").bind(theirs).execute(&pool).await.unwrap();
+    // Steam's copy of it (the game's 15.01), seen after: hidden. Seen before the old board had 14.98: kept.
+    // Better than the old board's: kept (a new improvement the old board may still list).
+    let copy = run(1501, 1, 0).await;
+    let earlier = run(1502, 3, 0).await;
+    let better = run(1480, 1, 0).await;
+    let since = chrono::Utc::now().naive_utc() - chrono::Duration::days(4);
+
+    let mut report = BoardReport::default();
+    let mut touched = HashSet::new();
+    hide_superseded(&pool, 1, since, &HashSet::new(), true, &mut report, &mut touched).await.unwrap();
+    assert_eq!(report.hidden, 1, "{:?}", report.details);
+    assert!(!banned(copy).await, "a dry run changes nothing");
+
+    let mut report = BoardReport::default();
+    hide_superseded(&pool, 1, since, &HashSet::new(), false, &mut report, &mut touched).await.unwrap();
+    assert_eq!(report.hidden, 1, "{:?}", report.details);
+    assert!(report.details[0].contains("15.01") && report.details[0].contains("14.98"), "{:?}", report.details);
+    assert_eq!((banned(copy).await, banned(earlier).await, banned(better).await, banned(theirs).await), (true, false, false, false));
+    let logged: i64 = sqlx::query_scalar("SELECT count(*) FROM admin_actions WHERE action = 'run.ban' AND target_id = $1").bind(copy.to_string()).fetch_one(&pool).await.unwrap();
+    assert_eq!(logged, 1, "in the audit log");
+    assert!(touched.contains(&("47756".to_string(), false)), "the map's ranks are refreshed");
+    cleanup().await;
+}
