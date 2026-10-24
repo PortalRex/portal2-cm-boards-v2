@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
 import { PendingProof } from '@/features/runs/components/pending-proof'
@@ -18,20 +18,29 @@ const readOnly = () =>
 const submitSlot = { submitRun: () => <span>dialog</span> }
 
 describe('read-only mode', () => {
-  it('says so under the top bar, differently for staff', async () => {
+  it('says the boards are a read-only preview for feedback, with a link to give it', async () => {
     readOnly()
     const { unmount } = await renderWithProviders(<ReadOnlyBanner />, { user: 'player' })
-    expect(
-      await screen.findByText(/read-only for now: submitting runs, reactions and reports open soon/),
-    ).toBeInTheDocument()
+    const notice = await screen.findByRole('complementary', { name: 'Site notice' })
+    expect(notice).toHaveTextContent(
+      'PreviewThese boards are read-only and here mainly for feedback. Everything is subject to change.',
+    )
+    expect(within(notice).getByRole('link', { name: 'Share feedback' })).toHaveAttribute(
+      'href',
+      'https://discord.gg/hRwE4Zr',
+    )
+    expect(notice).not.toHaveTextContent('staff')
     unmount()
     await renderWithProviders(<ReadOnlyBanner />, { user: 'verifier' })
-    expect(await screen.findByText('Read-only mode is on: only staff can make changes.')).toBeInTheDocument()
+    expect(await screen.findByRole('complementary', { name: 'Site notice' })).toHaveTextContent(
+      "You're staff, so you can still make changes.",
+    )
   })
 
   it('shows nothing when it is off', async () => {
     await renderWithProviders(<ReadOnlyBanner />, { user: 'player' })
-    expect(screen.queryByRole('status')).toBeNull()
+    await new Promise((r) => setTimeout(r, 50))
+    expect(screen.queryByRole('complementary', { name: 'Site notice' })).toBeNull()
   })
 
   it('hides Submit Run from players, not from staff', async () => {

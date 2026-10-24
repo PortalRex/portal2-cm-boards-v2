@@ -69,6 +69,10 @@
 
 ## Log
 <!-- Newest first. One entry per finished item: date, what was done, commit, tests added. -->
+- 2026-10-24: Asked for: the read-only banner is now a preview notice on every page (`read-only-banner.tsx`): a
+  "Preview" tag, "These boards are read-only and here mainly for feedback. Everything is subject to change." and a
+  Share feedback link to the community Discord; staff are told they can still edit. It shows while read-only mode is
+  on (`READ_ONLY=true`). It now sits above the fixed page background (z-10; the old banner was hidden behind it).
 - 2026-10-23: New (asked for): WR announcements on Discord, one webhook per game (seasons too): a "WR
   announcements" card in the games editor (admins) to set, test or remove it (`GameWebhookCard` in
   `game-panel.tsx`); the server posts newly verified WRs (BACKEND_CHANGES §5, `tools/wr_webhooks.rs`).
