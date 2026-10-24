@@ -122,7 +122,8 @@ async fn timeline(pool: &PgPool, game_id: i32) -> Result<Arc<Timeline>, sqlx::Er
                       JOIN users AS ou ON ou.profile_number = o.profile_number
                   WHERE NOT o.verified OR o.banned OR ou.banned
               ))
-            ORDER BY 5, cl.id
+            -- By the expression, not a column number: adding a column once broke the order.
+            ORDER BY COALESCE(cl.timestamp, TIMESTAMP '2011-04-19 00:00:00'), cl.id
         "#,
     )
     .bind(game_id)
@@ -164,6 +165,13 @@ async fn timeline(pool: &PgPool, game_id: i32) -> Result<Arc<Timeline>, sqlx::Er
     let t = Arc::new(Timeline { modes, players, maps, chapters });
     cache().games.lock().await.insert(game_id, t.clone());
     Ok(t)
+}
+
+/// Whether every map's runs in the game's timeline are in time order, as the sweeps assume (tests).
+#[cfg(test)]
+pub(crate) async fn runs_in_time_order(pool: &PgPool, game_id: i32) -> Result<bool, sqlx::Error> {
+    let t = timeline(pool, game_id).await?;
+    Ok(t.maps.iter().all(|m| m.runs.windows(2).all(|w| w[0].0 <= w[1].0)))
 }
 
 /// The player's points per mode (in `t.modes` order) at each instant of `ends` (oldest first).

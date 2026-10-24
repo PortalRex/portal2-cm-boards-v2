@@ -676,3 +676,12 @@ async fn test_db_wr_webhooks() {
     }
     sqlx::query("UPDATE wr_announcer_state SET after_id = $1").bind(after).execute(&pool).await.unwrap();
 }
+
+#[actix_web::test]
+async fn test_db_points_timeline_in_time_order() {
+    let (_, pool) = get_config().await.expect("Error getting config and DB pool");
+    // The points history, look-back and aggregated tables sweep each map's runs oldest first.
+    for game in [1, 2] {
+        assert!(crate::tools::points_history::runs_in_time_order(&pool, game).await.unwrap(), "game {game}");
+    }
+}
