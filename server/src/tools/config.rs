@@ -170,6 +170,9 @@ pub struct SyncConfig {
     pub old_boards: Option<bool>,
     /// Hours of the day to pull, in `SYNC.OLD_BOARDS_TZ` (default "0,12": midnight and noon).
     pub old_boards_hours: Option<String>,
+    /// Also pull every this many minutes in between (off unless set). These quick pulls leave out
+    /// fetching the backlog of missing demo files, which only the full pulls at the hours above do.
+    pub old_boards_minutes: Option<u32>,
     /// Time zone of those hours (default America/Chicago).
     pub old_boards_tz: Option<String>,
     /// Each pull re-reads at least this many days of the old boards' changelogs (default 3), so
@@ -187,6 +190,10 @@ impl SyncConfig {
     pub fn old_boards_hours(&self) -> Vec<u32> {
         let hours: Vec<u32> = self.old_boards_hours.as_deref().unwrap_or("0,12").split(',').filter_map(|h| h.trim().parse().ok()).filter(|h| *h < 24).collect();
         if hours.is_empty() { vec![0, 12] } else { hours }
+    }
+    /// Minutes between quick pulls, when set (at most a day).
+    pub fn old_boards_minutes(&self) -> Option<u32> {
+        self.old_boards_minutes.filter(|m| (1..=1440).contains(m))
     }
     pub fn old_boards_tz(&self) -> chrono_tz::Tz {
         self.old_boards_tz.as_deref().and_then(|t| t.parse().ok()).unwrap_or(chrono_tz::America::Chicago)

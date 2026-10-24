@@ -535,6 +535,14 @@ from a day before the newest run we have from it if that's older. Per entry:
 - **Anything else is added** as the old board has it: its date, ranks, status, comment, video and demo. Co-op halves
   are paired as the import paired them (same map and time, set within three hours), else with the map's placeholder.
 - Demos are downloaded through the board's `getDemo` into `DEMO.STORAGE`, keeping the archive's file name.
+  A download that fails is tried again after a wait that doubles each time (half an hour, an hour, two, ... up to a
+  day), so a broken demo isn't asked for every pull. The report counts those as `demos_waiting`.
+
+With `SYNC.OLD_BOARDS_MINUTES` (off unless set; e.g. 15), the schedule also makes a quick pull every so many minutes
+in between the hours. A quick pull does everything above but fetch the backlog of demo files we have a record of and
+no file for (up to 500 per board per pull), which only the full pulls at `SYNC.OLD_BOARDS_HOURS` and the staff
+endpoint do. One quick pull costs the old board one changelog request per board (about a second for board.portal2.sr)
+plus the demos of runs that are new to us.
 - Status changes and hides are written to the audit log as the service (`run.ban`, `run.unban`, `run.verify`,
   `run.unverify`) with the reason.
 

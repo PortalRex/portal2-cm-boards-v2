@@ -1,6 +1,10 @@
 //! Pulls from the old boards (board.portal2.sr and the Mel board) until they're retired: what
 //! Steam can't tell us, such as Mel runs, demo and video submissions, comments and staff
-//! decisions. Runs at `SYNC.OLD_BOARDS_HOURS` (midnight and noon, America/Chicago, by default).
+//! decisions. Runs at `SYNC.OLD_BOARDS_HOURS` (midnight and noon, America/Chicago, by default),
+//! and with `SYNC.OLD_BOARDS_MINUTES` also every so many minutes in between. Those quick pulls do
+//! everything but fetch the backlog of missing demo files (below), which can be hundreds of
+//! downloads. A demo download that fails is tried again after a wait that doubles each time (half
+//! an hour, then an hour, two, ... up to a day), so a broken one isn't asked for every pull.
 //!
 //! Each pull reads the old board's changelog from `SYNC.OLD_BOARDS_DAYS` days back (further when
 //! the newest run we have from it is older) and, per entry:
@@ -86,6 +90,8 @@ pub struct BoardReport {
     pub inserted: usize,
     pub demos_added: usize,
     pub demos_failed: usize,
+    /// Demos whose download failed recently, not asked for again yet.
+    pub demos_waiting: usize,
     /// Demo records whose file we didn't have (newer than the demo archive), downloaded again.
     pub demo_files_restored: usize,
     /// Of those, ones the old board couldn't give us (or, for a dry run, all of them).
@@ -209,6 +215,35 @@ fn is_gone(game_id: i32, legacy_id: i64) -> bool {
     GONE_DEMOS.lock().map(|g| g.as_ref().is_some_and(|set| set.contains(&(game_id, legacy_id)))).unwrap_or(false)
 }
 
+/// (game, old board id) of demos whose download failed: how many times in a row, and when to try again.
+type FailedDemos = HashMap<(i32, i64), (u32, std::time::Instant)>;
+static FAILED_DEMOS: std::sync::Mutex<Option<FailedDemos>> = std::sync::Mutex::new(None);
+const WAITING: &str = "failed recently, waiting before trying again";
+
+/// How long to wait before trying a demo again after its `failures`th failure in a row.
+fn retry_after(failures: u32) -> Duration {
+    Duration::from_secs(((30 * 60u64) << failures.saturating_sub(1).min(6)).min(24 * 3600))
+}
+
+fn is_waiting(game_id: i32, legacy_id: i64) -> bool {
+    FAILED_DEMOS
+        .lock()
+        .map(|f| f.as_ref().and_then(|m| m.get(&(game_id, legacy_id))).is_some_and(|(_, next)| std::time::Instant::now() < *next))
+        .unwrap_or(false)
+}
+
+/// Notes how a demo download went, for the wait before the next try.
+fn note_download(game_id: i32, legacy_id: i64, ok: bool) {
+    let Ok(mut failed) = FAILED_DEMOS.lock() else { return };
+    let failed = failed.get_or_insert_with(HashMap::new);
+    if ok {
+        failed.remove(&(game_id, legacy_id));
+        return;
+    }
+    let failures = failed.get(&(game_id, legacy_id)).map_or(0, |f| f.0) + 1;
+    failed.insert((game_id, legacy_id), (failures, std::time::Instant::now() + retry_after(failures)));
+}
+
 /// One pull at a time (the schedule and the staff endpoint share it).
 static RUNNING: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
 
@@ -220,13 +255,15 @@ pub fn start(pool: PgPool, config: Config, cache: CacheState) {
     }
     tokio::spawn(async move {
         loop {
-            tokio::time::sleep(until_next(&config)).await;
-            match crate::tools::jobs::track(crate::tools::jobs::OLD_BOARDS, "schedule", false, summary, run_once(&pool, &config, &cache, false, None)).await {
+            let (wait, full) = until_next(&config);
+            tokio::time::sleep(wait).await;
+            let by = if full { "schedule" } else { "schedule (quick)" };
+            match crate::tools::jobs::track(crate::tools::jobs::OLD_BOARDS, by, false, summary, run_once(&pool, &config, &cache, false, None, full)).await {
                 Ok(reports) => {
                     for r in reports {
                         log::info!(
-                            "old-board sync {}: {} entries since {}: {} updated, {} linked to Steam runs, {} added, {} demos added ({} failed), {} hidden, {} skipped{}",
-                            r.board, r.entries, r.since, r.updated, r.matched, r.inserted, r.demos_added, r.demos_failed, r.hidden, r.skipped,
+                            "old-board sync {}: {} entries since {}: {} updated, {} linked to Steam runs, {} added, {} demos added ({} failed, {} waiting), {} demo files restored, {} hidden, {} duplicates deleted, {} skipped{}",
+                            r.board, r.entries, r.since, r.updated, r.matched, r.inserted, r.demos_added, r.demos_failed, r.demos_waiting, r.demo_files_restored, r.hidden, r.deleted, r.skipped,
                             if r.errors.is_empty() { String::new() } else { format!("; errors: {}", r.errors.join("; ")) }
                         );
                     }
@@ -257,32 +294,58 @@ pub fn schedule(config: &Config) -> String {
     let mut hours = config.sync.old_boards_hours();
     hours.sort_unstable();
     let list: Vec<String> = hours.iter().map(|h| format!("{h:02}:00")).collect();
-    format!("Daily at {} ({})", list.join(" and "), config.sync.old_boards_tz().name())
+    let daily = format!("Daily at {} ({})", list.join(" and "), config.sync.old_boards_tz().name());
+    match config.sync.old_boards_minutes() {
+        Some(1) => format!("{daily}, and a quick pull every minute in between"),
+        Some(m) => format!("{daily}, and a quick pull every {m} minutes in between"),
+        None => daily,
+    }
 }
 
-/// Time until the next scheduled hour (on the hour, in the configured time zone).
-fn until_next(config: &Config) -> Duration {
+/// Time until the next pull, and whether it's a full one.
+fn until_next(config: &Config) -> (Duration, bool) {
     let tz = config.sync.old_boards_tz();
-    let mut hours = config.sync.old_boards_hours();
-    hours.sort_unstable();
     let now = Utc::now().with_timezone(&tz);
-    for day in 0..3 {
+    let (at, full) = next_pull(now, &config.sync.old_boards_hours(), config.sync.old_boards_minutes());
+    ((at - now).to_std().unwrap_or(Duration::from_secs(60)), full)
+}
+
+/// The next full pull (on one of `hours`, in `now`'s time zone) or, with `minutes`, quick pull (on
+/// a multiple of `minutes` since midnight, UTC) after `now`, whichever comes first, and whether
+/// it's the full one.
+fn next_pull<T: TimeZone>(now: chrono::DateTime<T>, hours: &[u32], minutes: Option<u32>) -> (chrono::DateTime<T>, bool) {
+    let tz = now.timezone();
+    let mut hours = hours.to_vec();
+    hours.sort_unstable();
+    let mut full = None;
+    'days: for day in 0..3 {
         let date = now.date_naive() + Span::days(day);
         for &h in &hours {
             let Some(local) = date.and_hms_opt(h, 0, 0) else { continue };
             if let Some(t) = tz.from_local_datetime(&local).earliest() {
                 if t > now {
-                    return (t - now).to_std().unwrap_or(Duration::from_secs(3600));
+                    full = Some(t);
+                    break 'days;
                 }
             }
         }
     }
-    Duration::from_secs(12 * 3600)
+    let full = full.unwrap_or_else(|| now.clone() + Span::hours(12));
+    let Some(m) = minutes else { return (full, true) };
+    let step = i64::from(m) * 60;
+    let secs = now.timestamp();
+    let quick = tz.timestamp_opt((secs / step + 1) * step, 0).single().unwrap_or_else(|| full.clone());
+    if quick < full {
+        (quick, false)
+    } else {
+        (full, true)
+    }
 }
 
 /// Pulls each old board (or just `only`, a game id). With `dry_run`, nothing is written or
-/// downloaded and the reports say what would happen.
-pub async fn run_once(pool: &PgPool, config: &Config, cache: &CacheState, dry_run: bool, only: Option<i32>) -> Result<Vec<BoardReport>, sqlx::Error> {
+/// downloaded and the reports say what would happen. Only a `full` pull fetches the backlog of
+/// missing demo files.
+pub async fn run_once(pool: &PgPool, config: &Config, cache: &CacheState, dry_run: bool, only: Option<i32>, full: bool) -> Result<Vec<BoardReport>, sqlx::Error> {
     let _guard = RUNNING.lock().await;
     let client = match reqwest::Client::builder().timeout(Duration::from_secs(120)).user_agent("p2cm-boards old-board sync").build() {
         Ok(c) => c,
@@ -299,7 +362,7 @@ pub async fn run_once(pool: &PgPool, config: &Config, cache: &CacheState, dry_ru
             continue;
         }
         let mut report = BoardReport { board: name.to_string(), dry_run, ..Default::default() };
-        pull(pool, config, &client, game_id, &url, dry_run, &mut report, &mut touched).await?;
+        pull(pool, config, &client, game_id, &url, dry_run, full, &mut report, &mut touched).await?;
         reports.push(report);
     }
     if !dry_run && !touched.is_empty() {
@@ -322,6 +385,7 @@ async fn pull(
     game_id: i32,
     url: &str,
     dry_run: bool,
+    full: bool,
     report: &mut BoardReport,
     touched: &mut HashSet<(String, bool)>,
 ) -> Result<(), sqlx::Error> {
@@ -382,6 +446,9 @@ async fn pull(
 
     hide_missing(pool, game_id, since, &entries, &accounted, dry_run, report, touched).await?;
     delete_duplicates(pool, game_id, since, &accounted, dry_run, report, touched).await?;
+    if !full {
+        return Ok(());
+    }
     restore_demo_files(pool, config, client, url, game_id, dry_run, report).await
 }
 
@@ -412,12 +479,17 @@ async fn restore_demo_files(pool: &PgPool, config: &Config, client: &reqwest::Cl
             report.demo_files_gone += 1;
             continue;
         }
+        if is_waiting(game_id, legacy_id) {
+            report.demo_files_missing += 1;
+            report.demos_waiting += 1;
+            continue;
+        }
         if dry_run || fetched >= MAX_DEMO_FILES {
             report.demo_files_missing += 1;
             continue;
         }
         fetched += 1;
-        match download_demo(config, client, url, legacy_id).await {
+        match download_demo(config, client, url, game_id, legacy_id).await {
             Ok(name) => {
                 // Read again now that its file is here.
                 sqlx::query("UPDATE demos SET file_id = $2, parsed_at = NULL WHERE id = $1").bind(demo_id).bind(&name).execute(pool).await?;
@@ -605,8 +677,9 @@ async fn apply_entry(
     if new.has_demo {
         let has: bool = sqlx::query_scalar("SELECT demo_id IS NOT NULL FROM changelog WHERE id = $1").bind(id).fetch_one(pool).await?;
         if !has {
-            match attach_demo(pool, config, client, url, e.id, id).await {
+            match attach_demo(pool, config, client, url, game_id, e.id, id).await {
                 Ok(()) => report.demos_added += 1,
+                Err(err) if err == WAITING => report.demos_waiting += 1,
                 Err(err) => {
                     report.demos_failed += 1;
                     log::warn!("old-board sync: demo for old board run {} ({}): {err}", e.id, report.board);
@@ -798,8 +871,8 @@ async fn pair(tx: &mut Transaction<'_, Postgres>, id: i64, map: &BoardMap, profi
 }
 
 /// Downloads the old board's demo for a run into the demo storage and attaches it.
-async fn attach_demo(pool: &PgPool, config: &Config, client: &reqwest::Client, url: &str, legacy_id: i64, cl_id: i64) -> Result<(), String> {
-    let name = download_demo(config, client, url, legacy_id).await?;
+async fn attach_demo(pool: &PgPool, config: &Config, client: &reqwest::Client, url: &str, game_id: i32, legacy_id: i64, cl_id: i64) -> Result<(), String> {
+    let name = download_demo(config, client, url, game_id, legacy_id).await?;
     let mut tx = pool.begin().await.map_err(|e| e.to_string())?;
     let demo_id: i64 = sqlx::query_scalar("INSERT INTO demos (file_id, parsed_successfully, cl_id) VALUES ($1, false, $2) RETURNING id")
         .bind(&name)
@@ -811,9 +884,22 @@ async fn attach_demo(pool: &PgPool, config: &Config, client: &reqwest::Client, u
     tx.commit().await.map_err(|e| e.to_string())
 }
 
-/// Saves the old board's demo for a run in the demo storage; returns the file name.
-async fn download_demo(config: &Config, client: &reqwest::Client, url: &str, legacy_id: i64) -> Result<String, String> {
+/// Saves the old board's demo for a run in the demo storage; returns the file name. One that failed
+/// recently isn't asked for again until its wait is over ([WAITING]).
+async fn download_demo(config: &Config, client: &reqwest::Client, url: &str, game_id: i32, legacy_id: i64) -> Result<String, String> {
     let dir = config.demo.storage.as_deref().filter(|d| !d.is_empty()).ok_or("no demo storage (DEMO.STORAGE)")?;
+    if is_waiting(game_id, legacy_id) {
+        return Err(WAITING.into());
+    }
+    let result = fetch_demo(client, url, dir, legacy_id).await;
+    // A lost demo is remembered on its own (GONE_DEMOS).
+    if result.as_ref().err().is_none_or(|e| e != GONE) {
+        note_download(game_id, legacy_id, result.is_ok());
+    }
+    result
+}
+
+async fn fetch_demo(client: &reqwest::Client, url: &str, dir: &str, legacy_id: i64) -> Result<String, String> {
     let res = client.get(format!("{url}/getDemo?id={legacy_id}")).send().await.map_err(|e| e.to_string())?;
     if !res.status().is_success() {
         return Err(format!("HTTP {}", res.status()));
@@ -952,10 +1038,41 @@ pub(crate) async fn delete_duplicates(
 
 #[cfg(test)]
 mod tests {
-    use super::unescape_note;
+    use super::{next_pull, note_download, is_waiting, retry_after, unescape_note};
+    use chrono::TimeZone;
+    use chrono_tz::America::Chicago;
+    use std::time::Duration;
 
     #[test]
     fn unescapes_notes() {
         assert_eq!(unescape_note("it&#039;s &quot;fine&quot; &amp; \\'ok\\'"), "it's \"fine\" & 'ok'");
+    }
+
+    #[test]
+    fn schedules_full_and_quick_pulls() {
+        let at = |h, m| Chicago.with_ymd_and_hms(2026, 10, 24, h, m, 0).unwrap();
+        // Full pulls only: the next of the hours, tomorrow once today's are past.
+        assert_eq!(next_pull(at(9, 7), &[0, 12], None), (at(12, 0), true));
+        assert_eq!(next_pull(at(12, 0), &[0, 12], None), (Chicago.with_ymd_and_hms(2026, 10, 25, 0, 0, 0).unwrap(), true));
+        // Every 15 minutes in between, on the quarter hours; the full pull takes its own slot.
+        assert_eq!(next_pull(at(9, 7), &[0, 12], Some(15)), (at(9, 15), false));
+        assert_eq!(next_pull(at(9, 15), &[0, 12], Some(15)), (at(9, 30), false));
+        assert_eq!(next_pull(at(11, 50), &[0, 12], Some(15)), (at(12, 0), true));
+        assert_eq!(next_pull(at(11, 59), &[12, 0], Some(15)), (at(12, 0), true));
+    }
+
+    #[test]
+    fn waits_longer_after_each_failed_download() {
+        let mins = |n| retry_after(n).as_secs() / 60;
+        assert_eq!((mins(1), mins(2), mins(3), mins(4)), (30, 60, 120, 240));
+        assert_eq!((mins(5), mins(6)), (8 * 60, 16 * 60));
+        assert_eq!(retry_after(7), Duration::from_secs(24 * 3600), "a day at most");
+        assert_eq!(retry_after(60), Duration::from_secs(24 * 3600));
+        // Game -1 is never a real board, so this can't meet a real pull's state.
+        assert!(!is_waiting(-1, 7));
+        note_download(-1, 7, false);
+        assert!(is_waiting(-1, 7), "not asked for again straight away");
+        note_download(-1, 7, true);
+        assert!(!is_waiting(-1, 7), "a success clears it");
     }
 }

@@ -265,8 +265,8 @@ pub struct OldBoardsSyncQuery {
     pub background: bool,
 }
 
-/// **POST** Pull from the old boards now (admins; the schedule does this at
-/// `SYNC.OLD_BOARDS_HOURS`). `?dry_run=true` only reports what would change; `?game=` limits it
+/// **POST** Pull from the old boards now, a full pull (admins; the schedule does this at
+/// `SYNC.OLD_BOARDS_HOURS`, and quick pulls every `SYNC.OLD_BOARDS_MINUTES` when set). `?dry_run=true` only reports what would change; `?game=` limits it
 /// to one board. Answers a report per board.
 #[post("/admin/old_boards_sync")]
 async fn admin_old_boards_sync(
@@ -284,10 +284,10 @@ async fn admin_old_boards_sync(
     if query.background {
         let (pool, config, cache, dry_run, game) = (pool.0.clone(), config.get_ref().clone(), cache.get_ref().clone(), query.dry_run, query.game);
         tokio::spawn(async move {
-            let _ = jobs::track(jobs::OLD_BOARDS, &by, dry_run, old_boards_sync::summary, old_boards_sync::run_once(&pool, &config, &cache, dry_run, game)).await;
+            let _ = jobs::track(jobs::OLD_BOARDS, &by, dry_run, old_boards_sync::summary, old_boards_sync::run_once(&pool, &config, &cache, dry_run, game, true)).await;
         });
         return Ok(started());
     }
-    let reports = jobs::track(jobs::OLD_BOARDS, &by, query.dry_run, old_boards_sync::summary, old_boards_sync::run_once(&pool.0, &config, &cache, query.dry_run, query.game)).await?;
+    let reports = jobs::track(jobs::OLD_BOARDS, &by, query.dry_run, old_boards_sync::summary, old_boards_sync::run_once(&pool.0, &config, &cache, query.dry_run, query.game, true)).await?;
     Ok(HttpResponse::Ok().json(reports))
 }
