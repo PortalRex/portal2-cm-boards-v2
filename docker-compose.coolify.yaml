@@ -62,9 +62,12 @@ services:
       # say the file isn't available. To add them, mount the folders on the server and list them here (;).
       DEMO.ARCHIVE: ${DEMO_ARCHIVE:-}
       IMAGES.STORAGE: /data/map-images
-      # New Portal 2 times from Steam's leaderboards. The old boards are shut down, so their pull stays off.
+      # New Portal 2 times from Steam's leaderboards.
       SYNC.STEAM: ${SYNC_STEAM:-true}
-      SYNC.OLD_BOARDS: "false"
+      # Pulling from the old boards until they're retired (SYNC_OLD_BOARDS=true): a full pull at midnight and
+      # noon (America/Chicago) and a quick one every SYNC_OLD_BOARDS_MINUTES in between (0: none).
+      SYNC.OLD_BOARDS: ${SYNC_OLD_BOARDS:-false}
+      SYNC.OLD_BOARDS_MINUTES: ${SYNC_OLD_BOARDS_MINUTES:-15}
       # From this UTC time (the launch, e.g. 2026-11-01 00:00:00), new top-200 co-op runs need a demo from
       # each player. Empty: off.
       RANKS.COOP_PROOF_SINCE: ${COOP_PROOF_SINCE:-}
