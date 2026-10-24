@@ -22,10 +22,13 @@
 //! purpose, and is hidden (staff can see why in the audit log). If the old board adds it later,
 //! the next pull links it and shows it again.
 //!
-//! A Steam sync run is hidden straight away when the old board already had an equal or better
+//! A Steam sync run is deleted straight away when the old board already had an equal or better
 //! time by the same player on the map when Steam showed it: the old board only takes improvements,
 //! so it will never list it. That's the usual case of one run timed twice: Steam has the game's
 //! time, a demo submission SAR's (a few hundredths apart, 15.01 and 14.98), so the two don't match.
+//! It's deleted rather than hidden because a hidden run shows as banned in the player's history,
+//! and this one did nothing wrong. The audit log keeps a copy of the row. The Steam sync won't add
+//! it again, as it only takes times better than the player's best here.
 use crate::{
     controllers::{
         moderation::{self, FILLER},
@@ -58,7 +61,9 @@ const HIDE_AFTER_HOURS: i64 = 72;
 const MAX_DEMO_BYTES: usize = 50 * 1024 * 1024;
 /// Shown in the audit log for runs this hides.
 const HIDDEN_REASON: &str = "Not on the old board (hidden by the old-board sync)";
-const SUPERSEDED_REASON: &str = "The old board already has an equal or better time from before this one, so it won't list it (hidden by the old-board sync)";
+const DUPLICATE_REASON: &str = "Steam's copy of a run the old board already has (it has an equal or better time from before this one), deleted by the old-board sync";
+/// The note the first version of that rule left on the runs it hid instead: those are deleted too.
+const SUPERSEDED_NOTE: &str = "The old board already has an equal or better time from before this one, so it won't list it (hidden by the old-board sync)";
 const CHANGED_REASON: &str = "Changed on the old board";
 /// At most this many missing demo files fetched per board per pull.
 const MAX_DEMO_FILES: usize = 500;
@@ -88,6 +93,8 @@ pub struct BoardReport {
     /// Of those, ones the old board has lost too (not asked for again until the server restarts).
     pub demo_files_gone: usize,
     pub hidden: usize,
+    /// Steam's copies of runs the old board already had, deleted.
+    pub deleted: usize,
     pub players_created: usize,
     /// Entries on maps we don't have.
     pub skipped: usize,
@@ -236,8 +243,8 @@ pub fn summary(reports: &Vec<BoardReport>) -> String {
         .iter()
         .map(|r| {
             format!(
-                "{}: {} added, {} linked to Steam runs, {} updated, {} demos added, {} hidden{}",
-                r.board, r.inserted, r.matched, r.updated, r.demos_added, r.hidden,
+                "{}: {} added, {} linked to Steam runs, {} updated, {} demos added, {} hidden, {} duplicates deleted{}",
+                r.board, r.inserted, r.matched, r.updated, r.demos_added, r.hidden, r.deleted,
                 if r.errors.is_empty() { String::new() } else { format!(", {} errors", r.errors.len()) }
             )
         })
@@ -374,7 +381,7 @@ async fn pull(
     }
 
     hide_missing(pool, game_id, since, &entries, &accounted, dry_run, report, touched).await?;
-    hide_superseded(pool, game_id, since, &accounted, dry_run, report, touched).await?;
+    delete_duplicates(pool, game_id, since, &accounted, dry_run, report, touched).await?;
     restore_demo_files(pool, config, client, url, game_id, dry_run, report).await
 }
 
@@ -879,9 +886,15 @@ async fn hide_missing(
     Ok(())
 }
 
-/// Hides the Steam sync's runs the old board will never list because it already had an equal or
-/// better time by the same player on the map (in the map's category) before Steam showed this one.
-pub(crate) async fn hide_superseded(
+/// A Steam copy to delete: id, player, map name, score, set at, the old board's time, and its
+/// co-op partner's half (if any).
+type Duplicate = (i64, String, String, i32, NaiveDateTime, i32, Vec<i64>);
+
+/// Deletes the Steam sync's runs the old board will never list because it already had an equal or
+/// better time by the same player on the map (in the map's category) before Steam showed this one,
+/// and the ones the first version of this rule hid. A co-op run goes only when its partner's half
+/// is such a copy too, as deleting one deletes both.
+pub(crate) async fn delete_duplicates(
     pool: &PgPool,
     game_id: i32,
     since: NaiveDateTime,
@@ -890,15 +903,17 @@ pub(crate) async fn hide_superseded(
     report: &mut BoardReport,
     touched: &mut HashSet<(String, bool)>,
 ) -> Result<(), sqlx::Error> {
-    let rows: Vec<(i64, String, String, i32, NaiveDateTime, i32)> = sqlx::query_as(
+    let rows: Vec<Duplicate> = sqlx::query_as(
         r#"
             SELECT cl.id, cl.profile_number, m.name, cl.score, cl.timestamp,
                    (SELECT min(o.score) FROM changelog AS o JOIN legacy_changelog_ids AS l ON l.changelog_id = o.id AND l.game_id = $1
                     WHERE o.profile_number = cl.profile_number AND o.map_id = cl.map_id AND o.category_id = cl.category_id
-                      AND NOT o.banned AND o.score <= cl.score AND o.timestamp <= cl.timestamp)
+                      AND NOT o.banned AND o.score <= cl.score AND o.timestamp <= cl.timestamp),
+                   ARRAY(SELECT x.id FROM coop_bundled AS cb JOIN changelog AS x ON x.id IN (cb.cl_id1, cb.cl_id2)
+                         WHERE cb.id = cl.coop_id AND x.id <> cl.id AND x.profile_number <> $2)
             FROM changelog AS cl JOIN maps AS m ON m.steam_id = cl.map_id JOIN chapters AS c ON c.id = m.chapter_id
-            WHERE c.game_id = $1 AND cl.submission = 0 AND cl.mirror_of IS NULL AND cl.profile_number <> $2 AND NOT cl.banned
-              AND cl.timestamp >= $3
+            WHERE c.game_id = $1 AND cl.submission = 0 AND cl.mirror_of IS NULL AND cl.profile_number <> $2
+              AND ((NOT cl.banned AND cl.timestamp >= $3) OR (cl.banned AND cl.admin_note = $4))
               AND NOT EXISTS (SELECT 1 FROM legacy_changelog_ids AS l WHERE l.changelog_id = cl.id)
               AND EXISTS (SELECT 1 FROM changelog AS o JOIN legacy_changelog_ids AS l ON l.changelog_id = o.id AND l.game_id = $1
                           WHERE o.profile_number = cl.profile_number AND o.map_id = cl.map_id AND o.category_id = cl.category_id
@@ -909,26 +924,28 @@ pub(crate) async fn hide_superseded(
     .bind(game_id)
     .bind(FILLER)
     .bind(since)
+    .bind(SUPERSEDED_NOTE)
     .fetch_all(pool)
     .await?;
-    for (id, profile, map_name, score, timestamp, theirs) in rows.iter().filter(|r| !accounted.contains(&r.0)) {
-        report.hidden += 1;
-        let time = crate::controllers::submissions::format_time;
-        report.note(format!("hide: run {id} ({profile} {} on {map_name}, {timestamp}): the old board already had {}", time(*score), time(*theirs)));
-        if dry_run {
+    let copies: HashSet<i64> = rows.iter().map(|r| r.0).filter(|id| !accounted.contains(id)).collect();
+    let mut gone: HashSet<i64> = HashSet::new();
+    for (id, profile, map_name, score, timestamp, theirs, partners) in rows.iter().filter(|r| copies.contains(&r.0)) {
+        if !partners.iter().all(|p| copies.contains(p)) {
             continue;
         }
-        let mut tx = pool.begin().await?;
-        let map: (String, bool) = sqlx::query_as(
-            "UPDATE changelog AS cl SET banned = true, admin_note = $2 FROM maps AS m JOIN chapters AS c ON c.id = m.chapter_id WHERE cl.id = $1 AND m.steam_id = cl.map_id RETURNING cl.map_id, c.is_multiplayer",
-        )
-        .bind(id)
-        .bind(SUPERSEDED_REASON)
-        .fetch_one(&mut *tx)
-        .await?;
-        moderation::log_action(&mut tx, &AdminOrService::Service, "run.ban", "run", &id.to_string(), Some(SUPERSEDED_REASON), json!({ "changelog_ids": [id] })).await?;
-        tx.commit().await?;
-        touched.insert(map);
+        report.deleted += 1;
+        let time = crate::controllers::submissions::format_time;
+        report.note(format!("delete: run {id} ({profile} {} on {map_name}, {timestamp}): the old board already had {}", time(*score), time(*theirs)));
+        if dry_run || gone.contains(id) {
+            continue;
+        }
+        match moderation::delete_run(pool, &AdminOrService::Service, *id, Some(DUPLICATE_REASON)).await? {
+            Ok(done) => {
+                gone.extend(done.ids);
+                touched.insert((done.map_id, done.is_coop));
+            }
+            Err(_) => report.errors.push(format!("run {id}: couldn't delete it")),
+        }
     }
     Ok(())
 }

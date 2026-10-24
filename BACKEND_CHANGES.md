@@ -541,10 +541,14 @@ from a day before the newest run we have from it if that's older. Per entry:
 Then a Steam sync run the old board still doesn't have, three days after it was set (the old board takes Steam's
 times in irregular batches, sometimes more than a day apart), is one it left out on purpose: it's hidden with the admin note "Not on the old board".
 If the old board adds it later, the next pull links it and shows it again.
-A Steam sync run is hidden at once when the old board already had an equal or better time by the same player on the map
+A Steam sync run is deleted at once when the old board already had an equal or better time by the same player on the map
 before Steam showed it: the old board only takes improvements, so it will never list it. That's one run timed twice: Steam
 has the game's time and a demo submission SAR's, a few hundredths apart (15.01 and 14.98), so the two never matched and the
-Steam copy sat pending as a duplicate until the three-day rule. Its admin note says why.
+Steam copy sat pending as a duplicate until the three-day rule. It's deleted, not hidden, because a hidden run shows as
+banned in the player's run history and this one did nothing wrong. The delete is in the audit log as the service
+(`run.delete`, with a copy of the row). A co-op copy goes only when its partner's half is a copy too. The Steam sync doesn't
+add it back, since it only takes times better than the player's best here. The copies the first version of this rule hid
+(banned, with the note "The old board already has an equal or better time…") are deleted on the next pull too.
 
 `POST /admin/old_boards_sync` (admins / service token; also the Jobs tab on the Admin page) pulls now; `?dry_run=true` only reports what would change and
 `?game=1` / `?game=2` limits it to one board. Times on the site are shown in each viewer's own time zone, with the full

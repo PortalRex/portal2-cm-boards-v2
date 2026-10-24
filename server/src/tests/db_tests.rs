@@ -687,68 +687,124 @@ async fn test_db_points_timeline_in_time_order() {
 }
 
 #[actix_web::test]
-async fn test_db_old_boards_hides_superseded_steam_copies() {
-    use crate::tools::old_boards_sync::{hide_superseded, BoardReport};
+async fn test_db_old_boards_deletes_duplicate_steam_copies() {
+    use crate::tools::old_boards_sync::{delete_duplicates, BoardReport};
     use std::collections::HashSet;
     let (_, pool) = get_config().await.expect("Error getting config and DB pool");
-    // Our own rows (removed again at the end): one player's runs on Turret Intro.
+    // Our own rows (removed again at the end): two players' runs on Turret Intro, Doors and Buttons (co-op).
     let cleanup = || async {
         for sql in [
-            "DELETE FROM admin_actions WHERE target_type = 'run' AND target_id IN (SELECT id::text FROM changelog WHERE profile_number = 'test-sup-p')",
-            "DELETE FROM legacy_changelog_ids WHERE changelog_id IN (SELECT id FROM changelog WHERE profile_number = 'test-sup-p')",
-            "DELETE FROM changelog WHERE mirror_of IN (SELECT id FROM changelog WHERE profile_number = 'test-sup-p')",
-            "DELETE FROM changelog WHERE profile_number = 'test-sup-p'",
-            "DELETE FROM users WHERE profile_number = 'test-sup-p'",
+            "DELETE FROM admin_actions WHERE target_type = 'run' AND (target_id IN (SELECT id::text FROM changelog WHERE profile_number LIKE 'test-dup-%') OR details->'runs'->0->>'profile_number' LIKE 'test-dup-%')",
+            "DELETE FROM legacy_changelog_ids WHERE changelog_id IN (SELECT id FROM changelog WHERE profile_number LIKE 'test-dup-%')",
+            "UPDATE changelog SET coop_id = NULL WHERE profile_number LIKE 'test-dup-%'",
+            "DELETE FROM coop_bundled WHERE mirror_of IN (SELECT id FROM coop_bundled WHERE p_id1 LIKE 'test-dup-%')",
+            "DELETE FROM coop_bundled WHERE p_id1 LIKE 'test-dup-%'",
+            "DELETE FROM changelog WHERE mirror_of IN (SELECT id FROM changelog WHERE profile_number LIKE 'test-dup-%')",
+            "DELETE FROM changelog WHERE profile_number LIKE 'test-dup-%'",
+            "DELETE FROM users WHERE profile_number LIKE 'test-dup-%'",
         ] {
             sqlx::query(sql).execute(&pool).await.unwrap();
         }
     };
     cleanup().await;
-    sqlx::query("INSERT INTO users (profile_number, steam_name) VALUES ('test-sup-p', 'test-sup-p')").execute(&pool).await.unwrap();
-    let cat: i32 = sqlx::query_scalar("SELECT default_cat_id FROM maps WHERE steam_id = '47756'").fetch_one(&pool).await.unwrap();
+    sqlx::query("INSERT INTO users (profile_number, steam_name) VALUES ('test-dup-p', 'test-dup-p'), ('test-dup-q', 'test-dup-q')").execute(&pool).await.unwrap();
     // A run `hours_ago` hours back: submission 0 is a Steam sync run, 1 a demo submission.
-    let run = |score: i32, hours_ago: i32, submission: i32| {
+    let run = |profile: &'static str, map: &'static str, score: i32, hours_ago: i32, submission: i32| {
         let pool = pool.clone();
         async move {
             sqlx::query_scalar::<_, i64>(
-                "INSERT INTO changelog (timestamp, profile_number, score, map_id, banned, submission, category_id, verified) VALUES (now() - make_interval(hours => $1), 'test-sup-p', $2, '47756', false, $3, $4, $3 = 1) RETURNING id",
+                "INSERT INTO changelog (timestamp, profile_number, score, map_id, banned, submission, category_id, verified) SELECT now() - make_interval(hours => $1), $2, $3, $4, false, $5, default_cat_id, $5 = 1 FROM maps WHERE steam_id = $4 RETURNING id",
             )
             .bind(hours_ago)
+            .bind(profile)
             .bind(score)
+            .bind(map)
             .bind(submission)
-            .bind(cat)
             .fetch_one(&pool)
             .await
             .unwrap()
         }
     };
-    let banned = |id: i64| {
+    let legacy = |id: i64, legacy_id: i64| {
         let pool = pool.clone();
-        async move { sqlx::query_scalar::<_, bool>("SELECT banned FROM changelog WHERE id = $1").bind(id).fetch_one(&pool).await.unwrap() }
+        async move {
+            sqlx::query("INSERT INTO legacy_changelog_ids (game_id, legacy_id, changelog_id) VALUES (1, $1, $2)").bind(legacy_id).bind(id).execute(&pool).await.unwrap();
+        }
     };
-    // The old board's run: 14.98 with its demo, two hours ago.
-    let theirs = run(1498, 2, 1).await;
-    sqlx::query("INSERT INTO legacy_changelog_ids (game_id, legacy_id, changelog_id) VALUES (1, -9001, $1)").bind(theirs).execute(&pool).await.unwrap();
-    // Steam's copy of it (the game's 15.01), seen after: hidden. Seen before the old board had 14.98: kept.
+    let ban = |id: i64, note: &'static str| {
+        let pool = pool.clone();
+        async move {
+            sqlx::query("UPDATE changelog SET banned = true, admin_note = $2 WHERE id = $1").bind(id).bind(note).execute(&pool).await.unwrap();
+        }
+    };
+    let bundle = |a: i64, b: i64| {
+        let pool = pool.clone();
+        async move {
+            let cb: i64 = sqlx::query_scalar("INSERT INTO coop_bundled (p_id1, p_id2, p1_is_host, cl_id1, cl_id2) VALUES ('test-dup-p', 'test-dup-q', true, $1, $2) RETURNING id")
+                .bind(a)
+                .bind(b)
+                .fetch_one(&pool)
+                .await
+                .unwrap();
+            sqlx::query("UPDATE changelog SET coop_id = $1 WHERE id IN ($2, $3)").bind(cb).bind(a).bind(b).execute(&pool).await.unwrap();
+        }
+    };
+    let exists = |id: i64| {
+        let pool = pool.clone();
+        async move { sqlx::query_scalar::<_, bool>("SELECT EXISTS (SELECT 1 FROM changelog WHERE id = $1)").bind(id).fetch_one(&pool).await.unwrap() }
+    };
+    // The old board's run: 14.98 with its demo, 100 hours ago.
+    let theirs = run("test-dup-p", "47756", 1498, 100, 1).await;
+    legacy(theirs, -9001).await;
+    // Steam's copy of it (the game's 15.01), seen after: deleted. Seen before the old board had 14.98: kept.
     // Better than the old board's: kept (a new improvement the old board may still list).
-    let copy = run(1501, 1, 0).await;
-    let earlier = run(1502, 3, 0).await;
-    let better = run(1480, 1, 0).await;
+    let copy = run("test-dup-p", "47756", 1501, 1, 0).await;
+    let earlier = run("test-dup-p", "47756", 1502, 103, 0).await;
+    let better = run("test-dup-p", "47756", 1480, 1, 0).await;
+    // One the first version of the rule hid, before the pull's look-back: deleted. One staff hid: kept.
+    let hidden = run("test-dup-p", "47756", 1500, 99, 0).await;
+    ban(hidden, "The old board already has an equal or better time from before this one, so it won't list it (hidden by the old-board sync)").await;
+    let staff_hidden = run("test-dup-p", "47756", 1503, 98, 0).await;
+    ban(staff_hidden, "Cheated").await;
+    // Co-op: both halves Steam copies of the old board's run: both deleted. Only one half a copy: kept.
+    let (theirs_p, theirs_q) = (run("test-dup-p", "47741", 900, 100, 1).await, run("test-dup-q", "47741", 900, 100, 1).await);
+    legacy(theirs_p, -9002).await;
+    legacy(theirs_q, -9003).await;
+    let (copy_p, copy_q) = (run("test-dup-p", "47741", 905, 1, 0).await, run("test-dup-q", "47741", 905, 1, 0).await);
+    bundle(copy_p, copy_q).await;
+    let theirs_p2 = run("test-dup-p", "47825", 1000, 100, 1).await;
+    legacy(theirs_p2, -9004).await;
+    let (half_p, half_q) = (run("test-dup-p", "47825", 1005, 1, 0).await, run("test-dup-q", "47825", 1005, 1, 0).await);
+    bundle(half_p, half_q).await;
     let since = chrono::Utc::now().naive_utc() - chrono::Duration::days(4);
 
     let mut report = BoardReport::default();
     let mut touched = HashSet::new();
-    hide_superseded(&pool, 1, since, &HashSet::new(), true, &mut report, &mut touched).await.unwrap();
-    assert_eq!(report.hidden, 1, "{:?}", report.details);
-    assert!(!banned(copy).await, "a dry run changes nothing");
+    delete_duplicates(&pool, 1, since, &HashSet::new(), true, &mut report, &mut touched).await.unwrap();
+    assert_eq!(report.deleted, 4, "{:?}", report.details);
+    assert!(exists(copy).await && exists(hidden).await && exists(copy_p).await, "a dry run changes nothing");
 
     let mut report = BoardReport::default();
-    hide_superseded(&pool, 1, since, &HashSet::new(), false, &mut report, &mut touched).await.unwrap();
-    assert_eq!(report.hidden, 1, "{:?}", report.details);
-    assert!(report.details[0].contains("15.01") && report.details[0].contains("14.98"), "{:?}", report.details);
-    assert_eq!((banned(copy).await, banned(earlier).await, banned(better).await, banned(theirs).await), (true, false, false, false));
-    let logged: i64 = sqlx::query_scalar("SELECT count(*) FROM admin_actions WHERE action = 'run.ban' AND target_id = $1").bind(copy.to_string()).fetch_one(&pool).await.unwrap();
-    assert_eq!(logged, 1, "in the audit log");
-    assert!(touched.contains(&("47756".to_string(), false)), "the map's ranks are refreshed");
+    delete_duplicates(&pool, 1, since, &HashSet::new(), false, &mut report, &mut touched).await.unwrap();
+    assert_eq!(report.deleted, 4, "{:?}", report.details);
+    assert!(report.errors.is_empty(), "{:?}", report.errors);
+    assert!(report.details.iter().any(|d| d.contains("15.01") && d.contains("14.98")), "{:?}", report.details);
+    assert_eq!((exists(copy).await, exists(hidden).await, exists(copy_p).await, exists(copy_q).await), (false, false, false, false));
+    for kept in [earlier, better, theirs, staff_hidden, half_p, half_q, theirs_p, theirs_q] {
+        assert!(exists(kept).await, "run {kept} is kept");
+    }
+    // The audit log keeps the deleted row.
+    let logged: Option<String> = sqlx::query_scalar("SELECT details->'runs'->0->>'score' FROM admin_actions WHERE action = 'run.delete' AND via_service AND target_id = $1")
+        .bind(copy.to_string())
+        .fetch_optional(&pool)
+        .await
+        .unwrap();
+    assert_eq!(logged.as_deref(), Some("1501"), "in the audit log with a copy of the row");
+    assert!(touched.contains(&("47756".to_string(), false)) && touched.contains(&("47741".to_string(), true)), "the maps' ranks are refreshed");
+
+    // Nothing left to do on the next pull.
+    let mut report = BoardReport::default();
+    delete_duplicates(&pool, 1, since, &HashSet::new(), false, &mut report, &mut touched).await.unwrap();
+    assert_eq!(report.deleted, 0, "{:?}", report.details);
     cleanup().await;
 }
