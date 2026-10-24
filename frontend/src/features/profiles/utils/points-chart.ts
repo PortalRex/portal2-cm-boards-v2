@@ -120,3 +120,22 @@ export function labelSide(
   }
   return above >= LABEL_ROOM || above >= below ? 'top' : 'bottom'
 }
+
+/**
+ * The day a chart click picked: the row under the pointer, or none (a click with no row under it,
+ * on a peak's label say, gives null, which as an index would be the first day).
+ */
+export function dayAt(rows: ChartRow[], index: unknown): string | null {
+  if (index == null || index === '') return null
+  return rows[Number(index)]?.date?.slice(0, 10) ?? null
+}
+
+/** The class on a peak's dot and label, so a click on either is known as that peak's. */
+export const peakClass = (key: PointsBoardKey) => `peak-${key}`
+
+/** The peak day a click on a peak's dot or label (`target`) means, if it was on one. */
+export function peakDayAt(target: EventTarget | null | undefined, peak: PointsPeak | null): string | null {
+  const el = target instanceof Element ? target.closest('[class*="peak-"]') : null
+  const key = el && SERIES.find((s) => el.classList.contains(peakClass(s.key)))?.key
+  return (key && peak?.[key]?.date?.slice(0, 10)) || null
+}

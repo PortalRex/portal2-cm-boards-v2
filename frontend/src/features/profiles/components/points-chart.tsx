@@ -24,6 +24,9 @@ import {
   PLOT_TOP,
   rowsInView,
   SERIES,
+  dayAt,
+  peakClass,
+  peakDayAt,
   type ChartRow,
 } from '../utils/points-chart'
 
@@ -62,10 +65,6 @@ export function PointsChart({
   const shown = SERIES.filter((s) => !hidden[s.key])
   const axisFor = (key: PointsBoardKey) => (zoomed ? key : 'shared')
   const atMs = at ? dayMs(at) : null
-  const pick = (index: unknown) => {
-    const d: ChartRow | undefined = data[Number(index)]
-    if (d?.date) onPick(d.date.slice(0, 10))
-  }
 
   return (
     <div className="relative mt-[18px]">
@@ -89,7 +88,11 @@ export function PointsChart({
           <LineChart
             data={data}
             margin={{ top: PLOT_TOP, right: 10, bottom: 0, left: 10 }}
-            onClick={(state) => pick(state?.activeTooltipIndex)}
+            onClick={(state, e) => {
+              // A peak's dot or label goes to the peak's day, anywhere else to the day under the pointer.
+              const day = peakDayAt(e?.target, peak) ?? dayAt(data, state?.activeTooltipIndex)
+              if (day) onPick(day)
+            }}
           >
             <XAxis dataKey="t" type="number" domain={[from, to]} allowDataOverflow hide />
             {zoomed ? (
@@ -147,6 +150,7 @@ export function PointsChart({
               return (
                 <ReferenceDot
                   key={`peak-${s.key}`}
+                  className={peakClass(s.key)}
                   yAxisId={axisFor(s.key)}
                   x={t}
                   y={value}
@@ -159,6 +163,7 @@ export function PointsChart({
                     position: labelSide(all, data, keys, zoomed, [from, to], s.key, t, value),
                     fill: 'var(--text-2)',
                     fontSize: 11,
+                    className: peakClass(s.key),
                   }}
                 />
               )

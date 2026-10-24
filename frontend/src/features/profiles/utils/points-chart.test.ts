@@ -7,6 +7,10 @@ import {
   rowsInView,
   valueAt,
   type PointsSample,
+  dayAt,
+  peakClass,
+  peakDayAt,
+  type ChartRow,
 } from './points-chart'
 
 const samples: PointsSample[] = [
@@ -78,5 +82,37 @@ describe('labelSide', () => {
     expect(labelSide(rows, rows, ['sp', 'coop', 'overall'], false, range, 'sp', t, 350)).toBe('bottom')
     // With overall hidden, single player is the top line.
     expect(labelSide(rows, rows, ['sp', 'coop'], false, range, 'sp', t, 300)).toBe('top')
+  })
+})
+
+describe('chart clicks', () => {
+  const rows = [
+    { t: 0, date: '2013-02-28' },
+    { t: 1, date: '2020-11-12T00:00:00' },
+  ] as ChartRow[]
+
+  it('pick the day under the pointer, and nothing without one (not the first day)', () => {
+    expect(dayAt(rows, 1)).toBe('2020-11-12')
+    expect(dayAt(rows, '1')).toBe('2020-11-12')
+    expect(dayAt(rows, null)).toBeNull()
+    expect(dayAt(rows, undefined)).toBeNull()
+    expect(dayAt(rows, '')).toBeNull()
+    expect(dayAt(rows, 7)).toBeNull()
+  })
+
+  it("go to a peak's day from its dot or label", () => {
+    const peak = { coop: { points: 9596, date: '2020-11-12' }, sp: { points: 12000, date: '2019-08-06' } }
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+    const label = document.createElementNS('http://www.w3.org/2000/svg', 'text')
+    label.setAttribute('class', `recharts-text ${peakClass('coop')}`)
+    const dot = document.createElementNS('http://www.w3.org/2000/svg', 'g')
+    dot.setAttribute('class', `recharts-reference-dot ${peakClass('sp')}`)
+    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle')
+    dot.append(circle)
+    svg.append(label, dot)
+    expect(peakDayAt(label, peak)).toBe('2020-11-12')
+    expect(peakDayAt(circle, peak)).toBe('2019-08-06')
+    expect(peakDayAt(svg, peak)).toBeNull()
+    expect(peakDayAt(label, null)).toBeNull()
   })
 })
