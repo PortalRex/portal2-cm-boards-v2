@@ -8,6 +8,7 @@
 //! kept in memory; it's dropped with the points cache whenever runs change.
 use crate::tools::helpers::score;
 use chrono::{Duration as ChronoDuration, NaiveDate, NaiveDateTime, Utc};
+use serde::Serialize;
 use sqlx::{FromRow, PgPool};
 use std::{
     collections::{BTreeMap, HashMap},
@@ -21,6 +22,7 @@ const MAX_SAMPLES: i64 = 160;
 #[derive(FromRow)]
 struct RunRow {
     map_id: String,
+    chapter_id: i32,
     game_mode: String,
     profile_number: String,
     score: i32,
@@ -32,6 +34,8 @@ struct RunRow {
 struct MapTimeline {
     map_id: String,
     mode: usize,
+    /// Index in [Timeline::chapters].
+    chapter: usize,
     /// (time, player index, score, run), oldest first. Both halves of a co-op run share the run.
     runs: Vec<(NaiveDateTime, u32, i32, i64)>,
     /// The changelog id of each run in `runs`.
@@ -42,6 +46,15 @@ struct Timeline {
     modes: Vec<String>,
     players: HashMap<String, u32>,
     maps: Vec<MapTimeline>,
+    /// The game's chapters in order, each with its mode and how many maps it has (a board's time
+    /// counts once a player has a time on all of them).
+    chapters: Vec<ChapterInfo>,
+}
+
+struct ChapterInfo {
+    id: i32,
+    mode: String,
+    maps: u32,
 }
 
 /// Cached answers per (game, player, day): both only change with the timeline, which is
@@ -53,7 +66,12 @@ struct HistoryCache {
     peaks: Mutex<HashMap<(i32, String, NaiveDate), Arc<BTreeMap<String, Peak>>>>,
     /// Everyone's peaks per game ([all_peaks]).
     all_peaks: Mutex<HashMap<i32, Arc<Vec<PlayerPeaks>>>>,
+    /// Every board's totals per (game, moment; None = now) for [aggregates].
+    snapshots: Mutex<HashMap<SnapshotKey, Arc<Snapshot>>>,
 }
+
+/// A snapshot's game and moment (None = now).
+type SnapshotKey = (i32, Option<NaiveDateTime>);
 
 /// Results kept per table before it's emptied (a few hundred bytes to a few KB each).
 const MAX_CACHED_RESULTS: usize = 5000;
@@ -71,6 +89,7 @@ pub async fn clear() {
     c.histories.lock().await.clear();
     c.peaks.lock().await.clear();
     c.all_peaks.lock().await.clear();
+    c.snapshots.lock().await.clear();
     crate::controllers::site_stats::clear();
     crate::controllers::wr_stats::clear();
 }
@@ -83,7 +102,7 @@ async fn timeline(pool: &PgPool, game_id: i32) -> Result<Arc<Timeline>, sqlx::Er
         r#"
             -- About 40k imported runs have no date; they count from Portal 2's release, as the
             -- boards count them.
-            SELECT cl.map_id, c.game_mode, cl.profile_number, cl.score,
+            SELECT cl.map_id, m.chapter_id, c.game_mode, cl.profile_number, cl.score,
                 COALESCE(cl.timestamp, TIMESTAMP '2011-04-19 00:00:00') AS timestamp,
                 COALESCE(cl.coop_id, -cl.id) AS run_key, cl.id
             FROM changelog AS cl
@@ -109,6 +128,16 @@ async fn timeline(pool: &PgPool, game_id: i32) -> Result<Arc<Timeline>, sqlx::Er
     .bind(game_id)
     .fetch_all(pool)
     .await?;
+    let chapters: Vec<ChapterInfo> = sqlx::query_as::<_, (i32, String, i64)>(
+        "SELECT c.id, c.game_mode, count(m.steam_id) FROM chapters AS c LEFT JOIN maps AS m ON m.chapter_id = c.id WHERE c.game_id = $1 GROUP BY c.id, c.game_mode ORDER BY c.id",
+    )
+    .bind(game_id)
+    .fetch_all(pool)
+    .await?
+    .into_iter()
+    .map(|(id, mode, maps)| ChapterInfo { id, mode, maps: maps as u32 })
+    .collect();
+    let chapter_index: HashMap<i32, usize> = chapters.iter().enumerate().map(|(i, c)| (c.id, i)).collect();
     let mut modes: Vec<String> = Vec::new();
     let mut map_index: HashMap<String, usize> = HashMap::new();
     let mut players: HashMap<String, u32> = HashMap::new();
@@ -124,14 +153,15 @@ async fn timeline(pool: &PgPool, game_id: i32) -> Result<Arc<Timeline>, sqlx::Er
         let next = maps.len();
         let mi = *map_index.entry(r.map_id.clone()).or_insert(next);
         if mi == maps.len() {
-            maps.push(MapTimeline { map_id: r.map_id, mode, runs: Vec::new(), ids: Vec::new() });
+            let chapter = chapter_index.get(&r.chapter_id).copied().unwrap_or_default();
+            maps.push(MapTimeline { map_id: r.map_id, mode, chapter, runs: Vec::new(), ids: Vec::new() });
         }
         let next_player = players.len() as u32;
         let pi = *players.entry(r.profile_number).or_insert(next_player);
         maps[mi].runs.push((r.timestamp, pi, r.score, r.run_key));
         maps[mi].ids.push(r.id);
     }
-    let t = Arc::new(Timeline { modes, players, maps });
+    let t = Arc::new(Timeline { modes, players, maps, chapters });
     cache().games.lock().await.insert(game_id, t.clone());
     Ok(t)
 }
@@ -278,35 +308,174 @@ fn standings(t: &Timeline, at: NaiveDateTime, me: Option<u32>) -> (Vec<f64>, Vec
     let mut totals = vec![0.0f64; t.players.len() * modes];
     let mut maps = Vec::new();
     for map in &t.maps {
-        // Each player's best as of `at`: (score, run, index in `runs`).
-        let mut best: HashMap<u32, (i32, i64, usize)> = HashMap::new();
-        for (i, &(ts, p, s, run)) in map.runs.iter().enumerate() {
-            if ts > at {
-                break;
-            }
-            if best.get(&p).map_or(true, |&(old, _, _)| s < old) {
-                best.insert(p, (s, run, i));
-            }
-        }
-        // Entries per time (players, or distinct runs when co-op ranks by run).
-        let mut counts: BTreeMap<i32, u32> = BTreeMap::new();
-        let mut runs_seen = std::collections::HashSet::new();
-        for &(s, run, _) in best.values() {
-            if !by_run || runs_seen.insert(run) {
-                *counts.entry(s).or_insert(0) += 1;
-            }
-        }
-        for (&p, &(s, _, i)) in &best {
-            let rank = counts.range(..s).map(|(_, c)| *c).sum::<u32>() + 1;
-            let points = score(rank as i32) as f64;
-            totals[p as usize * modes + map.mode] += points;
-            if Some(p) == me {
-                let ts = map.runs[i].0;
-                maps.push(MapStanding { map_id: map.map_id.clone(), score: s, rank, points, changelog_id: map.ids[i], timestamp: (ts != release).then_some(ts) });
+        for b in bests_at(map, at, by_run) {
+            totals[b.player as usize * modes + map.mode] += b.points;
+            if Some(b.player) == me {
+                let ts = map.runs[b.index].0;
+                maps.push(MapStanding { map_id: map.map_id.clone(), score: b.score, rank: b.rank, points: b.points, changelog_id: map.ids[b.index], timestamp: (ts != release).then_some(ts) });
             }
         }
     }
     (totals, maps)
+}
+
+/// A player's best on a map as of a moment, with its rank and points then.
+struct Best {
+    player: u32,
+    score: i32,
+    rank: u32,
+    points: f64,
+    /// Index in the map's `runs`.
+    index: usize,
+}
+
+/// Everyone's best on `map` as of `at`, ranked as the points boards rank them (ties share a rank;
+/// co-op counts runs, not players, when `by_run`).
+fn bests_at(map: &MapTimeline, at: NaiveDateTime, by_run: bool) -> Vec<Best> {
+    // Each player's best: (score, run, index in `runs`).
+    let mut best: HashMap<u32, (i32, i64, usize)> = HashMap::new();
+    for (i, &(ts, p, s, run)) in map.runs.iter().enumerate() {
+        if ts > at {
+            break;
+        }
+        if best.get(&p).is_none_or(|&(old, _, _)| s < old) {
+            best.insert(p, (s, run, i));
+        }
+    }
+    // Entries per time (players, or distinct runs when co-op ranks by run).
+    let mut counts: BTreeMap<i32, u32> = BTreeMap::new();
+    let mut runs_seen = std::collections::HashSet::new();
+    for &(s, run, _) in best.values() {
+        if !by_run || runs_seen.insert(run) {
+            *counts.entry(s).or_insert(0) += 1;
+        }
+    }
+    best.into_iter()
+        .map(|(player, (s, _, index))| {
+            let rank = counts.range(..s).map(|(_, c)| *c).sum::<u32>() + 1;
+            Best { player, score: s, rank, points: score(rank as i32) as f64, index }
+        })
+        .collect()
+}
+
+/// Where a player stands on one board: rank, value, and the gap to the next player up and to first.
+#[derive(Debug, Serialize, PartialEq)]
+pub struct Standing<T> {
+    pub rank: u32,
+    pub value: T,
+    /// Value minus the next better one (None when first).
+    pub next: Option<T>,
+    /// Value minus the best one.
+    pub wr: T,
+}
+
+/// One aggregated board for a player: points, and time when they have a time on every map.
+#[derive(Debug, Serialize, PartialEq)]
+pub struct AggregateRow {
+    /// `chapter-{id}`, a mode (`sp`, `coop`, `story`, ...) or `overall`, as the points boards key them.
+    pub board: String,
+    pub points: Option<Standing<f64>>,
+    /// Sum of the player's times on the board's maps, in centiseconds.
+    pub time: Option<Standing<i64>>,
+}
+
+/// Every board's totals as of a moment: points per player, and time per player (None until they
+/// have a time on every map of the board).
+struct Snapshot {
+    boards: Vec<(String, Vec<f64>, Vec<Option<i64>>)>,
+}
+
+/// Every board of the game: each chapter with maps, each mode, then overall.
+fn snapshot(t: &Timeline, at: NaiveDateTime) -> Snapshot {
+    let by_run = crate::tools::config::coop_by_run();
+    let (players, chapters) = (t.players.len(), t.chapters.len().max(1));
+    let mut points = vec![0.0f64; players * chapters];
+    let mut times = vec![0i64; players * chapters];
+    let mut counts = vec![0u32; players * chapters];
+    for map in &t.maps {
+        for b in bests_at(map, at, by_run) {
+            let i = b.player as usize * chapters + map.chapter;
+            points[i] += b.points;
+            times[i] += b.score as i64;
+            counts[i] += 1;
+        }
+    }
+    let mut sets: Vec<(String, Vec<usize>)> = Vec::new();
+    for (ci, c) in t.chapters.iter().enumerate().filter(|(_, c)| c.maps > 0) {
+        sets.push((format!("chapter-{}", c.id), vec![ci]));
+    }
+    let mut modes: Vec<&str> = Vec::new();
+    for c in t.chapters.iter().filter(|c| c.maps > 0) {
+        if !modes.contains(&c.mode.as_str()) {
+            modes.push(&c.mode);
+        }
+    }
+    for mode in modes {
+        sets.push((mode.to_string(), t.chapters.iter().enumerate().filter(|(_, c)| c.mode == mode && c.maps > 0).map(|(i, _)| i).collect()));
+    }
+    sets.push(("overall".to_string(), (0..t.chapters.len()).filter(|&i| t.chapters[i].maps > 0).collect()));
+    let boards = sets
+        .into_iter()
+        .map(|(key, set)| {
+            let needed: u32 = set.iter().map(|&ci| t.chapters[ci].maps).sum();
+            let (mut pts, mut tms) = (Vec::with_capacity(players), Vec::with_capacity(players));
+            for p in 0..players {
+                let base = p * chapters;
+                pts.push(set.iter().map(|&ci| points[base + ci]).sum::<f64>());
+                let done: u32 = set.iter().map(|&ci| counts[base + ci]).sum();
+                tms.push((done == needed).then(|| set.iter().map(|&ci| times[base + ci]).sum::<i64>()));
+            }
+            (key, pts, tms)
+        })
+        .collect();
+    Snapshot { boards }
+}
+
+/// Most snapshots kept (each a few MB for Portal 2): now, and a few looked-back days.
+const MAX_SNAPSHOTS: usize = 8;
+
+/// The player's place on every aggregated board of the game, now (`at` None) or as of `at`, like
+/// the old boards' "aggregated times and points": points, and time where they have every map.
+/// None when they have no runs in the game.
+pub async fn aggregates(pool: &PgPool, game_id: i32, profile_number: &str, at: Option<NaiveDateTime>) -> Result<Option<Vec<AggregateRow>>, sqlx::Error> {
+    let t = timeline(pool, game_id).await?;
+    let Some(&me) = t.players.get(profile_number) else {
+        return Ok(None);
+    };
+    let key = (game_id, at);
+    let cached = cache().snapshots.lock().await.get(&key).cloned();
+    let snap = match cached {
+        Some(s) => s,
+        None => {
+            let s = Arc::new(snapshot(&t, at.unwrap_or_else(|| Utc::now().naive_utc())));
+            let mut snaps = cache().snapshots.lock().await;
+            if snaps.len() >= MAX_SNAPSHOTS {
+                snaps.retain(|(_, a), _| a.is_none());
+            }
+            snaps.insert(key, s.clone());
+            s
+        }
+    };
+    Ok(Some(snap.boards.iter().map(|(board, points, times)| aggregate_row(board, points, times, me as usize)).collect()))
+}
+
+/// The player's standing on one board from everyone's totals.
+fn aggregate_row(board: &str, points: &[f64], times: &[Option<i64>], me: usize) -> AggregateRow {
+    let round = |v: f64| (v * 10.0).round() / 10.0;
+    let my_points = points[me];
+    let points = (my_points > 0.0).then(|| {
+        let ahead = points.iter().filter(|&&v| v > my_points);
+        let next = ahead.clone().copied().fold(None, |m: Option<f64>, v| Some(m.map_or(v, |m| m.min(v))));
+        let best = points.iter().copied().fold(my_points, f64::max);
+        Standing { rank: ahead.count() as u32 + 1, value: round(my_points), next: next.map(|n| round(my_points - n)), wr: round(my_points - best) }
+    });
+    let time = times[me].map(|mine| {
+        let faster = times.iter().flatten().filter(|&&v| v < mine);
+        let next = faster.clone().copied().max();
+        let best = times.iter().flatten().copied().min().unwrap_or(mine);
+        Standing { rank: faster.count() as u32 + 1, value: mine, next: next.map(|n| mine - n), wr: mine - best }
+    });
+    AggregateRow { board: board.to_string(), points, time }
 }
 
 /// Legends' points thresholds (Portal 2), as in the role manager's official list
@@ -669,4 +838,76 @@ async fn compute_history(pool: &PgPool, game_id: i32, profile_number: &str) -> R
             HistoryPoint { date, points }
         })
         .collect())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn ts(day: u32) -> NaiveDateTime {
+        NaiveDate::from_ymd_opt(2026, 1, day).unwrap().and_hms_opt(12, 0, 0).unwrap()
+    }
+
+    /// Two chapters (one map, two maps) in one mode; players 0, 1, 2.
+    fn timeline() -> Timeline {
+        let map = |id: &str, chapter: usize, runs: Vec<(NaiveDateTime, u32, i32, i64)>| MapTimeline {
+            map_id: id.into(),
+            mode: 0,
+            chapter,
+            ids: runs.iter().map(|r| r.3).collect(),
+            runs,
+        };
+        Timeline {
+            modes: vec!["sp".into()],
+            players: HashMap::from([("a".into(), 0), ("b".into(), 1), ("c".into(), 2)]),
+            chapters: vec![ChapterInfo { id: 7, mode: "sp".into(), maps: 1 }, ChapterInfo { id: 8, mode: "sp".into(), maps: 2 }],
+            maps: vec![
+                // Chapter 7: a 1000, b 1100, c 1200; b improves to 900 on day 5.
+                map("m1", 0, vec![(ts(1), 0, 1000, 1), (ts(1), 1, 1100, 2), (ts(1), 2, 1200, 3), (ts(5), 1, 900, 4)]),
+                // Chapter 8: a and b on both maps, c only on m2.
+                map("m2", 1, vec![(ts(1), 0, 500, 5), (ts(1), 1, 600, 6), (ts(1), 2, 400, 7)]),
+                map("m3", 1, vec![(ts(1), 0, 700, 8), (ts(1), 1, 650, 9)]),
+            ],
+        }
+    }
+
+    fn row<'a>(rows: &'a [AggregateRow], board: &str) -> &'a AggregateRow {
+        rows.iter().find(|r| r.board == board).unwrap()
+    }
+
+    #[test]
+    fn boards_rank_points_and_complete_times() {
+        let t = timeline();
+        let snap = snapshot(&t, ts(2));
+        let rows: Vec<AggregateRow> = snap.boards.iter().map(|(b, p, tm)| aggregate_row(b, p, tm, 0)).collect();
+        assert_eq!(rows.iter().map(|r| r.board.as_str()).collect::<Vec<_>>(), ["chapter-7", "chapter-8", "sp", "overall"]);
+        // Chapter 7 on day 2: a is first in both.
+        let c7 = row(&rows, "chapter-7");
+        assert_eq!(c7.points.as_ref().map(|p| (p.rank, p.next, p.wr)), Some((1, None, 0.0)));
+        assert_eq!(c7.time, Some(Standing { rank: 1, value: 1000, next: None, wr: 0 }));
+        // Chapter 8: c has only one of its two maps, so only a (1200) and b (1250) have a time.
+        let c8 = row(&rows, "chapter-8");
+        assert_eq!(c8.time, Some(Standing { rank: 1, value: 1200, next: None, wr: 0 }));
+        let b8 = aggregate_row("chapter-8", &snap.boards[1].1, &snap.boards[1].2, 1);
+        assert_eq!(b8.time, Some(Standing { rank: 2, value: 1250, next: Some(50), wr: 50 }));
+        let c_overall = aggregate_row("overall", &snap.boards[3].1, &snap.boards[3].2, 2);
+        assert_eq!(c_overall.time, None, "c misses a map");
+        assert!(c_overall.points.is_some());
+    }
+
+    #[test]
+    fn looking_back_uses_the_times_of_then() {
+        let t = timeline();
+        let before = snapshot(&t, ts(2));
+        let after = snapshot(&t, ts(6));
+        let a_before = aggregate_row("chapter-7", &before.boards[0].1, &before.boards[0].2, 0);
+        let a_after = aggregate_row("chapter-7", &after.boards[0].1, &after.boards[0].2, 0);
+        assert_eq!(a_before.time.unwrap().rank, 1);
+        // b's 900 on day 5 passes a.
+        let a_after_time = a_after.time.unwrap();
+        assert_eq!((a_after_time.rank, a_after_time.next, a_after_time.wr), (2, Some(100), 100));
+        let p = a_after.points.unwrap();
+        assert_eq!(p.rank, 2);
+        assert!(p.next.unwrap() < 0.0 && p.wr < 0.0, "points gaps are below the players ahead");
+    }
 }

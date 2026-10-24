@@ -457,6 +457,40 @@ async fn profile_at(req: HttpRequest, config: web::Data<crate::tools::config::Co
     }
 }
 
+#[derive(serde::Deserialize)]
+pub struct AggregatedQuery {
+    /// Look back to this day (YYYY-MM-DD, as of its end in UTC) or moment; now when left out.
+    pub at: Option<String>,
+    pub game_id: Option<i32>,
+}
+
+/// **GET** A player's place on every aggregated board (each chapter, each mode, overall), now or
+/// as of `?at=`: points (rank, points, gap to the next player up and to first) and time (the same,
+/// on boards where they have a time on every map), like the old boards' "aggregated times and
+/// points". `/profile/aggregated/76561198039230536?game_id=1&at=2021-04-06`
+///
+/// ```json
+/// [{ "board": "chapter-7", "points": { "rank": 14, "value": 1443.2, "next": -26.1, "wr": -310.4 },
+///    "time": { "rank": 21, "value": 66693, "next": 95, "wr": 1373 } }, ...]
+/// ```
+#[get("/profile/aggregated/{profile_number}")]
+async fn profile_aggregated(req: HttpRequest, config: web::Data<crate::tools::config::Config>, pool: web::Data<PgPool>, profile_number: web::Path<String>, query: web::Query<AggregatedQuery>) -> Result<impl Responder> {
+    if let Err(limited) = ratelimit::check(&req, &config, "points", 60, Duration::from_secs(60)) {
+        return Ok(limited);
+    }
+    let at = match query.at.as_deref() {
+        Some(day) => match crate::tools::helpers::parse_moment(day) {
+            Some(at) => Some(at),
+            None => return Ok(HttpResponse::BadRequest().body("Give the date as YYYY-MM-DD.")),
+        },
+        None => None,
+    };
+    match crate::tools::points_history::aggregates(pool.get_ref(), query.game_id.unwrap_or(1), &profile_number, at).await? {
+        Some(rows) => Ok(HttpResponse::Ok().json(rows)),
+        None => Ok(HttpResponse::NotFound().body("No runs for this player.")),
+    }
+}
+
 #[get("/profile/points_peak/{profile_number}")]
 async fn profile_points_peak(req: HttpRequest, config: web::Data<crate::tools::config::Config>, pool: web::Data<PgPool>, profile_number: web::Path<String>, query: web::Query<StatsQuery>) -> Result<impl Responder> {
     if let Err(limited) = ratelimit::check(&req, &config, "points", 60, Duration::from_secs(60)) {

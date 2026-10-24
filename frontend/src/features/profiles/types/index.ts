@@ -32,6 +32,23 @@ export interface ProfilePageRaw {
   ranks: Record<string, number> | null
 }
 
+/** A player's place on one board: rank, value, and the gap to the next player up and to first. */
+export interface StandingRaw {
+  rank: number
+  value: number
+  /** Value minus the next better one; null when first. */
+  next: number | null
+  wr: number
+}
+
+/** One of GET /profile/aggregated/{steam id}'s boards (`chapter-{id}`, a mode, or `overall`). */
+export interface AggregateRowRaw {
+  board: string
+  points: StandingRaw | null
+  /** Total time in centiseconds, on boards where the player has a time on every map. */
+  time: StandingRaw | null
+}
+
 /** GET /user/{steam id}. */
 export interface UserRaw {
   profile_number: string

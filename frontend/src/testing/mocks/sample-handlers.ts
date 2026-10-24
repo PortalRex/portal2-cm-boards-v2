@@ -83,6 +83,7 @@ export function sampleHandlers(api: string): RequestHandler[] {
     ),
     // Profiles: no peak or past days in sample data (legacy's sample profile had neither).
     http.get(`${api}/profile/points_peak/:id`, () => HttpResponse.json({})),
+    http.get(`${api}/profile/aggregated/:id`, () => HttpResponse.json([])),
     http.get(`${api}/profile/points_history/:id`, ({ params }) =>
       HttpResponse.json(samplePointsHistory(String(params.id))),
     ),

@@ -31,6 +31,8 @@ export const queryKeys = {
   profilePointsHistory: (profileNumber: string) => ['profile', profileNumber, 'points-history'] as const,
   profilePointsPeak: (profileNumber: string) => ['profile', profileNumber, 'points-peak'] as const,
   profileAt: (profileNumber: string, day: string) => ['profile', profileNumber, 'at', day] as const,
+  profileAggregated: (profileNumber: string, day: string | null) =>
+    ['profile', profileNumber, 'aggregated', day ?? 'now'] as const,
   user: (profileNumber: string) => ['user', profileNumber] as const,
   /** Whether you have a SAR auto-submit key (Settings). */
   submitKey: () => ['auth', 'submit-key'] as const,

@@ -15,6 +15,7 @@ import type { Profile, ProfilePlayer, RenderRunDetails } from '../types'
 import { profileAsOf, validDay } from '../utils/profile'
 import { ActivityHeatmap } from './activity-heatmap'
 import { FollowButton } from './follow-button'
+import { AggregatedCard } from './aggregated-card'
 import { PointsChart } from './points-chart'
 import { ProfileHeader } from './profile-header'
 import { GlobalRankCard, PointsCard, SideCards, StatisticsCard } from './profile-stats'
@@ -127,6 +128,7 @@ export function ProfilePage({
           <StatisticsCard profile={view} />
           <SideCards profile={view} peak={peakData} />
         </Row>
+        <AggregatedCard profileNumber={p.player.profileNumber} at={at ?? null} />
         {p.history.length > 0 && (
           <Card icon={HistoryIcon} title="Activity" collapseId="profile.activity" className="mb-5">
             <ActivityHeatmap history={p.history} />

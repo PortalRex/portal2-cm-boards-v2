@@ -6,6 +6,7 @@ import { queryKeys } from '@/lib/query-keys'
 import { getGameRanks, getPlayerRuns } from '@/lib/runs/player-runs'
 import { getProfileScores } from '@/lib/runs/profile-scores'
 import type {
+  AggregateRowRaw,
   GameResults,
   PointsPeak,
   Profile,
@@ -48,6 +49,19 @@ export const pointsPeakQueryOptions = (profileNumber: string) =>
 /** Where the player stood at the end of a past day (YYYY-MM-DD). */
 export const getProfileAt = (profileNumber: string, at: string, signal?: AbortSignal) =>
   api.get<ProfileAtRaw>(`/profile/at/${profileNumber}`, { params: { at }, signal })
+
+/** The player's place on every Portal 2 aggregated board, now or as of a day (YYYY-MM-DD). */
+export const getAggregated = (profileNumber: string, at: string | null, signal?: AbortSignal) =>
+  api.get<AggregateRowRaw[]>(`/profile/aggregated/${profileNumber}`, {
+    params: { game_id: 1, ...(at ? { at } : {}) },
+    signal,
+  })
+
+export const aggregatedQueryOptions = (profileNumber: string, at: string | null) =>
+  queryOptions({
+    queryKey: queryKeys.profileAggregated(profileNumber, at),
+    queryFn: ({ signal }) => getAggregated(profileNumber, at, signal),
+  })
 
 export const profileAtQueryOptions = (profileNumber: string, at: string) =>
   queryOptions({

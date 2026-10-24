@@ -69,6 +69,10 @@
 
 ## Log
 <!-- Newest first. One entry per finished item: date, what was done, commit, tests added. -->
+- 2026-10-24: New (asked for, like the old boards' profile box): "Aggregated Times and Points" card on the profile
+  (`aggregated-card.tsx`): Points and Times tables with rank, value, Δnext and ΔWR for every single player chapter,
+  co-op course and total, each linking to its board on the player; follows the profile's look-back day. Server:
+  `GET /profile/aggregated/{id}` (BACKEND_CHANGES §5); matched the aggregated boards for every board on real data.
 - 2026-10-24: Asked for: the read-only banner is now a preview notice on every page (`read-only-banner.tsx`): a
   "Preview" tag, "These boards are read-only and here mainly for feedback. Everything is subject to change." and a
   Share feedback link to the community Discord; staff are told they can still edit. It shows while read-only mode is

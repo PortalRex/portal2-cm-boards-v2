@@ -26,10 +26,13 @@ export function serveProfile({
   gameRanks = {},
   gameRuns = [],
   user: userOverride = {},
+  aggregated = [],
 }: {
   gameRanks?: Record<string, Record<string, number>>
   gameRuns?: unknown[]
   user?: Record<string, unknown>
+  /** GET /profile/aggregated's boards (none by default). */
+  aggregated?: unknown[]
 } = {}): ProfileRequests {
   const requests: ProfileRequests = { asked: [] }
   const note = (request: Request) => {
@@ -38,6 +41,7 @@ export function serveProfile({
   }
   server.use(
     http.get(`${API}/profile/points_peak/:id`, ({ request }) => (note(request), HttpResponse.json(peak))),
+    http.get(`${API}/profile/aggregated/:id`, ({ request }) => (note(request), HttpResponse.json(aggregated))),
     http.get(
       `${API}/profile/points_history/:id`,
       ({ request }) => (note(request), HttpResponse.json(pointsHistory)),

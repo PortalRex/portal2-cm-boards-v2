@@ -186,6 +186,63 @@ describe('Profile page', () => {
     expect(requests.asked).toContain(`/changelog?profile_number=${FIXTURE_PLAYER}&limit=5000&game_id=2`)
   })
 
+  it('shows aggregated points and times per chapter and in total, as of the day looked back to', async () => {
+    const requests = serveProfile({
+      aggregated: [
+        {
+          board: 'chapter-7',
+          points: { rank: 14, value: 1443.4, next: -26.2, wr: -310.1 },
+          time: { rank: 21, value: 66693, next: 95, wr: 1373 },
+        },
+        { board: 'overall', points: { rank: 6, value: 18902, next: -402, wr: -1947 }, time: null },
+      ],
+    })
+    const { unmount } = await renderProfile()
+    const points = await screen.findByRole('table', { name: 'Points' })
+    const times = screen.getByRole('table', { name: 'Times' })
+    const chapter = within(points).getByRole('row', { name: /The Courtesy Call/ })
+    expect(
+      within(chapter)
+        .getAllByRole('cell')
+        .map((c) => c.textContent),
+    ).toEqual(['14', '1443', '-26', '-310'])
+    expect(within(chapter).getByRole('link', { name: 'The Courtesy Call' })).toHaveAttribute(
+      'href',
+      `/leaderboard/chapter/7?player=${FIXTURE_PLAYER}`,
+    )
+    const chapterTime = within(times).getByRole('row', { name: /The Courtesy Call/ })
+    expect(
+      within(chapterTime)
+        .getAllByRole('cell')
+        .map((c) => c.textContent),
+    ).toEqual(['21', '11:06.93', '+0.95', '+13.73'])
+    // No time on boards the player hasn't finished every map of.
+    const overallTime = within(times).getByRole('row', { name: /Overall/ })
+    expect(
+      within(overallTime)
+        .getAllByRole('cell')
+        .map((c) => c.textContent),
+    ).toEqual(['–', '–', '–', '–'])
+    expect(requests.asked).toContain(`/profile/aggregated/${FIXTURE_PLAYER}?game_id=1`)
+    unmount()
+    await renderProfile(`/profile/${FIXTURE_PLAYER}?at=2021-04-06`)
+    await waitFor(() =>
+      expect(requests.asked).toContain(`/profile/aggregated/${FIXTURE_PLAYER}?game_id=1&at=2021-04-06`),
+    )
+  })
+
+  it('says so when the player has no Portal 2 times for the aggregated tables', async () => {
+    serveProfile()
+    server.use(
+      http.get(
+        `${API}/profile/aggregated/:id`,
+        () => new HttpResponse('No runs for this player.', { status: 404 }),
+      ),
+    )
+    await renderProfile()
+    expect(await screen.findByText('No Portal 2 times yet.')).toBeInTheDocument()
+  })
+
   it('says so when the player has no results in a season', async () => {
     serveProfile()
     await renderRoute(`/profile/${FIXTURE_PLAYER}`)
