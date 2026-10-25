@@ -1,6 +1,6 @@
 import { cn } from 'cn'
 import { AppLink } from '@/components/app-link'
-import { TrophyIcon } from '@/components/icons'
+import { TrophyFilledIcon } from '@/components/icons'
 import { PlayerLink } from '@/components/player-link'
 import { AutorenderLink, DemoLink, YouTubeLink } from '@/components/runs/run-media'
 import { TimeButton } from '@/components/runs/time-button'
@@ -68,7 +68,7 @@ export function MapCard({ map, scores }: { map: MapInfo; scores: PreviewRun[] | 
           isMine(wr) && 'me-row',
         )}
       >
-        <TrophyIcon className="size-[26px] shrink-0 text-trophy upto700:size-[18px]" />
+        <TrophyFilledIcon className="size-[26px] shrink-0 text-trophy upto700:size-[18px]" />
         {wr ? (
           <>
             {/* Same order as the rows below: name, video / demo, time. */}

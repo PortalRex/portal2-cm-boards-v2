@@ -1,10 +1,10 @@
 import { cn } from 'cn'
-import { useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { useRef, useState, type ComponentType, type CSSProperties, type ReactNode } from 'react'
 import { AppLink } from '@/components/app-link'
 import { Flag } from '@/components/avatar'
 import { Bubble } from '@/components/bubble'
 import { bubbleAnchor } from '@/lib/bubble'
-import { GlobeIcon, PeakIcon, SparkleIcon, TrophyIcon } from '@/components/icons'
+import { GlobeIcon, PeakIcon, SparkleIcon, TrophyFilledIcon } from '@/components/icons'
 import { Card } from '@/components/panel'
 import { countryName } from '@/lib/data/countries'
 import { roleProgress, type PointsBoard } from '@/lib/data/roles'
@@ -268,7 +268,7 @@ function SideCard({
   collapseId,
   children,
 }: {
-  icon: typeof GlobeIcon
+  icon: ComponentType<{ className?: string }>
   title: string
   collapseId: string
   children: ReactNode
@@ -296,7 +296,7 @@ export function SideCards({ profile, peak }: { profile: Profile; peak: PointsPea
           <Stat key={key} size="sm" value={fmtAvg(avg[key])} label={short} />
         ))}
       </SideCard>
-      <SideCard icon={TrophyIcon} title="World Records" collapseId="profile.wrs">
+      <SideCard icon={TrophyFilledIcon} title="World Records" collapseId="profile.wrs">
         <Stat size="sm" value={wrs.sp} label="Single Player" />
         <Stat size="sm" value={wrs.coop} label="Cooperative" />
         <Stat size="sm" value={wrs.sp + wrs.coop} label="Overall" />

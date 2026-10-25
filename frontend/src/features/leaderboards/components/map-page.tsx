@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useLocation, useNavigate } from '@tanstack/react-router'
 import { cn } from 'cn'
 import { useState } from 'react'
-import { HistoryIcon, PinIcon, TrophyIcon, WikiIcon } from '@/components/icons'
+import { HistoryIcon, PinIcon, TrophyFilledIcon, WikiIcon } from '@/components/icons'
 import { Page } from '@/components/layouts/page'
 import { Redirect } from '@/components/redirect'
 import { Panel } from '@/components/panel'
@@ -175,7 +175,7 @@ function MapPageContent({
                   aria-pressed={view === 'wr'}
                   className={cn(outlineButton, 'border-dashed')}
                 >
-                  {view === 'wr' ? 'Leaderboard' : 'Edit WR history'} <TrophyIcon />
+                  {view === 'wr' ? 'Leaderboard' : 'Edit WR history'} <TrophyFilledIcon />
                 </button>
               )}
             </div>

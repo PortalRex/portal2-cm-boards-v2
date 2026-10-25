@@ -10,7 +10,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import { TrophyIcon } from '@/components/icons'
+import { TrophyFilledIcon } from '@/components/icons'
 import { Loading } from '@/components/status'
 import { useWheelZoom } from '@/hooks/use-wheel-zoom'
 import { formatDate, formatScore, parseTimestamp } from '@/lib/format'
@@ -154,7 +154,7 @@ export function WrHistoryChart({
             ))}
           </div>
         )}
-        <TrophyIcon className="absolute top-0 right-1.5 z-[1] size-[26px] text-trophy" />
+        <TrophyFilledIcon className="absolute top-0 right-1.5 z-[1] size-[26px] text-trophy" />
       </div>
       <div
         ref={zoomRef}
