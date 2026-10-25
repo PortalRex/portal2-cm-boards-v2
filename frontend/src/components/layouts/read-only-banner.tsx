@@ -1,8 +1,8 @@
 import { DiscordIcon } from '@/components/icons'
 import { useReadOnly } from '@/hooks/use-read-only'
 
-/** Where feedback goes: the community Discord (also in the More menu and on About). */
-const FEEDBACK_URL = 'https://discord.gg/hRwE4Zr'
+/** Where feedback goes: the boards feedback channel on the community Discord. */
+const FEEDBACK_URL = 'https://discord.com/channels/146404426746167296/965719920522432522'
 
 /**
  * The notice under the top bar on every page while the boards are read-only (the first days after
@@ -27,7 +27,7 @@ export function ReadOnlyBanner() {
             </span>
             <span>
               <strong className="font-semibold">These boards are read-only</strong> and here mainly for
-              feedback. Everything is subject to change.
+              feedback. <strong className="font-semibold">Everything is subject to change.</strong>
               {!blocked && (
                 <span className="text-text-2"> You&apos;re staff, so you can still make changes.</span>
               )}

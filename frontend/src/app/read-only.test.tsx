@@ -25,9 +25,10 @@ describe('read-only mode', () => {
     expect(notice).toHaveTextContent(
       'PreviewThese boards are read-only and here mainly for feedback. Everything is subject to change.',
     )
+    expect(within(notice).getByText('Everything is subject to change.').tagName).toBe('STRONG')
     expect(within(notice).getByRole('link', { name: 'Share feedback' })).toHaveAttribute(
       'href',
-      'https://discord.gg/hRwE4Zr',
+      'https://discord.com/channels/146404426746167296/965719920522432522',
     )
     expect(notice).not.toHaveTextContent('staff')
     unmount()
