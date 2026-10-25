@@ -117,8 +117,8 @@ impl CoopMap {
 }
 
 impl CoopPreview {
-    // TODO: Filter by default cat_id
-    /// Gets the top 7 (unique on player) times on a given Coop Map.
+    /// Gets the top 7 (unique on player) times on a given Coop Map, in the map's main category; equal
+    /// times in the order they were set, as on the map board.
     pub async fn get_coop_preview(pool: &PgPool, map_id: &str) -> Result<Vec<CoopPreview>, sqlx::Error> {
         // TODO: Open to PRs to contain all this functionality in the SQL statement.
         let res = sqlx::query_as::<_, CoopPreview>(
@@ -147,7 +147,9 @@ impl CoopPreview {
                     AND c2.banned=False
                     AND c1.verified=True
                     AND c2.verified=True
-                ORDER BY score ASC
+                    AND c1.category_id = (SELECT default_cat_id FROM maps WHERE steam_id = $1)
+                -- Equal times: the earlier run first, as on the map board.
+                ORDER BY score ASC, c1.timestamp ASC NULLS LAST, cb.id ASC
                 LIMIT 40
                 "#,
         )

@@ -210,6 +210,10 @@ All under `/api/v1`. Auth: **public**, **signed in**, **staff** (any tier or ser
   `sar_version2`, one per half), so a run opened on a map page shows them as Score Updates does.
 - **`GET /coop/{coop_id}/halves`** adds each half's `portals` and `sar_version`.
 - **`GET /coop`** (previews) takes `game_id`.
+- **`GET /sp` and `GET /coop` previews** (the Maps page cards) list the same runs in the same order as the map's
+  board: each player's best verified run in the map's main category, equal times in the order they were set (the
+  earlier one is the record). They used to sort by time alone, so ties came out in any order, and the SP ones also
+  counted pending runs and other categories.
 - **`GET /user/{id}`** adds `frozen`, `role`, `name_locked`, `avatar_locked`; drops `auth_hash`, `discord_id`.
 - **Sign-in and `PUT /user/avatar/{id}`** leave staff-set pictures alone.
 - **Changes to runs** (posting, editing, moderation) invalidate the points cache and previews.

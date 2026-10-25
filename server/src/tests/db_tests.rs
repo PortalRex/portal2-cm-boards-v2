@@ -808,3 +808,73 @@ async fn test_db_old_boards_deletes_duplicate_steam_copies() {
     assert_eq!(report.deleted, 0, "{:?}", report.details);
     cleanup().await;
 }
+
+#[actix_web::test]
+async fn test_db_previews_list_equal_times_in_the_order_set() {
+    use crate::models::coop::CoopPreview;
+    use crate::models::sp::SpPreview;
+    let (_, pool) = get_config().await.expect("Error getting config and DB pool");
+    // Our own rows (removed again at the end): equal record times on Turret Intro and on Doors.
+    let cleanup = || async {
+        for sql in [
+            "UPDATE changelog SET coop_id = NULL WHERE profile_number LIKE 'test-tie-%'",
+            "DELETE FROM coop_bundled WHERE mirror_of IN (SELECT id FROM coop_bundled WHERE p_id1 LIKE 'test-tie-%')",
+            "DELETE FROM coop_bundled WHERE p_id1 LIKE 'test-tie-%'",
+            "DELETE FROM changelog WHERE mirror_of IN (SELECT id FROM changelog WHERE profile_number LIKE 'test-tie-%')",
+            "DELETE FROM changelog WHERE profile_number LIKE 'test-tie-%'",
+            "DELETE FROM users WHERE profile_number LIKE 'test-tie-%'",
+        ] {
+            sqlx::query(sql).execute(&pool).await.unwrap();
+        }
+    };
+    cleanup().await;
+    sqlx::query("INSERT INTO users (profile_number, steam_name) VALUES ('test-tie-a', 'test-tie-a'), ('test-tie-b', 'test-tie-b'), ('test-tie-c', 'test-tie-c'), ('test-tie-d', 'test-tie-d')")
+        .execute(&pool)
+        .await
+        .unwrap();
+    // A verified run `days_ago` back, in the map's main category, faster than any real record.
+    let run = |profile: &'static str, map: &'static str, days_ago: i32| {
+        let pool = pool.clone();
+        async move {
+            sqlx::query_scalar::<_, i64>(
+                "INSERT INTO changelog (timestamp, profile_number, score, map_id, banned, submission, category_id, verified) SELECT now() - make_interval(days => $1), $2, 100, $3, false, 1, default_cat_id, true FROM maps WHERE steam_id = $3 RETURNING id",
+            )
+            .bind(days_ago)
+            .bind(profile)
+            .bind(map)
+            .fetch_one(&pool)
+            .await
+            .unwrap()
+        }
+    };
+    // The later run goes in first and belongs to the player whose ID sorts first, so neither table
+    // order nor player order puts the earlier run on top: only the date does.
+    run("test-tie-a", "47756", 1).await;
+    run("test-tie-b", "47756", 30).await;
+    let sp = SpPreview::get_sp_preview(&pool, "47756").await.unwrap();
+    let names: Vec<&str> = sp.iter().take(2).map(|p| p.profile_number.as_str()).collect();
+    assert_eq!(names, ["test-tie-b", "test-tie-a"], "the earlier of two equal times is the record");
+
+    let bundle = |a: i64, b: i64, p1: &'static str, p2: &'static str| {
+        let pool = pool.clone();
+        async move {
+            let cb: i64 = sqlx::query_scalar("INSERT INTO coop_bundled (p_id1, p_id2, p1_is_host, cl_id1, cl_id2) VALUES ($1, $2, true, $3, $4) RETURNING id")
+                .bind(p1)
+                .bind(p2)
+                .bind(a)
+                .bind(b)
+                .fetch_one(&pool)
+                .await
+                .unwrap();
+            sqlx::query("UPDATE changelog SET coop_id = $1 WHERE id IN ($2, $3)").bind(cb).bind(a).bind(b).execute(&pool).await.unwrap();
+        }
+    };
+    let (late1, late2) = (run("test-tie-a", "47741", 1).await, run("test-tie-b", "47741", 1).await);
+    bundle(late1, late2, "test-tie-a", "test-tie-b").await;
+    let (early1, early2) = (run("test-tie-c", "47741", 30).await, run("test-tie-d", "47741", 30).await);
+    bundle(early1, early2, "test-tie-c", "test-tie-d").await;
+    let coop = CoopPreview::get_coop_preview(&pool, "47741").await.unwrap();
+    assert_eq!(coop[0].profile_number1, "test-tie-c", "the earlier of two equal co-op times is the record");
+    assert_eq!(coop[1].profile_number1, "test-tie-a");
+    cleanup().await;
+}

@@ -73,25 +73,30 @@ impl SpMap {
 }
 
 impl SpPreview {
-    /// Gets preview information for top 7 on an SP Map.
+    /// Gets preview information for top 7 on an SP Map: the map board's first rows (each player's
+    /// best verified run in the map's main category; equal times in the order they were set).
     pub async fn get_sp_preview(pool: &PgPool, map_id: &str) -> Result<Vec<SpPreview>, sqlx::Error> {
         sqlx::query_as::<_, SpPreview>(
             r#"
-                SELECT t.CL_profile_number, t.score, t.youtube_id, t.category_id,
-                COALESCE(t.board_name, t.steam_name, t.CL_profile_number) AS user_name, t.map_id, t.autorender_id
+                SELECT t.cl_profile_number, t.score, t.youtube_id, t.category_id, t.user_name, t.map_id, t.autorender_id
                 FROM (
-                    SELECT DISTINCT ON (changelog.profile_number) 
-                        changelog.profile_number as CL_profile_number,
-                        users.profile_number as U_profile_number, *
-                    FROM changelog
-                    INNER JOIN users ON (users.profile_number = changelog.profile_number)
-                    WHERE map_id = $1
-                    AND users.banned = False
-                    AND changelog.banned = False
-                    ORDER BY changelog.profile_number, changelog.score ASC
+                    SELECT DISTINCT ON (cl.profile_number)
+                        cl.id AS cl_id, cl.profile_number AS cl_profile_number, cl.score, cl.youtube_id, cl.category_id,
+                        COALESCE(u.board_name, u.steam_name, cl.profile_number) AS user_name, cl.map_id, cl.autorender_id,
+                        cl.timestamp
+                    FROM changelog AS cl
+                    INNER JOIN users AS u ON u.profile_number = cl.profile_number
+                    INNER JOIN maps AS m ON m.steam_id = cl.map_id
+                    WHERE cl.map_id = $1
+                        AND NOT u.banned
+                        AND NOT cl.banned
+                        AND cl.verified
+                        AND cl.category_id = m.default_cat_id
+                    ORDER BY cl.profile_number, cl.score ASC, cl.timestamp ASC NULLS LAST, cl.id
                 ) t
-               ORDER BY score
-               LIMIT 7;"#,
+                -- Equal times: the earlier run first, as on the map board.
+                ORDER BY t.score, t.timestamp ASC NULLS LAST, t.cl_id
+                LIMIT 7"#,
         )
         .bind(map_id)
         .fetch_all(pool)
