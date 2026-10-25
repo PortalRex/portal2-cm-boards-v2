@@ -164,7 +164,7 @@ export interface MoreEntry {
 
 export const MORE_MENU: MoreEntry[] = [
   { href: 'https://discord.gg/hRwE4Zr', label: 'Discord', icon: 'discord' },
-  { href: 'https://github.com/p2sr/portal2-cm-boards-v2', label: 'GitHub', icon: 'github' },
+  { href: 'https://github.com/PortalRex/portal2-cm-boards-v2', label: 'GitHub', icon: 'github' },
   { to: '/more/donators', label: 'Donators', icon: 'donate' },
   { to: '/more/wall-of-shame', label: 'Wall Of Shame', icon: 'gavel' },
   { to: '/more/about', label: 'About', icon: 'info' },

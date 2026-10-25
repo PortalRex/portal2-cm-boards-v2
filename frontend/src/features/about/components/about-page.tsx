@@ -147,7 +147,7 @@ export function AboutPage() {
                 <External href={DISCORD}>Discord</External>: news, questions and run discussion.
               </li>
               <li>
-                <External href="https://github.com/p2sr/portal2-cm-boards-v2">GitHub</External>: the boards'
+                <External href="https://github.com/PortalRex/portal2-cm-boards-v2">GitHub</External>: the boards'
                 source code.
               </li>
               <li>
