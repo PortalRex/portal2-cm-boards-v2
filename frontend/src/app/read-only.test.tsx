@@ -25,7 +25,11 @@ describe('read-only mode', () => {
     expect(notice).toHaveTextContent(
       'PreviewThese boards are read-only and here mainly for feedback. Everything is subject to change.',
     )
-    expect(within(notice).getByText('Everything is subject to change.').tagName).toBe('STRONG')
+    expect(
+      within(notice).getByText(
+        'These boards are read-only and here mainly for feedback. Everything is subject to change.',
+      ).tagName,
+    ).toBe('STRONG')
     expect(within(notice).getByRole('link', { name: 'Share feedback' })).toHaveAttribute(
       'href',
       'https://discord.com/channels/146404426746167296/965719920522432522',
@@ -33,9 +37,14 @@ describe('read-only mode', () => {
     expect(notice).not.toHaveTextContent('staff')
     unmount()
     await renderWithProviders(<ReadOnlyBanner />, { user: 'verifier' })
-    expect(await screen.findByRole('complementary', { name: 'Site notice' })).toHaveTextContent(
-      "You're staff, so you can still make changes.",
-    )
+    const staffNotice = await screen.findByRole('complementary', { name: 'Site notice' })
+    expect(staffNotice).toHaveTextContent("You're staff, so you can still make changes.")
+    // The staff line stays in normal weight.
+    expect(
+      within(staffNotice)
+        .getByText(/You're staff/)
+        .closest('strong'),
+    ).toBeNull()
   })
 
   it('shows nothing when it is off', async () => {

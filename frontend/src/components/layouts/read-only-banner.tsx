@@ -26,8 +26,9 @@ export function ReadOnlyBanner() {
               Preview
             </span>
             <span>
-              <strong className="font-semibold">These boards are read-only</strong> and here mainly for
-              feedback. <strong className="font-semibold">Everything is subject to change.</strong>
+              <strong className="font-semibold">
+                These boards are read-only and here mainly for feedback. Everything is subject to change.
+              </strong>
               {!blocked && (
                 <span className="text-text-2"> You&apos;re staff, so you can still make changes.</span>
               )}
