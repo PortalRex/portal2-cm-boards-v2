@@ -2,7 +2,7 @@ import { cn } from 'cn'
 import { useState, type CSSProperties, type ReactNode } from 'react'
 import { AppLink } from '@/components/app-link'
 import { Avatar } from '@/components/avatar'
-import { BannedIcon, PendingIcon, TriangleDown, TrophyIcon } from '@/components/icons'
+import { BannedIcon, PendingIcon, TriangleDown, TrophyFilledIcon } from '@/components/icons'
 import { PlayerLink } from '@/components/player-link'
 import { RankChange } from '@/components/rank'
 import { TimeButton } from '@/components/runs/time-button'
@@ -136,7 +136,7 @@ export function ScoreRow({
                   style={marked ? pbNameVars(tint) : undefined}
                 />
                 {pb && pbStyle === 'icon' && (
-                  <TrophyIcon
+                  <TrophyFilledIcon
                     role="img"
                     aria-label="PB"
                     className="mr-2.5 ml-auto size-[17px] shrink-0"

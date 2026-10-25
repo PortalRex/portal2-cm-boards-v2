@@ -2,7 +2,7 @@ import { useQuery, type UseQueryResult } from '@tanstack/react-query'
 import { cn } from 'cn'
 import { useState, type ReactNode } from 'react'
 import { Avatar } from '@/components/avatar'
-import { TrophyIcon } from '@/components/icons'
+import { TrophyFilledIcon } from '@/components/icons'
 import { Pagination } from '@/components/pagination'
 import { PlayerLink } from '@/components/player-link'
 import { RankNumber, RankTag } from '@/components/rank'
@@ -210,7 +210,7 @@ export function MapLeaderboard({
                           style={marked ? pbNameVars(tint) : undefined}
                         />
                         {pb && pbStyle === 'icon' && (
-                          <TrophyIcon
+                          <TrophyFilledIcon
                             role="img"
                             aria-label="PB"
                             className="mr-2.5 ml-auto size-[17px] shrink-0"
