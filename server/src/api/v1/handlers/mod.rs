@@ -6,6 +6,8 @@ pub mod auth;
 pub mod changelog;
 /// Chapter-related endpoints.
 pub mod chapters;
+/// What shared links show (link previews).
+pub mod link_preview;
 /// Players' countries and per-country stats
 pub mod countries;
 /// Cooperative-specific endpoints.

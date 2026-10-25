@@ -494,6 +494,21 @@ open, and SAR's `/api-v2` checks it itself (its key checks only read and keep wo
 `GET /site` reports it (`{ "private", "read_only" }`); the site then shows a banner and hides what would fail. Same gate
 as staff-only mode (`server/src/tools/private_site.rs`).
 
+### Link previews
+
+Shared links show a card in Discord, Slack, Twitter and the like. Their bots don't run the app, so nginx
+(`frontend/nginx.conf`) sends a link-preview bot (by user agent; search engines aren't on the list) that asks for a page
+to `GET /link_preview` instead, with the page's path in `X-Original-URI`. Files such as the share image go to it as
+they are. The server answers a small HTML page with the Open Graph tags, its URLs from `SERVER.PUBLIC_URL`:
+
+- A player's profile (`/profile/{id}`): their name, Steam avatar, overall place and points, and single-player and
+  co-op places (Portal 2's boards, from the points cache). Unknown and banned players get the site's card.
+- Every other page: the site's card with the share image (`frontend/public/og-image.jpg`, or `og-image-preview.jpg`
+  with a PREVIEW tag while `SERVER.READ_ONLY` is on).
+
+The endpoint is open in staff-only mode too, but then only ever shows the site's card. Rate limited to 60 a minute per
+address.
+
 ### Demo parsing
 
 `server/src/tools/demo_parse.rs` reads every demo the boards have with `server/demo-parser/parse_batch.mjs` (many at

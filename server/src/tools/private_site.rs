@@ -22,9 +22,10 @@ use sqlx::PgPool;
 pub const READ_ONLY_MESSAGE: &str = "The boards are read-only for now: only staff can make changes.";
 
 /// Paths open to everyone in both modes. SAR's auto-submit (`/api-v2`) signs in with a key, not a
-/// session, and checks both modes itself (its key checks are POSTs that only read).
+/// session, and checks both modes itself (its key checks are POSTs that only read). Link previews
+/// only show the site's own card in staff-only mode.
 fn open(path: &str) -> bool {
-    path.starts_with("/api/v1/auth/") || path == "/api/v1/site" || path.starts_with("/api-v2/")
+    path.starts_with("/api/v1/auth/") || path == "/api/v1/site" || path == "/api/v1/link_preview" || path.starts_with("/api-v2/")
 }
 
 fn is_change(method: &Method) -> bool {

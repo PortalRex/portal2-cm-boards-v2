@@ -534,7 +534,7 @@ async fn profile_scores(
 }
 
 /// A player's sp (-1), coop (-2) and overall (-3) points with placements, from the points cache.
-async fn profile_points(pool: &PgPool, cache: &PointsCache, profile_number: &str) -> anyhow::Result<Vec<PointsProfileWrapper>> {
+pub(crate) async fn profile_points(pool: &PgPool, cache: &PointsCache, profile_number: &str) -> anyhow::Result<Vec<PointsProfileWrapper>> {
     let mut out = Vec::new();
     for (id, key, scope) in [(-1, "sp", Scope::Modes(&["sp"])), (-2, "coop", Scope::Modes(&["coop"])), (-3, "overall", Scope::All)] {
         let board = cache.board(pool, 1, key, scope).await?;
