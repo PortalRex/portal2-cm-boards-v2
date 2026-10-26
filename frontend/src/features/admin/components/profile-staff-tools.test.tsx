@@ -136,7 +136,7 @@ describe('Profile staff tools', () => {
     await within(dialog).findByText('Name set.')
     await userEvent.type(
       within(dialog).getByRole('textbox', { name: 'Picture address' }),
-      'https://x.test/a.png',
+      'https://i.imgur.com/AbCd123.png',
     )
     await userEvent.click(within(dialog).getByRole('button', { name: 'Set picture' }))
     await within(dialog).findByText('Picture set.')
@@ -146,7 +146,7 @@ describe('Profile staff tools', () => {
     await within(dialog).findByText('Country set.')
     expect(sent.map((s) => [s.path.split('/')[1], s.body])).toEqual([
       ['display', { name: 'Better name' }],
-      ['display', { avatar: 'https://x.test/a.png' }],
+      ['display', { avatar: 'https://i.imgur.com/AbCd123.png' }],
       ['country', { country_id: null }],
     ])
   })

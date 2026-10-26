@@ -22,6 +22,7 @@ use crate::{
         error::Result,
         points_cache::invalidate_points,
         ratelimit,
+        upload_slots::UPLOADS,
     },
 };
 use actix_multipart::Multipart;
@@ -254,6 +255,11 @@ async fn auto_submit(req: HttpRequest, pool: web::Data<PgPool>, config: web::Dat
     if let Err(limited) = ratelimit::check(&req, &config, "upload", 10, Duration::from_secs(60)) {
         return Ok(limited);
     }
+    // One of the server's upload slots, held until this answers (see tools::upload_slots).
+    let _slot = match UPLOADS.take().await {
+        Ok(slot) => slot,
+        Err(busy) => return Ok(busy),
+    };
     let (owner, form) = match open(&req, &config, &pool, payload, true).await? {
         Ok(ok) => ok,
         Err(refused) => return Ok(refused),

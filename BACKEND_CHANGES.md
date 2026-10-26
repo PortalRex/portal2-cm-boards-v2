@@ -289,6 +289,10 @@ All under `/api/v1`. Auth: **public**, **signed in**, **staff** (any tier or ser
   scoreboard (time in centiseconds, portal count), and the players. Players come from the userinfo string table plus a scan
   of the whole file, which also finds a co-op partner who joined after recording started. The server runs it with a 30 s
   timeout.
+- Uploads are handled four at a time (`tools/upload_slots.rs`): every upload endpoint (`POST /submissions/preview`,
+  `POST /submissions`, `POST /runs/{id}/demo`, `POST /api-v2/auto-submit`) takes a slot before reading the demo and keeps it
+  until it answers, so at most four demos sit in memory and four parsers run at once. An upload waits up to 15 s for a slot,
+  then gets 503 (`Retry-After: 30`, "The server is busy checking other demos").
 - **`POST /submissions`**:
   - The map comes from the demo's map file (`maps.bsp_name`; season copies excluded) and the time from the scoreboard.
   - Players can only submit demos they're in.
@@ -414,7 +418,11 @@ for that player. Rules:
 ### Countries
 
 Players set their own name and picture in Settings (`PUT /user/display`: `name` or null for their Steam name, `avatar` as
-`default`, `steam` or an https address); refused for whatever staff have set and for a name another player goes by.
+`default`, `steam` or an https address); refused for whatever staff have set and for a name another player goes by. A
+picture by address has to be on Steam's image servers or Imgur's (`moderation::AVATAR_HOSTS`: `avatars.steamstatic.com`
+and its CDN variants, `steamcdn-a.akamaihd.net`, `steamuserimages-a.akamaihd.net`, `images.steamusercontent.com`,
+`i.imgur.com`), for staff setting someone's picture too: visitors' browsers load avatars straight from their address, so
+any other server would let whoever runs it log everyone who sees the player. Anything else answers 400.
 
 Players set their own country (`PUT /user/country`, or `POST /user/country/steam` to take it from their public Steam
 profile); staff can set anyone's (`PUT /admin/users/{steam_id}/country`, in the audit log). The points boards carry

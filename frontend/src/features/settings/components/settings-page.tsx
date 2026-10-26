@@ -229,7 +229,7 @@ function DisplaySetting({ user }: { user: CurrentUser }) {
               className={input}
               value={url}
               onChange={(e) => setUrl(e.target.value)}
-              placeholder="Picture address (https://…)"
+              placeholder="Steam or Imgur image address (https://…)"
               aria-label="Picture address"
               disabled={busy || avatarLocked}
             />
@@ -258,7 +258,7 @@ function DisplaySetting({ user }: { user: CurrentUser }) {
       <p className={note}>
         {nameLocked || avatarLocked
           ? `Your ${locked} set by staff, so ${nameLocked && avatarLocked ? 'they' : 'it'} can't be changed here.`
-          : 'Shown on the boards instead of your Steam name and picture. They stay when you sign in again.'}
+          : 'Shown on the boards instead of your Steam name and picture. They stay when you sign in again. A picture has to be on Steam or Imgur (i.imgur.com).'}
       </p>
       <Outcome message={save.isSuccess ? save.variables.message : null} error={save.error} />
     </Section>

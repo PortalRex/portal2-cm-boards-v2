@@ -21,6 +21,7 @@ use crate::{
         error::Result,
         points_cache::invalidate_points,
         ratelimit,
+        upload_slots::UPLOADS,
     },
 };
 use actix_multipart::Multipart;
@@ -183,6 +184,11 @@ async fn submission_preview(req: HttpRequest, _user: SignedIn, pool: web::Data<P
     if let Err(limited) = ratelimit::check(&req, &config, "upload", 10, Duration::from_secs(60)) {
         return Ok(limited);
     }
+    // One of the server's upload slots, held until this answers (see tools::upload_slots).
+    let _slot = match UPLOADS.take().await {
+        Ok(slot) => slot,
+        Err(busy) => return Ok(busy),
+    };
     let form = match read_form(payload).await {
         Ok(f) => f,
         Err(e) => return Ok(bad(e)),
@@ -223,6 +229,11 @@ async fn submission_create(
     }
     let user = user.0;
     let is_admin = user.is_role_admin();
+    // One of the server's upload slots, held until this answers (see tools::upload_slots).
+    let _slot = match UPLOADS.take().await {
+        Ok(slot) => slot,
+        Err(busy) => return Ok(busy),
+    };
     let form = match read_form(payload).await {
         Ok(f) => f,
         Err(e) => return Ok(bad(e)),
@@ -489,6 +500,11 @@ async fn run_add_demo(
     if !partner_demo && run.demo_id.is_some() {
         return Ok(bad("This run already has a demo; staff will review it."));
     }
+    // One of the server's upload slots, held until this answers (see tools::upload_slots).
+    let _slot = match UPLOADS.take().await {
+        Ok(slot) => slot,
+        Err(busy) => return Ok(busy),
+    };
     let form = match read_form(payload).await {
         Ok(f) => f,
         Err(e) => return Ok(bad(e)),

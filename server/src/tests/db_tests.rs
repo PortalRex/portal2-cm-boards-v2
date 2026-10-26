@@ -536,6 +536,44 @@ async fn test_db_freeze_rules() {
 }
 
 #[actix_web::test]
+async fn test_db_pictures_only_from_steam_or_imgur() {
+    use crate::controllers::moderation::{set_own_display, set_profile_display, AvatarChange, Refused};
+    use crate::tools::auth::{AdminOrService, AuthUser};
+    let (_, pool) = get_config().await.expect("Error getting config and DB pool");
+    // Our own rows (removed again at the end).
+    let cleanup = || async {
+        sqlx::query("DELETE FROM admin_actions WHERE target_id LIKE 'test-avatar-%'").execute(&pool).await.unwrap();
+        sqlx::query("DELETE FROM users WHERE profile_number LIKE 'test-avatar-%'").execute(&pool).await.unwrap();
+    };
+    cleanup().await;
+    let steam = "https://avatars.steamstatic.com/test_full.jpg";
+    for (id, role) in [("test-avatar-player", None), ("test-avatar-admin", Some("admin"))] {
+        sqlx::query("INSERT INTO users (profile_number, steam_name, avatar, role) VALUES ($1, $1, $2, $3)").bind(id).bind(steam).bind(role).execute(&pool).await.unwrap();
+    }
+    let avatar = |id: &'static str| {
+        let pool = pool.clone();
+        async move { sqlx::query_scalar::<_, Option<String>>("SELECT avatar FROM users WHERE profile_number = $1").bind(id).fetch_one(&pool).await.unwrap() }
+    };
+    let url = |u: &str| Some(AvatarChange::Url(u.into()));
+    let refused = |r: Result<(), Refused>| matches!(r, Err(Refused::Invalid(_)));
+
+    // A player: another server's address is refused and the picture stays; Imgur's is kept.
+    assert!(refused(set_own_display(&pool, "test-avatar-player", None, url("https://evil.example/pixel.png")).await.unwrap()));
+    assert!(refused(set_own_display(&pool, "test-avatar-player", None, url("https://i.imgur.com.evil.example/a.png")).await.unwrap()));
+    assert_eq!(avatar("test-avatar-player").await.as_deref(), Some(steam));
+    assert!(set_own_display(&pool, "test-avatar-player", None, url("https://i.imgur.com/AbCd123.png")).await.unwrap().is_ok());
+    assert_eq!(avatar("test-avatar-player").await.as_deref(), Some("https://i.imgur.com/AbCd123.png"));
+
+    // Staff setting someone's picture go by the same rule.
+    let admin = AdminOrService::Admin(AuthUser { profile_number: "test-avatar-admin".into(), user_name: "admin".into(), avatar: None, admin: 0, role: Some("admin".into()), banned: false });
+    assert!(refused(set_profile_display(&pool, &admin, "test-avatar-player", None, url("https://evil.example/pixel.png"), None).await.unwrap()));
+    assert_eq!(avatar("test-avatar-player").await.as_deref(), Some("https://i.imgur.com/AbCd123.png"));
+    assert!(set_profile_display(&pool, &admin, "test-avatar-player", None, url(steam), None).await.unwrap().is_ok());
+    assert_eq!(avatar("test-avatar-player").await.as_deref(), Some(steam));
+    cleanup().await;
+}
+
+#[actix_web::test]
 async fn test_db_wr_webhooks() {
     use crate::tools::wr_webhooks::{check, PostError};
     use serde_json::Value;

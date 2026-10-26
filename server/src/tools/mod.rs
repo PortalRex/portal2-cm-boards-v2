@@ -14,6 +14,8 @@ pub mod points_history;
 pub mod demo_files;
 pub mod demo_parse;
 pub mod ratelimit;
+/// A cap on how many demo uploads are handled at once
+pub mod upload_slots;
 pub mod old_boards_sync;
 pub mod private_site;
 /// The background jobs' last runs (admin page)

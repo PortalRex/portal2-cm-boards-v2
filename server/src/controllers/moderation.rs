@@ -478,10 +478,41 @@ pub const DEFAULT_AVATAR: &str = "https://avatars.steamstatic.com/fef49e7fa7e199
 pub enum AvatarChange {
     /// Steam's default picture.
     Default,
-    /// A picture by address (https).
+    /// A picture by address (https, on one of [AVATAR_HOSTS]).
     Url(String),
     /// Back to the player's own Steam picture (given when it could be fetched).
     Steam(Option<String>),
+}
+
+/// Where a picture by address may be: Steam's image servers and Imgur's. Visitors' browsers load
+/// avatars straight from their address, so a picture on any other server would let whoever runs it
+/// log everyone who sees the player (and show pictures nobody has checked).
+pub const AVATAR_HOSTS: [&str; 8] = [
+    "avatars.steamstatic.com",
+    "avatars.akamai.steamstatic.com",
+    "avatars.cloudflare.steamstatic.com",
+    "avatars.fastly.steamstatic.com",
+    "steamcdn-a.akamaihd.net",
+    "steamuserimages-a.akamaihd.net",
+    "images.steamusercontent.com",
+    "i.imgur.com",
+];
+
+/// Whether `url` is a picture address players may use: https, on one of [AVATAR_HOSTS], with no
+/// login or port in it, and a file path.
+pub fn avatar_address_ok(url: &str) -> bool {
+    if url.len() > 500 || url.contains(char::is_whitespace) {
+        return false;
+    }
+    let Ok(parsed) = reqwest::Url::parse(url) else {
+        return false;
+    };
+    parsed.scheme() == "https"
+        && parsed.username().is_empty()
+        && parsed.password().is_none()
+        && parsed.port().is_none()
+        && parsed.host_str().is_some_and(|host| AVATAR_HOSTS.contains(&host))
+        && parsed.path().len() > 1
 }
 
 /// A name to show (None = the player's Steam name), trimmed; refused when too long.
@@ -500,8 +531,8 @@ fn avatar_url(avatar: AvatarChange, old_avatar: &Option<String>) -> Result<(Opti
         AvatarChange::Default => (Some(DEFAULT_AVATAR.to_string()), true),
         AvatarChange::Url(u) => {
             let u = u.trim().to_string();
-            if !u.starts_with("https://") || u.len() > 500 || u.contains(char::is_whitespace) {
-                return Err(Refused::Invalid("The picture has to be an https:// address.".into()));
+            if !avatar_address_ok(&u) {
+                return Err(Refused::Invalid("The picture has to be on Steam or Imgur (an https:// address of the image itself).".into()));
             }
             (Some(u), true)
         }
@@ -889,7 +920,54 @@ pub async fn inbox_seen(pool: &PgPool, viewer: &str, id: i64) -> Result<(), sqlx
 
 #[cfg(test)]
 mod tests {
-    use super::audit_search;
+    use super::{audit_search, avatar_address_ok, avatar_url, AvatarChange, Refused, DEFAULT_AVATAR};
+
+    #[test]
+    fn pictures_only_from_steam_or_imgur() {
+        for ok in [
+            "https://avatars.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg",
+            "https://avatars.akamai.steamstatic.com/abc_full.jpg",
+            "https://steamcdn-a.akamaihd.net/steamcommunity/public/images/avatars/92/921d_full.jpg",
+            "https://images.steamusercontent.com/ugc/123/ABC/",
+            "https://i.imgur.com/AbCd123.png",
+            "https://I.IMGUR.COM/AbCd123.png",
+        ] {
+            assert!(avatar_address_ok(ok), "{ok}");
+        }
+        for bad in [
+            "http://i.imgur.com/AbCd123.png",
+            "https://imgur.com/AbCd123",
+            "https://i.imgur.com/",
+            "https://i.imgur.com",
+            "https://evil.example/me.png",
+            "https://i.imgur.com.evil.example/me.png",
+            "https://evil.example/i.imgur.com/me.png",
+            "https://i.imgur.com@evil.example/me.png",
+            "https://user:pw@i.imgur.com/me.png",
+            "https://i.imgur.com:8443/me.png",
+            "https://i.imgur.com/a b.png",
+            "javascript:alert(1)",
+            "data:image/png;base64,AAAA",
+            "//i.imgur.com/me.png",
+            "",
+        ] {
+            assert!(!avatar_address_ok(bad), "{bad}");
+        }
+        assert!(!avatar_address_ok(&format!("https://i.imgur.com/{}.png", "a".repeat(500))));
+    }
+
+    #[test]
+    fn picture_changes() {
+        let old = Some("https://avatars.steamstatic.com/old_full.jpg".to_string());
+        assert_eq!(avatar_url(AvatarChange::Default, &old).ok(), Some((Some(DEFAULT_AVATAR.to_string()), true)));
+        assert_eq!(
+            avatar_url(AvatarChange::Url("  https://i.imgur.com/AbCd123.png ".into()), &old).ok(),
+            Some((Some("https://i.imgur.com/AbCd123.png".to_string()), true))
+        );
+        assert!(matches!(avatar_url(AvatarChange::Url("https://evil.example/me.png".into()), &old), Err(Refused::Invalid(_))));
+        // Going back to Steam's picture keeps the old one when Steam couldn't be asked.
+        assert_eq!(avatar_url(AvatarChange::Steam(None), &old).ok(), Some((old.clone(), false)));
+    }
 
     #[test]
     fn audit_search_trims_and_escapes() {

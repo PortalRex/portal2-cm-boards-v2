@@ -91,14 +91,31 @@ describe('Settings', () => {
     await renderWithProviders(<SettingsPage />, { user: 'player' })
     await userEvent.type(
       await screen.findByRole('textbox', { name: 'Picture address' }),
-      'https://x.test/me.png',
+      'https://i.imgur.com/AbCd123.png',
     )
     await userEvent.click(screen.getByRole('button', { name: 'Save picture' }))
     expect(await screen.findByText('Picture saved.')).toBeInTheDocument()
     expect(screen.getByRole('textbox', { name: 'Picture address' })).toHaveValue('')
     await userEvent.click(screen.getByRole('button', { name: 'Use my Steam picture' }))
     expect(await screen.findByText('Set to your current Steam picture.')).toBeInTheDocument()
-    expect(sent.map((s) => s.body)).toEqual([{ avatar: 'https://x.test/me.png' }, { avatar: 'steam' }])
+    expect(sent.map((s) => s.body)).toEqual([
+      { avatar: 'https://i.imgur.com/AbCd123.png' },
+      { avatar: 'steam' },
+    ])
+  })
+
+  it('shows why a picture was refused and keeps the address to fix', async () => {
+    serveUser()
+    const refusal = 'The picture has to be on Steam or Imgur (an https:// address of the image itself).'
+    server.use(http.put(`${API}/user/display`, () => new HttpResponse(refusal, { status: 400 })))
+    await renderWithProviders(<SettingsPage />, { user: 'player' })
+    const address = await screen.findByRole('textbox', { name: 'Picture address' })
+    expect(address).toHaveAttribute('placeholder', 'Steam or Imgur image address (https://…)')
+    await userEvent.type(address, 'https://evil.example/pixel.png')
+    await userEvent.click(screen.getByRole('button', { name: 'Save picture' }))
+    expect(await screen.findByText(refusal)).toBeInTheDocument()
+    expect(screen.queryByText('Picture saved.')).toBeNull()
+    expect(address).toHaveValue('https://evil.example/pixel.png')
   })
 
   it('locks what staff have set', async () => {

@@ -219,7 +219,7 @@ function DisplayTools({ player, act, busy }: ToolProps) {
           <input
             value={url}
             onChange={(e) => setUrl(e.target.value)}
-            placeholder="Picture address (https://…)"
+            placeholder="Steam or Imgur image address (https://…)"
             aria-label="Picture address"
             className={field}
           />
