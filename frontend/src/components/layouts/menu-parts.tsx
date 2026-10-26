@@ -98,7 +98,11 @@ export function ExpandButton({
   )
 }
 
-/** A hover dropdown under a top bar item; on narrow screens it's inline and shown when `expanded`. */
+/**
+ * A hover dropdown under a top bar item; on narrow screens it's inline and shown when `expanded`.
+ * Keyboard focus inside also holds it open (`:focus-visible`, not any focus: a click leaves focus on
+ * the link, which kept a menu open beside the next one hovered).
+ */
 export function NavDropdown({ expanded, children }: { expanded: boolean; children: ReactNode }) {
   return (
     <div
@@ -106,7 +110,7 @@ export function NavDropdown({ expanded, children }: { expanded: boolean; childre
       className={cn(
         menuPanel,
         'invisible absolute top-[92px] -left-3 z-30 min-w-[220px] -translate-y-1 opacity-0 transition-[opacity,transform,visibility] duration-100',
-        'group-hover/nav:visible group-hover/nav:translate-y-0 group-hover/nav:opacity-100 group-focus-within/nav:visible group-focus-within/nav:translate-y-0 group-focus-within/nav:opacity-100',
+        'group-hover/nav:visible group-hover/nav:translate-y-0 group-hover/nav:opacity-100 group-has-[:focus-visible]/nav:visible group-has-[:focus-visible]/nav:translate-y-0 group-has-[:focus-visible]/nav:opacity-100',
         'upto1320:visible upto1320:static upto1320:translate-y-0 upto1320:bg-transparent upto1320:pt-0 upto1320:pb-2 upto1320:pl-10 upto1320:opacity-100 upto1320:shadow-none',
         !expanded && 'upto1320:hidden',
       )}

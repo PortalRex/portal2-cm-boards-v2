@@ -32,12 +32,13 @@ function BoardGroup({ board }: { board: MenuEntry }) {
         also={chapters.map((c) => c.to)}
         className="group-hover/board:bg-control-raised upto1320:group-hover/board:bg-transparent"
       />
+      {/* Opens on hover, or while keyboard focus is inside (see NavDropdown). */}
       {chapters.length > 0 && (
         <div
           className={cn(
             menuPanel,
             'invisible absolute -top-2.5 left-full min-w-[240px] opacity-0 transition-[opacity,visibility] duration-100',
-            'group-hover/board:visible group-hover/board:opacity-100 group-focus-within/board:visible group-focus-within/board:opacity-100',
+            'group-hover/board:visible group-hover/board:opacity-100 group-has-[:focus-visible]/board:visible group-has-[:focus-visible]/board:opacity-100',
             'upto1320:hidden',
           )}
         >

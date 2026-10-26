@@ -93,7 +93,7 @@ export function ProfileMenu({ user }: { user: CurrentUser | null }) {
       <div
         role="menu"
         className={cn(
-          'invisible absolute top-[60px] right-0 z-50 flex w-[250px] max-w-[calc(100vw-24px)] flex-col items-stretch overflow-hidden rounded-lg bg-menu pb-3.5 opacity-0 shadow-[0_12px_30px_rgba(0,0,0,0.45)] transition-[opacity,visibility] duration-100 group-hover/profile:visible group-hover/profile:opacity-100 group-focus-within/profile:visible group-focus-within/profile:opacity-100 upto1320:top-[52px]',
+          'invisible absolute top-[60px] right-0 z-50 flex w-[250px] max-w-[calc(100vw-24px)] flex-col items-stretch overflow-hidden rounded-lg bg-menu pb-3.5 opacity-0 shadow-[0_12px_30px_rgba(0,0,0,0.45)] transition-[opacity,visibility] duration-100 group-hover/profile:visible group-hover/profile:opacity-100 group-has-[:focus-visible]/profile:visible group-has-[:focus-visible]/profile:opacity-100 upto1320:top-[52px]',
           open && 'visible opacity-100',
         )}
       >
