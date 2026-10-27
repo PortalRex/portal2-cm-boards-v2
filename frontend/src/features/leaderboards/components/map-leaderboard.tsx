@@ -23,6 +23,7 @@ import { profileScoresQueryOptions } from '@/lib/runs/profile-scores'
 import type { RankedRun } from '@/types/runs'
 import { headBase, PAGE_SIZE, rowBase, TINT_BG } from '../utils/board-styles'
 import { nonPbPlayers } from '../utils/coop-pbs'
+import { RankPoints } from './rank-points'
 
 // The rank tag's look, small enough for the board's narrow rank column.
 const BOARD_TAG = cn(RANK_TAG_BASE, 'h-6 w-9 text-sm upto900:w-7')
@@ -158,7 +159,9 @@ export function MapLeaderboard({
                   )}
                 >
                   <span role="cell" className="num flex justify-center text-[15px]">
-                    <RankTag rank={e.rank} className={BOARD_TAG} />
+                    <RankPoints points={e.points}>
+                      <RankTag rank={e.rank} className={BOARD_TAG} />
+                    </RankPoints>
                   </span>
                   {cells.map((p, j) => {
                     if (!p) {

@@ -155,6 +155,21 @@ describe('Map page', () => {
     expect(rows[1]).toHaveAttribute('aria-expanded', 'true')
   })
 
+  it("says what a rank is worth on hover, or on a tap that doesn't open the row", async () => {
+    serveMap()
+    await renderRoute('/map/sp/47759')
+    await within(board()).findByRole('link', { name: spBoard[0]!.map_data.user_name! })
+    const second = within(board()).getAllByRole('row')[2]!
+    const rank = within(second).getByRole('button', { name: 'Worth 198 points' })
+    await userEvent.hover(rank)
+    expect(screen.getByRole('tooltip')).toHaveTextContent('Worth 198 points')
+    await userEvent.unhover(rank)
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument()
+    await userEvent.click(rank)
+    expect(screen.getByRole('tooltip')).toHaveTextContent('Worth 198 points')
+    expect(second).toHaveAttribute('aria-expanded', 'false')
+  })
+
   describe('redirects', () => {
     it('sends unknown maps to the map list', async () => {
       serveMap()
