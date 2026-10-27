@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
 import { adaptChangelog } from '@/lib/adapters/runs'
-import { BUILTIN_CATALOG } from '@/lib/catalog'
+import { BUILTIN_CATALOG, chaptersFor } from '@/lib/catalog'
 import { formatScore } from '@/lib/format'
 import changelog from '@/testing/fixtures/profile-changelog.json'
 import { API } from '@/testing/mocks/handlers'
@@ -11,11 +11,14 @@ import { FIXTURE_PLAYER, serveProfile } from '@/testing/mocks/profile'
 import { server } from '@/testing/mocks/server'
 import { renderRoute, renderWithProviders } from '@/testing/test-utils'
 import type { ChangelogRaw } from '@/types/runs'
+import { coopBests } from '../testing/coop-bests'
 import { ActivityHeatmap } from './activity-heatmap'
 import { StatsTab } from './stats-tab'
 
 const SEASON = 'portal-2-season-1'
 const history = (changelog as ChangelogRaw[]).map((r) => adaptChangelog(r, 'portal2', BUILTIN_CATALOG))
+// Co-op bests with Bea on two maps and Ann on one.
+const bests = coopBests(chaptersFor(BUILTIN_CATALOG, 'coop')[0]!.maps, ['Bea', 'Ann', 'Bea'])
 
 describe('ActivityHeatmap', () => {
   it("sums the player's runs per day, by year or over their whole career", async () => {
@@ -78,7 +81,12 @@ describe('StatsTab', () => {
   it("shows the player's figures, co-op partners and fewest portals", async () => {
     serveProfile()
     await renderWithProviders(
-      <StatsTab profileNumber={FIXTURE_PLAYER} game="portal2" portal2History={history} />,
+      <StatsTab
+        profileNumber={FIXTURE_PLAYER}
+        game="portal2"
+        portal2History={history}
+        portal2Scores={bests}
+      />,
     )
     expect(await screen.findByText('1740')).toBeInTheDocument()
     expect(screen.getByText('1722 verified')).toBeInTheDocument()
@@ -86,8 +94,19 @@ describe('StatsTab', () => {
     expect(screen.getByText('held on 55 maps')).toBeInTheDocument()
     expect(screen.getByText('9,443')).toBeInTheDocument()
     expect(screen.getByText('8.0')).toBeInTheDocument()
+    // Partners on the personal bests first: maps together, no runs.
+    const partners = screen.getByRole('heading', { name: 'Co-op partners' }).parentElement!
+    expect(within(partners).getByText('PBs together')).toBeInTheDocument()
+    const names = () =>
+      within(partners)
+        .getAllByRole('link')
+        .map((a) => a.textContent)
+    expect(names()).toEqual(['Bea', 'Ann'])
+    expect(within(partners).queryByText(/more$/)).toBeNull()
+    // Every run: the fixture lists 4 of the 19 partners.
+    await userEvent.click(within(partners).getByRole('radio', { name: 'All runs' }))
+    expect(within(partners).getByText('Maps together')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Rex' })).toHaveAttribute('href', '/profile/76561198295368421')
-    // The fixture lists 4 of the 19 partners.
     expect(screen.getByText('and 15 more')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Container Ride' })).toHaveAttribute('href', '/map/sp/62761')
   })
@@ -110,7 +129,12 @@ describe('StatsTab', () => {
       ),
     )
     await renderWithProviders(
-      <StatsTab profileNumber={FIXTURE_PLAYER} game="portal2" portal2History={history} />,
+      <StatsTab
+        profileNumber={FIXTURE_PLAYER}
+        game="portal2"
+        portal2History={history}
+        portal2Scores={bests}
+      />,
     )
     expect(await screen.findByText('No stats for this player.')).toBeInTheDocument()
   })

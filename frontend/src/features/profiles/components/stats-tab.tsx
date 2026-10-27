@@ -5,12 +5,15 @@ import { AppLink } from '@/components/app-link'
 import { Avatar } from '@/components/avatar'
 import { PlayerLink } from '@/components/player-link'
 import { SeasonSelect } from '@/components/season-select'
+import { Segmented } from '@/components/segmented'
 import { EmptyState, Loading } from '@/components/status'
 import { mapPath, useCatalog } from '@/lib/catalog'
 import { formatDate, formatScore, timeAgo } from '@/lib/format'
 import { PORTAL2 } from '@/lib/catalog'
-import type { Run } from '@/types/runs'
+import type { Player, Run } from '@/types/runs'
 import { gameResultsQueryOptions, profileStatsQueryOptions } from '../api/profile'
+import type { MapScore } from '../types'
+import { pbPartners } from '../utils/partners'
 import { AllTimes } from './all-times'
 import { SectionTitle } from './score-tables'
 
@@ -42,19 +45,24 @@ const listRow = 'grid min-h-10 grid-cols-[minmax(0,1fr)_140px_80px] items-center
 // the portals list has no header, so there it's the 2nd, 4th, ...
 const stripe = (on: boolean) => (on ? 'bg-row' : undefined)
 
+/** How many partners the list shows; "and N more" says the rest. */
+const PARTNERS_SHOWN = 25
+
 /**
  * Activity, co-op partners and demo stats for one game (or one of its seasons), and every time the
- * player has set in it. `portal2History` is the profile's own list of Portal 2 runs (already loaded);
- * other games' and seasons' runs come with their results.
+ * player has set in it. `portal2History` and `portal2Scores` are the profile's own Portal 2 runs and
+ * bests (already loaded); other games' and seasons' come with their results.
  */
 export function StatsTab({
   profileNumber,
   game,
   portal2History,
+  portal2Scores,
 }: {
   profileNumber: string
   game: string
   portal2History: Run[]
+  portal2Scores: Record<string, MapScore>
 }) {
   const catalog = useCatalog()
   const [season, setSeason] = useState<string | null>(null)
@@ -65,6 +73,7 @@ export function StatsTab({
     enabled: source !== PORTAL2,
   })
   const runs = source === PORTAL2 ? portal2History : (results.data?.history ?? [])
+  const scores = source === PORTAL2 ? portal2Scores : (results.data?.scores ?? {})
   const s = stats.data?.summary
   return (
     <div className="flex flex-col gap-6">
@@ -127,31 +136,7 @@ export function StatsTab({
               note={s.latest_run ? `latest run ${timeAgo(s.latest_run)}` : ''}
             />
           </div>
-          {stats.data.partners.length > 0 && (
-            <section className="flex max-w-[820px] flex-col">
-              <SectionTitle>Co-op partners</SectionTitle>
-              <div className={cn(listRow, 'min-h-8 text-sm text-text-muted uppercase')}>
-                <span>Partner</span>
-                <span className="text-right">Maps together</span>
-                <span className="text-right">Runs</span>
-              </div>
-              {stats.data.partners.map((p, i) => (
-                <div key={p.player.profileNumber} className={cn(listRow, stripe(i % 2 === 0))}>
-                  <span className="flex min-w-0 items-center gap-2.5">
-                    <Avatar src={p.player.avatar} name={p.player.name} size={28} />
-                    <PlayerLink player={p.player} />
-                  </span>
-                  <span className="num text-right">{p.maps}</span>
-                  <span className="num text-right text-text-muted">{p.runs}</span>
-                </div>
-              ))}
-              {stats.data.uniquePartners > stats.data.partners.length && (
-                <p className="mx-3 mt-2 mb-0 text-text-muted">
-                  and {stats.data.uniquePartners - stats.data.partners.length} more
-                </p>
-              )}
-            </section>
-          )}
+          <Partners pbs={pbPartners(scores)} all={stats.data.partners} allCount={stats.data.uniquePartners} />
           {stats.data.fewestPortals.length > 0 && (
             <section className="flex max-w-[820px] flex-col">
               <SectionTitle>Fewest portals (personal bests)</SectionTitle>
@@ -180,5 +165,52 @@ export function StatsTab({
         <AllTimes key={source} runs={runs} />
       )}
     </div>
+  )
+}
+
+/** A partner and the maps (and, over every run, the runs) the two have together. */
+type PartnerRow = { player: Player; maps: number; runs?: number }
+
+/**
+ * The player's co-op partners: on their personal bests (one run per map, the default), or on
+ * every run they've set (from the stats, which list the first 25 and count them all).
+ */
+function Partners({ pbs, all, allCount }: { pbs: PartnerRow[]; all: PartnerRow[]; allCount: number }) {
+  const [shown, setShown] = useState<'pbs' | 'all'>('pbs')
+  if (!pbs.length && !all.length) return null
+  const rows = shown === 'pbs' ? pbs.slice(0, PARTNERS_SHOWN) : all
+  const more = (shown === 'pbs' ? pbs.length : allCount) - rows.length
+  return (
+    <section className="flex max-w-[820px] flex-col">
+      <SectionTitle>Co-op partners</SectionTitle>
+      <Segmented
+        value={shown}
+        onChange={setShown}
+        label="Partners on"
+        size="sm"
+        className="mb-2"
+        options={[
+          { value: 'pbs', label: 'Personal bests' },
+          { value: 'all', label: 'All runs' },
+        ]}
+      />
+      <div className={cn(listRow, 'min-h-8 text-sm text-text-muted uppercase')}>
+        <span>Partner</span>
+        <span className="text-right">{shown === 'pbs' ? 'PBs together' : 'Maps together'}</span>
+        <span className="text-right">{shown === 'all' && 'Runs'}</span>
+      </div>
+      {rows.length === 0 && <p className="mx-3 my-2 text-text-muted">No partners on personal bests.</p>}
+      {rows.map((p, i) => (
+        <div key={p.player.profileNumber} className={cn(listRow, stripe(i % 2 === 0))}>
+          <span className="flex min-w-0 items-center gap-2.5">
+            <Avatar src={p.player.avatar} name={p.player.name} size={28} />
+            <PlayerLink player={p.player} />
+          </span>
+          <span className="num text-right">{p.maps}</span>
+          <span className="num text-right text-text-muted">{p.runs}</span>
+        </div>
+      ))}
+      {more > 0 && <p className="mx-3 mt-2 mb-0 text-text-muted">and {more} more</p>}
+    </section>
   )
 }
