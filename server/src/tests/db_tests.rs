@@ -1008,3 +1008,52 @@ async fn test_db_previews_list_equal_times_in_the_order_set() {
     assert_eq!(coop[1].profile_number1, "test-tie-a");
     cleanup().await;
 }
+
+#[actix_web::test]
+async fn test_db_sp_board_cutoff_keeps_everyone_tied_at_it() {
+    use crate::models::sp::SpMap;
+    let (_, pool) = get_config().await.expect("Error getting config and DB pool");
+    // Our own board: a category of its own on a single player map, with runs only from our players.
+    let cleanup = || async {
+        for sql in [
+            "DELETE FROM changelog WHERE mirror_of IN (SELECT id FROM changelog WHERE profile_number LIKE 'test-cut-%')",
+            "DELETE FROM changelog WHERE profile_number LIKE 'test-cut-%'",
+            "DELETE FROM categories WHERE name = 'test-cut'",
+            "DELETE FROM users WHERE profile_number LIKE 'test-cut-%'",
+        ] {
+            sqlx::query(sql).execute(&pool).await.unwrap();
+        }
+    };
+    cleanup().await;
+    let map: String = sqlx::query_scalar(
+        "SELECT m.steam_id FROM maps AS m JOIN chapters AS c ON c.id = m.chapter_id WHERE c.game_id = 1 AND NOT c.is_multiplayer AND m.source_map IS NULL ORDER BY m.id LIMIT 1",
+    )
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    let cat: i32 = sqlx::query_scalar("INSERT INTO categories (name, map_id) VALUES ('test-cut', $1) RETURNING id")
+        .bind(&map)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    // 1.00, 2.00, then three tied at 3.00, then 4.00.
+    for (who, score) in [("a", 100), ("b", 200), ("c", 300), ("d", 300), ("e", 300), ("f", 400)] {
+        let pn = format!("test-cut-{who}");
+        sqlx::query("INSERT INTO users (profile_number, steam_name) VALUES ($1, $1)").bind(&pn).execute(&pool).await.unwrap();
+        sqlx::query("INSERT INTO changelog (timestamp, profile_number, score, map_id, banned, submission, category_id, verified) VALUES (now(), $1, $2, $3, false, 1, $4, true)")
+            .bind(&pn).bind(score).bind(&map).bind(cat)
+            .execute(&pool).await.unwrap();
+    }
+    let board = |limit: i32| {
+        let (pool, map) = (pool.clone(), map.clone());
+        async move {
+            SpMap::get_sp_map_page(&pool, &map, limit, cat, 1, None).await.unwrap().into_iter().map(|e| e.score).collect::<Vec<_>>()
+        }
+    };
+    // A cutoff at 3rd keeps all three tied there (rows 3 to 5), not just the first of them.
+    assert_eq!(board(3).await, vec![100, 200, 300, 300, 300]);
+    assert_eq!(board(4).await, vec![100, 200, 300, 300, 300]);
+    assert_eq!(board(6).await.len(), 6);
+    assert_eq!(board(2).await, vec![100, 200]);
+    cleanup().await;
+}

@@ -113,6 +113,9 @@ pub struct Ranks {
     /// Whether co-op was ranked by run when this was built (rebuilt when the setting changes).
     #[serde(default)]
     pub coop_by_run: bool,
+    /// Built with the cutoff as a rank (everyone tied at it kept); files from before are rebuilt.
+    #[serde(default)]
+    pub cutoff_by_rank: bool,
 }
 
 /// SP ranks with ties sharing a rank (entries are ordered by score).
@@ -261,7 +264,7 @@ impl CacheState {
         if try_from_file {
             match read_from_file::<Ranks>(id).await {
                 // Cache files written before `map_scores` existed are rebuilt.
-                Ok(r) if !r.map_scores.is_empty() && r.coop_by_run == crate::tools::config::coop_by_run() => {
+                Ok(r) if !r.map_scores.is_empty() && r.cutoff_by_rank && r.coop_by_run == crate::tools::config::coop_by_run() => {
                     // let elapsed = now.elapsed();
                     // println!("Elapsed: {:.2?}", elapsed);
                     return Ok(r);
@@ -309,7 +312,7 @@ impl CacheState {
                 }
             }
         }
-        let fin = Ranks { current_ranks, map_scores, coop_by_run: crate::tools::config::coop_by_run() };
+        let fin = Ranks { current_ranks, map_scores, coop_by_run: crate::tools::config::coop_by_run(), cutoff_by_rank: true };
         write_to_file(id, &fin).await.unwrap();
         // let elapsed = now.elapsed();
         // println!("Elapsed: {:.2?}", elapsed);
@@ -505,6 +508,7 @@ mod tests {
                 current_ranks: HashMap::from([("p1".to_string(), HashMap::from([(map.clone(), 3)]))]),
                 map_scores: HashMap::from([(map.clone(), vec![1000, 1100, 1200])]),
                 coop_by_run: false,
+                cutoff_by_rank: true,
             })),
         };
         // Single player, co-op, and a map added since startup (not in default_cat_ids): none panic.

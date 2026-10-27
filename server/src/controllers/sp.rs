@@ -10,7 +10,8 @@ impl SpMap {
     /// - `map_id`
     ///     - The map returned.
     /// - `limit`
-    ///     - The max number of entries returned.
+    ///     - The lowest rank returned: everyone tied at it is included, so ties across the cutoff
+    ///       don't drop the later runs (a board can have a few more entries than `limit`).
     /// - `cat_id`
     ///     - The category the runs have to be from.
     /// - `game_id`
@@ -24,7 +25,8 @@ impl SpMap {
         at: Option<chrono::NaiveDateTime>,
     ) -> Result<Vec<SpMap>, sqlx::Error> {
         sqlx::query_as::<_, SpMap>(
-            r#" 
+            r#"
+                SELECT * FROM (
                 SELECT t.cl_id,
                     t.timestamp,
                     t.CL_profile_number,
@@ -38,7 +40,8 @@ impl SpMap {
                     t.avatar,
                     t.autorender_id,
                     t.portals,
-                    (SELECT d.sar_version FROM demos AS d WHERE d.id = t.demo_id) AS sar_version
+                    (SELECT d.sar_version FROM demos AS d WHERE d.id = t.demo_id) AS sar_version,
+                    RANK() OVER (ORDER BY t.score) AS board_rank
                 FROM (
                     SELECT DISTINCT ON (changelog.profile_number)
                         changelog.id as cl_id,
@@ -58,9 +61,10 @@ impl SpMap {
                         AND ($5::timestamp IS NULL OR COALESCE(changelog.timestamp, TIMESTAMP '2011-04-19 00:00:00') <= $5)
                     ORDER BY changelog.profile_number, changelog.score ASC
                 ) t
+                ) AS ranked
+                WHERE board_rank <= $4
                 -- Equal times: the earlier run first (the order was otherwise left to the planner).
-                ORDER BY score, timestamp ASC NULLS LAST, cl_id
-                LIMIT $4"#,
+                ORDER BY score, timestamp ASC NULLS LAST, cl_id"#,
         )
         .bind(map_id)
         .bind(cat_id)

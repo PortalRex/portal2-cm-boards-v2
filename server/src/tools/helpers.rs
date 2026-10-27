@@ -35,11 +35,16 @@ pub async fn get_default_cat_ids(pool: &PgPool) -> HashMap<String, i32> {
     Maps::get_all_default_cats(pool).await.unwrap()
 }
 
-/// Filters out all obsolete times from the result, then truncates to x entries.
+/// Filters out all obsolete times from the result, keeping the runs ranked within `limit` (everyone
+/// tied at the cutoff stays on, as on single player boards).
 pub async fn filter_coop_entries(coop_entries: Vec<CoopMap>, limit: usize) -> Vec<CoopRanked> {
-    let mut ranked = filter_coop_entries_raw(coop_entries, limit);
+    rank_coop_entries(coop_entries, limit, crate::tools::config::coop_by_run())
+}
+
+fn rank_coop_entries(coop_entries: Vec<CoopMap>, limit: usize, by_run: bool) -> Vec<CoopRanked> {
+    let mut ranked = filter_coop_entries_raw(coop_entries);
     // Ranking by run: runs with the same time share a rank, like single player.
-    if crate::tools::config::coop_by_run() {
+    if by_run {
         for i in 1..ranked.len() {
             if ranked[i].map_data.score == ranked[i - 1].map_data.score {
                 ranked[i].rank = ranked[i - 1].rank;
@@ -47,12 +52,15 @@ pub async fn filter_coop_entries(coop_entries: Vec<CoopMap>, limit: usize) -> Ve
             }
         }
     }
+    // The cutoff is a rank, not a count: a tie across it doesn't drop the later runs in it.
+    let keep = ranked.partition_point(|r| r.rank as usize <= limit);
+    ranked.truncate(keep);
     ranked
 }
 
-fn filter_coop_entries_raw(coop_entries: Vec<CoopMap>, limit: usize) -> Vec<CoopRanked> {
+fn filter_coop_entries_raw(coop_entries: Vec<CoopMap>) -> Vec<CoopRanked> {
     let mut coop_entries_filtered = Vec::new();
-    let mut remove_dups: HashSet<String> = HashSet::with_capacity(limit);
+    let mut remove_dups: HashSet<String> = HashSet::with_capacity(coop_entries.len());
     remove_dups.insert("N/A".to_string());
     let mut i = 1;
     for entry in coop_entries.into_iter() {
@@ -90,7 +98,6 @@ fn filter_coop_entries_raw(coop_entries: Vec<CoopMap>, limit: usize) -> Vec<Coop
             },
         }
     }
-    coop_entries_filtered.truncate(limit);
     coop_entries_filtered
 }
 
@@ -244,4 +251,56 @@ pub fn http_client() -> &'static reqwest::Client {
             .build()
             .expect("http client")
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A co-op run by two players with the given time.
+    fn run(p1: &str, p2: &str, score: i32) -> CoopMap {
+        CoopMap {
+            coop_id: 0,
+            cl_id1: 0,
+            cl_id2: 0,
+            timestamp: None,
+            profile_number1: p1.to_string(),
+            profile_number2: p2.to_string(),
+            score,
+            p1_is_host: None,
+            demo_id1: None,
+            demo_id2: None,
+            youtube_id1: None,
+            youtube_id2: None,
+            submission1: 0,
+            submission2: 0,
+            note1: None,
+            note2: None,
+            category_id: 0,
+            user_name1: p1.to_string(),
+            user_name2: Some(p2.to_string()),
+            avatar1: None,
+            avatar2: None,
+            autorender_id1: None,
+            autorender_id2: None,
+            portals1: None,
+            portals2: None,
+            sar_version1: None,
+            sar_version2: None,
+        }
+    }
+
+    fn ranks(ranked: &[CoopRanked]) -> Vec<(i32, i32)> {
+        ranked.iter().map(|r| (r.map_data.score, r.rank)).collect()
+    }
+
+    #[test]
+    fn coop_cutoff_keeps_everyone_tied_at_it() {
+        let board = || vec![run("a", "b", 100), run("c", "d", 200), run("e", "f", 200), run("g", "h", 200), run("i", "j", 300)];
+        // Ranked by run, the three 2.00 runs share 2nd: a cutoff at 2 keeps all of them (4 runs).
+        assert_eq!(ranks(&rank_coop_entries(board(), 2, true)), vec![(100, 1), (200, 2), (200, 2), (200, 2)]);
+        // By player, every run has its own rank, so the cutoff is a count.
+        assert_eq!(ranks(&rank_coop_entries(board(), 2, false)), vec![(100, 1), (200, 2)]);
+        assert_eq!(rank_coop_entries(board(), 10, true).len(), 5);
+    }
 }
