@@ -162,6 +162,11 @@ pub struct ProfileScore {
     pub timestamp: Option<chrono::NaiveDateTime>,
     pub changelog_id: i64,
     pub is_multiplayer: bool,
+    /// The partner on a co-op run (`N/A` when unknown); `None` for single player. The run can be the
+    /// partner's half when the player has no row of their own (the `N/A` placeholder).
+    pub partner_profile_number: Option<String>,
+    pub partner_name: Option<String>,
+    pub partner_avatar: Option<String>,
     /// Rank within the top results (`None` when outside them).
     #[sqlx(skip)]
     pub rank: Option<i32>,

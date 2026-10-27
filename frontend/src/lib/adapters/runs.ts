@@ -35,8 +35,11 @@ export const unknownPartner = (): Player => ({
   unknown: true,
 })
 
-const realPlayers = (players: Player[]): Player[] =>
-  players.map((p) => (p.profileNumber === FILLER || p.name === FILLER ? unknownPartner() : p))
+/** The player, or an "Unknown partner" for the filler user. */
+export const realPlayer = (p: Player): Player =>
+  p.profileNumber === FILLER || p.name === FILLER ? unknownPartner() : p
+
+const realPlayers = (players: Player[]): Player[] => players.map(realPlayer)
 
 /** Map ids are Steam leaderboard ids for Portal 2 and board ids (1-44) for Mel. */
 const lookupMap = (c: Catalog, id: string, game: string) => getMap(c, id, game) ?? findMap(c, id)

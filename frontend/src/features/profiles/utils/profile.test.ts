@@ -121,6 +121,38 @@ describe('adaptProfile', () => {
     expect(buttons.points).toBeGreaterThan(0)
   })
 
+  it("takes a co-op best that's the partner's half (no row of the player's own) with the partner the server names", () => {
+    const gelMaze = (partner: Partial<ProfileScoreRaw>) =>
+      adaptProfile(catalog, HERO, pageRaw as ProfilePageRaw, userRaw as UserRaw, history, [
+        {
+          map_id: '52759',
+          score: 1990,
+          rank: 1,
+          timestamp: '2026-01-02T03:04:05',
+          changelog_id: 999999,
+          ...partner,
+        },
+      ]).scores['52759']!
+    const sear = gelMaze({
+      partner_profile_number: '76561198202719682',
+      partner_name: 'sear',
+      partner_avatar: 'a.jpg',
+    })
+    // Nothing from the latest run on the map (Bexc's), which isn't this one.
+    expect(sear).toMatchObject({
+      score: 1990,
+      changelogId: 999999,
+      demoId: null,
+      youtubeId: null,
+      note: null,
+      partner: { profileNumber: '76561198202719682', name: 'sear', avatar: 'a.jpg' },
+    })
+    expect(gelMaze({ partner_profile_number: 'N/A', partner_name: 'N/A' }).partner).toMatchObject({
+      name: 'Unknown partner',
+      unknown: true,
+    })
+  })
+
   it('without a personal best, uses the latest run on the map (any run, as legacy)', () => {
     const gelMaze = profile().scores['52759']!
     expect(gelMaze).toMatchObject({ rank: 1, score: 2015, changelogId: 350307, partner: { name: 'Bexc' } })

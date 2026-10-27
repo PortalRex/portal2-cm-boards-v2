@@ -11,6 +11,13 @@ export interface ProfileScoreRaw {
   changelog_id: number | null
   delta_to_wr?: number | null
   delta_to_next?: number | null
+  /**
+   * The partner on a co-op run ("N/A" when unknown). The run can be the partner's half, when the
+   * player has no row of their own in it (the server's "N/A" placeholder half).
+   */
+  partner_profile_number?: string | null
+  partner_name?: string | null
+  partner_avatar?: string | null
 }
 
 /** A player's Portal 2 personal bests, or [] when the server can't say (legacy did the same). */

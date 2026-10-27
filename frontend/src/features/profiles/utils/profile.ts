@@ -1,4 +1,5 @@
 import { getMap, PORTAL2, type Catalog } from '@/lib/catalog'
+import { player, realPlayer } from '@/lib/adapters/runs'
 import { countryById } from '@/lib/data/countries'
 import { parseTimestamp } from '@/lib/format'
 import { pointsForRank } from '@/lib/points'
@@ -62,7 +63,8 @@ export function scoresFromRanks(
  * Personal bests (GET /profile/scores) fill in times and deltas; maps where the player is outside
  * the ranked results get an entry without a rank. The run's own details come from the best run
  * itself, not the latest run on the map (a later, slower or banned run would lend it its partner,
- * demo and video).
+ * demo and video). A co-op best that isn't among the player's runs is their partner's half (they
+ * have no row of their own in it): it takes the partner the server names and no details of its own.
  */
 export function mergePbs(
   c: Catalog,
@@ -106,7 +108,18 @@ export function mergePbs(
           dateEstimated: h.dateEstimated,
           partner: partnerOf(h, me),
         }
-      : { changelogId: pb.changelog_id }
+      : pb.partner_profile_number
+        ? {
+            changelogId: pb.changelog_id,
+            youtubeId: null,
+            autorenderId: null,
+            demoId: null,
+            note: null,
+            portals: null,
+            sarVersion: null,
+            partner: realPlayer(player(pb.partner_profile_number, pb.partner_name, pb.partner_avatar)),
+          }
+        : { changelogId: pb.changelog_id }
     out[pb.map_id] = {
       ...base,
       ...run,

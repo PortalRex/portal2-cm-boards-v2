@@ -345,29 +345,57 @@ impl Users {
 }
 
 impl ProfileScore {
-    /// The player's best verified, unbanned time on each Portal 2 map (default category).
+    /// The player's best verified, unbanned time on each Portal 2 map (default category), with the
+    /// partner on co-op maps.
     pub async fn get_profile_scores(pool: &PgPool, profile_number: &str) -> Result<Vec<ProfileScore>, sqlx::Error> {
         sqlx::query_as::<_, ProfileScore>(
             r#"
-            SELECT DISTINCT ON (cl.map_id) cl.map_id, cl.score, cl.timestamp, cl.id AS changelog_id, c.is_multiplayer
-                FROM changelog AS cl
-                INNER JOIN maps AS m ON (m.steam_id = cl.map_id)
-                INNER JOIN chapters AS c ON (c.id = m.chapter_id)
-                WHERE cl.profile_number = $1
-                AND c.game_id = 1
-                AND cl.banned = 'false'
-                AND cl.verified = 'true'
-                AND cl.category_id = m.default_cat_id
+            SELECT DISTINCT ON (pb.map_id) pb.map_id, pb.score, pb.timestamp, pb.changelog_id, pb.is_multiplayer,
+                    pu.profile_number AS partner_profile_number,
+                    COALESCE(pu.board_name, pu.steam_name, pu.profile_number) AS partner_name,
+                    pu.avatar AS partner_avatar
+                FROM (
+                    -- The player's own runs.
+                    SELECT cl.map_id, cl.score, cl.timestamp, cl.id AS changelog_id, c.is_multiplayer, cl.coop_id
+                        FROM changelog AS cl
+                        INNER JOIN maps AS m ON (m.steam_id = cl.map_id)
+                        INNER JOIN chapters AS c ON (c.id = m.chapter_id)
+                        WHERE cl.profile_number = $1
+                        AND c.game_id = 1
+                        AND cl.banned = 'false'
+                        AND cl.verified = 'true'
+                        AND cl.category_id = m.default_cat_id
+                    UNION ALL
+                    -- Co-op runs where the player's half is the 'N/A' placeholder (they have no row of
+                    -- their own; the bundle names them): the run is their partner's half, as on the board.
+                    SELECT r.map_id, r.score, r.timestamp, r.id, c.is_multiplayer, cb.id
+                        FROM changelog AS ph
+                        INNER JOIN coop_bundled AS cb ON (ph.id IN (cb.cl_id1, cb.cl_id2))
+                        INNER JOIN changelog AS r ON (r.id IN (cb.cl_id1, cb.cl_id2) AND r.id <> ph.id)
+                        INNER JOIN maps AS m ON (m.steam_id = r.map_id)
+                        INNER JOIN chapters AS c ON (c.id = m.chapter_id)
+                        WHERE ph.profile_number = 'N/A'
+                        AND $1 IN (cb.p_id1, cb.p_id2)
+                        AND r.profile_number <> $1
+                        AND c.game_id = 1
+                        AND r.banned = 'false'
+                        AND r.verified = 'true'
+                        AND r.category_id = m.default_cat_id
+                ) AS pb
+                LEFT JOIN coop_bundled AS b ON (b.id = pb.coop_id)
+                LEFT JOIN users AS pu ON (pu.profile_number = CASE WHEN b.p_id1 = $1 THEN b.p_id2 ELSE b.p_id1 END)
                 -- A co-op run counts once both halves are verified and neither half nor player is
                 -- banned, as on the co-op map page and in points: a faster run with a banned partner
                 -- isn't the profile's PB (it has no rank, and its row on the board is someone else's).
-                AND (cl.coop_id IS NULL OR cl.coop_id NOT IN (
-                    SELECT cb.id FROM coop_bundled AS cb
+                -- Players are checked as the bundle names them too: a partner without a run of their
+                -- own has the 'N/A' placeholder as their half.
+                WHERE pb.coop_id IS NULL OR NOT EXISTS (
+                    SELECT 1 FROM coop_bundled AS cb
                         JOIN changelog AS o ON o.id IN (cb.cl_id1, cb.cl_id2)
-                        JOIN users AS ou ON ou.profile_number = o.profile_number
-                    WHERE NOT o.verified OR o.banned OR ou.banned
-                ))
-                ORDER BY cl.map_id, cl.score ASC, cl.timestamp ASC
+                        JOIN users AS ou ON ou.profile_number IN (o.profile_number, cb.p_id1, cb.p_id2)
+                    WHERE cb.id = pb.coop_id AND (NOT o.verified OR o.banned OR ou.banned)
+                )
+                ORDER BY pb.map_id, pb.score ASC, pb.timestamp ASC
             "#,
         )
         .bind(profile_number)
