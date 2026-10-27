@@ -19,7 +19,7 @@ const LEADERS: { key: string; title: string; note: string; format: (v: number) =
   { key: 'wr_set', title: 'World records set', note: 'runs that took the record', format: number },
   { key: 'runs', title: 'Most runs', note: 'verified runs on the boards', format: number },
   { key: 'runs_year', title: 'Most active this year', note: 'runs in the past 365 days', format: number },
-  { key: 'partners', title: 'Most co-op partners', note: 'different players run with', format: number },
+  { key: 'partners', title: 'Most co-op partners', note: 'different players ran with', format: number },
   { key: 'demos', title: 'Most demos', note: 'runs submitted with a demo', format: number },
   { key: 'portals', title: 'Most portals placed', note: 'counted from demos', format: number },
   {
