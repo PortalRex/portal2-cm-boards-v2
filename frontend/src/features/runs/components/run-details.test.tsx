@@ -71,13 +71,22 @@ describe('RunDetails', () => {
     )
   })
 
-  it('disables what a run without demo or video lacks', async () => {
+  it('leaves out what a run without demo or video lacks', async () => {
     noSegments()
     await renderWithProviders(<RunDetails run={{ ...spRun, demoId: null, youtubeId: null }} map={map} />)
-    expect(screen.getByRole('button', { name: /download demo/i })).toBeDisabled()
-    expect(screen.getByText(/youtube/i, { selector: 'a' })).toHaveAttribute('aria-disabled', 'true')
-    expect(screen.getByText(/request render/i, { selector: 'a' })).toHaveAttribute('aria-disabled', 'true')
     expect(screen.getByText('No video')).toBeInTheDocument()
+    // No dimmed buttons that look available: no demo to download, no video, nothing to render from.
+    expect(screen.queryByText(/download demo/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/^youtube/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/request render/i)).not.toBeInTheDocument()
+  })
+
+  it('shows just the buttons the run has', async () => {
+    noSegments()
+    await renderWithProviders(<RunDetails run={{ ...spRun, youtubeId: null }} map={map} />)
+    expect(screen.getByRole('link', { name: /download demo/i })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /request render/i })).toBeInTheDocument()
+    expect(screen.queryByText(/^youtube/i)).not.toBeInTheDocument()
   })
 
   it('shows the mtrigger segments with running totals, and the timer note when the demo is 0.01 off', async () => {

@@ -43,7 +43,6 @@ export interface DetailsRun {
 
 const outlineButton =
   'inline-flex h-9 cursor-pointer items-center justify-center gap-2.5 rounded-[4px] border border-line-strong bg-control px-3 text-lg whitespace-nowrap hover:bg-control-raised [&_svg]:size-6 [&_svg]:shrink-0'
-const disabled = 'pointer-events-none opacity-45'
 
 /**
  * Expanded view of one run: video, mtrigger segments, and run info / links. Co-op runs get a
@@ -194,56 +193,47 @@ export function RunDetails({
           {own != null && <ReportRun changelogId={own} />}
           {own != null && <StaffTools run={{ ...run, changelogId: own }} map={map} game={game} />}
           {children}
-          <div className="mt-3.5 grid grid-cols-2 gap-[18px] rd-upto640:grid-cols-1">
-            {view.demoId ? (
-              <a
-                href={apiUrl(`/demos/${view.demoId}/file`)}
-                download
-                title="Download the demo"
-                className={outlineButton}
-              >
-                Download Demo <DownloadIcon />
-              </a>
-            ) : (
-              <button
-                type="button"
-                disabled
-                title="No demo for this run"
-                className={cn(outlineButton, 'cursor-default opacity-50')}
-              >
-                Download Demo <DownloadIcon />
-              </button>
-            )}
-            <a
-              href={youtube}
-              target="_blank"
-              rel="noreferrer"
-              aria-disabled={!youtube}
-              className={cn(outlineButton, !youtube && disabled)}
-            >
-              YouTube <YouTubeIcon />
-            </a>
-            {video.ready ? (
-              <a
-                href={video.page}
-                target="_blank"
-                rel="noreferrer"
-                className={cn(outlineButton, 'col-span-full')}
-              >
-                Autorender <PlayIcon />
-              </a>
-            ) : (
-              <a
-                href={canRender ? video.render! : undefined}
-                target="_blank"
-                rel="noreferrer"
-                aria-disabled={!canRender}
-                className={cn(outlineButton, 'col-span-full', !canRender && disabled)}
-              >
-                Request render <VideocamIcon />
-              </a>
-            )}
-          </div>
+          {/* Only what the run has: a dimmed button for a missing demo or video read as available. */}
+          {(view.demoId || youtube || video.ready || canRender) && (
+            <div className="mt-3.5 grid grid-cols-2 gap-[18px] rd-upto640:grid-cols-1">
+              {view.demoId ? (
+                <a
+                  href={apiUrl(`/demos/${view.demoId}/file`)}
+                  download
+                  title="Download the demo"
+                  className={outlineButton}
+                >
+                  Download Demo <DownloadIcon />
+                </a>
+              ) : null}
+              {youtube && (
+                <a href={youtube} target="_blank" rel="noreferrer" className={outlineButton}>
+                  YouTube <YouTubeIcon />
+                </a>
+              )}
+              {video.ready ? (
+                <a
+                  href={video.page}
+                  target="_blank"
+                  rel="noreferrer"
+                  className={cn(outlineButton, 'col-span-full')}
+                >
+                  Autorender <PlayIcon />
+                </a>
+              ) : (
+                canRender && (
+                  <a
+                    href={video.render!}
+                    target="_blank"
+                    rel="noreferrer"
+                    className={cn(outlineButton, 'col-span-full')}
+                  >
+                    Request render <VideocamIcon />
+                  </a>
+                )
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>
