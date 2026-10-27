@@ -319,6 +319,8 @@
   }
   html {
     line-height: normal;
+    /* What shows past the page's edges (iPhone bars, overscroll): the page colour, not white or grey. */
+    background-color: var(--page);
   }
   html,
   body,
@@ -328,6 +330,9 @@
   body {
     @apply bg-background text-foreground font-sans antialiased;
     font-size: 16px;
+    /* Clear of an iPhone's notch in landscape (0 everywhere else). */
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
   }
   a {
     color: inherit;
