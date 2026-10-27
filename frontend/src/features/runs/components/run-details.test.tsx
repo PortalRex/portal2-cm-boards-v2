@@ -2,6 +2,7 @@ import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
+import changelog from '@/testing/fixtures/changelog.json'
 import coopHalves from '@/testing/fixtures/coop-halves.json'
 import { users } from '@/testing/data/users'
 import { API, AUTORENDER } from '@/testing/mocks/handlers'
@@ -87,6 +88,26 @@ describe('RunDetails', () => {
     expect(screen.getByRole('link', { name: /download demo/i })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /request render/i })).toBeInTheDocument()
     expect(screen.queryByText(/^youtube/i)).not.toBeInTheDocument()
+  })
+
+  it('says the rank a board row had when it was set, when that differs from its rank now', async () => {
+    noSegments()
+    // GET /changelog/100: the run as it was logged, 2nd when set.
+    const asSet = (post_rank: number) =>
+      server.use(
+        http.get(`${API}/changelog/:id`, () => HttpResponse.json({ ...changelog[0], id: 100, post_rank })),
+      )
+    const fromBoard = { ...spRun, postRank: undefined, rank: 3 }
+    asSet(2)
+    const { unmount } = await renderWithProviders(<RunDetails run={fromBoard} map={map} />)
+    expect(await screen.findByText(/2nd when set/)).toBeInTheDocument()
+    expect(screen.getByText(/rank 3/)).toBeInTheDocument()
+    unmount()
+    // Still 3rd: nothing extra.
+    asSet(3)
+    await renderWithProviders(<RunDetails run={fromBoard} map={map} />)
+    await waitFor(() => expect(screen.getByText(/rank 3/)).toBeInTheDocument())
+    expect(screen.queryByText(/when set/)).not.toBeInTheDocument()
   })
 
   it('shows the mtrigger segments with running totals, and the timer note when the demo is 0.01 off', async () => {
