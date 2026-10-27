@@ -178,7 +178,7 @@ pub struct SiteStatsQuery {
 
 /// **GET** Site-wide runner statistics for a game (default Portal 2), for the Stats page:
 /// `totals`, `leaders` (per list: `wr_held`, `wr_set`, `runs`, `runs_year`, `demos`, `portals`,
-/// `time_saved`, `partners`), `longest_wrs` and `peaks` (per board key, highest peak points
+/// `partners`), `longest_wrs` and `peaks` (per board key, highest peak points
 /// first, each with the date reached and the player's points now).
 ///
 /// - `/api/v1/stats/site`

@@ -222,7 +222,6 @@ async fn compute(pool: &PgPool, game_id: i32, pbs: &[PbRank], current: &HashMap<
         ("runs_year", "COUNT(*)", "WHERE r.timestamp >= now() - interval '365 days'"),
         ("demos", "COUNT(*)", "WHERE r.demo_id IS NOT NULL"),
         ("portals", "SUM(r.portals)", "WHERE r.portals IS NOT NULL"),
-        ("time_saved", "SUM(-r.score_delta)", "WHERE r.score_delta < 0"),
     ] {
         leaders_by.insert(key.to_string(), leaders(pool, game_id, aggregate, filter).await?);
     }

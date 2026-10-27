@@ -8,7 +8,7 @@ import { PlayerLink } from '@/components/player-link'
 import { EmptyState, Loading } from '@/components/status'
 import { useGame } from '@/hooks/use-game'
 import { useCatalog } from '@/lib/catalog'
-import { formatDate, formatLongScore, formatPoints, formatScore, timeAgo } from '@/lib/format'
+import { formatDate, formatPoints, formatScore, timeAgo } from '@/lib/format'
 import { siteStatsQueryOptions, wrStatsQueryOptions, type Leader, type SiteStats } from '../api/stats'
 import { boardLabel, number, pick } from '../utils/format'
 import { Figures, Intro, MapName, PlayerCell, Row, SectionTitle, StatsSwitch, Table } from './stats-ui'
@@ -22,12 +22,6 @@ const LEADERS: { key: string; title: string; note: string; format: (v: number) =
   { key: 'partners', title: 'Most co-op partners', note: 'different players run with', format: number },
   { key: 'demos', title: 'Most demos', note: 'runs submitted with a demo', format: number },
   { key: 'portals', title: 'Most portals placed', note: 'counted from demos', format: number },
-  {
-    key: 'time_saved',
-    title: 'Most time saved',
-    note: 'taken off personal bests',
-    format: (v) => formatLongScore(v),
-  },
   {
     key: 'record_days',
     title: 'Most days holding records',

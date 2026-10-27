@@ -64,6 +64,9 @@ describe('Stats: Runners', () => {
     expect(within(held).getAllByRole('listitem')).toHaveLength(3)
     const days = screen.getByRole('region', { name: 'Most days holding records' })
     expect(within(days).getAllByRole('listitem')[0]).toHaveTextContent('Zypeh213,441')
+    // Time saved isn't ranked: a slow first PB on a quiet map would rig it.
+    expect(screen.queryByRole('region', { name: 'Most time saved' })).not.toBeInTheDocument()
+    expect(screen.getAllByRole('region', { name: /^(Most|World records)/ })).toHaveLength(8)
   })
 
   it('lists the longest-standing records, marking co-op ones', async () => {

@@ -628,7 +628,7 @@ From a review of the server and site (October 2026):
 `GET /stats/site?game_id=` (`controllers/site_stats.rs`) feeds the site's Stats page (`/stats`, in the top bar; Compare
 players and Countries are its other tabs at `/stats/compare` and `/stats/countries`, and the old `/compare` and
 `/more/countries` addresses redirect). It answers the game's totals, leader lists (world records held and set, runs,
-runs this year, co-op partners, demos, portals, time saved), the longest-standing current world records, and the top
+runs this year, co-op partners, demos, portals), the longest-standing current world records, and the top
 100 peak points per board with the date reached and the player's points now. Peaks: one sweep over every run in time
 order picks the candidates (`points_history::all_peaks`); each listed peak is then the same per-player peak the
 profile shows, and "now" comes from the points boards, so the page and profiles always agree (a peak below the points now is raised to them, as on the profile). The sweep also checks the peaks of players a run lifts (a co-op run dropping out), not only the runner's. The stats are built in
