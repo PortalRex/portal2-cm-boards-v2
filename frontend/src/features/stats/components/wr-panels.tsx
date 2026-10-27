@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { cn } from 'cn'
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { StatsIcon } from '@/components/icons'
 import { Panel } from '@/components/panel'
 import { EmptyState, Loading } from '@/components/status'
@@ -9,6 +9,7 @@ import { useCatalog } from '@/lib/catalog'
 import { formatDate, formatLongScore, formatScore } from '@/lib/format'
 import { wrStatsQueryOptions, type WrStats } from '../api/stats'
 import { boardLabel, days, HISTORY_VIEWS, number, pick } from '../utils/format'
+import { orderRecords, RECORD_ORDERS, type RecordOrder } from '../utils/records'
 import { firstTeams, playersOnce } from '../utils/teams'
 import { Race } from './race'
 import { Figures, Intro, MapName, PlayerCell, Row, SectionTitle, StatsSwitch, Table, Teams } from './stats-ui'
@@ -60,6 +61,7 @@ export function RecordsPanel({ mode: modeParam, onMode }: { mode?: string; onMod
   const game = useGame()
   const modes = catalog.games[game]?.modes ?? []
   const mode = pick(modeParam, modes, modes[0] ?? '')
+  const [order, setOrder] = useState<RecordOrder>('map')
   return (
     <Shell
       title="World records"
@@ -73,7 +75,10 @@ export function RecordsPanel({ mode: modeParam, onMode }: { mode?: string; onMod
       }
     >
       {(s) => {
-        const rows = s.records.filter((r) => r.mode === mode)
+        const rows = orderRecords(
+          s.records.filter((r) => r.mode === mode),
+          order,
+        )
         const oldest = [...s.records].sort((a, b) => b.days - a.days)[0]
         return (
           <>
@@ -91,6 +96,9 @@ export function RecordsPanel({ mode: modeParam, onMode }: { mode?: string; onMod
                 },
               ]}
             />
+            <div className="mb-3 flex justify-end">
+              <StatsSwitch body label="Order" value={order} onChange={setOrder} options={RECORD_ORDERS} />
+            </div>
             <Table
               label="World records"
               cols="[--st-cols:minmax(140px,1fr)_90px_minmax(0,1.6fr)_120px_110px_80px] upto900:[--st-cols:minmax(0,1fr)_76px] *:py-1.5"

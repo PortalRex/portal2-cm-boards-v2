@@ -25,6 +25,19 @@ describe('Stats: Records', () => {
     expect(screen.getByRole('link', { name: 'Records' })).toHaveAttribute('aria-current', 'page')
   })
 
+  it('orders the records by how long they have stood, either way', async () => {
+    serveStats()
+    await renderRoute('/stats/records')
+    const maps = () => rowsOf('World records').map((r) => within(r).getAllByRole('link')[0]!.textContent)
+    await userEvent.click(await screen.findByRole('radio', { name: 'Shortest standing' }))
+    // Portal Gun 128 days, Portal Carousel 190, Container Ride 341.
+    expect(maps()).toEqual(['Portal Gun', 'Portal Carousel', 'Container Ride'])
+    await userEvent.click(screen.getByRole('radio', { name: 'Longest standing' }))
+    expect(maps()).toEqual(['Container Ride', 'Portal Carousel', 'Portal Gun'])
+    await userEvent.click(screen.getByRole('radio', { name: 'Map order' }))
+    expect(maps()).toEqual(['Container Ride', 'Portal Carousel', 'Portal Gun'])
+  })
+
   it('switches mode in the address', async () => {
     serveStats()
     const { router } = await renderRoute('/stats/records')
