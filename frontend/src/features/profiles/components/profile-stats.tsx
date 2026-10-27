@@ -218,15 +218,12 @@ function ScoreStat({
   return (
     <div className="flex min-w-0 flex-col items-center text-center">
       <StatHead label={label} />
-      <span className={valueClass('md')}>
-        {entry?.score != null ? formatScore(entry.score) : '–'}
-        {entry?.score != null && <small>s</small>}
-      </span>
-      {entry && (
-        <span className="text-base uppercase">
-          on <b className="font-semibold">{entry.map.title}</b>
+      <OnMap map={entry?.map}>
+        <span className={valueClass('md')}>
+          {entry?.score != null ? formatScore(entry.score) : '–'}
+          {entry?.score != null && <small>s</small>}
         </span>
-      )}
+      </OnMap>
       {entry?.timestamp && (
         // Green while it's recent (the past week), grey after.
         <span
@@ -240,30 +237,39 @@ function ScoreStat({
   )
 }
 
-/** A place and its map, linking to the map's page. */
-function PlaceStat({ label, entry }: { label: string; entry: MapScore | null }) {
-  const place = (
-    <span className={valueClass('md')}>
-      <Ordinal n={entry?.rank} />
-    </span>
+/** A value with "on <map>" under it, linking to the map's page when the map is known. */
+function OnMap({ map, children }: { map: ScoreBrief['map'] | undefined; children: ReactNode }) {
+  if (!map) return <>{children}</>
+  const body = (
+    <>
+      {children}
+      <span className="text-base uppercase">
+        on <b className="font-semibold">{map.title}</b>
+      </span>
+    </>
   )
+  return map.id && map.mode ? (
+    <AppLink
+      href={mapPath({ id: map.id, mode: map.mode })}
+      className="flex flex-col items-center [&:hover_b]:underline"
+      title={`Open ${map.title}`}
+    >
+      {body}
+    </AppLink>
+  ) : (
+    body
+  )
+}
+
+function PlaceStat({ label, entry }: { label: string; entry: MapScore | null }) {
   return (
     <div className="flex min-w-0 flex-col items-center text-center">
       <StatHead label={label} />
-      {entry ? (
-        <AppLink
-          href={mapPath(entry.map)}
-          className="flex flex-col items-center [&:hover_b]:underline"
-          title={`Open ${entry.map.title}`}
-        >
-          {place}
-          <span className="text-base uppercase">
-            on <b className="font-semibold">{entry.map.title}</b>
-          </span>
-        </AppLink>
-      ) : (
-        place
-      )}
+      <OnMap map={entry?.map}>
+        <span className={valueClass('md')}>
+          <Ordinal n={entry?.rank} />
+        </span>
+      </OnMap>
     </div>
   )
 }

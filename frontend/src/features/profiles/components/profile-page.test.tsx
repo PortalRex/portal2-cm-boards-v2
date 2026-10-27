@@ -81,7 +81,15 @@ describe('Profile page', () => {
     expect(within(stats).getByText('Team Retrieval')).toBeInTheDocument()
     expect(within(stats).getByText('Laser Stairs')).toBeInTheDocument()
     expect(within(stats).getByText('Funnel Catch')).toBeInTheDocument()
-    // Best and worst place open their map.
+    // Newest and oldest score, and best and worst place, open their map.
+    expect(within(stats).getByRole('link', { name: /on Catapults/ })).toHaveAttribute(
+      'href',
+      '/map/coop/47840',
+    )
+    expect(within(stats).getByRole('link', { name: /on Team Retrieval/ })).toHaveAttribute(
+      'href',
+      expect.stringMatching(/^\/map\/coop\/\d+$/),
+    )
     expect(within(stats).getByRole('link', { name: /1st\s*on Laser Stairs/ })).toHaveAttribute(
       'href',
       '/map/sp/47736',
