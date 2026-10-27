@@ -1,10 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { cn } from 'cn'
-import { useMemo, type ReactNode } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { HistoryIcon } from '@/components/icons'
 import { Pagination } from '@/components/pagination'
 import { Panel } from '@/components/panel'
+import { PlayerSuggestions } from '@/components/player-suggestions'
 import { SearchBox } from '@/components/search-box'
 import { EmptyState, ErrorState, Loading } from '@/components/status'
 import { useDebounced } from '@/hooks/use-debounced'
@@ -12,6 +13,7 @@ import { useGame } from '@/hooks/use-game'
 import { useRenderedSet } from '@/hooks/use-rendered-set'
 import { useCatalog } from '@/lib/catalog'
 import { changelogQueryOptions } from '@/lib/runs/changelog'
+import type { UserHit } from '@/lib/users/search'
 import type { Run } from '@/types/runs'
 import {
   applyFilterChanges,
@@ -60,11 +62,12 @@ export function ScoreUpdatesList({
   return (
     <Panel icon={HistoryIcon} title="Score Updates" bodyClassName="p-[26px] pb-[30px] upto900:p-3">
       <div className="mb-[22px] flex items-center justify-between gap-4 upto900:mb-2.5 upto900:grid upto900:grid-cols-[minmax(0,1fr)] upto900:gap-2.5 upto900:[&>nav]:hidden">
-        <SearchBox
+        <PlayerSearchBox
           value={filters.q}
-          onChange={(v) => set({ q: v })}
-          placeholder="Search players"
-          showFilter={false}
+          // Typing again searches names; picking a suggestion shows just that player's runs.
+          onChange={(v) => set({ q: v, player: '' })}
+          onPick={(p) => set({ q: p.name, player: p.profileNumber ?? '' })}
+          picked={Boolean(filters.player)}
         />
         <Pagination page={page} pageCount={pageCount} onChange={setPage} />
       </div>
@@ -126,5 +129,50 @@ export function ScoreUpdatesList({
         </div>
       )}
     </Panel>
+  )
+}
+
+/**
+ * The "Search players" box: it filters the feed by name as you type, and lists the matching
+ * players to pick one from (like Compare's), closing once one is picked or the box is left.
+ */
+function PlayerSearchBox({
+  value,
+  onChange,
+  onPick,
+  picked,
+}: {
+  value: string
+  onChange: (value: string) => void
+  onPick: (player: UserHit) => void
+  picked: boolean
+}) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div
+      className="relative w-[min(428px,100%)]"
+      onBlur={(e) => !e.currentTarget.contains(e.relatedTarget) && setOpen(false)}
+      onKeyDown={(e) => e.key === 'Escape' && setOpen(false)}
+    >
+      <SearchBox
+        value={value}
+        onChange={(v) => {
+          onChange(v)
+          setOpen(true)
+        }}
+        placeholder="Search players"
+        showFilter={false}
+      />
+      {open && !picked && (
+        <PlayerSuggestions
+          q={value}
+          label="Matching players"
+          onPick={(p) => {
+            setOpen(false)
+            onPick(p)
+          }}
+        />
+      )}
+    </div>
   )
 }

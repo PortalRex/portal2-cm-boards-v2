@@ -102,6 +102,36 @@ describe('Score Updates', () => {
     await waitFor(() => expect(requests.at(-1)?.get('nick_name')).toBe('snow'))
   })
 
+  it('lists the matching players to pick one, then shows just their runs', async () => {
+    const requests = serve()
+    const snow = '76561198842803939'
+    server.use(
+      http.get(`${API}/users/search`, () =>
+        HttpResponse.json([
+          { profile_number: snow, user_name: 'Snow', avatar: null, runs: 1166 },
+          { profile_number: '76561199081871175', user_name: 'Snow Cat', avatar: null, runs: 177 },
+        ]),
+      ),
+    )
+    const { router } = await renderRoute('/')
+    await within(table()).findAllByRole('row')
+    const box = screen.getByRole('searchbox', { name: 'Search players' })
+    expect(box).toHaveAttribute('autocomplete', 'off')
+    await userEvent.type(box, 'snow')
+    const list = await screen.findByRole('list', { name: 'Matching players' })
+    expect(await within(list).findByText('1166 runs')).toBeInTheDocument()
+    await userEvent.click(within(list).getAllByRole('button')[0]!)
+    // The list closes, the box shows the name, and the feed asks for that player by Steam id.
+    expect(screen.queryByRole('list', { name: 'Matching players' })).not.toBeInTheDocument()
+    expect(box).toHaveValue('Snow')
+    expect(router.state.location.search).toMatchObject({ q: 'Snow', player: snow })
+    await waitFor(() => expect(requests.at(-1)?.get('profile_number')).toBe(snow))
+    expect(requests.at(-1)?.get('nick_name')).toBeNull()
+    // Typing again goes back to searching names.
+    await userEvent.type(box, 'x')
+    await waitFor(() => expect(router.state.location.search).toEqual({ q: 'Snowx' }))
+  })
+
   it('pages through the runs, 20 at a time', async () => {
     serve(sampleChangelog({ limit: '45' }))
     const { router } = await renderRoute('/')

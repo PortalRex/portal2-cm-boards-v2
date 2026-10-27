@@ -20,6 +20,8 @@ export const scoreUpdatesSearchSchema = z.looseObject({
   mode: text,
   map: text,
   q: text,
+  /** A player picked from the search box's suggestions (Steam id): only their runs. */
+  player: text,
   limit: text,
   banned: text,
   page: text,
@@ -33,12 +35,21 @@ export const scoreUpdatesSearchSchema = z.looseObject({
 
 export type ScoreUpdatesSearch = z.infer<typeof scoreUpdatesSearchSchema>
 
-export const DEFAULTS = { mode: '', map: '', q: '', limit: '200', banned: 'hide', page: '0' } as const
+export const DEFAULTS = {
+  mode: '',
+  map: '',
+  q: '',
+  player: '',
+  limit: '200',
+  banned: 'hide',
+  page: '0',
+} as const
 
 export interface ScoreFilters {
   mode: string
   mapId: string
   q: string
+  player: string
   limit: string
   wr: boolean
   video: boolean
@@ -59,6 +70,7 @@ export function readFilters(search: ScoreUpdatesSearch, modes: string[]): ScoreF
     mode: modes.includes(search.mode ?? '') ? search.mode! : '',
     mapId: search.map ?? '',
     q: search.q ?? '',
+    player: search.player ?? '',
     limit: oneOf(search.limit, RUN_LIMITS, DEFAULTS.limit),
     wr: search.wr === '1',
     video: search.video === '1',
@@ -109,7 +121,9 @@ export const changelogFilters = (f: ScoreFilters, game: string, query: string): 
   banned: f.banned,
   rank: f.rank,
   days: f.days,
-  search: query,
+  // A picked player is matched by Steam id; otherwise the box searches names.
+  profileNumber: f.player || undefined,
+  search: f.player ? '' : query,
 })
 
 /** Filters folded behind "More filters" on phones that aren't at their default. */
@@ -139,6 +153,7 @@ export const CLEARED: FilterChanges = {
   mode: '',
   map: '',
   q: '',
+  player: '',
   wr: false,
   video: false,
   demo: false,

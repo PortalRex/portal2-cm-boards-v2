@@ -18,6 +18,7 @@ describe('readFilters', () => {
       mode: '',
       mapId: '',
       q: '',
+      player: '',
       limit: '200',
       wr: false,
       video: false,

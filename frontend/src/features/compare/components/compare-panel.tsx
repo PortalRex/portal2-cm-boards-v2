@@ -6,21 +6,16 @@ import { Avatar } from '@/components/avatar'
 import { PeopleIcon, SwapIcon } from '@/components/icons'
 import { Panel } from '@/components/panel'
 import { PlayerLink } from '@/components/player-link'
+import { PlayerSuggestions } from '@/components/player-suggestions'
 import { RankNumber } from '@/components/rank'
 import { SeasonSelect } from '@/components/season-select'
 import { Segmented } from '@/components/segmented'
 import { EmptyState, Loading } from '@/components/status'
-import { useDebounced } from '@/hooks/use-debounced'
 import { useGame } from '@/hooks/use-game'
 import { useSeason } from '@/hooks/use-season'
 import { chaptersFor, mapLink, modeLabel, seasonBoard, useCatalog } from '@/lib/catalog'
 import { formatDelta, formatLongScore, formatScore } from '@/lib/format'
-import {
-  compareSideQueryOptions,
-  userSearchQueryOptions,
-  type CompareSide,
-  type SideScore,
-} from '../api/compare'
+import { compareSideQueryOptions, type CompareSide, type SideScore } from '../api/compare'
 import { compareSummary } from '../utils/summary'
 
 export interface CompareSearch {
@@ -177,9 +172,6 @@ function PlayerSlot({
 /** A name or Steam id box listing the matching players (searched once typing stops). */
 function PlayerSearch({ label, onPick }: { label: string; onPick: (profileNumber: string) => void }) {
   const [q, setQ] = useState('')
-  const query = useDebounced(q, 250)
-  const searching = query.trim().length >= 2
-  const results = useQuery({ ...userSearchQueryOptions(query), enabled: searching })
   return (
     <div className="relative flex-1">
       <input
@@ -192,29 +184,11 @@ function PlayerSearch({ label, onPick }: { label: string; onPick: (profileNumber
         autoFocus
         className="h-10 w-full rounded-[4px] border border-line bg-control px-3 text-base text-foreground"
       />
-      {searching && (
-        <ul
-          aria-label={`${label} results`}
-          className="absolute inset-x-0 top-11 z-20 m-0 list-none rounded-md border border-line bg-menu p-1"
-        >
-          {(results.data ?? []).map((p) => (
-            <li key={p.profileNumber}>
-              <button
-                type="button"
-                onClick={() => p.profileNumber && onPick(p.profileNumber)}
-                className="flex w-full cursor-pointer items-center gap-2.5 rounded-[4px] border-0 bg-transparent px-2 py-1.5 text-left text-[15px] text-foreground hover:bg-seg-hover"
-              >
-                <Avatar src={p.avatar} name={p.name} size={24} />
-                <span>{p.name}</span>
-                <small className="ml-auto text-text-muted">{p.runs} runs</small>
-              </button>
-            </li>
-          ))}
-          {results.data && !results.data.length && (
-            <li className="px-2 py-1.5 text-text-muted">No players found.</li>
-          )}
-        </ul>
-      )}
+      <PlayerSuggestions
+        q={q}
+        label={`${label} results`}
+        onPick={(p) => p.profileNumber && onPick(p.profileNumber)}
+      />
     </div>
   )
 }
