@@ -11,6 +11,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
+import { DatePicker } from '@/components/date-picker'
 import { useWheelZoom } from '@/hooks/use-wheel-zoom'
 import { PORTAL2, useCatalog } from '@/lib/catalog'
 import { formatDate } from '@/lib/format'
@@ -37,8 +38,8 @@ const DAY = 24 * 3600 * 1000
 
 /**
  * Points over time as they really were: ranks are recomputed against everyone's best times at
- * each date, so being passed shows as a drop. Scroll over it to zoom; click a day to see the
- * profile as it was then. Each board's peak is marked.
+ * each date, so being passed shows as a drop. Scroll over it to zoom; click a day (or pick one in
+ * the date box) to see the profile as it was then. Each board's peak is marked.
  */
 export function PointsChart({
   profileNumber,
@@ -189,7 +190,7 @@ export function PointsChart({
           </LineChart>
         </ResponsiveContainer>
       </div>
-      <div className="flex items-center justify-start gap-x-[18px] gap-y-1 px-5 pt-2 upto800:flex-wrap upto800:justify-center upto800:gap-x-2.5 upto800:gap-y-1.5 upto800:px-0">
+      <div className="flex flex-wrap items-center justify-start gap-x-[18px] gap-y-1.5 px-5 pt-2 upto800:justify-center upto800:gap-x-2.5 upto800:gap-y-1.5 upto800:px-0">
         <span className="mr-auto text-sm whitespace-nowrap text-text-muted uppercase upto800:mr-0 upto800:basis-full upto800:text-center">
           Points over time
         </span>
@@ -208,8 +209,33 @@ export function PointsChart({
             {s.label}
           </button>
         ))}
+        <DayPicker first={all[0]!.date} at={at} onPick={onPick} />
       </div>
     </div>
+  )
+}
+
+/** The profile as it was on an exact day, from the first day with points to today. */
+function DayPicker({
+  first,
+  at,
+  onPick,
+}: {
+  first: string
+  at: string | null
+  onPick: (day: string) => void
+}) {
+  return (
+    <span className="ml-auto flex items-center gap-2 text-sm whitespace-nowrap text-text-muted uppercase upto800:ml-0">
+      Profile on
+      <DatePicker
+        value={at}
+        min={first}
+        onChange={onPick}
+        label="See the profile as it was on"
+        placeholder="Today"
+      />
+    </span>
   )
 }
 

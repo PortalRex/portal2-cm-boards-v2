@@ -426,6 +426,22 @@ describe('Profile page', () => {
     await waitFor(() => expect(router.state.location.search).toEqual({}))
   })
 
+  it('shows the profile on a day picked in the date box, from the first day with points', async () => {
+    serveProfile()
+    const { router } = await renderRoute(`/profile/${FIXTURE_PLAYER}`)
+    await userEvent.click(await screen.findByRole('button', { name: 'See the profile as it was on' }))
+    await userEvent.click(screen.getByRole('button', { name: /choose a month/ }))
+    // The points history starts on 2020-06-14: no earlier year.
+    while (screen.queryByText('2020') === null)
+      await userEvent.click(screen.getByRole('button', { name: 'Previous year' }))
+    expect(screen.getByRole('button', { name: 'Previous year' })).toBeDisabled()
+    await userEvent.click(screen.getByRole('button', { name: 'Jun' }))
+    expect(screen.getByRole('button', { name: '2020-06-13' })).toBeDisabled()
+    await userEvent.click(screen.getByRole('button', { name: '2020-06-20' }))
+    await waitFor(() => expect(router.state.location.search).toEqual({ at: '2020-06-20' }))
+    expect(await screen.findByText(/Showing hero’s profile as it was on/)).toBeInTheDocument()
+  })
+
   it('offers compare and, on your own profile, edit', async () => {
     serveProfile()
     await renderProfile()

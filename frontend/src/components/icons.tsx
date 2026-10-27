@@ -20,6 +20,8 @@ export {
   MessageSquare as CommentIcon,
   ChevronDown as ChevronDownIcon,
   ChevronRight as ChevronRightIcon,
+  ChevronLeft as ChevronLeftIcon,
+  CalendarDays as CalendarIcon,
   Search as SearchIcon,
   SlidersHorizontal as FilterIcon,
   Sun as LightModeIcon,
