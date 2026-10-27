@@ -8,6 +8,7 @@ import { useCatalog } from '@/lib/catalog'
 import { formatDate, formatLongScore, formatScore } from '@/lib/format'
 import { wrStatsQueryOptions, type WrStats } from '../api/stats'
 import { boardLabel, days, HISTORY_VIEWS, number, pick } from '../utils/format'
+import { playersOnce } from '../utils/teams'
 import { Race } from './race'
 import { Figures, Intro, MapName, PlayerCell, Row, SectionTitle, StatsSwitch, Table, Teams } from './stats-ui'
 
@@ -106,7 +107,7 @@ export function RecordsPanel({ mode: modeParam, onMode }: { mode?: string; onMod
                   </span>
                   <span className={strong}>{formatScore(r.score)}</span>
                   <span className="upto900:col-span-full">
-                    <Teams teams={r.teams} />
+                    <Teams teams={playersOnce(r.teams)} />
                   </span>
                   <span className={stood}>{formatDate(r.since)}</span>
                   <span className="num text-right">{days(r.days)}</span>
