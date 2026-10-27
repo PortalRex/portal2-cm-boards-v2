@@ -8,7 +8,7 @@ import { useCatalog } from '@/lib/catalog'
 import { formatDate, formatLongScore, formatScore } from '@/lib/format'
 import { wrStatsQueryOptions, type WrStats } from '../api/stats'
 import { boardLabel, days, HISTORY_VIEWS, number, pick } from '../utils/format'
-import { playersOnce } from '../utils/teams'
+import { firstTeams, playersOnce } from '../utils/teams'
 import { Race } from './race'
 import { Figures, Intro, MapName, PlayerCell, Row, SectionTitle, StatsSwitch, Table, Teams } from './stats-ui'
 
@@ -231,7 +231,7 @@ function Longest({ rows }: { rows: WrStats['longest'] }) {
             <span>
               {r.end ? (
                 <>
-                  <Teams teams={r.beatenBy} />{' '}
+                  <Teams teams={firstTeams(r.beatenBy)} />{' '}
                   <span className="num text-text-muted">({formatScore(r.beatenWith)})</span>
                 </>
               ) : (
