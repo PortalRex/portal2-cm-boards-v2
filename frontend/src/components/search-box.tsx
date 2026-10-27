@@ -15,8 +15,10 @@ export function SearchBox({
     <label className="flex h-8 w-[min(428px,100%)] items-center gap-2 rounded-[4px] border border-line bg-control px-2 text-text-muted focus-within:border-line-strong">
       <SearchIcon className="size-5 shrink-0" aria-hidden />
       <span className="sr-only">{placeholder}</span>
+      {/* No browser autofill: it offered the person's own saved name over the results. */}
       <input
         type="search"
+        autoComplete="off"
         value={value}
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}

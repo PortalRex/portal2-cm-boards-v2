@@ -187,6 +187,8 @@ function PlayerSearch({ label, onPick }: { label: string; onPick: (profileNumber
         onChange={(e) => setQ(e.target.value)}
         placeholder={`${label}: name or Steam ID`}
         aria-label={label}
+        // The results list below is the suggestions; the browser's own would cover it.
+        autoComplete="off"
         autoFocus
         className="h-10 w-full rounded-[4px] border border-line bg-control px-3 text-base text-foreground"
       />

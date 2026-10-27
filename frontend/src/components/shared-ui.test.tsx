@@ -95,6 +95,8 @@ describe('form controls', () => {
     await renderWithProviders(<Box />)
     await userEvent.type(screen.getByRole('searchbox', { name: 'Search players' }), 'zyp')
     expect(screen.getByText('q=zyp')).toBeInTheDocument()
+    // The browser's autofill would offer the person's own saved name.
+    expect(screen.getByRole('searchbox', { name: 'Search players' })).toHaveAttribute('autocomplete', 'off')
   })
 
   it('select picks an option', async () => {
