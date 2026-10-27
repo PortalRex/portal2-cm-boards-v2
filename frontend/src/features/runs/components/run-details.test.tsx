@@ -96,7 +96,7 @@ describe('RunDetails', () => {
       within(table)
         .getAllByRole('row')
         .map((r) => r.textContent),
-    ).toEqual(['SegmentSecondsTicksTotalTotal ticks', 'Start10.00060010.000600', 'Exit10.01760120.0171201'])
+    ).toEqual(['SegmentTimeTicksTotalTotal ticks', 'Start10.00060010.000600', 'Exit10.01760120.0171201'])
     expect(screen.getByText(/Timer rounding/)).toHaveTextContent(
       'Timer rounding: the demo’s 1201 ticks are 20.01; the game showed 20.00.',
     )

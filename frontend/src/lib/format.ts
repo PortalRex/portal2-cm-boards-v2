@@ -26,6 +26,14 @@ export function formatScore(cs: number | null | undefined): string {
   return negative ? `-${text}` : text
 }
 
+/** Seconds to the millisecond, with minutes from a minute up (mtrigger splits): 75.5 -> "1:15.500". */
+export function formatSeconds(seconds: number): string {
+  const ms = Math.round(seconds * 1000)
+  const minutes = Math.floor(ms / 60000)
+  const rest = ((ms % 60000) / 1000).toFixed(3)
+  return minutes > 0 ? `${minutes}:${rest.padStart(6, '0')}` : rest
+}
+
 /** Signed delta: 12 -> "+0.12", -42 -> "-0.42", 0 -> "±0.00". */
 export function formatDelta(cs: number | null | undefined, suffix = ''): string {
   if (cs == null) return ''

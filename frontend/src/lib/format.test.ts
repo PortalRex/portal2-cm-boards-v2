@@ -6,6 +6,7 @@ import {
   formatLongScore,
   formatPoints,
   formatScore,
+  formatSeconds,
   ordinalSuffix,
   parseTimestamp,
   timeAgo,
@@ -116,4 +117,14 @@ describe('formatPoints', () => {
     [0, '0'],
     [null, ''],
   ])('%s -> %s', (points, text) => expect(formatPoints(points)).toBe(text))
+})
+
+describe('formatSeconds', () => {
+  it('shows seconds to the millisecond, with minutes from a minute up', () => {
+    expect(formatSeconds(4.5)).toBe('4.500')
+    expect(formatSeconds(59.9994)).toBe('59.999')
+    expect(formatSeconds(59.9996)).toBe('1:00.000')
+    expect(formatSeconds(75.5)).toBe('1:15.500')
+    expect(formatSeconds(125.016)).toBe('2:05.016')
+  })
 })

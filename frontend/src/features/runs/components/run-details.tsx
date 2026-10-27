@@ -6,7 +6,7 @@ import { PlayerLink } from '@/components/player-link'
 import { RunVideo } from '@/components/runs/run-media'
 import { apiUrl } from '@/lib/api-client'
 import type { FormattedSegment } from '@/lib/autorender'
-import { formatDate, formatDateTime, formatScore } from '@/lib/format'
+import { formatDate, formatDateTime, formatScore, formatSeconds } from '@/lib/format'
 import { runVideo } from '@/lib/runs/video'
 import type { CoopHalf, Player, RunMap } from '@/types/runs'
 import { coopHalvesQueryOptions, segmentsQueryOptions } from '../api/details'
@@ -265,7 +265,7 @@ function Segments({ loading, data }: { loading: boolean; data: FormattedSegment[
     <table className="w-full border-collapse text-lg rd-upto640:text-sm">
       <thead>
         <tr className="[&>th]:font-normal [&>th]:text-text-muted [&>th]:uppercase">
-          {['Segment', 'Seconds', 'Ticks', 'Total', 'Total ticks'].map((h) => (
+          {['Segment', 'Time', 'Ticks', 'Total', 'Total ticks'].map((h) => (
             <th key={h} className={cell}>
               {h}
             </th>
@@ -280,9 +280,9 @@ function Segments({ loading, data }: { loading: boolean; data: FormattedSegment[
             title={s.splits.length ? s.splits.map((sp) => `${sp.name}: ${sp.ticks}`).join('\n') : undefined}
           >
             <td className={cell}>{s.name}</td>
-            <td className={cn(cell, 'num')}>{s.seconds.toFixed(3)}</td>
+            <td className={cn(cell, 'num')}>{formatSeconds(s.seconds)}</td>
             <td className={cn(cell, 'num')}>{s.ticks}</td>
-            <td className={cn(cell, 'num')}>{s.total.toFixed(3)}</td>
+            <td className={cn(cell, 'num')}>{formatSeconds(s.total)}</td>
             <td className={cn(cell, 'num')}>{s.totalTicks}</td>
           </tr>
         ))}
