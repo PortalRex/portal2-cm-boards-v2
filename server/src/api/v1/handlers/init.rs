@@ -120,6 +120,7 @@ pub fn init(cfg: &mut web::ServiceConfig) {
             .service(maps)
             .service(default_category)
             .service(map_ids)
+            .service(map_old_wrs)
             .service(chapter)
             .service(chapters_filtered)
             .service(maps_from_chapter)

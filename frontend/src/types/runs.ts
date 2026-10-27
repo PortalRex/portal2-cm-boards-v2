@@ -42,6 +42,21 @@ export interface ChangelogRaw {
   date_estimated: boolean
 }
 
+/** GET /map/{id}/old_wrs: a world record from before the boards' history (models/maps.rs OldWr). */
+export interface OldWrRaw {
+  id: number
+  map_id: string
+  score: number
+  set_at: string
+  /** false: only the day is known (or, with date_estimated, only the month). */
+  time_known: boolean
+  date_estimated: boolean
+  player_name: string
+  profile_number: string | null
+  note: string | null
+  source: string
+}
+
 /** A single player board row's run (models/sp.rs SpMap). */
 export interface SpMapRaw {
   cl_id: number

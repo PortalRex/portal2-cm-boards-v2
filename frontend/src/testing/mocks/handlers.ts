@@ -13,6 +13,8 @@ export const handlers: RequestHandler[] = [
   http.get(`${API}/catalog`, () => HttpResponse.json(catalog)),
   http.get(`${API}/site`, () => HttpResponse.json({ private: false })),
   http.get(`${API}/auth/me`, () => HttpResponse.json(null)),
+  // No world records from before the boards unless a test says otherwise.
+  http.get(`${API}/map/:id/old_wrs`, () => HttpResponse.json([])),
   // Map list previews: none unless a test says otherwise.
   http.get(`${API}/sp`, () => HttpResponse.json([])),
   http.get(`${API}/coop`, () => HttpResponse.json([])),

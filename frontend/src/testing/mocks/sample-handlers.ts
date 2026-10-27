@@ -40,6 +40,7 @@ export function sampleHandlers(api: string): RequestHandler[] {
       HttpResponse.json(sampleSpBoard(String(params.id), gameOf(new URL(request.url)))),
     ),
     http.get(`${api}/map/coop/:id`, ({ params }) => HttpResponse.json(sampleCoopBoard(String(params.id)))),
+    http.get(`${api}/map/:id/old_wrs`, () => HttpResponse.json([])),
     http.get(`${api}/sp`, ({ request }) =>
       HttpResponse.json(samplePreviews(gameOf(new URL(request.url)), false)),
     ),

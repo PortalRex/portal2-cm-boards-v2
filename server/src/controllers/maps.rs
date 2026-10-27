@@ -108,3 +108,13 @@ impl Maps {
             .await
     }
 }
+
+impl OldWr {
+    /// The map's world records from before the boards' history, oldest first.
+    pub async fn get_for_map(pool: &PgPool, map_id: &str) -> Result<Vec<OldWr>, sqlx::Error> {
+        sqlx::query_as::<_, OldWr>(r#"SELECT * FROM old_wrs WHERE map_id = $1 ORDER BY set_at, score DESC"#)
+            .bind(map_id)
+            .fetch_all(pool)
+            .await
+    }
+}

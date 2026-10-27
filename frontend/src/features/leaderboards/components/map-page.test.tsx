@@ -9,9 +9,17 @@ import { users } from '@/testing/data/users'
 import { API } from '@/testing/mocks/handlers'
 import { server } from '@/testing/mocks/server'
 import { renderRoute } from '@/testing/test-utils'
-import type { ChangelogRaw } from '@/types/runs'
+import type { ChangelogRaw, OldWrRaw } from '@/types/runs'
 
 // Laser Relays (47759) has the single player board fixture, Doors (47741) the co-op one.
+
+/** World records on the map: the fixture's runs as records set a year apart, each faster. */
+const records = (times: number[]): ChangelogRaw[] =>
+  times.map((score, i) => ({
+    ...(changelog as ChangelogRaw[])[i]!,
+    score,
+    timestamp: `${2020 + i}-01-01T00:00:00`,
+  }))
 function serveMap({ wrs = [] as ChangelogRaw[], history = [] as ChangelogRaw[] } = {}) {
   const boardAt: (string | null)[] = []
   const changelogAsked: URLSearchParams[] = []
@@ -125,8 +133,43 @@ describe('Map page', () => {
   })
 
   it('counts the world records on the chart, leaving out banned ones', async () => {
-    const wrs = (changelog as ChangelogRaw[]).slice(0, 3).map((r, i) => ({ ...r, banned: i === 2 }))
+    const wrs = records([2400, 2300, 2200]).map((r, i) => ({ ...r, banned: i === 2 }))
     serveMap({ wrs })
+    await renderRoute('/map/sp/47759')
+    expect(await screen.findByText('2 world records')).toBeInTheDocument()
+  })
+
+  it('adds records from before the boards to the chart, counting only those that were the best yet', async () => {
+    // The board's records: 24.00 in 2020, 21.00 in 2021.
+    serveMap({ wrs: records([2400, 2100]) })
+    const old = (score: number, set_at: string): OldWrRaw => ({
+      id: score,
+      map_id: '47759',
+      score,
+      set_at,
+      time_known: false,
+      date_estimated: false,
+      player_name: 'Kingpin',
+      profile_number: null,
+      note: null,
+      source: 'test',
+    })
+    const asked: string[] = []
+    server.use(
+      http.get(`${API}/map/:id/old_wrs`, ({ params }) => {
+        asked.push(String(params.id))
+        // 25.00 and 23.00 in 2011: the board's 24.00 wasn't faster than 23.00, its 21.00 was.
+        return HttpResponse.json([old(2500, '2011-10-08T12:00:00'), old(2300, '2011-11-01T12:00:00')])
+      }),
+    )
+    await renderRoute('/map/sp/47759')
+    expect(await screen.findByText('3 world records')).toBeInTheDocument()
+    expect(asked).toEqual(['47759'])
+  })
+
+  it("still shows the board's records when the older ones can't be loaded", async () => {
+    serveMap({ wrs: records([2400, 2100]) })
+    server.use(http.get(`${API}/map/:id/old_wrs`, () => new HttpResponse('Not found', { status: 404 })))
     await renderRoute('/map/sp/47759')
     expect(await screen.findByText('2 world records')).toBeInTheDocument()
   })

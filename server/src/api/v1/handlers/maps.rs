@@ -1,7 +1,7 @@
 use crate::{
     models::{
         chapters::GameID,
-        maps::{IsCoop, Maps},
+        maps::{IsCoop, Maps, OldWr},
     },
     tools::error::Result,
 };
@@ -93,4 +93,39 @@ async fn map_ids(pool: web::Data<PgPool>, query: web::Query<IsCoop>) -> Result<i
     Ok(web::Json(
         Maps::get_steam_ids(pool.get_ref(), query.is_coop, query.game_id.unwrap_or(1)).await?,
     ))
+}
+
+/// **GET** A map's world records from before the boards' own history (2011-2012, from videos and
+/// the old iVerb boards), for its WR history. They're no one's run here: boards, PBs and points
+/// don't count them.
+///
+/// ## Parameters:
+/// - `map_id`
+///     - **Required** - `String` : The map's Steam leaderboard ID.
+///
+/// ## Example endpoints:
+///  - `/api/v1/map/47458/old_wrs`
+///
+/// Makes a call to the underlying [OldWr::get_for_map]
+///
+/// ## Example JSON output
+///
+/// ```json
+/// [
+///     {
+///         "id": 12,
+///         "map_id": "47458",
+///         "score": 2903,
+///         "set_at": "2011-10-08T00:00:00",
+///         "time_known": false,
+///         "date_estimated": false,
+///         "player_name": "Kingpin",
+///         "profile_number": null,
+///         "note": null,
+///         "source": "Silly Noodle's WR history docs (Discord feedback forum)"
+///     },...]
+/// ```
+#[get("/map/{map_id}/old_wrs")]
+async fn map_old_wrs(pool: web::Data<PgPool>, map_id: web::Path<String>) -> Result<impl Responder> {
+    Ok(web::Json(OldWr::get_for_map(pool.get_ref(), &map_id).await?))
 }

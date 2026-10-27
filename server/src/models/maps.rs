@@ -39,3 +39,20 @@ pub struct IsCoop {
     pub is_coop: bool,
     pub game_id: Option<i32>,
 }
+
+/// A world record from before the boards' own history (`old_wrs`): shown in the map's WR history
+/// only, as no one's run here.
+#[derive(Serialize, Deserialize, Debug, FromRow)]
+pub struct OldWr {
+    pub id: i32,
+    pub map_id: String,
+    pub score: i32,
+    pub set_at: NaiveDateTime,
+    /// false: only the day is known (or, with `date_estimated`, only the month).
+    pub time_known: bool,
+    pub date_estimated: bool,
+    pub player_name: String,
+    pub profile_number: Option<String>,
+    pub note: Option<String>,
+    pub source: String,
+}

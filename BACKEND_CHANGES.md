@@ -49,6 +49,7 @@ New databases get everything from `db/dbscript/schema.sql`. An existing database
 | `20261111000000_changelog_newest_index.sql` | `idx_changelog_newest` (changelog by timestamp, newest first, undated last): Score Updates read the newest runs off it instead of sorting the whole table (~175 ms → ~4 ms). |
 | `20261112000000_submit_keys.sql` | `users.submit_key_hash` / `submit_key_created`: SAR auto-submit keys, kept only as SHA-256 (unique index). The old boards' keys (`users.auth_hash`, imported) are hashed the same way, so they keep working, and their plaintext copies cleared. |
 | `20261113000000_wr_webhooks.sql` | `games.wr_webhook_url` (each game's Discord webhook for WR announcements), `wr_announcements` (runs the announcer checked, so each is posted at most once) and `wr_announcer_state` (it starts after the newest run when the migration ran, so no old WR is posted). |
+| `20261114000000_old_wrs.sql` | `old_wrs`: world records from before the boards' history (2011–2012, from videos and the old iVerb boards), with the day (and whether the time or only the month is known), the player's name and the source. Shown only in a map's WR history; boards, PBs and points don't see them. Filled by `old_wrs.py`. |
 
 `import_boards.py` builds a fresh database from the old boards' MySQL dumps and runs the BSP-name step itself (see
 [§10](#10-import-and-maintenance-scripts)).
@@ -133,6 +134,7 @@ All under `/api/v1`. Auth: **public**, **signed in**, **staff** (any tier or ser
 | `GET /catalog` | public | Every game and season with chapters, maps (incl. links) and categories, in display order. Staff also see hidden games. The frontend loads this at startup. |
 | `GET /points/game/{game_id}/{board}` | public | Aggregated points for any game; `board` = `overall`, a chapter `game_mode` (`sp`, `coop`, `story`, …) or `chapter-{id}`. Served from the points cache, gzipped when accepted. Each row has what the board pages show: `points`, `score`, `num_scores`, `user_name`, `avatar`, `country_id`. |
 | `GET /ranks/game/{game_id}/{steam_id}` | public | A player's rank per map in a game. |
+| `GET /map/{map_id}/old_wrs` | public | The map's world records from before the boards' history (`old_wrs`), oldest first. The WR history adds them and counts a record only when it was the best yet. |
 | `GET /profile/scores/{steam_id}?game_id=` | public | A player's PB per map of a game (default Portal 2); Portal 2's come with rank, delta to next and to WR. A co-op PB counts once both halves are verified and neither half nor player is banned, as on the co-op board and in points (a faster run with a banned partner isn't the PB, also when the partner has only the `N/A` placeholder half). Runs where the player has only the placeholder half count too, as on the board: the PB is then the partner's half. Co-op PBs name the partner (`partner_profile_number`, `partner_name`, `partner_avatar`; `N/A` when unknown). |
 | `GET /profile/stats/{steam_id}?game_id=` | public | Stats: runs, maps completed, time saved, demo/video coverage, co-op partners (maps and runs together), portal counts. |
 | `GET /profile/points_history/{steam_id}?game_id=` | public | A player's real points over time: at each date (weekly or wider, up to ~160 points) every map's rank is recomputed against everyone's best times then, so being passed shows as a drop. The last point equals the current boards. Undated imported runs count from Portal 2's release, but the chart starts at the player's first dated run. |
@@ -382,6 +384,7 @@ In `db/dbscript/` unless noted:
 | `import_autorender.py` | Copies autorender video ids and mtrigger segments onto runs (clears dead ids). |
 | `server/demo-parser/demo_stats.mjs` | Reads the scoreboard (time, portals) from an archive of demos in parallel → CSV (~45 min for 178k). |
 | `import_demo_stats.py` | Loads those portal counts into `changelog.portals` (only where the demo's time matches the run). |
+| `old_wrs.py` | Turns a WR history write-up (map title → its lines, e.g. Silly Noodle's single player docs) into SQL for `old_wrs`. The SQL skips records the boards already have (same time by the same player or on about the same day), records matching a banned run and ones noted as having no demo, lists what it skipped, and is safe to run again. |
 
 ## 11. Backend service (`backend/`)
 

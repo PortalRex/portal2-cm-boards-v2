@@ -1,9 +1,10 @@
 import { queryOptions } from '@tanstack/react-query'
 import { adaptChangelog, adaptCoopRanked, adaptSpRanked } from '@/lib/adapters/runs'
 import { api } from '@/lib/api-client'
-import { gameIdParam, isMultiplayerMode, type Catalog, type MapInfo } from '@/lib/catalog'
+import { gameIdParam, isMultiplayerMode, PORTAL2, type Catalog, type MapInfo } from '@/lib/catalog'
 import { queryKeys } from '@/lib/query-keys'
-import type { ChangelogRaw, CoopRankedRaw, RankedRun, Run, SpRankedRaw } from '@/types/runs'
+import type { ChangelogRaw, CoopRankedRaw, OldWrRaw, RankedRun, Run, SpRankedRaw } from '@/types/runs'
+import { runningBest } from '../utils/wr-chart'
 
 /** A map's board, or as it stood at `at` (a UTC time "2021-04-06T12:00:00"). */
 export async function getMapBoard(
@@ -30,19 +31,41 @@ export interface WrPoint {
   timestamp: string | null
   score: number
   player: string
+  /** A record from before the boards' history (no run here); `timeKnown` false: only its day. */
+  old?: { timeKnown: boolean; dateEstimated: boolean; note: string | null }
 }
 
-/** The map's world records, oldest first (banned ones left out). */
+/**
+ * The map's world records, oldest first (banned ones left out), with Portal 2's records from
+ * before the boards' history. A record counts only if it was the best yet: the boards' first
+ * "records" (their best when the old boards began) can be slower than ones set before.
+ */
 export async function getWrHistory(map: MapInfo, c: Catalog, signal?: AbortSignal): Promise<WrPoint[]> {
-  const rows = await api.get<ChangelogRaw[]>('/changelog', {
-    params: { chamber: map.id, wr_gain: true, ...gameIdParam(c, map.game) },
-    signal,
-  })
+  const [rows, old] = await Promise.all([
+    api.get<ChangelogRaw[]>('/changelog', {
+      params: { chamber: map.id, wr_gain: true, ...gameIdParam(c, map.game) },
+      signal,
+    }),
+    // Seasons' copies of a map share its id but start afresh. Without them (say the server can't
+    // send them), the chart still shows the boards' own records.
+    map.game === PORTAL2
+      ? api.get<OldWrRaw[]>(`/map/${map.id}/old_wrs`, { signal }).catch(() => [] as OldWrRaw[])
+      : [],
+  ])
   const time = (t: string | null) => (t ? Date.parse(`${t}Z`) : 0)
-  return rows
-    .filter((r) => !r.banned)
-    .map((r) => ({ timestamp: r.timestamp, score: r.score, player: r.user_name }))
-    .sort((a, b) => time(a.timestamp) - time(b.timestamp))
+  const points: WrPoint[] = [
+    ...old.map((o) => ({
+      timestamp: o.set_at,
+      score: o.score,
+      player: o.player_name,
+      old: { timeKnown: o.time_known, dateEstimated: o.date_estimated, note: o.note },
+    })),
+    ...rows
+      .filter((r) => !r.banned)
+      .map((r) => ({ timestamp: r.timestamp, score: r.score, player: r.user_name })),
+  ]
+  // Undated runs can't be placed among the others (the chart leaves them out too).
+  return runningBest(points.filter((p) => p.timestamp).sort((a, b) => time(a.timestamp) - time(b.timestamp)))
 }
 
 export const wrHistoryQueryOptions = (map: MapInfo, c: Catalog) =>

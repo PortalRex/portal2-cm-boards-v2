@@ -36,9 +36,18 @@ function WrTooltip({ active, payload }: { active?: boolean; payload?: { payload:
   if (!p) return null
   return (
     <div className="flex flex-col gap-0.5 rounded-[4px] border border-line bg-menu px-2.5 py-2 text-[13px]">
-      <span className="text-text-muted">{formatDate(p.setAt ?? p.t)}</span>
+      <span className="text-text-muted">
+        {p.old?.dateEstimated
+          ? `${formatDate(p.setAt ?? p.t).slice(0, 7)} (month only)`
+          : formatDate(p.setAt ?? p.t)}
+      </span>
       <strong className="num text-base">{formatScore(p.score)}</strong>
       <span>{p.player}</span>
+      {p.old && (
+        <span className="max-w-[220px] text-text-muted">
+          Before the boards (no demo){p.old.note ? ` · ${p.old.note}` : ''}
+        </span>
+      )}
       {p.gain != null && <span className="num text-green">−{formatScore(p.gain)}</span>}
     </div>
   )
