@@ -495,7 +495,7 @@ fn aggregate_row(board: &str, points: &[f64], times: &[Option<i64>], me: usize) 
 
 /// Legends' points thresholds (Portal 2), as in the role manager's official list
 /// (frontend/src/data/roles.js); any one of them is enough.
-const LEGENDS: [(&str, f64); 3] = [("sp", 11700.0), ("coop", 9450.0), ("overall", 21000.0)];
+const LEGENDS: [(&str, f64); 3] = [("sp", 11700.0), ("coop", 9500.0), ("overall", 21000.0)];
 
 /// Records on the player when their peak reached Legends (the earliest qualifying peak's day).
 async fn record_legends(pool: &PgPool, game_id: i32, profile_number: &str, peaks: &BTreeMap<String, Peak>) -> Result<(), sqlx::Error> {
