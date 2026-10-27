@@ -7,12 +7,20 @@ import { Page } from '@/components/layouts/page'
 import { Card } from '@/components/panel'
 import { EmptyState, Loading } from '@/components/status'
 import { useCollapsedGroup } from '@/hooks/use-collapsed'
-import { useCatalog } from '@/lib/catalog'
+import { useGame } from '@/hooks/use-game'
+import { PORTAL2, useCatalog } from '@/lib/catalog'
 import { playerRole } from '@/lib/data/roles'
 import { formatDate } from '@/lib/format'
-import { pointsPeakQueryOptions, profileAtQueryOptions, profileQueryOptions } from '../api/profile'
+import {
+  aggregatedQueryOptions,
+  gameResultsQueryOptions,
+  pointsPeakQueryOptions,
+  profileAtQueryOptions,
+  profileQueryOptions,
+} from '../api/profile'
 import type { Profile, ProfilePlayer, RenderRunDetails } from '../types'
 import { profileAsOf, validDay } from '../utils/profile'
+import { gameSummary, p2Summary } from '../utils/summary'
 import { ActivityHeatmap } from './activity-heatmap'
 import { FollowButton } from './follow-button'
 import { AggregatedCard } from './aggregated-card'
@@ -68,8 +76,18 @@ export function ProfilePage({
   const profile = useQuery(profileQueryOptions(catalog, profileId))
   const p = profile.data
   const at = validDay(atParam)
-  const peak = useQuery({ ...pointsPeakQueryOptions(profileId), enabled: Boolean(p) })
+  // The community role (in the header) is Portal 2's, whatever game is picked.
+  const peak = useQuery({ ...pointsPeakQueryOptions(catalog, profileId), enabled: Boolean(p) })
   const past = useQuery({ ...profileAtQueryOptions(profileId, at ?? ''), enabled: Boolean(p && at) })
+  // The cards above the tabs follow the game picked under the logo, like the tabs below them.
+  const game = useGame()
+  const otherGame = game !== PORTAL2 && Boolean(p)
+  const gamePeak = useQuery({ ...pointsPeakQueryOptions(catalog, profileId, game), enabled: otherGame })
+  const gameBoards = useQuery({
+    ...aggregatedQueryOptions(catalog, profileId, game, at ?? null),
+    enabled: otherGame,
+  })
+  const gameResults = useQuery({ ...gameResultsQueryOptions(catalog, profileId, game), enabled: otherGame })
   // Like legacy, picking a day (or going back to today) starts the address afresh.
   const pickDay = (day: string | null) =>
     void navigate({ to: '.', search: day ? { at: day } : {}, replace: true })
@@ -95,6 +113,11 @@ export function ProfilePage({
   const keptLegends = Boolean(legendsAt && (!at || legendsAt <= at))
   const peakData = peak.isSuccess ? peak.data : null
   const role = playerRole(view.points, at ? null : peakData, keptLegends)
+  const summary =
+    game === PORTAL2
+      ? p2Summary(catalog, view)
+      : gameSummary(catalog, game, gameBoards.data ?? [], gameResults.data ?? { scores: {}, history: [] })
+  const cardsPeak = game === PORTAL2 ? peakData : gamePeak.isSuccess ? gamePeak.data : null
 
   return (
     <Page background={p.player.avatar} blur>
@@ -116,17 +139,25 @@ export function ProfilePage({
             actions={<FollowButton player={p.player} />}
             after={staffTools?.(p.player)}
           />
-          <PointsCard profile={view} />
+          <PointsCard summary={summary} />
         </Row>
         <Row className="grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)]">
           <GlobalRankCard
-            profile={view}
+            summary={summary}
+            player={p.player}
             chart={
-              <PointsChart profileNumber={p.player.profileNumber} peak={peakData} at={at} onPick={pickDay} />
+              <PointsChart
+                profileNumber={p.player.profileNumber}
+                game={game}
+                slots={summary.slots}
+                peak={cardsPeak}
+                at={at}
+                onPick={pickDay}
+              />
             }
           />
-          <StatisticsCard profile={view} />
-          <SideCards profile={view} peak={peakData} />
+          <StatisticsCard summary={summary} />
+          <SideCards summary={summary} peak={cardsPeak} />
         </Row>
         <AggregatedCard profileNumber={p.player.profileNumber} at={at ?? null} />
         {p.history.length > 0 && (

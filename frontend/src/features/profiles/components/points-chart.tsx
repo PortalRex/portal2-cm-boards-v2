@@ -12,9 +12,11 @@ import {
   YAxis,
 } from 'recharts'
 import { useWheelZoom } from '@/hooks/use-wheel-zoom'
+import { PORTAL2, useCatalog } from '@/lib/catalog'
 import { formatDate } from '@/lib/format'
 import { pointsHistoryQueryOptions } from '../api/profile'
 import type { PointsBoardKey, PointsPeak } from '../types'
+import type { Slot } from '../utils/summary'
 import {
   chartRows,
   dayMs,
@@ -39,17 +41,30 @@ const DAY = 24 * 3600 * 1000
  */
 export function PointsChart({
   profileNumber,
+  game = PORTAL2,
+  slots,
   peak,
   at,
   onPick,
 }: {
   profileNumber: string
+  /** The game whose points it shows; its boards' names come from `slots`. */
+  game?: string
+  slots?: Slot[]
   peak: PointsPeak | null
   at: string | null
   onPick: (day: string) => void
 }) {
+  const catalog = useCatalog()
   const [hidden, setHidden] = useState<Partial<Record<PointsBoardKey, boolean>>>({})
-  const history = useQuery(pointsHistoryQueryOptions(profileNumber))
+  const history = useQuery(pointsHistoryQueryOptions(catalog, profileNumber, game))
+  // The game's boards (another game's first and second in the sp and coop lines), with their names.
+  const series = slots
+    ? SERIES.flatMap((s) => {
+        const slot = slots.find((x) => x.key === s.key)
+        return slot ? [{ ...s, label: slot.label }] : []
+      })
+    : SERIES
   const all = useMemo(() => chartRows(history.data ?? [], peak), [history.data, peak])
   const full: [number, number] | null = all.length ? [all[0]!.t, all[all.length - 1]!.t] : null
   const [zoom, zoomRef, resetZoom] = useWheelZoom(full, { left: 10, right: 10, minSpan: 14 * DAY })
@@ -62,7 +77,7 @@ export function PointsChart({
   const [from, to] = zoom ?? full!
   const data = rowsInView(all, from, to)
   const zoomed = Boolean(zoom)
-  const shown = SERIES.filter((s) => !hidden[s.key])
+  const shown = series.filter((s) => !hidden[s.key])
   const axisFor = (key: PointsBoardKey) => (zoomed ? key : 'shared')
   const atMs = at ? dayMs(at) : null
 
@@ -175,7 +190,7 @@ export function PointsChart({
         <span className="mr-auto text-sm whitespace-nowrap text-text-muted uppercase upto800:mr-0 upto800:basis-full upto800:text-center">
           Points over time
         </span>
-        {SERIES.map((s) => (
+        {series.map((s) => (
           <button
             key={s.key}
             type="button"

@@ -28,11 +28,13 @@ export const queryKeys = {
   profile: (profileNumber: string) => ['profile', profileNumber] as const,
   profileGame: (profileNumber: string, game: string) => ['profile', profileNumber, 'game', game] as const,
   profileStats: (profileNumber: string, game: string) => ['profile', profileNumber, 'stats', game] as const,
-  profilePointsHistory: (profileNumber: string) => ['profile', profileNumber, 'points-history'] as const,
-  profilePointsPeak: (profileNumber: string) => ['profile', profileNumber, 'points-peak'] as const,
+  profilePointsHistory: (profileNumber: string, game: string) =>
+    ['profile', profileNumber, 'points-history', game] as const,
+  profilePointsPeak: (profileNumber: string, game: string) =>
+    ['profile', profileNumber, 'points-peak', game] as const,
   profileAt: (profileNumber: string, day: string) => ['profile', profileNumber, 'at', day] as const,
-  profileAggregated: (profileNumber: string, day: string | null) =>
-    ['profile', profileNumber, 'aggregated', day ?? 'now'] as const,
+  profileAggregated: (profileNumber: string, day: string | null, game: string) =>
+    ['profile', profileNumber, 'aggregated', game, day ?? 'now'] as const,
   user: (profileNumber: string) => ['user', profileNumber] as const,
   /** Whether you have a SAR auto-submit key (Settings). */
   submitKey: () => ['auth', 'submit-key'] as const,

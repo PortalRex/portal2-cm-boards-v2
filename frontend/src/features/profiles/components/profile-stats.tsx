@@ -10,7 +10,8 @@ import { countryName } from '@/lib/data/countries'
 import { roleProgress, type PointsBoard } from '@/lib/data/roles'
 import { formatDate, formatDateTime, formatPoints, formatScore, ordinalSuffix, timeAgo } from '@/lib/format'
 import { rankVars } from '@/lib/ranks'
-import type { MapScore, PointsPeak, Profile, ScoreBrief } from '../types'
+import type { MapScore, PointsPeak, ProfilePlayer, ScoreBrief } from '../types'
+import type { ProfileSummary } from '../utils/summary'
 import { isRecent } from '../utils/tables'
 
 type StatSize = 'md' | 'sm'
@@ -127,13 +128,8 @@ function RoleBar({ board, points }: { board: PointsBoard; points: number }) {
   )
 }
 
-const BOARDS: { key: PointsBoard; label: string; short: string }[] = [
-  { key: 'sp', label: 'Singleplayer', short: 'Single Player' },
-  { key: 'coop', label: 'Cooperative', short: 'Cooperative' },
-  { key: 'overall', label: 'Overall', short: 'Overall' },
-]
-
-export function PointsCard({ profile }: { profile: Profile }) {
+/** The points on each of the game's boards; Portal 2's with the progress toward the next role. */
+export function PointsCard({ summary }: { summary: ProfileSummary }) {
   return (
     <Card
       icon={SparkleIcon}
@@ -142,9 +138,9 @@ export function PointsCard({ profile }: { profile: Profile }) {
       bodyClassName="flex items-center upto800:justify-around"
     >
       <div className={statRow}>
-        {BOARDS.map(({ key, label }) => (
-          <Stat key={key} value={formatPoints(profile.points[key])} label={label}>
-            <RoleBar board={key} points={profile.points[key] || 0} />
+        {summary.slots.map(({ key, label, roleBoard }) => (
+          <Stat key={key} value={formatPoints(summary.points[key] ?? 0)} label={label}>
+            {roleBoard && <RoleBar board={roleBoard} points={summary.points[key] || 0} />}
           </Stat>
         ))}
       </div>
@@ -154,32 +150,49 @@ export function PointsCard({ profile }: { profile: Profile }) {
 
 const TALL = 'min-[1201px]:not-data-collapsed:min-h-[366px]'
 
-/** Places on each board and in the country, each linking to its board on this player's page. */
-export function GlobalRankCard({ profile, chart }: { profile: Profile; chart?: ReactNode }) {
-  const { globalRank: rank, player } = profile
-  const board = (b: PointsBoard) => (rank[b] ? `/leaderboard/${b}?player=${player.profileNumber}` : undefined)
+/**
+ * Places on each of the game's boards, each linking to its board on this player's page, and (on
+ * Portal 2's overall board) in the player's country.
+ */
+export function GlobalRankCard({
+  summary,
+  player,
+  chart,
+}: {
+  summary: ProfileSummary
+  player: ProfilePlayer
+  chart?: ReactNode
+}) {
+  const rank = summary.place
   return (
     <Card icon={GlobeIcon} title="Global Rank" collapseId="profile.rank" className={TALL}>
       <div className={cn(statRow, 'h-auto pt-2.5 upto800:grid-flow-row upto800:grid-cols-2 upto800:gap-y-4')}>
-        {BOARDS.map(({ key, label }) => (
-          <Stat key={key} value={<Ordinal n={rank[key]} colored />} label={label} to={board(key)} />
+        {summary.slots.map((slot) => (
+          <Stat
+            key={slot.key}
+            value={<Ordinal n={rank[slot.key]} colored />}
+            label={slot.label}
+            to={rank[slot.key] ? slot.href(player.profileNumber) : undefined}
+          />
         ))}
-        <Stat
-          to={
-            rank.country && player.country
-              ? `/leaderboard/overall?country=${player.country}&player=${player.profileNumber}`
-              : undefined
-          }
-          value={
-            <>
-              <Ordinal n={rank.country} colored />
-              <span className="ml-1.5 self-center">
-                <Flag code={player.country} height={18} />
-              </span>
-            </>
-          }
-          label={`In ${countryName(player.country) || 'country'}`}
-        />
+        {summary.slots[0]?.roleBoard && (
+          <Stat
+            to={
+              summary.countryPlace && player.country
+                ? `/leaderboard/overall?country=${player.country}&player=${player.profileNumber}`
+                : undefined
+            }
+            value={
+              <>
+                <Ordinal n={summary.countryPlace} colored />
+                <span className="ml-1.5 self-center">
+                  <Flag code={player.country} height={18} />
+                </span>
+              </>
+            }
+            label={`In ${countryName(player.country) || 'country'}`}
+          />
+        )}
       </div>
       {chart}
     </Card>
@@ -245,15 +258,15 @@ function PlaceStat({ label, entry }: { label: string; entry: MapScore | null }) 
   )
 }
 
-export function StatisticsCard({ profile }: { profile: Profile }) {
+export function StatisticsCard({ summary }: { summary: ProfileSummary }) {
   return (
     // Legacy's card shared the Stats tab's .pf-stats class, which put a 24 px gap under its header.
     <Card icon={SparkleIcon} title="Statistics" collapseId="profile.stats" className={cn(TALL, 'gap-6')}>
       <div className="grid grid-cols-2 gap-x-2.5 gap-y-[26px] py-3">
-        <ScoreStat label="Newest score" entry={profile.newest} green />
-        <ScoreStat label="Oldest score" entry={profile.oldest} />
-        <PlaceStat label="Best place" entry={profile.best} />
-        <PlaceStat label="Worst place" entry={profile.worst} />
+        <ScoreStat label="Newest score" entry={summary.newest} green />
+        <ScoreStat label="Oldest score" entry={summary.oldest} />
+        <PlaceStat label="Best place" entry={summary.best} />
+        <PlaceStat label="Worst place" entry={summary.worst} />
       </div>
     </Card>
   )
@@ -287,23 +300,23 @@ function SideCard({
 }
 
 /** Average place, world records and peak points, stacked beside Global Rank and Statistics. */
-export function SideCards({ profile, peak }: { profile: Profile; peak: PointsPeak | null }) {
-  const { averagePlace: avg, worldRecords: wrs } = profile
+export function SideCards({ summary, peak }: { summary: ProfileSummary; peak: PointsPeak | null }) {
+  const { averagePlace: avg, worldRecords: wrs } = summary
   return (
     <div className="flex flex-col gap-3 upto1200:grid upto1200:grid-cols-2 upto800:grid-cols-1">
       <SideCard icon={SparkleIcon} title="Average Place" collapseId="profile.average">
-        {BOARDS.map(({ key, short }) => (
-          <Stat key={key} size="sm" value={fmtAvg(avg[key])} label={short} />
+        {summary.slots.map(({ key, short }) => (
+          <Stat key={key} size="sm" value={fmtAvg(avg[key] ?? null)} label={short} />
         ))}
       </SideCard>
       <SideCard icon={TrophyFilledIcon} title="World Records" collapseId="profile.wrs">
-        <Stat size="sm" value={wrs.sp} label="Single Player" />
-        <Stat size="sm" value={wrs.coop} label="Cooperative" />
-        <Stat size="sm" value={wrs.sp + wrs.coop} label="Overall" />
+        {summary.slots.map(({ key, short }) => (
+          <Stat key={key} size="sm" value={wrs[key] ?? 0} label={short} />
+        ))}
       </SideCard>
       {/* Highest points the player has ever had per board, with the date it was reached. */}
       <SideCard icon={PeakIcon} title="Peak Points" collapseId="profile.peak">
-        {BOARDS.map(({ key, short }) => {
+        {summary.slots.map(({ key, short }) => {
           const v = peak?.[key]
           return (
             <Stat key={key} size="sm" value={v ? Math.round(v.points) : '–'} label={short}>

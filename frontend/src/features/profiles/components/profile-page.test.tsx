@@ -163,6 +163,48 @@ describe('Profile page', () => {
     expect(within(info).getByRole('link', { name: 'heroeen' })).toBeInTheDocument()
   })
 
+  it("shows the picked game in the cards above the tabs: Mel's boards, not Portal 2's", async () => {
+    const melRun = {
+      ...changelog[5]!,
+      id: 900001,
+      map_id: '1',
+      map_name: 'Tramride',
+      score: 4321,
+      coop_id: null,
+    }
+    const requests = serveProfile({
+      gameRanks: { '2': { '1': 1 } },
+      gameRuns: [melRun],
+      aggregated: [
+        { board: 'story', points: { rank: 4, value: 4305, next: -2, wr: -14 }, time: null },
+        { board: 'advanced', points: { rank: 9, value: 1200, next: -5, wr: -90 }, time: null },
+        { board: 'overall', points: { rank: 6, value: 5505, next: -3, wr: -100 }, time: null },
+      ],
+    })
+    await renderProfile(`/profile/${FIXTURE_PLAYER}?game=mel`)
+    const points = card('Challenge Mode Points')
+    await waitFor(() => expect(within(points).getByText(formatPoints(4305))).toBeInTheDocument())
+    expect(within(points).getByText('Story Mode')).toBeInTheDocument()
+    expect(within(points).getByText('Advanced Mode')).toBeInTheDocument()
+    expect(within(points).queryByText('Singleplayer')).toBeNull()
+    // Community roles (the progress bars) are Portal 2's.
+    expect(within(points).queryAllByLabelText(/points to|threshold reached|count from/)).toHaveLength(0)
+
+    const ranks = card('Global Rank')
+    expect(within(ranks).getByRole('link', { name: /Story Mode/ })).toHaveAttribute(
+      'href',
+      expect.stringContaining('/leaderboard/mel/story'),
+    )
+    expect(within(ranks).queryByText(/^In /)).toBeNull()
+
+    await waitFor(() => expect(within(card('World Records')).getAllByText('1')).toHaveLength(2)) // Story and overall
+    expect(within(card('Statistics')).getAllByText('Tramride').length).toBeGreaterThan(0)
+    expect(requests.asked).toContain(`/profile/points_peak/${FIXTURE_PLAYER}?game_id=2`)
+    await waitFor(() =>
+      expect(requests.asked).toContain(`/profile/points_history/${FIXTURE_PLAYER}?game_id=2`),
+    )
+  })
+
   it("shows another game's results in its own tab", async () => {
     const melRun = {
       ...changelog[5]!,
@@ -229,6 +271,24 @@ describe('Profile page', () => {
     await waitFor(() =>
       expect(requests.asked).toContain(`/profile/aggregated/${FIXTURE_PLAYER}?game_id=1&at=2021-04-06`),
     )
+  })
+
+  it("shows the picked game's aggregated boards: Mel's, not Portal 2's", async () => {
+    const requests = serveProfile({
+      aggregated: [
+        { board: 'story', points: { rank: 2, value: 4000, next: -20, wr: -100 }, time: null },
+        { board: 'overall', points: { rank: 4, value: 7000, next: -30, wr: -300 }, time: null },
+      ],
+    })
+    await renderProfile(`/profile/${FIXTURE_PLAYER}?game=mel`)
+    const points = await screen.findByRole('table', { name: 'Points' })
+    await waitFor(() => expect(within(points).getByRole('row', { name: /Story/ })).toBeInTheDocument())
+    expect(within(points).queryByRole('row', { name: /Single Player/ })).toBeNull()
+    expect(within(points).getByRole('link', { name: /Story/ })).toHaveAttribute(
+      'href',
+      expect.stringContaining('/leaderboard/mel/story'),
+    )
+    expect(requests.asked).toContain(`/profile/aggregated/${FIXTURE_PLAYER}?game_id=2`)
   })
 
   it('says so when the player has no Portal 2 times for the aggregated tables', async () => {

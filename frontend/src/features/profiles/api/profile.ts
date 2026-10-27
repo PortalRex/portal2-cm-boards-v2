@@ -18,6 +18,7 @@ import type {
 } from '../types'
 import type { PointsSample } from '../utils/points-chart'
 import { adaptProfile, scoresFromRanks } from '../utils/profile'
+import { gameSlots, toSlots } from '../utils/summary'
 
 /** A player's Portal 2 profile: points, places, best runs on every map and every run. */
 export async function getProfile(c: Catalog, profileNumber: string, signal?: AbortSignal): Promise<Profile> {
@@ -36,31 +37,46 @@ export const profileQueryOptions = (c: Catalog, profileNumber: string) =>
     queryFn: ({ signal }) => getProfile(c, profileNumber, signal),
   })
 
-/** Each board's highest points and when; {} when the server can't say (legacy did the same). */
-export const getPointsPeak = (profileNumber: string, signal?: AbortSignal) =>
-  api.get<PointsPeak>(`/profile/points_peak/${profileNumber}`, { signal }).catch(() => ({}) as PointsPeak)
+/**
+ * Each of a game's boards' highest points and when, on the profile's slots (another game's first
+ * and second boards in `sp` and `coop`); {} when the server can't say (legacy did the same).
+ */
+export const getPointsPeak = (c: Catalog, profileNumber: string, game: string, signal?: AbortSignal) =>
+  api
+    .get<Record<string, { points: number; date: string }>>(`/profile/points_peak/${profileNumber}`, {
+      params: gameIdParam(c, game),
+      signal,
+    })
+    .then((raw): PointsPeak => toSlots(gameSlots(c, game), raw))
+    .catch(() => ({}) as PointsPeak)
 
-export const pointsPeakQueryOptions = (profileNumber: string) =>
+export const pointsPeakQueryOptions = (c: Catalog, profileNumber: string, game: string = PORTAL2) =>
   queryOptions({
-    queryKey: queryKeys.profilePointsPeak(profileNumber),
-    queryFn: ({ signal }) => getPointsPeak(profileNumber, signal),
+    queryKey: [...queryKeys.profilePointsPeak(profileNumber, game), c.fromServer],
+    queryFn: ({ signal }) => getPointsPeak(c, profileNumber, game, signal),
   })
 
 /** Where the player stood at the end of a past day (YYYY-MM-DD). */
 export const getProfileAt = (profileNumber: string, at: string, signal?: AbortSignal) =>
   api.get<ProfileAtRaw>(`/profile/at/${profileNumber}`, { params: { at }, signal })
 
-/** The player's place on every Portal 2 aggregated board, now or as of a day (YYYY-MM-DD). */
-export const getAggregated = (profileNumber: string, at: string | null, signal?: AbortSignal) =>
+/** The player's place on every aggregated board of a game, now or as of a day (YYYY-MM-DD). */
+export const getAggregated = (
+  c: Catalog,
+  profileNumber: string,
+  game: string,
+  at: string | null,
+  signal?: AbortSignal,
+) =>
   api.get<AggregateRowRaw[]>(`/profile/aggregated/${profileNumber}`, {
-    params: { game_id: 1, ...(at ? { at } : {}) },
+    params: { game_id: gameIdParam(c, game).game_id ?? 1, ...(at ? { at } : {}) },
     signal,
   })
 
-export const aggregatedQueryOptions = (profileNumber: string, at: string | null) =>
+export const aggregatedQueryOptions = (c: Catalog, profileNumber: string, game: string, at: string | null) =>
   queryOptions({
-    queryKey: queryKeys.profileAggregated(profileNumber, at),
-    queryFn: ({ signal }) => getAggregated(profileNumber, at, signal),
+    queryKey: [...queryKeys.profileAggregated(profileNumber, at, game), c.fromServer],
+    queryFn: ({ signal }) => getAggregated(c, profileNumber, game, at, signal),
   })
 
 export const profileAtQueryOptions = (profileNumber: string, at: string) =>
@@ -91,25 +107,36 @@ export const gameResultsQueryOptions = (c: Catalog, profileNumber: string, game:
   })
 
 /**
- * A player's real points over time (ranks recomputed against everyone's bests at each date),
- * rounded as legacy showed them.
+ * A player's real points over time in a game (ranks recomputed against everyone's bests at each
+ * date), rounded as legacy showed them, on the profile's slots.
  */
-export async function getPointsHistory(profileNumber: string, signal?: AbortSignal): Promise<PointsSample[]> {
-  const rows = await api.get<
-    { date: string; sp?: number | null; coop?: number | null; overall?: number | null }[]
-  >(`/profile/points_history/${profileNumber}`, { signal })
+export async function getPointsHistory(
+  c: Catalog,
+  profileNumber: string,
+  game: string,
+  signal?: AbortSignal,
+): Promise<PointsSample[]> {
+  const rows = await api.get<({ date: string } & Record<string, number | string | null>)[]>(
+    `/profile/points_history/${profileNumber}`,
+    { params: gameIdParam(c, game), signal },
+  )
+  const slots = gameSlots(c, game)
+  const value = (row: Record<string, number | string | null>, key: string) => {
+    const serverKey = slots.find((s) => s.key === key)?.serverKey
+    return Math.round(Number((serverKey && row[serverKey]) ?? 0))
+  }
   return rows.map((p) => ({
     date: p.date,
-    sp: Math.round(p.sp ?? 0),
-    coop: Math.round(p.coop ?? 0),
-    overall: Math.round(p.overall ?? 0),
+    sp: value(p, 'sp'),
+    coop: value(p, 'coop'),
+    overall: value(p, 'overall'),
   }))
 }
 
-export const pointsHistoryQueryOptions = (profileNumber: string) =>
+export const pointsHistoryQueryOptions = (c: Catalog, profileNumber: string, game: string = PORTAL2) =>
   queryOptions({
-    queryKey: queryKeys.profilePointsHistory(profileNumber),
-    queryFn: ({ signal }) => getPointsHistory(profileNumber, signal),
+    queryKey: [...queryKeys.profilePointsHistory(profileNumber, game), c.fromServer],
+    queryFn: ({ signal }) => getPointsHistory(c, profileNumber, game, signal),
   })
 
 /** A player's stats in a game: activity, co-op partners and portal counts from demos. */
