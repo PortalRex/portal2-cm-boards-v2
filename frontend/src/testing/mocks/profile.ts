@@ -19,17 +19,20 @@ export interface ProfileRequests {
 }
 
 /**
- * Serves the profile fixtures for FIXTURE_PLAYER (Portal 2), and `gameRanks` / `gameRuns` for
- * /ranks/game/{id} and other games' changelogs. Records what was asked for.
+ * Serves the profile fixtures for FIXTURE_PLAYER (Portal 2), and `gameRanks` / `gameRuns` /
+ * `gameScores` for /ranks/game/{id}, other games' changelogs and personal bests (by game id).
+ * Records what was asked for.
  */
 export function serveProfile({
   gameRanks = {},
   gameRuns = [],
+  gameScores = {},
   user: userOverride = {},
   aggregated = [],
 }: {
   gameRanks?: Record<string, Record<string, number>>
   gameRuns?: unknown[]
+  gameScores?: Record<string, unknown[]>
   user?: Record<string, unknown>
   /** GET /profile/aggregated's boards (none by default). */
   aggregated?: unknown[]
@@ -41,13 +44,20 @@ export function serveProfile({
   }
   server.use(
     http.get(`${API}/profile/points_peak/:id`, ({ request }) => (note(request), HttpResponse.json(peak))),
-    http.get(`${API}/profile/aggregated/:id`, ({ request }) => (note(request), HttpResponse.json(aggregated))),
+    http.get(
+      `${API}/profile/aggregated/:id`,
+      ({ request }) => (note(request), HttpResponse.json(aggregated)),
+    ),
     http.get(
       `${API}/profile/points_history/:id`,
       ({ request }) => (note(request), HttpResponse.json(pointsHistory)),
     ),
     http.get(`${API}/profile/stats/:id`, ({ request }) => (note(request), HttpResponse.json(stats))),
-    http.get(`${API}/profile/scores/:id`, ({ request }) => (note(request), HttpResponse.json(scores))),
+    http.get(`${API}/profile/scores/:id`, ({ request }) => {
+      note(request)
+      const game = new URL(request.url).searchParams.get('game_id')
+      return HttpResponse.json(game ? (gameScores[game] ?? []) : scores)
+    }),
     http.get(`${API}/profile/at/:id`, ({ request }) => (note(request), HttpResponse.json(past))),
     http.get(`${API}/profile/:id`, ({ request, params }) => {
       note(request)

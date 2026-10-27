@@ -17,7 +17,7 @@ import type {
   UserRaw,
 } from '../types'
 import type { PointsSample } from '../utils/points-chart'
-import { adaptProfile, scoresFromRanks } from '../utils/profile'
+import { adaptProfile, mergePbs, scoresFromRanks } from '../utils/profile'
 import { gameSlots, toSlots } from '../utils/summary'
 
 /** A player's Portal 2 profile: points, places, best runs on every map and every run. */
@@ -92,12 +92,15 @@ export async function getGameResults(
   game: string,
   signal?: AbortSignal,
 ): Promise<GameResults> {
-  const [ranks, history] = await Promise.all([
+  const [ranks, history, pbs] = await Promise.all([
     getGameRanks(c, profileNumber, game, signal),
     // Every run (the Stats tab lists them all), as for Portal 2.
     getPlayerRuns(c, profileNumber, game, 5000, signal),
+    // The bests themselves: a co-op best can be the partner's half, not among the player's runs.
+    getProfileScores(profileNumber, signal, gameIdParam(c, game)),
   ])
-  return { scores: scoresFromRanks(c, profileNumber, ranks, history, game), history }
+  const scores = scoresFromRanks(c, profileNumber, ranks, history, game)
+  return { scores: mergePbs(c, scores, pbs, history, profileNumber, game), history }
 }
 
 export const gameResultsQueryOptions = (c: Catalog, profileNumber: string, game: string) =>

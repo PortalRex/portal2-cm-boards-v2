@@ -72,11 +72,12 @@ export function mergePbs(
   pbs: ProfileScoreRaw[],
   history: Run[],
   me: string,
+  game: string = PORTAL2,
 ): Record<string, MapScore> {
   const byId = new Map(history.map((h) => [h.id, h]))
   const out = { ...scores }
   for (const pb of pbs) {
-    const map = getMap(c, pb.map_id)
+    const map = getMap(c, pb.map_id, game)
     if (!map) continue
     const h = pb.changelog_id != null ? byId.get(pb.changelog_id) : undefined
     const base: MapScore = out[pb.map_id] ?? {

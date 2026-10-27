@@ -636,7 +636,7 @@ async fn test_db_profile_pbs_skip_coop_runs_with_a_banned_partner() {
     coop("test-pb-me", "test-pb-pending", "test-pb-pending", 1000, false).await;
     coop("test-pb-me", "test-pb-ghost", "N/A", 500, true).await;
     let pb = |rows: Vec<ProfileScore>| rows.into_iter().find(|r| r.map_id == map).map(|r| (r.score, r.changelog_id));
-    let rows = ProfileScore::get_profile_scores(&pool, "test-pb-me").await.unwrap();
+    let rows = ProfileScore::get_profile_scores(&pool, "test-pb-me", 1).await.unwrap();
     assert_eq!(
         rows.iter().find(|r| r.map_id == map).and_then(|r| r.partner_profile_number.as_deref()),
         Some("test-pb-friend"),
@@ -649,14 +649,14 @@ async fn test_db_profile_pbs_skip_coop_runs_with_a_banned_partner() {
     );
     // Once the partner is unbanned, the faster run counts again.
     sqlx::query("UPDATE users SET banned = false WHERE profile_number = 'test-pb-cheater'").execute(&pool).await.unwrap();
-    assert_eq!(pb(ProfileScore::get_profile_scores(&pool, "test-pb-me").await.unwrap()).map(|p| p.0), Some(2000));
+    assert_eq!(pb(ProfileScore::get_profile_scores(&pool, "test-pb-me", 1).await.unwrap()).map(|p| p.0), Some(2000));
     // So does the run whose banned partner has only the placeholder half, once they're unbanned.
     sqlx::query("UPDATE users SET banned = false WHERE profile_number = 'test-pb-ghost'").execute(&pool).await.unwrap();
-    assert_eq!(pb(ProfileScore::get_profile_scores(&pool, "test-pb-me").await.unwrap()).map(|p| p.0), Some(500));
+    assert_eq!(pb(ProfileScore::get_profile_scores(&pool, "test-pb-me", 1).await.unwrap()).map(|p| p.0), Some(500));
     // A run where the player has no row of their own (the bundle names them; their half is the
     // placeholder) counts as on the board: the PB is the partner's half, naming the partner.
     let hosts_half = coop("test-pb-host", "test-pb-me", "N/A", 400, true).await;
-    let rows = ProfileScore::get_profile_scores(&pool, "test-pb-me").await.unwrap();
+    let rows = ProfileScore::get_profile_scores(&pool, "test-pb-me", 1).await.unwrap();
     let best = rows.iter().find(|r| r.map_id == map).unwrap();
     assert_eq!((best.score, best.changelog_id, best.partner_profile_number.as_deref()), (400, hosts_half, Some("test-pb-host")));
     cleanup().await;

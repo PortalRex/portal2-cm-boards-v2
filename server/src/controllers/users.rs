@@ -345,9 +345,9 @@ impl Users {
 }
 
 impl ProfileScore {
-    /// The player's best verified, unbanned time on each Portal 2 map (default category), with the
+    /// The player's best verified, unbanned time on each map of a game (default category), with the
     /// partner on co-op maps.
-    pub async fn get_profile_scores(pool: &PgPool, profile_number: &str) -> Result<Vec<ProfileScore>, sqlx::Error> {
+    pub async fn get_profile_scores(pool: &PgPool, profile_number: &str, game_id: i32) -> Result<Vec<ProfileScore>, sqlx::Error> {
         sqlx::query_as::<_, ProfileScore>(
             r#"
             SELECT DISTINCT ON (pb.map_id) pb.map_id, pb.score, pb.timestamp, pb.changelog_id, pb.is_multiplayer,
@@ -361,7 +361,7 @@ impl ProfileScore {
                         INNER JOIN maps AS m ON (m.steam_id = cl.map_id)
                         INNER JOIN chapters AS c ON (c.id = m.chapter_id)
                         WHERE cl.profile_number = $1
-                        AND c.game_id = 1
+                        AND c.game_id = $2
                         AND cl.banned = 'false'
                         AND cl.verified = 'true'
                         AND cl.category_id = m.default_cat_id
@@ -377,7 +377,7 @@ impl ProfileScore {
                         WHERE ph.profile_number = 'N/A'
                         AND $1 IN (cb.p_id1, cb.p_id2)
                         AND r.profile_number <> $1
-                        AND c.game_id = 1
+                        AND c.game_id = $2
                         AND r.banned = 'false'
                         AND r.verified = 'true'
                         AND r.category_id = m.default_cat_id
@@ -399,6 +399,7 @@ impl ProfileScore {
             "#,
         )
         .bind(profile_number)
+        .bind(game_id)
         .fetch_all(pool)
         .await
     }

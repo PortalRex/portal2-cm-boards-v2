@@ -17,19 +17,33 @@ pub struct PbRank {
     pub chapter_id: Option<i32>,
 }
 
-/// Personal bests (default category, verified, neither run nor player banned) ranked
-/// per map (co-op by run or by player, see [crate::tools::config::coop_by_run]), for maps of `game_id` whose chapter `game_mode` is in `modes` (all modes when `None`),
+/// Personal bests (default category, verified, neither run nor player banned; a co-op run counts for
+/// a player the bundle names even when their half is the placeholder) ranked per map (co-op by run or by player, see [crate::tools::config::coop_by_run]), for maps of `game_id` whose chapter `game_mode` is in `modes` (all modes when `None`),
 /// optionally limited to one chapter.
 pub async fn pb_ranks(pool: &PgPool, game_id: i32, modes: Option<&[&str]>, chapter: Option<i32>) -> Result<Vec<PbRank>, sqlx::Error> {
     let modes: Option<Vec<String>> = modes.map(|m| m.iter().map(|s| s.to_string()).collect());
     sqlx::query_as::<_, PbRank>(
         r#"
-            WITH pbs AS (
+            WITH halves AS (
+                -- The players' own runs.
+                SELECT cl.profile_number, cl.id, cl.map_id, cl.score, cl.timestamp, cl.coop_id,
+                    cl.banned, cl.verified, cl.category_id
+                FROM changelog AS cl
+                UNION ALL
+                -- Co-op runs where a player's half is the 'N/A' placeholder (they have no row of
+                -- their own; the bundle names them): the run is their partner's half, as on the board.
+                SELECT CASE WHEN ph.id = cb.cl_id1 THEN cb.p_id1 ELSE cb.p_id2 END, r.id, r.map_id, r.score,
+                    r.timestamp, cb.id, r.banned, r.verified, r.category_id
+                FROM coop_bundled AS cb
+                    INNER JOIN changelog AS ph ON (ph.id IN (cb.cl_id1, cb.cl_id2) AND ph.profile_number = 'N/A')
+                    INNER JOIN changelog AS r ON (r.id IN (cb.cl_id1, cb.cl_id2) AND r.id <> ph.id)
+            ),
+            pbs AS (
                 SELECT DISTINCT ON (cl.profile_number, cl.map_id)
                     cl.profile_number, cl.map_id, cl.score, c.game_mode, c.id AS chapter_id,
                     -- Both halves of a co-op run share a coop_id: one run.
                     COALESCE('c' || cl.coop_id, 'r' || cl.id) AS run_key
-                FROM changelog AS cl
+                FROM halves AS cl
                     INNER JOIN maps AS m ON (m.steam_id = cl.map_id)
                     INNER JOIN chapters AS c ON (c.id = m.chapter_id)
                 WHERE c.game_id = $1

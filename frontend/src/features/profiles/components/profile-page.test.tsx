@@ -382,6 +382,38 @@ describe('Profile page', () => {
     ).toBeInTheDocument()
   })
 
+  it("shows a season's co-op best where the player's half is the partner's run", async () => {
+    // The season's Buttons: their partner's half, the bundle naming them (no run of their own).
+    const partner = { pn: '76561199013726692', name: 'savvydruid' }
+    const requests = serveProfile({
+      gameRanks: { '4': { 's4-47825': 1 } },
+      gameScores: {
+        '4': [
+          {
+            map_id: 's4-47825',
+            score: 1831,
+            timestamp: '2026-10-25T17:07:59',
+            changelog_id: 366572,
+            rank: null,
+            partner_profile_number: partner.pn,
+            partner_name: partner.name,
+            partner_avatar: null,
+          },
+        ],
+      },
+    })
+    await renderRoute(`/profile/${FIXTURE_PLAYER}`)
+    await userEvent.click(await screen.findByRole('tab', { name: 'Cooperative' }))
+    await userEvent.selectOptions(await screen.findByRole('combobox', { name: 'Season' }), SEASON)
+    const row = (await screen.findByRole('link', { name: 'Buttons' })).closest('[id]') as HTMLElement
+    expect(row).toHaveTextContent('18.31')
+    expect(within(row).getByRole('link', { name: partner.name })).toHaveAttribute(
+      'href',
+      `/profile/${partner.pn}`,
+    )
+    expect(requests.asked).toContain(`/profile/scores/${FIXTURE_PLAYER}?game_id=4`)
+  })
+
   it('shows the profile as it was on a past day, until going back to today', async () => {
     serveProfile()
     const { router } = await renderProfile(`/profile/${FIXTURE_PLAYER}?at=2024-01-01`)

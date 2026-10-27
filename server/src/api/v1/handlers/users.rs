@@ -537,14 +537,38 @@ async fn profile_stats(pool: web::Data<PgPool>, profile_number: web::Path<String
     Ok(web::Json(crate::controllers::profile_stats::profile_stats(pool.get_ref(), &profile_number, query.game_id.unwrap_or(1)).await?))
 }
 
+/// **GET** A player's personal best on each map of a game (default Portal 2), with the partner on
+/// co-op maps (also runs where their half is the placeholder and the bundle names them).
+///
+/// ## Parameters:
+/// - `game_id`
+///     - **Optional** - `i32` : The game or season. Portal 2's bests come with their rank and the
+///       gaps to the next time and the WR; other games' leave those out (`/ranks/game` has ranks).
+///
+/// ## Example endpoints:
+///  - `/api/v1/profile/scores/76561198039230536`
+///  - `/api/v1/profile/scores/76561199006050430?game_id=4`
+///
+/// ## Example JSON output
+/// ```json
+/// [{ "map_id": "52757", "score": 1475, "timestamp": "2024-06-15T14:21:21", "changelog_id": 290743,
+///    "is_multiplayer": true, "partner_profile_number": "76561198302681368", "partner_name": "Chevalix",
+///    "partner_avatar": "https://avatars.steamstatic.com/...jpg", "rank": 72, "delta_to_wr": 365, "delta_to_next": 2 }, ...]
+/// ```
 #[get("/profile/scores/{profile_number}")]
 async fn profile_scores(
     pool: web::Data<PgPool>,
     profile_number: web::Path<String>,
+    query: web::Query<StatsQuery>,
     cache: web::Data<CacheState>,
 ) -> Result<impl Responder> {
     let profile_number = profile_number.into_inner();
-    let mut scores = ProfileScore::get_profile_scores(pool.get_ref(), &profile_number).await?;
+    let game_id = query.game_id.unwrap_or(1);
+    let mut scores = ProfileScore::get_profile_scores(pool.get_ref(), &profile_number, game_id).await?;
+    // The ranks cache is Portal 2's.
+    if game_id != 1 {
+        return Ok(web::Json(scores));
+    }
     let r = &*cache.ranks.lock().await;
     let ranks = r.current_ranks.get(&profile_number);
     for pb in scores.iter_mut() {

@@ -1,8 +1,8 @@
 import { queryOptions } from '@tanstack/react-query'
-import { api } from '@/lib/api-client'
+import { api, type QueryParams } from '@/lib/api-client'
 import { queryKeys } from '@/lib/query-keys'
 
-/** A Portal 2 personal best (GET /profile/scores/{steam id}). */
+/** A personal best (GET /profile/scores/{steam id}); only Portal 2's have rank and gaps. */
 export interface ProfileScoreRaw {
   map_id: string
   score: number
@@ -20,10 +20,13 @@ export interface ProfileScoreRaw {
   partner_avatar?: string | null
 }
 
-/** A player's Portal 2 personal bests, or [] when the server can't say (legacy did the same). */
-export const getProfileScores = (profileNumber: string, signal?: AbortSignal) =>
+/**
+ * A player's personal bests in Portal 2, or in another game or season (`params`: its game_id), or []
+ * when the server can't say (legacy did the same).
+ */
+export const getProfileScores = (profileNumber: string, signal?: AbortSignal, params?: QueryParams) =>
   api
-    .get<ProfileScoreRaw[]>(`/profile/scores/${profileNumber}`, { signal })
+    .get<ProfileScoreRaw[]>(`/profile/scores/${profileNumber}`, { params, signal })
     .catch(() => [] as ProfileScoreRaw[])
 
 export const profileScoresQueryOptions = (profileNumber: string) =>
