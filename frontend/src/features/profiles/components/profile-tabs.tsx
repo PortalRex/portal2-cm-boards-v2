@@ -18,46 +18,17 @@ import {
   type Chapter,
   type MapInfo,
 } from '@/lib/catalog'
-import { parseTimestamp } from '@/lib/format'
 import { gameResultsQueryOptions } from '../api/profile'
-import type { MapScore, Profile, ProfilePlayer, RenderRunDetails } from '../types'
+import type { Profile, ProfilePlayer, RenderRunDetails } from '../types'
 import { InfoTab } from './info-tab'
 import { LegacyTab } from './legacy-tab'
 import { ProfileHistory } from './profile-history'
 import { StatsTab } from './stats-tab'
+import { MAP_SORTS, orderedChapters } from '../utils/map-sort'
 import { chapterBoardPath } from '../utils/tables'
 import { ChapterTable, SectionTitle, Summary } from './score-tables'
 
 const CATEGORIES = [{ value: 'p2cm', label: 'Portal 2 Challenge Mode' }]
-const SORTS = [
-  { value: 'default', label: 'Map order' },
-  { value: 'rank', label: 'Best rank first' },
-  { value: 'worst', label: 'Worst rank first' },
-  { value: 'date', label: 'Newest first' },
-]
-
-/**
- * The chapter tables to show. "default" keeps the game's chapters; the other orders list every
- * map of the mode in one table (maps without a score last).
- */
-function orderedChapters(
-  chapters: Chapter[],
-  scores: Record<string, MapScore>,
-  sort: string,
-): (Chapter & { sorted?: boolean })[] {
-  if (sort === 'default' || !chapters[0]) return chapters
-  const key = (m: MapInfo) => {
-    const s = scores[m.id]
-    if (sort === 'rank') return s?.rank ?? Infinity
-    // Worst first; maps without a rank still go last.
-    if (sort === 'worst') return s?.rank != null ? -s.rank : Infinity
-    return s?.timestamp ? -(parseTimestamp(s.timestamp)?.getTime() ?? 0) : Infinity
-  }
-  const maps = [...chapters.flatMap((c) => c.maps)].sort((a, b) => key(a) - key(b))
-  const label = SORTS.find((o) => o.value === sort)?.label ?? sort
-  return [{ ...chapters[0], name: label, maps, sorted: true }]
-}
-
 interface TabState {
   sort: string
   onSort: (sort: string) => void
@@ -188,7 +159,7 @@ function Controls({ children }: { children: ReactNode }) {
 }
 
 function SortSelect({ sort, onSort }: { sort: string; onSort: (sort: string) => void }) {
-  return <Select value={sort} onChange={onSort} options={SORTS} label="Sort maps" />
+  return <Select value={sort} onChange={onSort} options={MAP_SORTS} label="Sort maps" />
 }
 
 function CategorySelect() {
@@ -231,6 +202,8 @@ function ModeTab({
           onSelectMap={onSelectMap}
           player={profile.player}
           chapterLink={link(chapter)}
+          sort={sort}
+          onSort={onSort}
           renderRunDetails={renderRunDetails}
         />
       ))}
@@ -311,6 +284,8 @@ function GameTab({
           selectedMap={selectedMap}
           onSelectMap={onSelectMap}
           player={player}
+          sort={sort}
+          onSort={onSort}
           renderRunDetails={renderRunDetails}
         />
       ))}

@@ -1,7 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
 import { cn } from 'cn'
+import { useState } from 'react'
 import { AppLink } from '@/components/app-link'
-import { BarsIcon } from '@/components/icons'
+import { BarsIcon, SortDownIcon, SortUpIcon } from '@/components/icons'
 import { Card } from '@/components/panel'
 import { RankNumber } from '@/components/rank'
 import { EmptyState, Loading } from '@/components/status'
@@ -11,7 +12,16 @@ import { useCatalog } from '@/lib/catalog'
 import { formatDelta, formatPoints, formatScore } from '@/lib/format'
 import { aggregatedQueryOptions } from '../api/profile'
 import type { StandingRaw } from '../types'
-import { aggregatedLines, formatPointsGap, type AggregatedLine } from '../utils/aggregated'
+import {
+  aggregatedLines,
+  formatPointsGap,
+  nextAggregatedSort,
+  sortAggregated,
+  sortsDescending,
+  type AggregatedColumn,
+  type AggregatedLine,
+  type AggregatedSort,
+} from '../utils/aggregated'
 
 // Phones: the name gets its own line, the numbers a row under it.
 const grid =
@@ -50,6 +60,7 @@ export function AggregatedCard({ profileNumber, at }: { profileNumber: string; a
             valueLabel="Points"
             groups={aggregatedLines(catalog, game, data.data, profileNumber)}
             pick={(line) => line.row?.points ?? null}
+            morePointsFirst
             value={(s) => formatPoints(s.value)}
             gap={formatPointsGap}
           />
@@ -67,11 +78,54 @@ export function AggregatedCard({ profileNumber, at }: { profileNumber: string; a
   )
 }
 
+/** A column's header: a button that sorts the table by it (see `nextAggregatedSort`). */
+function SortHeader({
+  column,
+  label,
+  name = label,
+  sort,
+  onSort,
+  morePointsFirst,
+}: {
+  column: AggregatedColumn
+  label: string
+  /** What the button says to screen readers, when the label is a sign. */
+  name?: string
+  sort: AggregatedSort | null
+  onSort: (sort: AggregatedSort | null) => void
+  morePointsFirst: boolean
+}) {
+  const on = sort?.column === column ? sort : null
+  const descending = on && sortsDescending(on, morePointsFirst)
+  const Arrow = descending ? SortDownIcon : SortUpIcon
+  return (
+    <span
+      role="columnheader"
+      className="text-right"
+      aria-sort={on ? (descending ? 'descending' : 'ascending') : 'none'}
+    >
+      <button
+        type="button"
+        className={cn(
+          'inline-flex cursor-pointer items-center gap-0.5 border-0 bg-transparent p-0 text-inherit uppercase hover:text-foreground',
+          on && 'text-foreground',
+        )}
+        onClick={() => onSort(nextAggregatedSort(column, sort))}
+        aria-label={`Sort by ${name}`}
+      >
+        {on && <Arrow className="size-3.5" />}
+        {label}
+      </button>
+    </span>
+  )
+}
+
 function Table({
   title,
   valueLabel,
   groups,
   pick,
+  morePointsFirst = false,
   value,
   gap,
 }: {
@@ -79,9 +133,13 @@ function Table({
   valueLabel: string
   groups: AggregatedLine[][]
   pick: (line: AggregatedLine) => StandingRaw | null
+  /** Points: the most is best (a time's best is the least). */
+  morePointsFirst?: boolean
   value: (s: StandingRaw) => string
   gap: (g: number | null) => string
 }) {
+  const [sort, setSort] = useState<AggregatedSort | null>(null)
+  const header = { sort, onSort: setSort, morePointsFirst }
   return (
     <section role="table" aria-label={title} className="min-w-0">
       <div
@@ -91,20 +149,12 @@ function Table({
         <span role="columnheader" className={cn(nameCell, 'text-text-2')}>
           {title}
         </span>
-        <span role="columnheader" className="text-right">
-          #
-        </span>
-        <span role="columnheader" className="text-right">
-          {valueLabel}
-        </span>
-        <span role="columnheader" className="text-right">
-          Δnext
-        </span>
-        <span role="columnheader" className="text-right">
-          ΔWR
-        </span>
+        <SortHeader column="rank" label="#" name="place" {...header} />
+        <SortHeader column="value" label={valueLabel} {...header} />
+        <SortHeader column="next" label="Δnext" {...header} />
+        <SortHeader column="wr" label="ΔWR" {...header} />
       </div>
-      {groups.map((lines, gi) => (
+      {sortAggregated(groups, pick, sort, morePointsFirst).map((lines, gi) => (
         <div key={gi} role="rowgroup" className={cn(gi > 0 && 'mt-2.5 border-t border-line/60 pt-2.5')}>
           {lines.map((line, i) => {
             const s = pick(line)

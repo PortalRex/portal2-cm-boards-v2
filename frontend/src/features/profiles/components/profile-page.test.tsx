@@ -168,6 +168,25 @@ describe('Profile page', () => {
     expect(first()).toHaveAccessibleName('Show run details for Funnel Catch')
   })
 
+  it('sorts by a column from its header, and the other way on a second click', async () => {
+    serveProfile()
+    await renderProfile()
+    const select = screen.getByRole('combobox', { name: 'Sort maps' })
+    // The score tables' headers, not the aggregated card's.
+    const headers = () =>
+      screen.getAllByRole('button', { name: 'Sort by Points' }).filter((b) => !b.closest('[role="table"]'))
+    await userEvent.click(headers()[0]!)
+    expect(screen.getByRole('heading', { name: 'Most points first', level: 3 })).toBeInTheDocument()
+    expect(select).toHaveValue('points')
+    // One table now, its header showing the order.
+    const [header] = headers()
+    expect(headers()).toHaveLength(1)
+    expect(header).toHaveAttribute('title', 'Fewest points first')
+    await userEvent.click(header!)
+    expect(screen.getByRole('heading', { name: 'Fewest points first', level: 3 })).toBeInTheDocument()
+    expect(select).toHaveValue('points-asc')
+  })
+
   it('shows the Legacy view and the Info tab', async () => {
     serveProfile()
     await renderProfile()
@@ -291,6 +310,37 @@ describe('Profile page', () => {
     await waitFor(() =>
       expect(requests.asked).toContain(`/profile/aggregated/${FIXTURE_PLAYER}?game_id=1&at=2021-04-06`),
     )
+  })
+
+  it('sorts an aggregated table from its headers: best first, reversed, then chapter order', async () => {
+    serveProfile({
+      aggregated: [
+        { board: 'chapter-7', points: { rank: 14, value: 1443, next: -26, wr: -310 }, time: null },
+        { board: 'chapter-8', points: { rank: 12, value: 1387, next: -6, wr: -182 }, time: null },
+      ],
+    })
+    await renderProfile()
+    const points = await screen.findByRole('table', { name: 'Points' })
+    const firstTwo = () =>
+      within(within(points).getAllByRole('rowgroup')[0]!)
+        .getAllByRole('rowheader')
+        .slice(0, 2)
+        .map((c) => c.textContent)
+    const [courtesy, coldBoot] = firstTwo()
+    const button = within(points).getByRole('button', { name: 'Sort by Δnext' })
+    await userEvent.click(button)
+    expect(firstTwo()).toEqual([coldBoot, courtesy])
+    expect(button.closest('[role="columnheader"]')).toHaveAttribute('aria-sort', 'ascending')
+    await userEvent.click(button)
+    expect(firstTwo()).toEqual([courtesy, coldBoot])
+    expect(button.closest('[role="columnheader"]')).toHaveAttribute('aria-sort', 'descending')
+    await userEvent.click(button)
+    expect(button.closest('[role="columnheader"]')).toHaveAttribute('aria-sort', 'none')
+    // The Times table keeps its own order.
+    const times = screen.getByRole('table', { name: 'Times' })
+    expect(
+      within(times).getByRole('button', { name: 'Sort by place' }).closest('[role="columnheader"]'),
+    ).toHaveAttribute('aria-sort', 'none')
   })
 
   it("shows the picked game's aggregated boards: Mel's, not Portal 2's", async () => {

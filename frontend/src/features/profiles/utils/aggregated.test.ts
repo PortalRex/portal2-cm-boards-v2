@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { BUILTIN_CATALOG, chapterDbId, chaptersFor, MEL, PORTAL2 } from '@/lib/catalog'
-import { aggregatedLines, formatPointsGap } from './aggregated'
+import {
+  aggregatedLines,
+  formatPointsGap,
+  nextAggregatedSort,
+  sortAggregated,
+  type AggregatedSort,
+} from './aggregated'
 
 const pn = '76561198000000001'
 
@@ -77,5 +83,57 @@ describe('formatPointsGap', () => {
     expect(formatPointsGap(-26.4)).toBe('-26')
     expect(formatPointsGap(-0.2)).toBe('0')
     expect(formatPointsGap(null)).toBe('–')
+  })
+})
+
+describe('sortAggregated', () => {
+  const [one, two, three] = chaptersFor(BUILTIN_CATALOG, 'sp')
+  const standing = (rank: number, value: number, next: number | null, wr: number) => ({
+    rank,
+    value,
+    next,
+    wr,
+  })
+  // two: first place (no gap to the next); three: no standing.
+  const rows = [
+    { board: `chapter-${chapterDbId(one!)}`, points: standing(14, 1443, -26, -310), time: null },
+    { board: `chapter-${chapterDbId(two!)}`, points: standing(1, 2000, null, 0), time: null },
+    { board: 'overall', points: standing(6, 18902, -402, -1947), time: null },
+  ]
+  const groups = aggregatedLines(BUILTIN_CATALOG, PORTAL2, rows, pn)
+  const points = (line: (typeof groups)[0][0]) => line.row?.points ?? null
+  const firstThree = (sort: AggregatedSort | null, morePointsFirst = true) =>
+    sortAggregated(groups, points, sort, morePointsFirst)[0]!
+      .slice(0, 3)
+      .map((l) => l.label)
+
+  it('orders each group of chapters best first, or reversed; lines without the number last', () => {
+    expect(firstThree(null)).toEqual([one!.name, two!.name, three!.name])
+    expect(firstThree({ column: 'rank', reversed: false })).toEqual([two!.name, one!.name, three!.name])
+    expect(firstThree({ column: 'rank', reversed: true })).toEqual([one!.name, two!.name, three!.name])
+    // The most points first; for a time, the least.
+    expect(firstThree({ column: 'value', reversed: false })).toEqual([two!.name, one!.name, three!.name])
+    expect(firstThree({ column: 'value', reversed: false }, false)).toEqual([
+      one!.name,
+      two!.name,
+      three!.name,
+    ])
+    // Smallest gap first, whatever its sign; first place has no gap to the next.
+    expect(firstThree({ column: 'wr', reversed: false })).toEqual([two!.name, one!.name, three!.name])
+    expect(firstThree({ column: 'next', reversed: true })).toEqual([one!.name, two!.name, three!.name])
+  })
+
+  it('leaves the totals in their order', () => {
+    const sorted = sortAggregated(groups, points, { column: 'value', reversed: true }, true)
+    expect(sorted[2]!.map((l) => l.key)).toEqual(['sp', 'coop', 'overall'])
+  })
+
+  it('goes best first, reversed, then back to the chapter order', () => {
+    const best = nextAggregatedSort('wr', null)
+    expect(best).toEqual({ column: 'wr', reversed: false })
+    const reversed = nextAggregatedSort('wr', best)
+    expect(reversed).toEqual({ column: 'wr', reversed: true })
+    expect(nextAggregatedSort('wr', reversed)).toBeNull()
+    expect(nextAggregatedSort('rank', reversed)).toEqual({ column: 'rank', reversed: false })
   })
 })

@@ -1,5 +1,5 @@
 import { chapterDbId, chaptersFor, modeLabel, PORTAL2, type Catalog } from '@/lib/catalog'
-import type { AggregateRowRaw } from '../types'
+import type { AggregateRowRaw, StandingRaw } from '../types'
 import { boardPath, serverMode } from './summary'
 
 /**
@@ -60,3 +60,63 @@ export function aggregatedLines(
 /** A points gap as the old boards showed it: whole points, signed ("-26"). */
 export const formatPointsGap = (gap: number | null | undefined): string =>
   gap == null ? '–' : Math.round(gap) === 0 ? '0' : `${Math.round(gap) > 0 ? '+' : ''}${Math.round(gap)}`
+
+/** The aggregated tables' sortable columns: place, points or time, and the two gaps. */
+export type AggregatedColumn = 'rank' | 'value' | 'next' | 'wr'
+
+/** A table's order: by a column, best first unless reversed. */
+export interface AggregatedSort {
+  column: AggregatedColumn
+  reversed: boolean
+}
+
+/** A header click: best first, then reversed, then back to the chapters' own order. */
+export function nextAggregatedSort(
+  column: AggregatedColumn,
+  current: AggregatedSort | null,
+): AggregatedSort | null {
+  if (current?.column !== column) return { column, reversed: false }
+  return current.reversed ? null : { column, reversed: true }
+}
+
+/**
+ * Whether a column's numbers go down in the table's order. Best first is the lowest place, the
+ * most points, the fastest time and the smallest gaps.
+ */
+export function sortsDescending(sort: AggregatedSort, morePointsFirst: boolean): boolean {
+  const bestIsHighest = sort.column === 'value' && morePointsFirst
+  return bestIsHighest !== sort.reversed
+}
+
+/**
+ * The tables' lines in a column's order, within each group of chapters (the totals keep theirs).
+ * Lines without a standing or without that number (no gap for first place) go last, in their
+ * own order. `pick` is the table's standing: points or time.
+ */
+export function sortAggregated(
+  groups: AggregatedLine[][],
+  pick: (line: AggregatedLine) => StandingRaw | null,
+  sort: AggregatedSort | null,
+  morePointsFirst: boolean,
+): AggregatedLine[][] {
+  if (!sort) return groups
+  const number = (s: StandingRaw) => {
+    if (sort.column === 'rank') return s.rank
+    if (sort.column === 'value') return s.value
+    const gap = sort.column === 'next' ? s.next : s.wr
+    return gap == null ? null : Math.abs(gap)
+  }
+  const sign = sortsDescending(sort, morePointsFirst) ? -1 : 1
+  const place = (line: AggregatedLine): [number, number] => {
+    const s = pick(line)
+    const n = s ? number(s) : null
+    return n == null ? [1, 0] : [0, sign * n]
+  }
+  return groups.map((lines) => {
+    if (!lines.every((l) => l.key.startsWith('chapter-'))) return lines
+    return lines
+      .map((line) => ({ line, at: place(line) }))
+      .sort((a, b) => a.at[0] - b.at[0] || a.at[1] - b.at[1])
+      .map(({ line }) => line)
+  })
+}

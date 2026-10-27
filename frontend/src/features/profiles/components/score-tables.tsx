@@ -3,7 +3,7 @@ import { cn } from 'cn'
 import type { ReactNode } from 'react'
 import { AppLink } from '@/components/app-link'
 import { Avatar } from '@/components/avatar'
-import { ChevronDownIcon } from '@/components/icons'
+import { ChevronDownIcon, SortDownIcon, SortUpIcon } from '@/components/icons'
 import { PlayerLink } from '@/components/player-link'
 import { RankNumber } from '@/components/rank'
 import { AutorenderLink, CommentButton, DemoLink, YouTubeLink } from '@/components/runs/run-media'
@@ -15,6 +15,7 @@ import { toggleOnRowClick } from '@/lib/rows'
 import { scrollToCentre } from '@/lib/scroll'
 import type { Player } from '@/types/runs'
 import type { MapScore, ProfilePlayer, RenderRunDetails } from '../types'
+import { columnDirection, columnSort, MAP_SORTS, type SortColumn } from '../utils/map-sort'
 import { rankClass } from '../utils/tables'
 
 export function SectionTitle({ className, children }: { className?: string; children: ReactNode }) {
@@ -152,6 +153,43 @@ const row = (coop: boolean) =>
 const desktopOnly = 'upto800:hidden'
 const iconGap = <span className="w-6" />
 
+/** A column's header; with `onSort`, a button that sorts the maps by it (again: the other way). */
+function ColumnHeader({
+  column,
+  label,
+  sort = 'default',
+  onSort,
+  className,
+}: {
+  column: SortColumn
+  label: string
+  sort?: string
+  onSort?: (sort: string) => void
+  className?: string
+}) {
+  if (!onSort) return <span className={cn('text-right', className)}>{label}</span>
+  const direction = columnDirection(column, sort)
+  const next = columnSort(column, sort)
+  const Arrow = direction === 'desc' ? SortDownIcon : SortUpIcon
+  return (
+    <span className={cn('text-right', className)}>
+      <button
+        type="button"
+        className={cn(
+          'inline-flex cursor-pointer items-center gap-0.5 border-0 bg-transparent p-0 text-inherit uppercase hover:text-foreground',
+          direction && 'font-normal text-foreground',
+        )}
+        onClick={() => onSort(next)}
+        aria-label={`Sort by ${label}`}
+        title={MAP_SORTS.find((o) => o.value === next)?.label}
+      >
+        {direction && <Arrow className="size-3.5" />}
+        {label}
+      </button>
+    </span>
+  )
+}
+
 /** One chapter's maps: rank, time, deltas, points, partner (co-op) and links; a row opens its run. */
 export function ChapterTable({
   chapter,
@@ -163,6 +201,8 @@ export function ChapterTable({
   onSelectMap,
   player,
   chapterLink,
+  sort,
+  onSort,
   renderRunDetails,
 }: {
   chapter: Chapter & { sorted?: boolean }
@@ -174,8 +214,12 @@ export function ChapterTable({
   onSelectMap: (map: MapInfo | null) => void
   player: ProfilePlayer
   chapterLink?: string
+  /** The maps' order; with `onSort`, the column headers change it. */
+  sort?: string
+  onSort?: (sort: string) => void
   renderRunDetails?: RenderRunDetails
 }) {
+  const header = { sort, onSort }
   return (
     <section className="mt-7">
       <div
@@ -193,10 +237,10 @@ export function ChapterTable({
             chapter.name
           )}
         </h3>
-        <span className="text-right">Time</span>
-        <span className="text-right">ΔNext</span>
-        <span className={cn('text-right', desktopOnly)}>ΔWR</span>
-        <span className={cn('text-right', desktopOnly)}>Points</span>
+        <ColumnHeader column="time" label="Time" {...header} />
+        <ColumnHeader column="next" label="ΔNext" {...header} />
+        <ColumnHeader column="wr" label="ΔWR" className={desktopOnly} {...header} />
+        <ColumnHeader column="points" label="Points" className={desktopOnly} {...header} />
         {coop && <span className={cn(desktopOnly, 'min-h-8 text-sm text-text-muted')}>Partner</span>}
         <span />
       </div>

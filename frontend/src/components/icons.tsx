@@ -42,6 +42,8 @@ export {
   Repeat as SwapIcon,
   Pencil as EditIcon,
   ShieldUser as ShieldIcon,
+  ArrowUp as SortUpIcon,
+  ArrowDown as SortDownIcon,
 } from 'lucide-react'
 
 type IconProps = SVGProps<SVGSVGElement> & { size?: number }
