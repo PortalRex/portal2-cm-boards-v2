@@ -44,7 +44,9 @@ function RootLayout() {
   return (
     <PrivateGate>
       <LayoutSlotsContext.Provider value={slots}>
-        <div className="relative isolate min-h-screen">
+        {/* On iOS the page background scrolls with the page (see Page): clip a blurred one's
+            scaled-up sides so they don't widen it. */}
+        <div className="relative isolate min-h-screen ios:overflow-x-clip">
           <TopBar />
           <ReadOnlyBanner />
           <Outlet />

@@ -28,6 +28,8 @@
 @custom-variant upto700 (@media (max-width: 700px));
 @custom-variant upto600 (@media (max-width: 600px));
 @custom-variant upto480 (@media (max-width: 480px));
+/* iPhone / iPad Safari (and every iOS browser, all WebKit): only it knows -webkit-touch-callout. */
+@custom-variant ios (@supports (-webkit-touch-callout: none));
 /* The same for the Run Details panel's container queries. */
 @custom-variant rd-upto1150 {
   @container run-details (max-width: 1150px) {

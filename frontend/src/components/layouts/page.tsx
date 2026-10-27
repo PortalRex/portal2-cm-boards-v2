@@ -42,12 +42,15 @@ export function Page({
   return (
     <>
       {/* The background sits at layer 0 and the page above it at layer 1 (a negative z-index under
-          a filtered fixed layer let Chromium paint the background over the panels). */}
+          a filtered fixed layer let Chromium paint the background over the panels).
+          On iOS it isn't fixed: Safari 26 colours its bars from a fixed layer at the screen's edges
+          (the mono tint's grey base), so there it scrolls with the page, one screen tall, and the
+          bars take the page colour behind it. */}
       <div
         aria-hidden
         data-testid="page-background"
         className={cn(
-          'fixed inset-0 z-0 bg-page bg-cover bg-top after:absolute after:inset-0 after:content-[""]',
+          'fixed inset-0 z-0 bg-page bg-cover bg-top after:absolute after:inset-0 after:content-[""] ios:absolute ios:bottom-auto ios:h-lvh',
           TINTS[tint],
           blur && 'scale-[1.08] blur-[18px] brightness-[0.85]',
         )}
