@@ -32,6 +32,7 @@ const CATEGORIES = [{ value: 'p2cm', label: 'Portal 2 Challenge Mode' }]
 const SORTS = [
   { value: 'default', label: 'Map order' },
   { value: 'rank', label: 'Best rank first' },
+  { value: 'worst', label: 'Worst rank first' },
   { value: 'date', label: 'Newest first' },
 ]
 
@@ -48,6 +49,8 @@ function orderedChapters(
   const key = (m: MapInfo) => {
     const s = scores[m.id]
     if (sort === 'rank') return s?.rank ?? Infinity
+    // Worst first; maps without a rank still go last.
+    if (sort === 'worst') return s?.rank != null ? -s.rank : Infinity
     return s?.timestamp ? -(parseTimestamp(s.timestamp)?.getTime() ?? 0) : Infinity
   }
   const maps = [...chapters.flatMap((c) => c.maps)].sort((a, b) => key(a) - key(b))

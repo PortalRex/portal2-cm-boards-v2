@@ -161,6 +161,11 @@ describe('Profile page', () => {
     await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Sort maps' }), 'Best rank first')
     expect(screen.getByRole('heading', { name: 'Best rank first', level: 3 })).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'The Courtesy Call', level: 3 })).not.toBeInTheDocument()
+    const first = () => screen.getAllByRole('button', { name: /^Show run details for / })[0]
+    // Worst first: hero's worst place (17th, Funnel Catch) leads.
+    await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Sort maps' }), 'Worst rank first')
+    expect(screen.getByRole('heading', { name: 'Worst rank first', level: 3 })).toBeInTheDocument()
+    expect(first()).toHaveAccessibleName('Show run details for Funnel Catch')
   })
 
   it('shows the Legacy view and the Info tab', async () => {
