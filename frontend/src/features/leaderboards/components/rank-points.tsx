@@ -45,7 +45,7 @@ export function RankPoints({ points, children }: { points: number; children: Rea
         if (pinned) setAt(null)
         else show()
       }}
-      className="inline-flex cursor-help border-0 bg-transparent p-0 text-inherit"
+      className="inline-flex cursor-pointer border-0 bg-transparent p-0 text-inherit"
     >
       {children}
       {at && <Bubble at={at}>{text}</Bubble>}

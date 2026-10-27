@@ -104,7 +104,7 @@ function RoleBar({ board, points }: { board: PointsBoard; points: number }) {
       onMouseLeave={() => setAt(null)}
       onFocus={show}
       onBlur={() => setAt(null)}
-      className="relative mt-2.5 block w-[min(102px,90%)] cursor-help py-1 outline-none"
+      className="relative mt-2.5 block w-[min(102px,90%)] py-1 outline-none"
     >
       {/* Filled in the colour of the role already reached on this board (grey before the first). */}
       <span className="block h-2.5 w-full overflow-hidden rounded-[5px] bg-[#d7dcdb]">
