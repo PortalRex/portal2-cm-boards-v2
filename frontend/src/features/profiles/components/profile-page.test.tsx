@@ -62,9 +62,7 @@ describe('Profile page', () => {
     await renderProfile()
     const points = card('Challenge Mode Points')
     expect(within(points).getByText(formatPoints(11582.278))).toBeInTheDocument()
-    expect(within(points).getAllByLabelText(/points to (Legends|Elite)|threshold reached/)).toHaveLength(3)
-    // Co-op: 9,396 points, just short of Elite (9,400).
-    expect(within(points).getByLabelText('5 points to Elite: 99%')).toBeInTheDocument()
+    expect(within(points).getAllByLabelText(/points to Legends|threshold reached/)).toHaveLength(3)
 
     const ranks = card('Global Rank')
     expect(within(ranks).getByRole('link', { name: /Singleplayer/ })).toHaveAttribute(

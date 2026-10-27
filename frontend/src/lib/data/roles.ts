@@ -2,8 +2,7 @@
 // (github.com/p2sr/role-manager, official-roles-25-10-28.json5). Each board's threshold is one
 // way to qualify; roles also have other requirements (speedrun.com ranks and times, and Legends
 // is granted by hand), which these bars don't cover. Roles without a threshold for a board skip it.
-// Colours are the community's role colours (from the boards planning notes). Co-op thresholds
-// updated 2026-10-26 (co-op now ranks each run once).
+// Colours are the community's role colours (from the boards planning notes).
 
 export type PointsBoard = 'sp' | 'coop' | 'overall'
 
@@ -17,13 +16,13 @@ export interface PointRole {
 
 export const POINT_ROLES: PointRole[] = [
   { name: 'Beginner', color: '#fefa8d', sp: 250, coop: 1000 },
-  { name: 'Amateur', color: '#92d8a3', sp: 1500, coop: 2250 },
-  { name: 'Intermediate', color: '#2a806a', sp: 3000, coop: 3500 },
-  { name: 'Advanced', color: '#ffb200', sp: 5000, coop: 5000 },
-  { name: 'Expert', color: '#cd01ec', sp: 7000, coop: 7300, overall: 12500 },
-  { name: 'Professional', color: '#73faff', sp: 10000, coop: 8250, overall: 17250 },
-  { name: 'Elite', color: '#ee362e', sp: 11500, coop: 9400, overall: 20300 },
-  { name: 'Legends', color: '#0074d9', sp: 11700, coop: 9500, overall: 21000 },
+  { name: 'Amateur', color: '#92d8a3', sp: 1500, coop: 2000 },
+  { name: 'Intermediate', color: '#2a806a', sp: 3000, coop: 3000 },
+  { name: 'Advanced', color: '#ffb200', sp: 5000, coop: 4500 },
+  { name: 'Expert', color: '#cd01ec', sp: 7000, coop: 6000, overall: 12500 },
+  { name: 'Professional', color: '#73faff', sp: 10000, coop: 8000, overall: 17250 },
+  { name: 'Elite', color: '#ee362e', sp: 11500, coop: 9300, overall: 20300 },
+  { name: 'Legends', color: '#0074d9', sp: 11700, coop: 9450, overall: 21000 },
 ]
 
 const BOARDS: PointsBoard[] = ['sp', 'coop', 'overall']
