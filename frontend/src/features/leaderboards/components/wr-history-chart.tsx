@@ -16,6 +16,7 @@ import { useWheelZoom } from '@/hooks/use-wheel-zoom'
 import { formatDate, formatScore, parseTimestamp } from '@/lib/format'
 import type { WrPoint } from '../api/map-board'
 import { timeTicks, YEAR_MS } from '../utils/time-ticks'
+import { wrChartData, type ChartPoint } from '../utils/wr-chart'
 
 const DAY_MS = 24 * 3600 * 1000
 
@@ -29,19 +30,13 @@ const WR_RANGES = [
   { value: '1y', label: '1Y', years: 1 },
 ] as const
 
-interface ChartPoint extends WrPoint {
-  t: number
-  gain: number | null
-  carried?: boolean
-  now?: boolean
-}
-
+/** A record's tooltip: a carried point (the line's ends) shows the record it carries. */
 function WrTooltip({ active, payload }: { active?: boolean; payload?: { payload: ChartPoint }[] }) {
   const p = active ? payload?.[0]?.payload : undefined
-  if (!p || p.now || p.carried) return null
+  if (!p) return null
   return (
     <div className="flex flex-col gap-0.5 rounded-[4px] border border-line bg-menu px-2.5 py-2 text-[13px]">
-      <span className="text-text-muted">{formatDate(p.t)}</span>
+      <span className="text-text-muted">{formatDate(p.setAt ?? p.t)}</span>
       <strong className="num text-base">{formatScore(p.score)}</strong>
       <span>{p.player}</span>
       {p.gain != null && <span className="num text-green">−{formatScore(p.gain)}</span>}
@@ -98,18 +93,8 @@ export function WrHistoryChart({
     return <div className={cn(box, 'flex items-center text-text-muted')}>No world record history</div>
 
   const [from, to] = zoom ?? [rangeFrom, now]
-  // What's in view: the record standing at the start, those set in view, and the one standing at
-  // the end carried on to it (today, unless zoomed in).
-  const before = records.filter((r) => r.t < from)
-  const inRange = records.filter((r) => r.t >= from && r.t <= to)
-  const standing = [...before, ...inRange]
-  const data: ChartPoint[] = [
-    ...(before.length ? [{ ...before[before.length - 1]!, t: from, carried: true }] : []),
-    ...inRange,
-    ...(standing.length
-      ? [{ ...standing[standing.length - 1]!, t: to, now: to >= now, carried: to < now, gain: null }]
-      : []),
-  ]
+  const data = wrChartData(records, from, to, now)
+  const inView = records.filter((r) => r.t >= from && r.t <= to).length
   const scores = data.map((d) => d.score)
   const min = Math.min(...scores)
   const max = Math.max(...scores)
@@ -122,7 +107,7 @@ export function WrHistoryChart({
       <div className="mb-1 flex min-h-7 items-center gap-3 pr-[34px]">
         <span className="text-sm text-text-muted">
           {records.length} world record{records.length === 1 ? '' : 's'}
-          {years || zoom ? ` · ${inRange.length} in view` : ''}
+          {years || zoom ? ` · ${inView} in view` : ''}
         </span>
         {zoom && (
           <button

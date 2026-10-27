@@ -11,6 +11,7 @@ import { RankNumber } from '@/components/rank'
 import { Segmented } from '@/components/segmented'
 import { EmptyState, ErrorState, Loading } from '@/components/status'
 import { mapPath, useCatalog } from '@/lib/catalog'
+import { stepPoints } from '@/lib/charts/steps'
 import { formatDate, formatDateTime, formatDelta, formatScore, parseTimestamp } from '@/lib/format'
 import { changelogQueryOptions } from '@/lib/runs/changelog'
 import type { Player, Run, RunMap } from '@/types/runs'
@@ -233,7 +234,8 @@ function HistoryChart({ rows }: { rows: Run[] }) {
     <div className="mx-4 mt-3 mb-1">
       <ResponsiveContainer width="100%" height={120}>
         <AreaChart
-          data={[...data, { ...data[data.length - 1]!, t: now }]}
+          // Each time's flat line carries it at both ends, on to now (its tooltip says when it was set).
+          data={stepPoints(data, now)}
           margin={{ top: 8, right: 12, bottom: 0, left: 0 }}
         >
           <defs>
@@ -266,7 +268,10 @@ function HistoryChart({ rows }: { rows: Run[] }) {
           <Tooltip
             isAnimationActive={false}
             contentStyle={{ background: 'var(--menu)', border: '1px solid var(--line)', borderRadius: 4 }}
-            labelFormatter={(t) => formatDate(Number(t))}
+            labelFormatter={(t, payload) => {
+              const point = payload?.[0]?.payload as { setAt?: number } | undefined
+              return formatDate(point?.setAt ?? Number(t))
+            }}
             formatter={(v) => [formatScore(Number(v)), 'Time']}
           />
           <Area
