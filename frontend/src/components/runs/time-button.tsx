@@ -6,11 +6,13 @@ import { useMemo, useState } from 'react'
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { AppLink } from '@/components/app-link'
 import { Avatar } from '@/components/avatar'
+import { PlayerLink } from '@/components/player-link'
 import { CloseIcon } from '@/components/icons'
 import { RankNumber } from '@/components/rank'
 import { Segmented } from '@/components/segmented'
 import { EmptyState, ErrorState, Loading } from '@/components/status'
-import { mapPath, useCatalog } from '@/lib/catalog'
+import { unknownPartner } from '@/lib/adapters/runs'
+import { isMultiplayerMode, mapPath, useCatalog } from '@/lib/catalog'
 import { stepPoints } from '@/lib/charts/steps'
 import { formatDate, formatDateTime, formatDelta, formatScore, parseTimestamp } from '@/lib/format'
 import { changelogQueryOptions } from '@/lib/runs/changelog'
@@ -136,7 +138,11 @@ function RunHistoryDialog({
             ) : (
               <>
                 <HistoryChart rows={rows} />
-                <HistoryTable rows={rows} game={map.game} />
+                <HistoryTable
+                  rows={rows}
+                  game={map.game}
+                  partnerOf={isMultiplayerMode(catalog, map.mode) ? (r) => partnerOf(r, who) : undefined}
+                />
               </>
             )}
           </DialogPrimitive.Content>
@@ -146,10 +152,30 @@ function RunHistoryDialog({
   )
 }
 
-const rowGrid =
-  'grid grid-cols-[minmax(0,1fr)_110px_90px_110px_150px] items-center gap-x-3 px-2 upto700:grid-cols-[minmax(0,1fr)_76px_64px_72px] upto700:gap-x-1.5 upto700:text-[13px] upto700:[&>:nth-child(5)]:hidden'
+/** Who the player ran a co-op run with: the other of its two players, or unknown (no demo said). */
+const partnerOf = (run: Run, me: string): Player =>
+  (run.players.length > 1 && run.players.find((p) => p.profileNumber !== me)) || unknownPartner()
 
-function HistoryTable({ rows, game }: { rows: Run[]; game: string }) {
+const rowBase = 'grid items-center gap-x-3 px-2 upto700:gap-x-1.5 upto700:text-[13px]'
+const SP_COLS =
+  'grid-cols-[minmax(0,1fr)_110px_90px_110px_150px] upto700:grid-cols-[minmax(0,1fr)_76px_64px_72px]'
+// Co-op adds the partner before the links; on phones just their picture.
+const COOP_COLS =
+  'grid-cols-[minmax(0,1fr)_96px_80px_100px_minmax(0,150px)_150px] upto700:grid-cols-[minmax(0,1fr)_70px_60px_64px_24px]'
+// The links don't fit on phones.
+const links = 'upto700:hidden'
+
+function HistoryTable({
+  rows,
+  game,
+  partnerOf,
+}: {
+  rows: Run[]
+  game: string
+  /** On a co-op map, a run's partner. */
+  partnerOf?: (run: Run) => Player
+}) {
+  const rowGrid = cn(rowBase, partnerOf ? COOP_COLS : SP_COLS)
   return (
     <div role="table" className="mx-4 mt-2">
       <div role="row" className={cn(rowGrid, 'min-h-[26px] text-[13px] text-text-muted uppercase')}>
@@ -163,7 +189,12 @@ function HistoryTable({ rows, game }: { rows: Run[]; game: string }) {
         <span role="columnheader" className="text-right">
           Improvement
         </span>
-        <span role="columnheader" />
+        {partnerOf && (
+          <span role="columnheader" className="upto700:sr-only">
+            Partner
+          </span>
+        )}
+        <span role="columnheader" className={links} />
       </div>
       {rows.map((r, i) => (
         <div
@@ -200,7 +231,8 @@ function HistoryTable({ rows, game }: { rows: Run[]; game: string }) {
           <span role="cell" className="num text-right text-text-muted">
             {r.scoreDelta != null ? formatDelta(r.scoreDelta, 's') : ''}
           </span>
-          <span role="cell" className="flex items-center justify-end gap-2.5">
+          {partnerOf && <PartnerCell partner={partnerOf(r)} />}
+          <span role="cell" className={cn('flex items-center justify-end gap-2.5', links)}>
             <CommentButton note={r.note} size={20} />
             <AutorenderLink run={r} game={game} size={20} />
             <YouTubeLink id={r.youtubeId} size={22} />
@@ -210,6 +242,18 @@ function HistoryTable({ rows, game }: { rows: Run[]; game: string }) {
         </div>
       ))}
     </div>
+  )
+}
+
+function PartnerCell({ partner }: { partner: Player }) {
+  return (
+    <span role="cell" className="flex min-w-0 items-center gap-2" title={partner.name}>
+      <Avatar src={partner.avatar} name={partner.name} size={22} />
+      <PlayerLink
+        player={partner}
+        className={cn('truncate upto700:hidden', partner.unknown && 'text-text-muted')}
+      />
+    </span>
   )
 }
 

@@ -77,4 +77,39 @@ describe('run history dialog', () => {
     expect(await within(dialog).findByText('37.11')).toBeInTheDocument()
     expect(within(dialog).queryByRole('button', { name: /ban run/i })).not.toBeInTheDocument()
   })
+
+  it("shows each co-op run's partner, unknown when no one is on record", async () => {
+    const doors = { id: '47741', title: 'Doors', mode: 'coop', game: 'portal2', chapter: 'Team Building' }
+    const coop = (id: number, partner: { pn: string; name: string } | null): ChangelogRaw => ({
+      ...row(id, 2000, false),
+      map_id: doors.id,
+      map_name: doors.title,
+      coop_id: partner ? id : null,
+      blue_profile_number: partner ? player.profileNumber : null,
+      blue_name: partner ? player.name : null,
+      blue_avatar: null,
+      orange_profile_number: partner?.pn ?? null,
+      orange_name: partner?.name ?? null,
+      orange_avatar: null,
+    })
+    serveHistory([coop(601, { pn: '76561198000000042', name: 'Nate' }), coop(602, null)])
+    await renderWithProviders(<TimeButton score={2000} players={[player]} map={doors} />)
+    await userEvent.click(screen.getByTitle("Bexc's history on Doors"))
+    const dialog = await screen.findByRole('dialog')
+    expect(await within(dialog).findByRole('columnheader', { name: 'Partner' })).toBeInTheDocument()
+    const [first, second] = within(dialog).getAllByRole('row').slice(1)
+    expect(within(first!).getByRole('link', { name: 'Nate' })).toHaveAttribute(
+      'href',
+      '/profile/76561198000000042',
+    )
+    expect(within(second!).getByText('Unknown partner')).toBeInTheDocument()
+  })
+
+  it('has no partner column on a single player map', async () => {
+    serveHistory([row(501, 3711, false)])
+    await renderWithProviders(<TimeButton score={3711} players={[player]} map={map} />)
+    const dialog = await openHistory()
+    await within(dialog).findByText('37.11')
+    expect(within(dialog).queryByRole('columnheader', { name: 'Partner' })).toBeNull()
+  })
 })
