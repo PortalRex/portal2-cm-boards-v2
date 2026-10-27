@@ -73,6 +73,9 @@ pub struct CoopPreview {
     pub map_id: String,
     /// Autorender share ID of the run's rendered video, if any.
     pub autorender_id: Option<String>,
+    /// A demo of the run (either half's, or the partner demo of a half without a run of its own).
+    #[serde(default)]
+    pub demo_id: Option<i64>,
 }
 
 /// Wrapper for the coop map data and the rank/score.

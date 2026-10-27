@@ -82,12 +82,13 @@ impl SpPreview {
     pub async fn get_sp_preview(pool: &PgPool, map_id: &str) -> Result<Vec<SpPreview>, sqlx::Error> {
         sqlx::query_as::<_, SpPreview>(
             r#"
-                SELECT t.cl_profile_number, t.score, t.youtube_id, t.category_id, t.user_name, t.map_id, t.autorender_id
+                SELECT t.cl_profile_number, t.score, t.youtube_id, t.category_id, t.user_name, t.map_id, t.autorender_id,
+                    t.demo_id
                 FROM (
                     SELECT DISTINCT ON (cl.profile_number)
                         cl.id AS cl_id, cl.profile_number AS cl_profile_number, cl.score, cl.youtube_id, cl.category_id,
                         COALESCE(u.board_name, u.steam_name, cl.profile_number) AS user_name, cl.map_id, cl.autorender_id,
-                        cl.timestamp
+                        cl.timestamp, cl.demo_id
                     FROM changelog AS cl
                     INNER JOIN users AS u ON u.profile_number = cl.profile_number
                     INNER JOIN maps AS m ON m.steam_id = cl.map_id

@@ -38,6 +38,9 @@ pub struct SpPreview {
     pub map_id: String,
     /// Autorender share ID of the run's rendered video, if any.
     pub autorender_id: Option<String>,
+    /// The run's demo, if any (so the map list can offer it for download).
+    #[serde(default)]
+    pub demo_id: Option<i64>,
 }
 
 /// Wrapper for multiple SpPreviews, prevents repeat data (multiple map_name and map_id copies)

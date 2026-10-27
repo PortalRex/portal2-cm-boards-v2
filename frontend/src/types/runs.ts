@@ -113,6 +113,8 @@ export interface SpPreviewRaw {
   user_name: string
   map_id: string
   autorender_id: string | null
+  /** The run's demo (co-op: either half's); older servers leave it out. */
+  demo_id?: number | null
 }
 
 /** GET /coop (models/coop.rs CoopPreview). */
@@ -127,6 +129,8 @@ export interface CoopPreviewRaw {
   user_name2: string | null
   map_id: string
   autorender_id: string | null
+  /** The run's demo (co-op: either half's); older servers leave it out. */
+  demo_id?: number | null
 }
 
 /** GET /coop/{id}/halves: each player's half of a co-op run. */
@@ -219,7 +223,7 @@ export interface PreviewRun {
   score: number
   youtubeId: string | null
   autorenderId: string | null
-  demoId: null
+  demoId: number | null
   players: Player[]
 }
 

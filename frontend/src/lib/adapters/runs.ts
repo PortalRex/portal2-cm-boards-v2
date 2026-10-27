@@ -149,7 +149,7 @@ export function adaptPreview(row: SpPreviewRaw | CoopPreviewRaw): PreviewRun {
       score: row.score,
       youtubeId: row.youtube_id1 || row.youtube_id2,
       autorenderId: row.autorender_id ?? null,
-      demoId: null,
+      demoId: row.demo_id ?? null,
       players: realPlayers([
         player(row.profile_number1, row.user_name1),
         player(row.profile_number2, row.user_name2),
@@ -160,7 +160,7 @@ export function adaptPreview(row: SpPreviewRaw | CoopPreviewRaw): PreviewRun {
     score: row.score,
     youtubeId: row.youtube_id,
     autorenderId: row.autorender_id ?? null,
-    demoId: null,
+    demoId: row.demo_id ?? null,
     players: [player(row.profile_number, row.user_name)],
   }
 }

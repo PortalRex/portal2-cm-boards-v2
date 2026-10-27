@@ -41,6 +41,20 @@ describe('Map list', () => {
     expect(asked).toEqual(['sp '])
   })
 
+  it('offers the demo of each run that has one, as the old boards did', async () => {
+    const [ride, ...others] = spPreviews
+    const withDemos = ride!.map((r, i) => ({ ...r, demo_id: i === 0 ? 901 : i === 2 ? 903 : null }))
+    server.use(http.get(`${API}/sp`, () => HttpResponse.json([withDemos, ...others])))
+    await renderRoute('/maps')
+    const c = await card('Container Ride')
+    await within(c).findByRole('link', { name: ride![0]!.user_name })
+    const demos = within(c).getAllByRole('link', { name: 'Download demo' })
+    expect(demos.map((a) => a.getAttribute('href'))).toEqual([
+      expect.stringMatching(/\/demos\/901\/file$/),
+      expect.stringMatching(/\/demos\/903\/file$/),
+    ])
+  })
+
   it('leaves the record row empty for a map without previews, like legacy', async () => {
     servePreviews()
     await renderRoute('/maps')

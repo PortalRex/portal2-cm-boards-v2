@@ -129,7 +129,8 @@ impl CoopPreview {
                     c1.youtube_id AS youtube_id1, c2.youtube_id AS youtube_id2, c1.category_id,
                     COALESCE(p1.board_name, p1.steam_name, p1.profile_number) AS user_name1, 
                     COALESCE(p2.board_name, p2.steam_name, p2.profile_number) AS user_name2, c1.map_id,
-                    COALESCE(c1.autorender_id, c2.autorender_id) AS autorender_id
+                    COALESCE(c1.autorender_id, c2.autorender_id) AS autorender_id,
+                    COALESCE(c1.demo_id, c2.demo_id, cb.partner_demo_id) AS demo_id
                 FROM (SELECT * FROM 
                 coop_bundled 
                 WHERE id IN 

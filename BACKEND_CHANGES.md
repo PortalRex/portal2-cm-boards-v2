@@ -213,7 +213,8 @@ All under `/api/v1`. Auth: **public**, **signed in**, **staff** (any tier or ser
 - **`GET /sp` and `GET /coop` previews** (the Maps page cards) list the same runs in the same order as the map's
   board: each player's best verified run in the map's main category, equal times in the order they were set (the
   earlier one is the record). They used to sort by time alone, so ties came out in any order, and the SP ones also
-  counted pending runs and other categories.
+  counted pending runs and other categories. Each run carries its `demo_id` (co-op: either half's, or the partner
+  demo of a half without a run of its own), so the cards offer the demo for download as the old boards did.
 - **`GET /user/{id}`** adds `frozen`, `role`, `name_locked`, `avatar_locked`; drops `auth_hash`, `discord_id`.
 - **Sign-in and `PUT /user/avatar/{id}`** leave staff-set pictures alone.
 - **Changes to runs** (posting, editing, moderation) invalidate the points cache and previews.
