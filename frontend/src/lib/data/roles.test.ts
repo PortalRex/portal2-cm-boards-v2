@@ -4,6 +4,7 @@ import {
   POINT_ROLES,
   roleIcon,
   roleProgress,
+  roleProgressText,
   type PeakPoints,
   type Points,
   type PointsBoard,
@@ -50,5 +51,25 @@ describe('roleIcon', () => {
   it('points at the bundled icon', () => {
     expect(roleIcon(POINT_ROLES[0])).toBe('/roles/beginner.png')
     expect(roleIcon(null)).toBeNull()
+  })
+})
+
+describe('roleProgressText', () => {
+  it('says how far the next role is on a board that starts at the first role', () => {
+    expect(roleProgressText('sp', roleProgress('sp', 3221))).toBe('1,779 points to Advanced: 64%')
+  })
+
+  it('says overall only counts from Expert up, before its first threshold', () => {
+    // The report: 4,410 overall points, an Intermediate player (from single player).
+    expect(roleProgressText('overall', roleProgress('overall', 4410))).toBe(
+      'Overall points count from Expert up: 8,090 to go (35%)',
+    )
+  })
+
+  it('names the next overall role normally once Expert is reached, and says when the top is reached', () => {
+    expect(roleProgressText('overall', roleProgress('overall', 15000))).toBe(
+      '2,250 points to Professional: 86%',
+    )
+    expect(roleProgressText('coop', roleProgress('coop', 9500))).toBe('Legends threshold reached')
   })
 })

@@ -7,7 +7,7 @@ import { bubbleAnchor } from '@/lib/bubble'
 import { GlobeIcon, PeakIcon, SparkleIcon, TrophyFilledIcon } from '@/components/icons'
 import { Card } from '@/components/panel'
 import { countryName } from '@/lib/data/countries'
-import { roleProgress, type PointsBoard } from '@/lib/data/roles'
+import { roleProgress, roleProgressText, type PointsBoard } from '@/lib/data/roles'
 import { formatDate, formatDateTime, formatPoints, formatScore, ordinalSuffix, timeAgo } from '@/lib/format'
 import { rankVars } from '@/lib/ranks'
 import type { MapScore, PointsPeak, ProfilePlayer, ScoreBrief } from '../types'
@@ -92,10 +92,7 @@ function RoleBar({ board, points }: { board: PointsBoard; points: number }) {
   const ref = useRef<HTMLSpanElement>(null)
   const [at, setAt] = useState<{ x: number; y: number } | null>(null)
   const prog = roleProgress(board, points)
-  const text =
-    'reached' in prog
-      ? `${prog.reached} threshold reached`
-      : `${prog.missing.toLocaleString()} points to ${prog.next}: ${prog.percent}%`
+  const text = roleProgressText(board, prog)
   const show = () => setAt(bubbleAnchor(ref.current, 110))
   return (
     <span

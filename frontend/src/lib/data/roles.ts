@@ -26,6 +26,7 @@ export const POINT_ROLES: PointRole[] = [
 ]
 
 const BOARDS: PointsBoard[] = ['sp', 'coop', 'overall']
+const BOARD_NAMES: Record<PointsBoard, string> = { sp: 'Single player', coop: 'Co-op', overall: 'Overall' }
 
 /** The role's icon (public/roles/<name>.png). */
 export function roleIcon(role: PointRole | null | undefined): string | null {
@@ -80,4 +81,18 @@ export function roleProgress(board: PointsBoard, points: number): RoleProgress {
     percent: Math.floor((points / target) * 100),
     current,
   }
+}
+
+/**
+ * What a board's progress bar says. A board whose thresholds start above the first role (overall
+ * starts at Expert) says so until its first one is reached: its next step isn't necessarily the
+ * player's next role, which may come from single player or co-op.
+ */
+export function roleProgressText(board: PointsBoard, prog: RoleProgress): string {
+  if ('reached' in prog) return `${prog.reached} threshold reached`
+  const missing = prog.missing.toLocaleString()
+  if (!prog.current && prog.next !== POINT_ROLES[0]!.name) {
+    return `${BOARD_NAMES[board]} points count from ${prog.next} up: ${missing} to go (${prog.percent}%)`
+  }
+  return `${missing} points to ${prog.next}: ${prog.percent}%`
 }
