@@ -2,7 +2,7 @@ import { MEL, modeLabel, PORTAL2, type Catalog } from '@/lib/catalog'
 import type { PointsBoard } from '@/lib/data/roles'
 import type { Run } from '@/types/runs'
 import type { AggregateRowRaw, GameResults, MapScore, PointsBoardKey, Profile, ScoreBrief } from '../types'
-import { bestAndWorst } from './profile'
+import { bestAndWorst, placeWithPoints } from './profile'
 
 /**
  * One of the three boards the profile's top cards show: a game's first and second boards (Portal
@@ -147,7 +147,7 @@ export function gameSummary(
   for (const slot of slots) {
     const row = byBoard.get(slot.serverKey)
     points[slot.key] = row?.points?.value ?? 0
-    place[slot.key] = row?.points?.rank ?? null
+    place[slot.key] = placeWithPoints(row?.points?.rank, row?.points?.value ?? 0)
     const list = inSlot(slot)
     averagePlace[slot.key] = list.length ? list.reduce((a, s) => a + s.rank, 0) / list.length : null
     worldRecords[slot.key] = list.filter((s) => s.rank === 1).length

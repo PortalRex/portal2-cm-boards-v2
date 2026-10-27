@@ -133,6 +133,17 @@ describe('Aggregated boards (Portal 2)', () => {
     )
   })
 
+  it('shares a place between equal points and gives players without points none', async () => {
+    // Runners 2 and 3 tie; runners 5 and 6 have no points (in a country, all of them would be "1st").
+    servePoints(runners(6, (i) => ({ points: [900, 800, 800, 700, 0, 0][i - 1]! })))
+    await renderRoute('/leaderboard/sp')
+    await waitFor(() => expect(names('Points')).toHaveLength(6))
+    const places = within(board('Points'))
+      .getAllByRole('link')
+      .map((a) => within(a.closest('div')!).getAllByText(/^(\d+|–)$/)[0]!.textContent)
+    expect(places).toEqual(['1', '2', '2', '4', '–', '–'])
+  })
+
   it('opens a chapter from the Single Player chapter list', async () => {
     servePoints()
     const { router } = await renderRoute('/leaderboard/sp')

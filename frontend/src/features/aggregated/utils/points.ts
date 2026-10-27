@@ -50,3 +50,17 @@ export function serverBoard(c: Catalog, { game, board }: BoardRef): ServerBoard 
   // The server keys boards by the chapters' game_mode; the site's keys carry the game's slug.
   return { gameId, board: modeOf(game, board), mapCount: maps.length }
 }
+
+/**
+ * Places down a board sorted best first: equal values share a place and the next one skips past
+ * them (1, 2, 2, 4), as on the map boards; a row without a value (no points) has no place.
+ */
+export function sharedPlaces<T>(rows: T[], value: (row: T) => number | null): (number | null)[] {
+  const places: (number | null)[] = []
+  rows.forEach((row, i) => {
+    const v = value(row)
+    const prev = i > 0 ? value(rows[i - 1]!) : null
+    places.push(v == null ? null : v === prev ? places[i - 1]! : i + 1)
+  })
+  return places
+}

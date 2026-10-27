@@ -71,6 +71,15 @@ describe('adaptProfile', () => {
     expect(p.globalRank).toEqual({ sp: 1, coop: 4, overall: 1, country: 1 })
   })
 
+  it('gives no global or country place on a board without points', () => {
+    const page = pageRaw as ProfilePageRaw
+    const zero = page.points!.map((e) =>
+      e.id === -2 || e.id === -3 ? { ...e, points: { ...e.points, points: 0 } } : e,
+    )
+    const p = adaptProfile(catalog, HERO, { ...page, points: zero }, userRaw as UserRaw, history, [])
+    expect(p.globalRank).toEqual({ sp: 1, coop: null, overall: null, country: null })
+  })
+
   it('works out average places, world records and best and worst place from the ranks', () => {
     const p = profile()
     expect(p.averagePlace.sp).toBeCloseTo(4.5333, 3)

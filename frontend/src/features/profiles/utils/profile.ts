@@ -142,6 +142,13 @@ export const splitTitles = (title: string | null | undefined): string[] =>
     .filter(Boolean)
 
 /**
+ * A place on a points board, or none without points: everyone with 0 points ties, which made
+ * every player in a country without points "1st" there.
+ */
+export const placeWithPoints = (place: number | null | undefined, points: number): number | null =>
+  points > 0 ? (place ?? null) : null
+
+/**
  * Best and worst place over the ranked maps, with how many maps share each (the card then says
  * "1st on 6 maps" instead of naming one of them).
  */
@@ -233,10 +240,10 @@ export function adaptProfile(
       overall: entry(-3)?.points?.points ?? 0,
     },
     globalRank: {
-      sp: entry(-1)?.place ?? null,
-      coop: entry(-2)?.place ?? null,
-      overall: entry(-3)?.place ?? null,
-      country: entry(-3)?.country_place ?? null,
+      sp: placeWithPoints(entry(-1)?.place, entry(-1)?.points?.points ?? 0),
+      coop: placeWithPoints(entry(-2)?.place, entry(-2)?.points?.points ?? 0),
+      overall: placeWithPoints(entry(-3)?.place, entry(-3)?.points?.points ?? 0),
+      country: placeWithPoints(entry(-3)?.country_place, entry(-3)?.points?.points ?? 0),
     },
     ...placeStats(scores),
     newest: fromDate(newest),
@@ -290,10 +297,10 @@ export function profileAsOf(c: Catalog, profile: Profile, past: ProfileAtRaw, at
       overall: past.points?.overall ?? 0,
     },
     globalRank: {
-      sp: past.places?.sp ?? null,
-      coop: past.places?.coop ?? null,
-      overall: past.places?.overall ?? null,
-      country: past.country_place ?? null,
+      sp: placeWithPoints(past.places?.sp, past.points?.sp ?? 0),
+      coop: placeWithPoints(past.places?.coop, past.points?.coop ?? 0),
+      overall: placeWithPoints(past.places?.overall, past.points?.overall ?? 0),
+      country: placeWithPoints(past.country_place, past.points?.overall ?? 0),
     },
     ...placeStats(scores),
     newest: brief(dated[dated.length - 1]),

@@ -3,7 +3,7 @@ import { BUILTIN_CATALOG, buildCatalog, type CatalogRaw } from '@/lib/catalog'
 import catalogRaw from '@/testing/fixtures/catalog.json'
 import pointsSp from '@/testing/fixtures/points-sp.json'
 import type { PointsWrapperRaw } from '../types'
-import { adaptPoints, serverBoard } from './points'
+import { adaptPoints, serverBoard, sharedPlaces } from './points'
 
 const catalog = buildCatalog(catalogRaw as CatalogRaw)
 const fixture = pointsSp as PointsWrapperRaw
@@ -92,5 +92,13 @@ describe('serverBoard', () => {
 
   it('has no board for a game the catalog does not know', () => {
     expect(serverBoard(BUILTIN_CATALOG, { game: 'custom-game', board: 'overall' })).toBeNull()
+  })
+})
+
+describe('sharedPlaces', () => {
+  it('gives equal values one place, skips past them, and gives rows without a value none', () => {
+    const points = [900, 800, 800, 700, null, null]
+    expect(sharedPlaces(points, (p) => p)).toEqual([1, 2, 2, 4, null, null])
+    expect(sharedPlaces([], (p: number) => p)).toEqual([])
   })
 })

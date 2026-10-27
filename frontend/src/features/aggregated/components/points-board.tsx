@@ -1,23 +1,28 @@
 import { cn } from 'cn'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Avatar, Flag } from '@/components/avatar'
 import { Pagination } from '@/components/pagination'
 import { PlayerLink } from '@/components/player-link'
 import { EmptyState } from '@/components/status'
 import { useIsMe } from '@/hooks/use-is-me'
 import type { AggregatedRow } from '../types'
+import { sharedPlaces } from '../utils/points'
 
 const PAGE_SIZE = 20
 
 const rowClass =
   'mx-5 grid min-h-[46px] grid-cols-[46px_40px_minmax(0,1fr)_auto] items-center gap-x-2 pr-2.5 text-lg upto860:mx-2 upto600:min-h-10 upto600:grid-cols-[34px_30px_minmax(0,1fr)_auto] upto600:pr-2 upto600:pl-1 upto600:text-base'
 
-/** One ranking (Points or Time), 20 players a page; `focus` opens on that player's page, marked. */
+/**
+ * One ranking (Points or Time), 20 players a page; `focus` opens on that player's page, marked.
+ * Places come from `rankBy`: equal values share one, and a row without a value has none.
+ */
 export function PointsBoard({
   title,
   rows,
   valueLabel,
   value,
+  rankBy,
   focus = null,
   empty = 'No players yet.',
 }: {
@@ -25,6 +30,7 @@ export function PointsBoard({
   rows: AggregatedRow[]
   valueLabel: string
   value: (row: AggregatedRow) => string
+  rankBy: (row: AggregatedRow) => number | null
   focus?: string | null
   empty?: string
 }) {
@@ -34,6 +40,7 @@ export function PointsBoard({
   })
   const pageCount = Math.ceil(rows.length / PAGE_SIZE)
   const visible = rows.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
+  const places = useMemo(() => sharedPlaces(rows, rankBy), [rows, rankBy])
 
   return (
     <section
@@ -60,7 +67,7 @@ export function PointsBoard({
           <BoardRow
             key={r.player.profileNumber ?? i}
             row={r}
-            rank={page * PAGE_SIZE + i + 1}
+            rank={places[page * PAGE_SIZE + i] ?? null}
             value={value(r)}
             striped={i % 2 === 1}
             focused={Boolean(focus) && r.player.profileNumber === focus}
@@ -81,7 +88,7 @@ function BoardRow({
   focused,
 }: {
   row: AggregatedRow
-  rank: number
+  rank: number | null
   value: string
   striped: boolean
   focused: boolean
@@ -105,7 +112,7 @@ function BoardRow({
         size={46}
         className="upto600:size-[30px]! upto600:rounded-[4px]"
       />
-      <span className="num text-center">{rank}</span>
+      <span className="num text-center">{rank ?? '–'}</span>
       <span className="flex min-w-0 items-center gap-2.5 overflow-hidden font-medium whitespace-nowrap">
         <Flag code={row.player.country} height={20} />
         <PlayerLink player={row.player} className="truncate" />

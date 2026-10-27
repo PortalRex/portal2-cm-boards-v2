@@ -33,6 +33,10 @@ export interface AggregatedSearch {
   player?: string
 }
 
+// What each board ranks by: equal values share a place; without points, no place.
+const byPoints = (r: AggregatedRow) => (r.points > 0 ? r.points : null)
+const byTime = (r: AggregatedRow) => r.score
+
 // Legacy's arrow sat 14px inside the 2px border, so 16px from the edge.
 const selectClass =
   'min-w-[222px] [&_select]:rounded-md! [&_select]:border-2! [&_select]:bg-panel-head! [&_[data-slot=native-select-icon]]:right-4!'
@@ -161,6 +165,7 @@ function AggregatedBoards({ view, search }: { view: AggregatedView; search: Aggr
               rows={inCountry(rows?.points)}
               valueLabel="Aggregated points"
               value={(r) => formatPoints(r.points)}
+              rankBy={byPoints}
             />
             <PointsBoard
               key={`time-${boardKey}`}
@@ -169,6 +174,7 @@ function AggregatedBoards({ view, search }: { view: AggregatedView; search: Aggr
               rows={inCountry(rows?.times)}
               valueLabel="Aggregated time"
               value={(r) => formatLongScore(r.score)}
+              rankBy={byTime}
               empty={
                 rows?.mapCount ? `No one has a time on all ${rows.mapCount} maps yet.` : 'No players yet.'
               }
