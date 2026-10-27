@@ -14,7 +14,7 @@ function ScoreUpdatesRoute() {
     <ScoreUpdatesPage
       search={search}
       renderRunDetails={(run, rendered) => (
-        <RunDetails run={run} map={run.map} game={run.game} rendered={rendered} showReactions={false} />
+        <RunDetails run={run} map={run.map} game={run.game} rendered={rendered} />
       )}
     />
   )

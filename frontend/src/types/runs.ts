@@ -40,8 +40,6 @@ export interface ChangelogRaw {
   portals: number | null
   sar_version: string | null
   date_estimated: boolean
-  reactions_up: number
-  reactions_down: number
 }
 
 /** A single player board row's run (models/sp.rs SpMap). */
@@ -187,8 +185,6 @@ export interface Run {
   verified: boolean
   banned: boolean
   coopId: number | null
-  reactionsUp: number
-  reactionsDown: number
   /** Co-op: whether it's known who hosted; null for single player. */
   rolesKnown: boolean | null
   sarVersion: string | null

@@ -41,12 +41,9 @@ export const queryKeys = {
 
   // A run (changelog entry) and what hangs off it.
   run: (changelogId: number) => ['run', changelogId] as const,
-  runReactions: (changelogId: number) => ['run', changelogId, 'reactions'] as const,
   runSegments: (changelogId: number) => ['run', changelogId, 'segments'] as const,
   runStaffNotes: (changelogId: number) => ['run', changelogId, 'staff-notes'] as const,
-  runReactionRecord: (changelogId: number) => ['run', changelogId, 'reaction-record'] as const,
   coopHalves: (coopId: number) => ['coop-halves', coopId] as const,
-  myReactions: (changelogIds: number[]) => ['my-reactions', changelogIds] as const,
   coopRoleOverrides: () => ['coop-role-overrides'] as const,
 
   siteStats: (game: string) => ['stats', 'site', game] as const,

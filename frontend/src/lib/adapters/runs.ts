@@ -84,8 +84,6 @@ export function adaptChangelog(row: ChangelogRaw, game: string, c: Catalog): Run
     verified: row.verified !== false,
     banned: Boolean(row.banned),
     coopId: isCoop ? row.coop_id : null,
-    reactionsUp: row.reactions_up ?? 0,
-    reactionsDown: row.reactions_down ?? 0,
     rolesKnown: isCoop ? row.coop_roles_known !== false : null,
     sarVersion: row.sar_version ?? null,
     dateEstimated: Boolean(row.date_estimated),

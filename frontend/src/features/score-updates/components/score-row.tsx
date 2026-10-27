@@ -20,10 +20,8 @@ import {
 } from '@/lib/coop-roles'
 import { formatDate, formatDateTime, formatDelta, timeAgo } from '@/lib/format'
 import { toggleOnRowClick } from '@/lib/rows'
-import type { Reaction } from '@/lib/runs/reactions'
 import type { Run } from '@/types/runs'
 import type { ScoreUpdate } from '../utils/merge-coop-halves'
-import { RowReactions } from './row-reactions'
 
 const TINT_BG: Record<CoopTint, string> = {
   blue: 'bg-[linear-gradient(90deg,transparent_46px,var(--portal-blue)_46px,transparent_70%)]',
@@ -38,12 +36,10 @@ export const SCORE_COLS =
 export function ScoreRow({
   entry,
   rendered,
-  myReaction,
   renderRunDetails,
 }: {
   entry: ScoreUpdate
   rendered: Map<number, string>
-  myReaction: Reaction | null | undefined
   renderRunDetails?: (run: Run, rendered: Map<number, string>) => ReactNode
 }) {
   const [open, setOpen] = useState(false)
@@ -169,9 +165,8 @@ export function ScoreRow({
           </span>
           <span className="num text-[13px] text-text-muted">{formatDate(entry.timestamp)}</span>
         </div>
-        {/* Reactions, then a pending / banned icon in a fixed slot so the reactions line up. */}
-        <div className="grid grid-cols-[auto_24px] items-center justify-center gap-x-1.5 upto1400:grid-cols-[auto_22px] upto1400:gap-x-1 upto900:hidden">
-          <RowReactions entry={entry} myReaction={myReaction} />
+        {/* A pending / banned icon. */}
+        <div className="flex items-center justify-center upto900:hidden">
           {entry.banned ? (
             <StatusIcon label="Banned" title="Banned" className="bg-banned text-banned-text">
               <BannedIcon className="size-4" />

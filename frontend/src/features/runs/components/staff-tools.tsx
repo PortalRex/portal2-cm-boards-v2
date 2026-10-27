@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { cn } from 'cn'
-import { useState, type FormEvent, type ReactNode } from 'react'
+import { useState, type FormEvent } from 'react'
 import { PlayerLink } from '@/components/player-link'
 import { Segmented } from '@/components/segmented'
 import { setCoopRoleOverride, useCoopRoleOverrides } from '@/hooks/use-coop-role-overrides'
@@ -15,7 +15,6 @@ import {
   addStaffNote,
   deleteRun,
   deleteStaffNote,
-  reactionRecordQueryOptions,
   removeRunDemo,
   setCoopHost,
   setRunBanned,
@@ -171,7 +170,6 @@ export function StaffTools({ run, map, game }: { run: StaffRun; map: RunMap; gam
           </button>
         </form>
       )}
-      <WhoReacted changelogId={id} />
       <StaffNotes changelogId={id} />
       {act.isSuccess && <span className="text-sm text-green">{act.variables.label}</span>}
       {act.error && <span className={error}>{act.error.message}</span>}
@@ -240,69 +238,6 @@ function RolesEditor({ run }: { run: StaffRun }) {
       {save.error && <span className={error}>{save.error.message}</span>}
     </div>
   )
-}
-
-const reactionLabel = (r: 1 | -1 | null) => (r === 1 ? '👍' : r === -1 ? '👎' : 'cleared')
-const whoRow = 'grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2.5 [&_a:hover]:underline'
-
-/** Staff: who reacted to the run, and every change (changed and cleared reactions too). */
-function WhoReacted({ changelogId }: { changelogId: number }) {
-  const [open, setOpen] = useState(false)
-  const record = useQuery({ ...reactionRecordQueryOptions(changelogId), enabled: open })
-  return (
-    <div className="flex flex-col gap-1.5 text-[15px]">
-      <button
-        type="button"
-        className={cn(staffButton, 'self-start')}
-        onClick={() => setOpen((o) => !o)}
-        aria-expanded={open}
-      >
-        {open ? 'Hide reactions' : 'Reactions'}
-      </button>
-      {open &&
-        (record.isPending ? (
-          <span className="text-text-muted">Loading…</span>
-        ) : !record.data ? (
-          <span className={error}>Couldn’t load reactions.</span>
-        ) : (
-          <>
-            {record.data.current.length ? (
-              <List>
-                {record.data.current.map((e) => (
-                  <li key={e.profile_number} className={whoRow}>
-                    <span>{reactionLabel(e.reaction)}</span>
-                    <PlayerLink player={{ profileNumber: e.profile_number, name: e.user_name }} />
-                    <span className="num text-text-muted">{formatDate(e.created_at)}</span>
-                  </li>
-                ))}
-              </List>
-            ) : (
-              <span className="text-text-muted">No reactions yet.</span>
-            )}
-            {record.data.history.length > 0 && (
-              <details>
-                <summary className="cursor-pointer text-brand-light">
-                  History ({record.data.history.length})
-                </summary>
-                <List>
-                  {record.data.history.map((e, i) => (
-                    <li key={i} className={whoRow}>
-                      <span className="num text-text-muted">{formatDate(e.created_at)}</span>
-                      <PlayerLink player={{ profileNumber: e.profile_number, name: e.user_name }} />
-                      <span>{reactionLabel(e.reaction)}</span>
-                    </li>
-                  ))}
-                </List>
-              </details>
-            )}
-          </>
-        ))}
-    </div>
-  )
-}
-
-function List({ children }: { children: ReactNode }) {
-  return <ul className="m-0 flex max-h-[180px] list-none flex-col gap-0.5 overflow-y-auto p-0">{children}</ul>
 }
 
 /**

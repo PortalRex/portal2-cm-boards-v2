@@ -26,28 +26,6 @@ export const setRunPartner = (changelogId: number, steamId: string, reason: Reas
 export const setCoopHost = (coopId: number, host: string | null) =>
   api.put(`/coop/${coopId}/host`, { body: { host } })
 
-export interface ReactionRecordEntry {
-  profile_number: string
-  user_name: string
-  avatar: string | null
-  /** 1, -1, or null when cleared. */
-  reaction: 1 | -1 | null
-  created_at: string
-}
-
-/** Who reacted to the run now, and every change. */
-export interface ReactionRecord {
-  current: ReactionRecordEntry[]
-  history: ReactionRecordEntry[]
-}
-
-export const reactionRecordQueryOptions = (changelogId: number) =>
-  queryOptions({
-    queryKey: queryKeys.runReactionRecord(changelogId),
-    queryFn: ({ signal }) => api.get<ReactionRecord>(`/admin/runs/${changelogId}/reactions`, { signal }),
-    retry: false,
-  })
-
 /** A note only staff see; the old board's notes have no id or author. */
 export interface StaffNote {
   id: number | null

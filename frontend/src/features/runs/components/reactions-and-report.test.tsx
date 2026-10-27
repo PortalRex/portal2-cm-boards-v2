@@ -32,32 +32,12 @@ function serveReactions(initial = { up: 2, down: 1, mine: null as 1 | -1 | null 
   return sent
 }
 
-describe('reactions in Run Details', () => {
-  it('shows the counts to everyone, but only signed-in players can react', async () => {
+describe('Run Details', () => {
+  it('has no like or dislike buttons (map boards, profiles)', async () => {
     serveReactions()
-    await renderWithProviders(<RunDetails run={run} map={map} />)
-    const up = await screen.findByRole('button', { name: 'Thumbs up (2)' })
-    expect(up).toBeDisabled()
-    expect(up).toHaveAttribute('title', 'Sign in to react')
-    expect(screen.getByRole('button', { name: 'Thumbs down (1)' })).toBeDisabled()
-  })
-
-  it('lets a player react, and click again to clear', async () => {
-    const sent = serveReactions()
     await renderWithProviders(<RunDetails run={run} map={map} />, { user: 'player' })
-    await userEvent.click(await screen.findByRole('button', { name: 'Thumbs up (2)' }))
-    const up = await screen.findByRole('button', { name: 'Thumbs up (3)' })
-    expect(up).toHaveAttribute('aria-pressed', 'true')
-    await userEvent.click(up)
-    await screen.findByRole('button', { name: 'Thumbs up (2)' })
-    expect(sent).toEqual([{ reaction: 'up' }, { reaction: null }])
-  })
-
-  it('is left out where the row has its own buttons (Score Updates)', async () => {
-    serveReactions()
-    await renderWithProviders(<RunDetails run={run} map={map} showReactions={false} />)
     await screen.findByRole('button', { name: /report run/i })
-    expect(screen.queryByRole('button', { name: /thumbs up/i })).toBeNull()
+    expect(screen.queryByRole('button', { name: /thumbs (up|down)/i })).toBeNull()
   })
 })
 

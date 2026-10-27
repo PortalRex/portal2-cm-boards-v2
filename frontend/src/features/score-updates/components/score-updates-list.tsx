@@ -7,13 +7,11 @@ import { Pagination } from '@/components/pagination'
 import { Panel } from '@/components/panel'
 import { SearchBox } from '@/components/search-box'
 import { EmptyState, ErrorState, Loading } from '@/components/status'
-import { useCurrentUser } from '@/hooks/use-current-user'
 import { useDebounced } from '@/hooks/use-debounced'
 import { useGame } from '@/hooks/use-game'
 import { useRenderedSet } from '@/hooks/use-rendered-set'
 import { useCatalog } from '@/lib/catalog'
 import { changelogQueryOptions } from '@/lib/runs/changelog'
-import { myReactionsQueryOptions } from '@/lib/runs/reactions'
 import type { Run } from '@/types/runs'
 import {
   applyFilterChanges,
@@ -56,13 +54,6 @@ export function ScoreUpdatesList({
   const page = filters.page
   const visible = entries.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
   const rendered = useRenderedSet(visible, game)
-  // Which of the visible runs the signed-in player reacted to (one request per page).
-  const me = useCurrentUser()
-  const signedIn = Boolean(me) && !me?.sample
-  const mine = useQuery({
-    ...myReactionsQueryOptions(visible.map((e) => e.id)),
-    enabled: signedIn && visible.length > 0,
-  })
   const setPage = (p: number) => set({ page: String(p) })
   const filtered = isFiltered(filters, query)
 
@@ -83,7 +74,7 @@ export function ScoreUpdatesList({
       <div
         role="table"
         aria-label="Score updates"
-        className="[--su-cols:83px_83px_minmax(170px,1.2fr)_minmax(220px,2.3fr)_110px_100px_90px_150px_156px_44px] upto1400:[--su-cols:70px_70px_minmax(150px,1.2fr)_minmax(180px,2fr)_96px_86px_76px_132px_124px_40px]"
+        className="[--su-cols:83px_83px_minmax(170px,1.2fr)_minmax(220px,2.3fr)_110px_100px_90px_150px_48px_44px] upto1400:[--su-cols:70px_70px_minmax(150px,1.2fr)_minmax(180px,2fr)_96px_86px_76px_132px_44px_40px]"
       >
         <div
           role="row"
@@ -119,7 +110,6 @@ export function ScoreUpdatesList({
               key={`${entry.game}-${entry.id}`}
               entry={entry}
               rendered={rendered}
-              myReaction={mine.data?.[entry.id]}
               renderRunDetails={renderRunDetails}
             />
           ))

@@ -129,38 +129,11 @@ describe('Score Updates', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Something went wrong on the server.')
   })
 
-  it("doesn't let signed-out visitors react", async () => {
+  it('has no like or dislike buttons on the rows', async () => {
     serve()
-    await renderRoute('/')
-    const row = await rowFor(changelog[0]!.map_name)
-    expect(within(row).getByRole('button', { name: /thumbs up/i })).toBeDisabled()
-  })
-
-  it("shows a player's reactions and lets them react, clicking again to clear", async () => {
-    serve()
-    const first = changelog[0]!
-    const bodies: unknown[] = []
-    server.use(
-      http.get(`${API}/runs/reactions/mine`, () => HttpResponse.json({ [first.id]: -1 })),
-      http.put(`${API}/runs/${first.id}/reaction`, async ({ request }) => {
-        const body = (await request.json()) as { reaction: string | null }
-        bodies.push(body)
-        return HttpResponse.json(
-          body.reaction === 'up' ? { up: 1, down: 0, mine: 1 } : { up: 0, down: 0, mine: null },
-        )
-      }),
-    )
     await renderRoute('/', { user: 'player' })
-    const row = await rowFor(first.map_name)
-    const down = within(row).getByRole('button', { name: /thumbs down/i })
-    await waitFor(() => expect(down).toHaveAttribute('aria-pressed', 'true'))
-    const up = within(row).getByRole('button', { name: /thumbs up/i })
-    await userEvent.click(up)
-    await waitFor(() => expect(up).toHaveAttribute('aria-pressed', 'true'))
-    expect(up).toHaveAccessibleName('Thumbs up (1)')
-    await userEvent.click(up)
-    await waitFor(() => expect(up).toHaveAttribute('aria-pressed', 'false'))
-    expect(bodies).toEqual([{ reaction: 'up' }, { reaction: null }])
+    const row = await rowFor(changelog[0]!.map_name)
+    expect(within(row).queryByRole('button', { name: /thumbs (up|down)/i })).toBeNull()
   })
 
   it("opens a player's history on the map from the time", async () => {

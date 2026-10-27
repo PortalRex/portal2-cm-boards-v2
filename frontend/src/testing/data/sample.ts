@@ -449,8 +449,6 @@ function buildChangelog(game: string): ChangelogRaw[] {
       portals: null,
       sar_version: '1.12.8',
       date_estimated: false,
-      reactions_up: 0,
-      reactions_down: 0,
     })
   }
   return out

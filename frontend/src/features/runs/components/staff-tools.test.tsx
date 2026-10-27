@@ -178,57 +178,11 @@ describe('co-op runs', () => {
   })
 })
 
-describe('who reacted', () => {
-  it('loads the record when opened: current reactions and the history', async () => {
-    server.use(
-      http.get(`${API}/admin/runs/100/reactions`, () =>
-        HttpResponse.json({
-          current: [
-            {
-              profile_number: blue.profileNumber,
-              user_name: 'Blue',
-              avatar: null,
-              reaction: 1,
-              created_at: '2026-10-01T12:00:00Z',
-            },
-          ],
-          history: [
-            {
-              profile_number: blue.profileNumber,
-              user_name: 'Blue',
-              avatar: null,
-              reaction: -1,
-              created_at: '2026-09-30T12:00:00Z',
-            },
-            {
-              profile_number: blue.profileNumber,
-              user_name: 'Blue',
-              avatar: null,
-              reaction: null,
-              created_at: '2026-09-30T13:00:00Z',
-            },
-          ],
-        }),
-      ),
-    )
+describe('reactions', () => {
+  it('has no reactions section (like and dislike are gone)', async () => {
     await renderWithProviders(<RunDetails run={run} map={spMap} />, { user: 'verifier' })
-    await userEvent.click(await screen.findByRole('button', { name: 'Reactions' }))
-    expect(await screen.findByText('👍')).toBeInTheDocument()
-    expect(screen.getByText('History (2)')).toBeInTheDocument()
-    expect(screen.getByText('cleared')).toBeInTheDocument()
-    await userEvent.click(screen.getByRole('button', { name: 'Hide reactions' }))
-    expect(screen.queryByText('👍')).toBeNull()
-  })
-
-  it('says when nobody reacted, and when the record can’t load', async () => {
-    const { unmount } = await renderWithProviders(<RunDetails run={run} map={spMap} />, { user: 'verifier' })
-    await userEvent.click(await screen.findByRole('button', { name: 'Reactions' }))
-    expect(await screen.findByText('No reactions yet.')).toBeInTheDocument()
-    unmount()
-    server.use(http.get(`${API}/admin/runs/100/reactions`, () => new HttpResponse(null, { status: 500 })))
-    await renderWithProviders(<RunDetails run={run} map={spMap} />, { user: 'verifier' })
-    await userEvent.click(await screen.findByRole('button', { name: 'Reactions' }))
-    expect(await screen.findByText('Couldn’t load reactions.')).toBeInTheDocument()
+    await screen.findByRole('button', { name: /report run/i })
+    expect(screen.queryByRole('button', { name: 'Reactions' })).toBeNull()
   })
 })
 

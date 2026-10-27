@@ -25,8 +25,6 @@ export {
   Sun as LightModeIcon,
   Moon as DarkModeIcon,
   Star as StarIcon,
-  ThumbsUp as ThumbUpIcon,
-  ThumbsDown as ThumbDownIcon,
   Globe as GlobeIcon,
   Sparkles as SparkleIcon,
   User as PersonIcon,

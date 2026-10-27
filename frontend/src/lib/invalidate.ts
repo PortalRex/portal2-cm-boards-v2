@@ -2,7 +2,7 @@ import type { QueryClient } from '@tanstack/react-query'
 import { queryKeys } from './query-keys'
 
 // The one place that knows what a change to a run or a player affects. Every staff action,
-// reaction, submission and report calls these after it succeeds. Only queries on screen refetch
+// submission and report calls these after it succeeds. Only queries on screen refetch
 // straight away; the rest are marked stale and refetch when next used.
 
 export interface RunChange {

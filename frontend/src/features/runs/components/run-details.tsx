@@ -12,7 +12,6 @@ import type { CoopHalf, Player, RunMap } from '@/types/runs'
 import { coopHalvesQueryOptions, segmentsQueryOptions } from '../api/details'
 import { timerNote } from '../utils/timer-note'
 import { PartnerDemo, PendingProof } from './pending-proof'
-import { ReactionsBar } from './reactions-bar'
 import { ReportRun } from './report-run'
 import { StaffTools } from './staff-tools'
 
@@ -55,16 +54,13 @@ export function RunDetails({
   map,
   game = 'portal2',
   rendered,
-  showReactions = true,
   children,
 }: {
   run: DetailsRun
   map: RunMap
   game?: string
   rendered?: Map<number, string>
-  /** Score Updates rows have their own reaction buttons, so they leave these out. */
-  showReactions?: boolean
-  /** Further sections under the info (reactions, report, staff tools). */
+  /** Further sections under the info (report, staff tools). */
   children?: ReactNode
 }) {
   const halves = useQuery({ ...coopHalvesQueryOptions(run.coopId ?? -1), enabled: run.coopId != null })
@@ -195,7 +191,6 @@ export function RunDetails({
           <TimerNote score={run.score} segments={segments.data ?? null} />
           {own != null && <PendingProof run={{ ...run, changelogId: own }} halves={list} />}
           {own != null && <PartnerDemo run={{ ...run, changelogId: own }} halves={list} />}
-          {own != null && showReactions && <ReactionsBar changelogId={own} />}
           {own != null && <ReportRun changelogId={own} />}
           {own != null && <StaffTools run={{ ...run, changelogId: own }} map={map} game={game} />}
           {children}

@@ -36,7 +36,11 @@ const byId = (id: number) => adapted.find((r) => r.id === id)!
 
 describe('adaptChangelog', () => {
   it('matches the legacy adapter for every fixture row', () => {
-    expect(adapted.map(({ map: _map, ...rest }) => rest)).toEqual(legacy.changelog)
+    // Less the reaction counts: likes and dislikes are gone from the site.
+    const expected = legacy.changelog.map(
+      ({ reactionsUp: _up, reactionsDown: _down, ...rest }: Record<string, unknown>) => rest,
+    )
+    expect(adapted.map(({ map: _map, ...rest }) => rest)).toEqual(expected)
   })
 
   it('takes the map from the catalog', () => {

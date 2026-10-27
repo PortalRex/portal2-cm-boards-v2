@@ -2,7 +2,6 @@ import { screen, waitFor, within } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
 import { PendingProof } from '@/features/runs/components/pending-proof'
-import { ReactionsBar } from '@/features/runs/components/reactions-bar'
 import { ReportRun } from '@/features/runs/components/report-run'
 import { SettingsPage } from '@/features/settings/components/settings-page'
 import { users } from '@/testing/data/users'
@@ -73,12 +72,10 @@ describe('read-only mode', () => {
     expect(await screen.findByRole('button', { name: /submit run/i })).toBeInTheDocument()
   })
 
-  it('keeps the reaction counts but not the buttons, and has no Report run or Add demo', async () => {
+  it('has no Report run or Add demo', async () => {
     readOnly()
-    server.use(http.get(`${API}/runs/100/reactions`, () => HttpResponse.json({ up: 3, down: 1, mine: null })))
     await renderWithProviders(
       <>
-        <ReactionsBar changelogId={100} />
         <ReportRun changelogId={100} />
         <PendingProof
           run={{
@@ -90,11 +87,9 @@ describe('read-only mode', () => {
       </>,
       { user: 'player' },
     )
-    const up = await screen.findByRole('button', { name: 'Thumbs up (3)' })
-    expect(up).toBeDisabled()
-    expect(up).toHaveAttribute('title', 'Reactions open soon')
-    expect(screen.queryByText('Report run')).toBeNull()
-    expect(screen.queryByText('Add demo')).toBeNull()
+    // Shown until the site says it's read-only, then gone.
+    await waitFor(() => expect(screen.queryByText('Report run')).toBeNull())
+    await waitFor(() => expect(screen.queryByText('Add demo')).toBeNull())
   })
 
   it('holds back the profile settings in Settings', async () => {
