@@ -12,10 +12,12 @@ Portal 2 single player WR history docs (2011 onward), one record per line:
 Lines that aren't records (routing history, notes) are ignored; records without a date or a time
 ("????") are listed on stderr and left out.
 
-The SQL is self-contained and safe to run again. It adds a record only when the boards don't
-already have it (an unbanned run on the map with the same time, by the same player or within a few
-days of its date: the boards' oldest dates are sometimes off by weeks), and never one matching a
-banned run there or noted as having no demo: a run the boards removed stays removed. It ends by listing what it skipped for those reasons.
+The SQL is self-contained and safe to run again. It adds a record only when the boards' WR history
+doesn't already have it (a world record run on the map with the same time, by the same player or
+within a few days of its date: the boards' oldest dates are sometimes off by weeks). The same time
+as a run that wasn't a WR on the boards doesn't count: the old boards dated many old times by when
+they first saw them, years later. It never adds one matching a banned run there or noted as having
+no demo: a run the boards removed stays removed. It ends by listing what it skipped for those reasons.
 
 Usage:
   python old_wrs.py docs.json --source "Silly Noodle's WR history docs" > old_wrs.sql
@@ -103,13 +105,14 @@ CREATE TEMP TABLE old_wrs_in (
 INSERT INTO old_wrs_in VALUES
 {values};
 
--- Each record's Portal 2 map, and whether a run on the boards is the same one (same time, by the
--- same player or on about the same day) or a banned run is.
+-- Each record's Portal 2 map, and whether a run in the boards' WR history is the same one (same
+-- time, by the same player or on about the same day) or a banned run is.
 CREATE TEMP TABLE old_wrs_matched ON COMMIT DROP AS
 SELECT i.*, m.steam_id AS map_id,
     EXISTS (
         SELECT 1 FROM changelog AS cl LEFT JOIN users AS u ON u.profile_number = cl.profile_number
-        WHERE cl.map_id = m.steam_id AND cl.score = i.score AND NOT cl.banned AND ({SAME_RUN})
+        WHERE cl.map_id = m.steam_id AND cl.score = i.score AND NOT cl.banned
+          AND cl.post_rank = 1 AND NOT cl.wr_hidden AND ({SAME_RUN})
     ) AS on_boards,
     EXISTS (
         SELECT 1 FROM changelog AS cl LEFT JOIN users AS u ON u.profile_number = cl.profile_number
