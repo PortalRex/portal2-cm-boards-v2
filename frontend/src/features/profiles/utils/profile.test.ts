@@ -79,6 +79,8 @@ describe('adaptProfile', () => {
     expect(p.worldRecords).toEqual({ sp: 6, coop: 13 })
     expect(p.best?.map.title).toBe('Laser Stairs')
     expect(p.worst).toMatchObject({ rank: 17, map: { title: 'Funnel Catch' } })
+    // 1st on all 19 maps hero holds the record on; 17th on Funnel Catch alone.
+    expect([p.bestCount, p.worstCount]).toEqual([19, 1])
   })
 
   it('picks the newest and oldest of the single player and co-op runs', () => {

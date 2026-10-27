@@ -163,6 +163,9 @@ export interface Profile {
   oldest: ScoreBrief | null
   best: MapScore | null
   worst: MapScore | null
+  /** How many maps share the best and the worst place. */
+  bestCount: number
+  worstCount: number
   /** By map id. */
   scores: Record<string, MapScore>
   history: Run[]

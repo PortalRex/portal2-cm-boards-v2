@@ -79,9 +79,11 @@ describe('Profile page', () => {
     const stats = card('Statistics')
     expect(within(stats).getByText('Catapults')).toBeInTheDocument()
     expect(within(stats).getByText('Team Retrieval')).toBeInTheDocument()
-    expect(within(stats).getByText('Laser Stairs')).toBeInTheDocument()
+    // hero is 1st on every map they hold the record on: the card says how many, with no one map to open.
+    expect(within(stats).getByText('19 maps')).toBeInTheDocument()
+    expect(within(stats).queryByRole('link', { name: /1st/ })).not.toBeInTheDocument()
     expect(within(stats).getByText('Funnel Catch')).toBeInTheDocument()
-    // Newest and oldest score, and best and worst place, open their map.
+    // Newest and oldest score, and a place on one map, open their map.
     expect(within(stats).getByRole('link', { name: /on Catapults/ })).toHaveAttribute(
       'href',
       '/map/coop/47840',
@@ -89,10 +91,6 @@ describe('Profile page', () => {
     expect(within(stats).getByRole('link', { name: /on Team Retrieval/ })).toHaveAttribute(
       'href',
       expect.stringMatching(/^\/map\/coop\/\d+$/),
-    )
-    expect(within(stats).getByRole('link', { name: /1st\s*on Laser Stairs/ })).toHaveAttribute(
-      'href',
-      '/map/sp/47736',
     )
     expect(within(stats).getByRole('link', { name: /17th\s*on Funnel Catch/ })).toHaveAttribute(
       'href',
@@ -336,8 +334,9 @@ describe('Profile page', () => {
     const { router } = await renderProfile(`/profile/${FIXTURE_PLAYER}?at=2024-01-01`)
     expect(await screen.findByText(/Showing hero’s profile as it was on/)).toBeInTheDocument()
     await within(card('Challenge Mode Points')).findByText(formatPoints(11579))
-    // Newest score and best place, that day.
-    expect(within(card('Statistics')).getAllByText('Laser Crusher')).toHaveLength(2)
+    // Newest score that day; best and worst place were each shared by several maps.
+    expect(within(card('Statistics')).getByText('Laser Crusher')).toBeInTheDocument()
+    expect(within(card('Statistics')).getAllByText(/^\d+ maps$/)).toHaveLength(2)
     await userEvent.click(screen.getByRole('button', { name: 'Back to today' }))
     await waitFor(() => expect(router.state.location.search).toEqual({}))
   })

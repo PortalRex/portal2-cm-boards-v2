@@ -2,6 +2,7 @@ import { MEL, modeLabel, PORTAL2, type Catalog } from '@/lib/catalog'
 import type { PointsBoard } from '@/lib/data/roles'
 import type { Run } from '@/types/runs'
 import type { AggregateRowRaw, GameResults, MapScore, PointsBoardKey, Profile, ScoreBrief } from '../types'
+import { bestAndWorst } from './profile'
 
 /**
  * One of the three boards the profile's top cards show: a game's first and second boards (Portal
@@ -34,6 +35,9 @@ export interface ProfileSummary {
   oldest: ScoreBrief | null
   best: MapScore | null
   worst: MapScore | null
+  /** How many maps share the best and the worst place. */
+  bestCount: number
+  worstCount: number
 }
 
 /** Where a game's board is: Portal 2's and Mel's at their own addresses, other games' under /game. */
@@ -115,6 +119,8 @@ export function p2Summary(c: Catalog, p: Profile): ProfileSummary {
     oldest: p.oldest,
     best: p.best,
     worst: p.worst,
+    bestCount: p.bestCount,
+    worstCount: p.worstCount,
   }
 }
 
@@ -151,7 +157,6 @@ export function gameSummary(
     .sort((a, b) => time(a.timestamp) - time(b.timestamp))
   const brief = (h: Run | undefined): ScoreBrief | null =>
     h ? { map: h.map, score: h.score, timestamp: h.timestamp } : null
-  const sorted = [...ranked].sort((a, b) => a.rank - b.rank)
   return {
     slots,
     points,
@@ -161,8 +166,7 @@ export function gameSummary(
     worldRecords,
     newest: brief(dated[dated.length - 1]),
     oldest: brief(dated[0]),
-    best: sorted[0] ?? null,
-    worst: sorted[sorted.length - 1] ?? null,
+    ...bestAndWorst(ranked),
   }
 }
 

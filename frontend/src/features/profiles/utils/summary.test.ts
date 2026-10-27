@@ -72,6 +72,7 @@ describe('gameSummary', () => {
     expect(summary.averagePlace).toEqual({ sp: 4, coop: 3, overall: 11 / 3 })
     expect(summary.worldRecords).toEqual({ sp: 1, coop: 0, overall: 1 })
     expect([summary.best?.rank, summary.worst?.rank]).toEqual([1, 7])
+    expect([summary.bestCount, summary.worstCount]).toEqual([1, 1])
   })
 })
 

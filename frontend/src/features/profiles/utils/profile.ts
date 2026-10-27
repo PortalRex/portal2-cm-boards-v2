@@ -141,6 +141,22 @@ export const splitTitles = (title: string | null | undefined): string[] =>
     .map((t) => t.trim())
     .filter(Boolean)
 
+/**
+ * Best and worst place over the ranked maps, with how many maps share each (the card then says
+ * "1st on 6 maps" instead of naming one of them).
+ */
+export function bestAndWorst(ranked: (MapScore & { rank: number })[]) {
+  const sorted = [...ranked].sort((a, b) => a.rank - b.rank)
+  const best = sorted[0] ?? null
+  const worst = sorted[sorted.length - 1] ?? null
+  return {
+    best,
+    worst,
+    bestCount: best ? sorted.filter((s) => s.rank === best.rank).length : 0,
+    worstCount: worst ? sorted.filter((s) => s.rank === worst.rank).length : 0,
+  }
+}
+
 /** Average rank, world records, best and worst place over the ranked maps. */
 function placeStats(scores: Record<string, MapScore>) {
   const ranked = Object.values(scores).filter((s): s is MapScore & { rank: number } => s.rank != null)
@@ -148,13 +164,11 @@ function placeStats(scores: Record<string, MapScore>) {
     const list = ranked.filter((s) => mode === 'overall' || s.map.mode === mode)
     return list.length ? list.reduce((a, s) => a + s.rank, 0) / list.length : null
   }
-  const sorted = [...ranked].sort((a, b) => a.rank - b.rank)
   const wrs = (mode: string) => ranked.filter((s) => s.map.mode === mode && s.rank === 1).length
   return {
     averagePlace: { sp: avg('sp'), coop: avg('coop'), overall: avg('overall') },
     worldRecords: { sp: wrs('sp'), coop: wrs('coop') },
-    best: sorted[0] ?? null,
-    worst: sorted[sorted.length - 1] ?? null,
+    ...bestAndWorst(ranked),
   }
 }
 

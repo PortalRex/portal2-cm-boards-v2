@@ -261,15 +261,26 @@ function OnMap({ map, children }: { map: ScoreBrief['map'] | undefined; children
   )
 }
 
-function PlaceStat({ label, entry }: { label: string; entry: MapScore | null }) {
+/** A place on one map (linking to it), or on how many maps share it. */
+function PlaceStat({ label, entry, count }: { label: string; entry: MapScore | null; count: number }) {
+  const place = (
+    <span className={valueClass('md')}>
+      <Ordinal n={entry?.rank} />
+    </span>
+  )
   return (
     <div className="flex min-w-0 flex-col items-center text-center">
       <StatHead label={label} />
-      <OnMap map={entry?.map}>
-        <span className={valueClass('md')}>
-          <Ordinal n={entry?.rank} />
-        </span>
-      </OnMap>
+      {count > 1 ? (
+        <>
+          {place}
+          <span className="text-base uppercase">
+            on <b className="font-semibold">{count} maps</b>
+          </span>
+        </>
+      ) : (
+        <OnMap map={entry?.map}>{place}</OnMap>
+      )}
     </div>
   )
 }
@@ -281,8 +292,8 @@ export function StatisticsCard({ summary }: { summary: ProfileSummary }) {
       <div className="grid grid-cols-2 gap-x-2.5 gap-y-[26px] py-3">
         <ScoreStat label="Newest score" entry={summary.newest} green />
         <ScoreStat label="Oldest score" entry={summary.oldest} />
-        <PlaceStat label="Best place" entry={summary.best} />
-        <PlaceStat label="Worst place" entry={summary.worst} />
+        <PlaceStat label="Best place" entry={summary.best} count={summary.bestCount} />
+        <PlaceStat label="Worst place" entry={summary.worst} count={summary.worstCount} />
       </div>
     </Card>
   )
