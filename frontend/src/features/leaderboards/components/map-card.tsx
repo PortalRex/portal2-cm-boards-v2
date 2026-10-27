@@ -9,9 +9,9 @@ import { mapLink, useCatalog, type MapInfo } from '@/lib/catalog'
 import type { PreviewRun } from '@/types/runs'
 
 /**
- * A run's demo / video icons, each in its own fixed-width column. The autorender and YouTube
- * columns are always kept, right before the time, so the play icon sits in the same place on every
- * card and row whether or not there's a YouTube video.
+ * A run's autorender, YouTube and demo icons, each in its own narrow column (narrow so names fit).
+ * The two video columns are always kept, so they sit in the same place on every card; the demo's
+ * when any run on the card has one.
  */
 function ScoreIcons({
   entry,
@@ -24,18 +24,18 @@ function ScoreIcons({
   size: number
   demoColumn: boolean
 }) {
-  const slot = 'inline-flex w-7 justify-center'
+  const slot = 'inline-flex w-5 justify-center'
   return (
-    <span className="inline-flex items-center gap-0.5 upto700:hidden [&_svg]:block">
+    <span className="inline-flex shrink-0 items-center gap-0.5 upto700:hidden [&_svg]:block">
+      <span className={slot}>
+        {entry.autorenderId && <AutorenderLink run={entry} game={game} size={size} />}
+      </span>
+      <span className={slot}>{entry.youtubeId && <YouTubeLink id={entry.youtubeId} size={size + 2} />}</span>
       {demoColumn && (
         <span className={slot}>
           <DemoLink demoId={entry.demoId} size={size} hideMissing />
         </span>
       )}
-      <span className={slot}>
-        {entry.autorenderId && <AutorenderLink run={entry} game={game} size={size + 2} />}
-      </span>
-      <span className={slot}>{entry.youtubeId && <YouTubeLink id={entry.youtubeId} size={size + 4} />}</span>
     </span>
   )
 }
@@ -64,29 +64,29 @@ export function MapCard({ map, scores }: { map: MapInfo; scores: PreviewRun[] | 
       </AppLink>
       <div
         className={cn(
-          'flex min-h-10 items-center gap-2 bg-wr-row py-0.5 pr-2.5 pl-2 upto700:min-h-9 upto700:gap-1.5 upto700:px-1.5',
+          'flex min-h-10 items-center gap-1.5 bg-wr-row py-0.5 pr-2 pl-1.5 upto700:min-h-9 upto700:px-1.5',
           isMine(wr) && 'me-row',
         )}
       >
-        <TrophyFilledIcon className="size-[26px] shrink-0 text-trophy upto700:size-[18px]" />
+        <TrophyFilledIcon className="size-[18px] shrink-0 text-trophy" />
         {wr ? (
           <>
-            {/* Same order as the rows below: name, video / demo, time. */}
+            {/* Same order as the rows below: name, autorender, YouTube, demo, time. */}
             <div className="flex min-w-0 flex-1 flex-col leading-[1.05]">
               {wr.players.map((p, i) => (
                 <PlayerLink
                   key={i}
                   player={p}
-                  className="truncate text-[17px] leading-[1.3] upto700:text-sm"
+                  className="truncate text-[15px] leading-[1.3] upto700:text-sm"
                 />
               ))}
             </div>
-            <ScoreIcons entry={wr} game={map.game} size={22} demoColumn={demoColumn} />
+            <ScoreIcons entry={wr} game={map.game} size={18} demoColumn={demoColumn} />
             <TimeButton
               score={wr.score}
               players={wr.players}
               map={map}
-              className="min-w-[60px] shrink-0 text-right text-[17px] font-semibold text-foreground upto700:text-[13px]"
+              className="min-w-[54px] shrink-0 text-right text-base font-semibold text-foreground upto700:min-w-0 upto700:text-[13px]"
             />
           </>
         ) : (
@@ -98,7 +98,7 @@ export function MapCard({ map, scores }: { map: MapInfo; scores: PreviewRun[] | 
           <li
             key={i}
             className={cn(
-              'flex h-6 items-center gap-2 pr-2.5 pl-3 text-base odd:bg-row upto700:h-[22px] upto700:px-1.5 upto700:text-[13px] upto700:nth-[n+3]:hidden',
+              'flex h-6 items-center gap-1.5 pr-2 pl-2.5 text-[15px] odd:bg-row upto700:h-[22px] upto700:px-1.5 upto700:text-[13px] upto700:nth-[n+3]:hidden',
               isMine(entry) && 'me-row',
             )}
           >
@@ -110,12 +110,12 @@ export function MapCard({ map, scores }: { map: MapInfo; scores: PreviewRun[] | 
                 </span>
               ))}
             </span>
-            <ScoreIcons entry={entry} game={map.game} size={18} demoColumn={demoColumn} />
+            <ScoreIcons entry={entry} game={map.game} size={15} demoColumn={demoColumn} />
             <TimeButton
               score={entry.score}
               players={entry.players}
               map={map}
-              className="min-w-[60px] shrink-0 text-right font-semibold"
+              className="min-w-[54px] shrink-0 text-right font-semibold upto700:min-w-0"
             />
           </li>
         ))}

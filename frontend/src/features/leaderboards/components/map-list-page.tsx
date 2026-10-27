@@ -91,7 +91,7 @@ export function MapListPage({ search }: { search: MapListSearch }) {
                 {chapter.name}
               </h2>
             </header>
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-x-10 gap-y-9 upto700:grid-cols-2 upto700:gap-x-2.5 upto700:gap-y-3">
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-x-6 gap-y-9 upto700:grid-cols-2 upto700:gap-x-2.5 upto700:gap-y-3">
               {chapter.maps.map((map) => (
                 <MapCard key={map.id} map={map} scores={previews.data?.[map.id]} />
               ))}
