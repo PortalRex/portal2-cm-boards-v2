@@ -86,6 +86,9 @@ describe('Stats: Runners', () => {
     await renderRoute('/stats?game=mel')
     await screen.findByText('10,443')
     expect(asked).toContain('/stats/site?game_id=2')
+    // Mel has no co-op board, so no co-op partners list; Portal 2 keeps it (above).
+    expect(screen.getByRole('region', { name: 'Most runs' })).toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'Most co-op partners' })).not.toBeInTheDocument()
   })
 
   it("says so when the stats can't be loaded", async () => {

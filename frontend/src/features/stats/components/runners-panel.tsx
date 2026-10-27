@@ -7,28 +7,35 @@ import { Panel } from '@/components/panel'
 import { PlayerLink } from '@/components/player-link'
 import { EmptyState, Loading } from '@/components/status'
 import { useGame } from '@/hooks/use-game'
-import { useCatalog } from '@/lib/catalog'
+import { isMultiplayerMode, useCatalog } from '@/lib/catalog'
 import { formatDate, formatPoints, formatScore, timeAgo } from '@/lib/format'
 import { siteStatsQueryOptions, wrStatsQueryOptions, type Leader, type SiteStats } from '../api/stats'
 import { boardLabel, number, pick } from '../utils/format'
 import { Figures, Intro, MapName, PlayerCell, Row, SectionTitle, StatsSwitch, Table } from './stats-ui'
 
-/** The leader lists, in the order shown. */
-const LEADERS: { key: string; title: string; note: string; format: (v: number) => string }[] = [
-  { key: 'wr_held', title: 'World records held', note: 'current records, ties count', format: number },
-  { key: 'wr_set', title: 'World records set', note: 'runs that took the record', format: number },
-  { key: 'runs', title: 'Most runs', note: 'verified runs on the boards', format: number },
-  { key: 'runs_year', title: 'Most active this year', note: 'runs in the past 365 days', format: number },
-  { key: 'partners', title: 'Most co-op partners', note: 'different players ran with', format: number },
-  { key: 'demos', title: 'Most demos', note: 'runs submitted with a demo', format: number },
-  { key: 'portals', title: 'Most portals placed', note: 'counted from demos', format: number },
-  {
-    key: 'record_days',
-    title: 'Most days holding records',
-    note: 'every map added together',
-    format: (v) => number(Math.round(v)),
-  },
-]
+/** The leader lists, in the order shown; `coop` ones only for games with a co-op board. */
+const LEADERS: { key: string; title: string; note: string; format: (v: number) => string; coop?: boolean }[] =
+  [
+    { key: 'wr_held', title: 'World records held', note: 'current records, ties count', format: number },
+    { key: 'wr_set', title: 'World records set', note: 'runs that took the record', format: number },
+    { key: 'runs', title: 'Most runs', note: 'verified runs on the boards', format: number },
+    { key: 'runs_year', title: 'Most active this year', note: 'runs in the past 365 days', format: number },
+    {
+      key: 'partners',
+      title: 'Most co-op partners',
+      note: 'different players ran with',
+      format: number,
+      coop: true,
+    },
+    { key: 'demos', title: 'Most demos', note: 'runs submitted with a demo', format: number },
+    { key: 'portals', title: 'Most portals placed', note: 'counted from demos', format: number },
+    {
+      key: 'record_days',
+      title: 'Most days holding records',
+      note: 'every map added together',
+      format: (v) => number(Math.round(v)),
+    },
+  ]
 
 /** The Stats section's first page: site-wide totals, peak points, leaders and the oldest records. */
 export function RunnersPanel({
@@ -41,7 +48,10 @@ export function RunnersPanel({
   const catalog = useCatalog()
   // The game picked under the logo.
   const game = useGame()
-  const boards = [...(catalog.games[game]?.modes ?? []), 'overall']
+  const modes = catalog.games[game]?.modes ?? []
+  const boards = [...modes, 'overall']
+  // Mel has no co-op: no co-op partners list.
+  const hasCoop = modes.some((m) => isMultiplayerMode(catalog, m))
   const board = pick(boardParam, boards, 'overall')
   const stats = useQuery(siteStatsQueryOptions(catalog, game))
   const wr = useQuery(wrStatsQueryOptions(catalog, game))
@@ -81,7 +91,7 @@ export function RunnersPanel({
 
           <SectionTitle>Leaders</SectionTitle>
           <div className="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-3.5">
-            {LEADERS.map((l) => (
+            {LEADERS.filter((l) => !l.coop || hasCoop).map((l) => (
               <LeaderCard
                 key={l.key}
                 title={l.title}
