@@ -139,7 +139,7 @@ All under `/api/v1`. Auth: **public**, **signed in**, **staff** (any tier or ser
 | `GET /profile/at/{steam_id}?at=&game_id=` | public | Where a player stood at a past moment (`at` = a day, as of its end in UTC, or an ISO time): points and global place per board, and their best time, rank and points on each map then, ranked against everyone's times as of then (same rules as the points history). The profile's points chart links here (click a day). |
 | `GET /profile/aggregated/{steam_id}?game_id=&at=` | public | The player's place on every aggregated board (each chapter, each mode, overall), now or as of `at`: points (rank, points, gap to the next player up and to first) and time (the same, on boards where they have a time on every map), like the old boards' "aggregated times and points". Worked out from the same run timeline as `/profile/at`, so today and a past day agree; each moment's totals are cached (cleared when runs change). |
 | `GET /map/sp/{id}?at=`, `GET /map/coop/{id}?at=` | public | `at` (a day or an ISO time, UTC) gives the map's board as it stood then; undated imported runs count from release. The WR history chart links here (click a record). |
-| `GET /profile/points_peak/{steam_id}?game_id=` | public | A player's highest points per board (`sp`, `coop`, …, `overall`) with the date reached. Exact: points only rise when the player sets a run, so each of their runs is checked (same ranking as the points-over-time chart). |
+| `GET /profile/points_peak/{steam_id}?game_id=` | public | A player's highest points per board (`sp`, `coop`, …, `overall`) with the date reached. Exact, with the ranking of the points-over-time chart: checked at each of the player's runs and, in co-op (ranked by run), at each moment a run faster than theirs dropped out (two players whose bests were separate runs pairing up), when they move up without running. Never below the player's points now (from the points boards): where the run history and the boards disagree (a co-op run whose halves are paired into different bundles counts twice in the history), the points now are the peak, dated today. |
 | `GET /users/search?q=` | public | Up to 10 players by name or Steam ID, most active first. |
 | `GET /user/submit-key` | signed in | Whether you have a SAR auto-submit key (`has_key`, `created`); the key itself is never shown again. |
 | `POST /user/submit-key` | signed in | Makes you a new SAR auto-submit key (the old one stops working) and answers it once (`{ "key" }`, `Cache-Control: no-store`). 10 an hour per address. |
@@ -631,7 +631,7 @@ players and Countries are its other tabs at `/stats/compare` and `/stats/countri
 runs this year, co-op partners, demos, portals, time saved), the longest-standing current world records, and the top
 100 peak points per board with the date reached and the player's points now. Peaks: one sweep over every run in time
 order picks the candidates (`points_history::all_peaks`); each listed peak is then the same per-player peak the
-profile shows, and "now" comes from the points boards, so the page and profiles always agree. The stats are built in
+profile shows, and "now" comes from the points boards, so the page and profiles always agree (a peak below the points now is raised to them, as on the profile). The sweep also checks the peaks of players a run lifts (a co-op run dropping out), not only the runner's. The stats are built in
 the background after the points boards (startup and after each change); an out-of-date copy is served while a new
 one is built, so no request waits for it.
 

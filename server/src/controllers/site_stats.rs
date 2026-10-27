@@ -340,8 +340,11 @@ async fn peak_lists(pool: &PgPool, game_id: i32, current: &HashMap<String, HashM
             .filter_map(|(pn, peaks)| {
                 let pk = peaks.get(&key)?;
                 let (user_name, avatar) = names.get(pn).cloned().unwrap_or((pn.clone(), None));
-                let now = current.get(&key).and_then(|c| c.get(pn)).copied().unwrap_or(0.0);
-                Some(PeakEntry { profile_number: pn.clone(), user_name, avatar, points: pk.points, date: pk.date, current: (now * 10.0).round() / 10.0 })
+                let now = (current.get(&key).and_then(|c| c.get(pn)).copied().unwrap_or(0.0) * 10.0).round() / 10.0;
+                // Never below the points now, as on the profile (the history and the points boards
+                // can disagree over badly paired co-op runs).
+                let (points, date) = if now > pk.points { (now, chrono::Utc::now().date_naive()) } else { (pk.points, pk.date) };
+                Some(PeakEntry { profile_number: pn.clone(), user_name, avatar, points, date, current: now })
             })
             .collect();
         l.sort_by(|a, b| b.points.partial_cmp(&a.points).unwrap_or(std::cmp::Ordering::Equal).then(a.date.cmp(&b.date)));

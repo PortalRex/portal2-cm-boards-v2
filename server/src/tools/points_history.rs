@@ -189,7 +189,11 @@ fn totals_at(t: &Timeline, me: u32, ends: &[NaiveDateTime]) -> Vec<Vec<f64>> {
         let mut run_refs: HashMap<i64, u32> = HashMap::new();
         let mut counts: BTreeMap<i32, u32> = BTreeMap::new();
         let mut i = 0;
+        // The player's points on this map only change when its runs do: worked out again then,
+        // carried over otherwise (there can be thousands of sample instants).
+        let mut points = 0.0;
         for (si, end) in ends.iter().enumerate() {
+            let before = i;
             while i < map.runs.len() && map.runs[i].0 <= *end {
                 let (_, p, s, run) = map.runs[i];
                 match best.get(&p) {
@@ -228,10 +232,13 @@ fn totals_at(t: &Timeline, me: u32, ends: &[NaiveDateTime]) -> Vec<Vec<f64>> {
                 }
                 i += 1;
             }
-            if let Some(&(mine, _)) = best.get(&me) {
-                let faster: u32 = counts.range(..mine).map(|(_, c)| *c).sum();
-                totals[si][map.mode] += score(faster as i32 + 1) as f64;
+            if i != before {
+                points = best.get(&me).map_or(0.0, |&(mine, _)| {
+                    let faster: u32 = counts.range(..mine).map(|(_, c)| *c).sum();
+                    score(faster as i32 + 1) as f64
+                });
             }
+            totals[si][map.mode] += points;
         }
     }
     totals
@@ -561,10 +568,13 @@ pub struct Peak {
     pub date: NaiveDate,
 }
 
-/// A player's peak points per board key (`sp`, `coop`, ... and `overall`). Points only go up when
-/// the player sets a run (others can only pass them), so the peak is at one of their own runs:
-/// each is checked exactly. Undated runs count from release, as on the chart, but release itself
-/// isn't a candidate (the chart doesn't start there either).
+/// A player's peak points per board key (`sp`, `coop`, ... and `overall`). In single player, points
+/// only go up when the player sets a run (others can only pass them). Co-op ranked by run is the
+/// exception: when two players whose bests were separate runs set one together, a run above the
+/// player drops out and they move up without running. So the peak is checked at each of the
+/// player's runs and, for co-op, at each moment a run faster than theirs dropped out on a co-op map
+/// they play. Undated runs count from release, as on the chart, but release itself isn't a
+/// candidate (the chart doesn't start there either).
 pub async fn points_peak(pool: &PgPool, game_id: i32, profile_number: &str) -> Result<Arc<BTreeMap<String, Peak>>, sqlx::Error> {
     let key = (game_id, profile_number.to_string(), Utc::now().date_naive());
     if let Some(hit) = cache().peaks.lock().await.get(&key) {
@@ -580,19 +590,62 @@ pub async fn points_peak(pool: &PgPool, game_id: i32, profile_number: &str) -> R
     Ok(result)
 }
 
+/// The moments a run faster than `me`'s best dropped out of a co-op map's ranking (its players both
+/// moved on to other runs), the only times others can move `me` up there.
+fn drop_outs_above(map: &MapTimeline, me: u32) -> Vec<NaiveDateTime> {
+    let mut best: HashMap<u32, (i32, i64)> = HashMap::new();
+    let mut refs: HashMap<i64, u32> = HashMap::new();
+    let mut out = Vec::new();
+    for &(at, p, s, run) in &map.runs {
+        if best.get(&p).is_some_and(|&(old, _)| old <= s) {
+            continue;
+        }
+        if let Some(&(old, old_run)) = best.get(&p) {
+            let r = refs.entry(old_run).or_insert(1);
+            *r -= 1;
+            let mine = best.get(&me).map(|b| b.0);
+            if *r == 0 && p != me && mine.is_some_and(|m| old < m) {
+                out.push(at);
+            }
+        }
+        best.insert(p, (s, run));
+        *refs.entry(run).or_insert(0) += 1;
+    }
+    out
+}
+
+/// Per mode: whether others' runs can lift a player's points there (co-op ranked by run).
+fn coop_lifts_possible(t: &Timeline) -> Vec<bool> {
+    let by_run = crate::tools::config::coop_by_run();
+    t.modes.iter().map(|m| by_run && m == "coop").collect()
+}
+
 async fn compute_peak(pool: &PgPool, game_id: i32, profile_number: &str) -> Result<BTreeMap<String, Peak>, sqlx::Error> {
     let t = timeline(pool, game_id).await?;
-    let Some(&me) = t.players.get(profile_number) else {
-        return Ok(BTreeMap::new());
-    };
+    Ok(t.players.get(profile_number).map(|&me| peaks_of(&t, me)).unwrap_or_default())
+}
+
+/// [points_peak] for player `me` of a timeline.
+fn peaks_of(t: &Timeline, me: u32) -> BTreeMap<String, Peak> {
     let release = NaiveDate::from_ymd_opt(2011, 4, 19).unwrap().and_hms_opt(0, 0, 0).unwrap();
-    let mut ends: Vec<NaiveDateTime> = t.maps.iter().flat_map(|m| m.runs.iter().filter(|r| r.1 == me && r.0 != release).map(|r| r.0)).collect();
+    let lifts = coop_lifts_possible(t);
+    let mut ends: Vec<NaiveDateTime> = Vec::new();
+    for map in &t.maps {
+        if !map.runs.iter().any(|r| r.1 == me) {
+            continue;
+        }
+        ends.extend(map.runs.iter().filter(|r| r.1 == me).map(|r| r.0));
+        if lifts[map.mode] {
+            ends.extend(drop_outs_above(map, me));
+        }
+    }
+    ends.retain(|&at| at != release);
     ends.sort();
     ends.dedup();
     if ends.is_empty() {
         ends.push(Utc::now().naive_utc());
     }
-    let totals = totals_at(&t, me, &ends);
+    let totals = totals_at(t, me, &ends);
     let mut peaks: BTreeMap<String, Peak> = BTreeMap::new();
     let mut consider = |key: &str, value: f64, at: NaiveDateTime| {
         let value = (value * 10.0).round() / 10.0;
@@ -607,7 +660,7 @@ async fn compute_peak(pool: &PgPool, game_id: i32, profile_number: &str) -> Resu
         }
         consider("overall", per_mode.iter().sum(), *at);
     }
-    Ok(peaks)
+    peaks
 }
 
 /// A player's peak points per board key and their points now (from [all_peaks]).
@@ -619,9 +672,10 @@ pub struct PlayerPeaks {
 }
 
 /// Everyone's peak points in a game, from one pass over the run timeline in time order. The
-/// same rules as [points_peak] (which checks one player at each of their runs): here every run
-/// is applied in turn, adjusting the points of the players it passes, and the runner's own
-/// totals are checked against their peaks after each of their runs. Cached with the timeline.
+/// same rules as [points_peak] (which checks one player at the runs that can change their points):
+/// here every run is applied in turn, adjusting the points of the players it passes, and the
+/// runner's totals, and those of anyone it lifted, are checked against their peaks after each run.
+/// Cached with the timeline.
 pub async fn all_peaks(pool: &PgPool, game_id: i32) -> Result<Arc<Vec<PlayerPeaks>>, sqlx::Error> {
     if let Some(hit) = cache().all_peaks.lock().await.get(&game_id) {
         return Ok(hit.clone());
@@ -663,7 +717,8 @@ fn compute_all_peaks(t: &Timeline) -> Vec<PlayerPeaks> {
     let rank_of = |counts: &BTreeMap<i32, u32>, s: i32| counts.range(..s).map(|(_, c)| *c).sum::<u32>() as i32 + 1;
     // After an entry at `s` was added (dir +1) or removed (dir -1), the players at slower times
     // moved one rank: give them the difference. Ranks past 200 score nothing, so it stops there.
-    let shift = |st: &MapState, s: i32, dir: i32, mode: usize, totals: &mut Vec<f64>| {
+    // Players moved up (a co-op run dropping out) have their peaks checked too.
+    let shift = |st: &MapState, s: i32, dir: i32, mode: usize, totals: &mut Vec<f64>, lifted: &mut Vec<u32>| {
         let mut below: u32 = st.counts.range(..=s).map(|(_, c)| *c).sum();
         for (&x, players) in st.holders.range((std::ops::Bound::Excluded(s), std::ops::Bound::Unbounded)) {
             let new_rank = below as i32 + 1;
@@ -675,6 +730,9 @@ fn compute_all_peaks(t: &Timeline) -> Vec<PlayerPeaks> {
             if delta != 0.0 {
                 for &q in players {
                     totals[q as usize * modes + mode] += delta;
+                    if delta > 0.0 {
+                        lifted.push(q);
+                    }
                 }
             }
             below += st.counts.get(&x).copied().unwrap_or(0);
@@ -683,6 +741,8 @@ fn compute_all_peaks(t: &Timeline) -> Vec<PlayerPeaks> {
     // Peaks are checked once everything at an instant is applied (runs can share a timestamp:
     // co-op halves, imports), as the per-player peak sees them.
     let check = |totals: &[f64], peaks: &mut Vec<BTreeMap<String, Peak>>, players: &mut Vec<u32>, at: NaiveDateTime| {
+        players.sort_unstable();
+        players.dedup();
         if at != release {
             for &p in players.iter() {
                 let mine = &totals[p as usize * modes..(p as usize + 1) * modes];
@@ -737,7 +797,7 @@ fn compute_all_peaks(t: &Timeline) -> Vec<PlayerPeaks> {
                         st.counts.remove(&o);
                     }
                 }
-                shift(st, o, -1, mode, &mut totals);
+                shift(st, o, -1, mode, &mut totals, &mut pending);
             }
         }
         // The new best comes in.
@@ -751,13 +811,11 @@ fn compute_all_peaks(t: &Timeline) -> Vec<PlayerPeaks> {
         };
         if new {
             *st.counts.entry(s).or_insert(0) += 1;
-            shift(st, s, 1, mode, &mut totals);
+            shift(st, s, 1, mode, &mut totals, &mut pending);
         }
         st.holders.entry(s).or_default().push(p);
         totals[p as usize * modes + mode] += score(rank_of(&st.counts, s)) as f64;
-        if !pending.contains(&p) {
-            pending.push(p);
-        }
+        pending.push(p);
     }
     if let Some(at) = instant {
         check(&totals, &mut peaks, &mut pending, at);
@@ -877,6 +935,48 @@ mod tests {
                 map("m3", 1, vec![(ts(1), 0, 700, 8), (ts(1), 1, 650, 9)]),
             ],
         }
+    }
+
+    /// Co-op ranked by run: a player's points can rise without a run of theirs, when two runs above
+    /// them drop out because their players paired up again. The peak has to see that moment.
+    #[test]
+    fn coop_peaks_count_rises_from_others_pairing_up() {
+        // Players: a b c d (pairs above), e f (partners of "me"), me.
+        let players = HashMap::from([("a".into(), 0), ("b".into(), 1), ("c".into(), 2), ("d".into(), 3), ("e".into(), 4), ("f".into(), 5), ("me".into(), 6)]);
+        let map = |id: &str, runs: Vec<(NaiveDateTime, u32, i32, i64)>| MapTimeline { map_id: id.into(), mode: 0, chapter: 0, ids: runs.iter().map(|r| r.3).collect(), runs };
+        let t = Timeline {
+            modes: vec!["coop".into()],
+            players,
+            chapters: vec![ChapterInfo { id: 1, mode: "coop".into(), maps: 2 }],
+            maps: vec![
+                map(
+                    "c1",
+                    vec![
+                        // Day 1: a+b and c+d. Day 2: me+e, third. Day 3: a+c set a faster run (a run more above me).
+                        (ts(1), 0, 100, 1), (ts(1), 1, 100, 1), (ts(1), 2, 110, 2), (ts(1), 3, 110, 2),
+                        (ts(2), 6, 200, 3), (ts(2), 4, 200, 3),
+                        (ts(3), 0, 90, 4), (ts(3), 2, 90, 4),
+                        // Day 5: b+d pair up: a+b's and c+d's old runs drop out, and me moves back to third.
+                        (ts(5), 1, 95, 5), (ts(5), 3, 95, 5),
+                    ],
+                ),
+                // Day 4: me+f take first on another map (me's last run).
+                map("c2", vec![(ts(4), 6, 300, 6), (ts(4), 5, 300, 6)]),
+            ],
+        };
+        let expected = score(3) as f64 + score(1) as f64; // day 5: third on c1, first on c2
+        let at_own_runs = (score(3) as f64).max(score(4) as f64 + score(1) as f64);
+        assert!(expected > at_own_runs, "the rise after me's last run is the peak");
+
+        let mine = peaks_of(&t, 6);
+        assert_eq!(mine["coop"].points, (expected * 10.0).round() / 10.0);
+        assert_eq!(mine["coop"].date, ts(5).date());
+
+        let all = compute_all_peaks(&t);
+        let me = all.iter().find(|p| p.profile_number == "me").unwrap();
+        assert_eq!(me.peaks["coop"].points, mine["coop"].points);
+        assert_eq!(me.peaks["coop"].date, ts(5).date());
+        assert!(me.peaks["coop"].points >= me.current["coop"], "the peak is never below the points now");
     }
 
     fn row<'a>(rows: &'a [AggregateRow], board: &str) -> &'a AggregateRow {

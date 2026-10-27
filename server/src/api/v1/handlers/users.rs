@@ -492,11 +492,37 @@ async fn profile_aggregated(req: HttpRequest, config: web::Data<crate::tools::co
 }
 
 #[get("/profile/points_peak/{profile_number}")]
-async fn profile_points_peak(req: HttpRequest, config: web::Data<crate::tools::config::Config>, pool: web::Data<PgPool>, profile_number: web::Path<String>, query: web::Query<StatsQuery>) -> Result<impl Responder> {
+async fn profile_points_peak(
+    req: HttpRequest,
+    config: web::Data<crate::tools::config::Config>,
+    pool: web::Data<PgPool>,
+    points_cache: web::Data<PointsCache>,
+    profile_number: web::Path<String>,
+    query: web::Query<StatsQuery>,
+) -> Result<impl Responder> {
     if let Err(limited) = ratelimit::check(&req, &config, "points", 60, Duration::from_secs(60)) {
         return Ok(limited);
     }
-    Ok(HttpResponse::Ok().json(crate::tools::points_history::points_peak(pool.get_ref(), query.game_id.unwrap_or(1), &profile_number).await?))
+    let game_id = query.game_id.unwrap_or(1);
+    let mut peaks = (*crate::tools::points_history::points_peak(pool.get_ref(), game_id, &profile_number).await?).clone();
+    // The peak comes from replaying the run history, the points now (on the profile beside it) from
+    // the points cache. Where the two disagree (a co-op run whose halves are paired into different
+    // bundles counts twice in the history), the peak is still never below the points now.
+    if game_id == 1 {
+        let today = chrono::Utc::now().date_naive();
+        for w in profile_points(pool.get_ref(), &points_cache, &profile_number).await? {
+            let key = match w.id {
+                -1 => "sp",
+                -2 => "coop",
+                _ => "overall",
+            };
+            let now = (w.points.points as f64 * 10.0).round() / 10.0;
+            if now > 0.0 && peaks.get(key).is_none_or(|p| now > p.points) {
+                peaks.insert(key.to_string(), crate::tools::points_history::Peak { points: now, date: today });
+            }
+        }
+    }
+    Ok(HttpResponse::Ok().json(peaks))
 }
 
 #[derive(Deserialize)]
