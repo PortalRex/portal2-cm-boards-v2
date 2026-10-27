@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { runningBest, wrChartData, type ChartPoint } from './wr-chart'
+import { runningBest, standingRecord, stepRecord, toSecond, wrChartData, type ChartPoint } from './wr-chart'
 
 const record = (t: number, score: number, player: string, gain: number | null): ChartPoint => ({
   timestamp: null,
@@ -58,5 +58,39 @@ describe('runningBest', () => {
       point(2558, 'faster'),
     ])
     expect(kept.map((p) => p.player)).toEqual(['old', 'tie', 'faster'])
+  })
+})
+
+describe('stepRecord', () => {
+  // Records at 10.5 s, 20.25 s and 30 s (board times have fractions of a second).
+  const records = [{ t: 10_500 }, { t: 20_250 }, { t: 30_000 }]
+
+  it('steps left from today to the latest record, then to each one before, and stops at the first', () => {
+    expect(stepRecord(records, null, -1)).toBe(30_000)
+    // The address keeps whole seconds, rounded up: 20.25 s is 21 s there.
+    expect(stepRecord(records, toSecond(30_000), -1)).toBe(20_250)
+    expect(stepRecord(records, toSecond(20_250), -1)).toBe(10_500)
+    expect(stepRecord(records, toSecond(10_500), -1)).toBeUndefined()
+  })
+
+  it('steps right to the next record, past the latest to today, and no further', () => {
+    expect(stepRecord(records, toSecond(10_500), 1)).toBe(20_250)
+    expect(stepRecord(records, toSecond(30_000), 1)).toBeNull()
+    expect(stepRecord(records, null, 1)).toBeUndefined()
+  })
+
+  it('from a moment between records, goes left to the one standing then and right to the next', () => {
+    expect(stepRecord(records, 25_000, -1)).toBe(20_250)
+    expect(stepRecord(records, 25_000, 1)).toBe(30_000)
+    // Before the first record: nothing to the left, the first to the right.
+    expect(stepRecord(records, 5_000, -1)).toBeUndefined()
+    expect(stepRecord(records, 5_000, 1)).toBe(10_500)
+  })
+
+  it('finds the record standing at a moment', () => {
+    expect(standingRecord(records, null)).toBe(2)
+    expect(standingRecord(records, toSecond(20_250))).toBe(1)
+    expect(standingRecord(records, 5_000)).toBe(-1)
+    expect(stepRecord([], null, -1)).toBeUndefined()
   })
 })

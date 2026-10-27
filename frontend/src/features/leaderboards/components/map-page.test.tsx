@@ -167,6 +167,25 @@ describe('Map page', () => {
     expect(asked).toEqual(['47759'])
   })
 
+  it('steps through the records with the arrow keys, moving the board to each, then back to today', async () => {
+    // Records on 2020-01-01 and 2021-01-01.
+    serveMap({ wrs: records([2400, 2100]) })
+    const { router } = await renderRoute('/map/sp/47759')
+    await screen.findByText('2 world records')
+    const chart = screen.getByRole('generic', { name: /World record history/ })
+    chart.focus()
+    const at = () => (router.state.location.search as { at?: string }).at
+    await userEvent.keyboard('{ArrowLeft}')
+    await waitFor(() => expect(at()).toBe('2021-01-01T00:00:00'))
+    await userEvent.keyboard('{ArrowLeft}')
+    await waitFor(() => expect(at()).toBe('2020-01-01T00:00:00'))
+    // Nothing before the first.
+    await userEvent.keyboard('{ArrowLeft}')
+    expect(at()).toBe('2020-01-01T00:00:00')
+    await userEvent.keyboard('{ArrowRight}{ArrowRight}')
+    await waitFor(() => expect(at()).toBeUndefined())
+  })
+
   it("still shows the board's records when the older ones can't be loaded", async () => {
     serveMap({ wrs: records([2400, 2100]) })
     server.use(http.get(`${API}/map/:id/old_wrs`, () => new HttpResponse('Not found', { status: 404 })))

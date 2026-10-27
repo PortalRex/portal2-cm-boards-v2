@@ -46,3 +46,39 @@ export function wrChartData(records: ChartPoint[], from: number, to: number, now
     points[points.length - 1] = { ...last, now: to >= now, carried: to < now }
   return points
 }
+
+/**
+ * A moment as the address keeps it: whole seconds, rounded up so the board "as it stood" then
+ * includes a record set within that second.
+ */
+export const toSecond = (t: number): number => Math.ceil(t / 1000) * 1000
+
+/** The index of the record standing at `at` (today when null): the latest set by then, -1 if none. */
+export function standingRecord(records: { t: number }[], at: number | null): number {
+  if (at == null) return records.length - 1
+  let i = records.length - 1
+  while (i >= 0 && toSecond(records[i]!.t) > at) i--
+  return i
+}
+
+/**
+ * Where an arrow key moves the chart's moment `at` (null: today): to the record before or after.
+ * From between two records, left goes to the one standing then. Right of the latest record is today
+ * (null); undefined when there's nowhere to go.
+ */
+export function stepRecord(
+  records: { t: number }[],
+  at: number | null,
+  dir: -1 | 1,
+): number | null | undefined {
+  if (!records.length) return undefined
+  const i = standingRecord(records, at)
+  if (dir < 0) {
+    // On record i: the one before. Just after it (between records, or today): record i itself.
+    const onRecord = at != null && i >= 0 && toSecond(records[i]!.t) === at
+    const target = onRecord ? i - 1 : i
+    return target >= 0 ? records[target]!.t : undefined
+  }
+  if (at == null) return undefined
+  return i + 1 < records.length ? records[i + 1]!.t : null
+}

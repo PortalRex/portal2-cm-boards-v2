@@ -4,6 +4,7 @@ import {
   Area,
   AreaChart,
   CartesianGrid,
+  ReferenceDot,
   ReferenceLine,
   ResponsiveContainer,
   Tooltip,
@@ -16,7 +17,7 @@ import { useWheelZoom } from '@/hooks/use-wheel-zoom'
 import { formatDate, formatScore, parseTimestamp } from '@/lib/format'
 import type { WrPoint } from '../api/map-board'
 import { timeTicks, YEAR_MS } from '../utils/time-ticks'
-import { wrChartData, type ChartPoint } from '../utils/wr-chart'
+import { standingRecord, stepRecord, wrChartData, type ChartPoint } from '../utils/wr-chart'
 
 const DAY_MS = 24 * 3600 * 1000
 
@@ -53,7 +54,40 @@ function WrTooltip({ active, payload }: { active?: boolean; payload?: { payload:
   )
 }
 
-/** The map's WR history. Scroll over it to zoom; click a point to see the board as it stood then. */
+/**
+ * The record the arrow keys picked, with its tooltip beside it (to the right, or left near the
+ * end). Drawn by hand: the chart's own tooltip follows the mouse while it's over the chart.
+ */
+function PickedTooltip({
+  viewBox,
+  point,
+  toRight,
+}: {
+  viewBox?: { x?: number; width?: number }
+  point: ChartPoint
+  toRight: boolean
+}) {
+  const x = (viewBox?.x ?? 0) + (viewBox?.width ?? 0) / 2
+  const width = 240
+  return (
+    <foreignObject
+      x={toRight ? x + 12 : x - 12 - width}
+      y={0}
+      width={width}
+      height={150}
+      className="pointer-events-none"
+    >
+      <div className={cn('flex', !toRight && 'justify-end')}>
+        <WrTooltip active payload={[{ payload: point }]} />
+      </div>
+    </foreignObject>
+  )
+}
+
+/**
+ * The map's WR history. Scroll over it to zoom; click a point to see the board as it stood then,
+ * and the arrow keys step to the record before or after.
+ */
 export function WrHistoryChart({
   points,
   loading,
@@ -77,6 +111,8 @@ export function WrHistoryChart({
     }))
   }, [points])
   const [range, setRange] = useState<(typeof WR_RANGES)[number]['value']>('all')
+  // The arrow keys moved the moment; moving the mouse hands the tooltip back to it.
+  const [keyboard, setKeyboard] = useState(false)
   // "Now" for the chart, fixed while the page is open.
   const [now] = useState(() => Date.now())
   const first = records[0]?.t ?? now
@@ -110,6 +146,13 @@ export function WrHistoryChart({
   const pad = Math.max(1, Math.round((max - min) * 0.08))
   const { ticks, label } = timeTicks(from, to)
   const atMs = at ? parseTimestamp(at).getTime() : null
+  const picked = keyboard ? records[standingRecord(records, atMs)] : undefined
+  const step = (dir: -1 | 1) => {
+    const next = stepRecord(records, atMs, dir)
+    if (next === undefined) return
+    setKeyboard(true)
+    onPick(next)
+  }
 
   return (
     <div className={box}>
@@ -152,12 +195,23 @@ export function WrHistoryChart({
       </div>
       <div
         ref={zoomRef}
-        className="cursor-pointer"
-        title="Scroll to zoom · click to see the board as it stood then"
+        // Focused by a click, so the arrow keys work from there.
+        tabIndex={0}
+        aria-label="World record history: click a record, then use the left and right arrow keys"
+        className="cursor-pointer rounded-[4px] outline-none focus-visible:ring-2 focus-visible:ring-brand"
+        title="Scroll to zoom · click to see the board as it stood then · arrow keys: previous / next record"
+        onKeyDown={(e) => {
+          if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return
+          e.preventDefault()
+          step(e.key === 'ArrowLeft' ? -1 : 1)
+        }}
+        onMouseMove={() => keyboard && setKeyboard(false)}
       >
         <ResponsiveContainer width="100%" height={170}>
           <AreaChart
             data={data}
+            // The arrow keys are handled above (they move the board's moment too).
+            accessibilityLayer={false}
             margin={{ top: 8, right: 12, bottom: 0, left: 0 }}
             onClick={(state) => {
               const index = Number(state?.activeTooltipIndex)
@@ -196,8 +250,8 @@ export function WrHistoryChart({
             />
             <Tooltip
               isAnimationActive={false}
-              content={<WrTooltip />}
-              cursor={{ stroke: 'var(--line-strong)' }}
+              content={keyboard ? () => null : <WrTooltip />}
+              cursor={keyboard ? false : { stroke: 'var(--line-strong)' }}
             />
             {atMs != null && atMs >= from && atMs <= to && (
               <ReferenceLine x={atMs} stroke="var(--brand)" strokeDasharray="4 3" />
@@ -209,9 +263,20 @@ export function WrHistoryChart({
               strokeWidth={2}
               fill="url(#wrFill)"
               dot={false}
-              activeDot={{ r: 5, fill: '#c48ef0', stroke: 'var(--panel)', strokeWidth: 2 }}
+              activeDot={keyboard ? false : { r: 5, fill: '#c48ef0', stroke: 'var(--panel)', strokeWidth: 2 }}
               isAnimationActive={false}
             />
+            {picked && picked.t >= from && picked.t <= to && (
+              <ReferenceDot
+                x={picked.t}
+                y={picked.score}
+                r={5}
+                fill="#c48ef0"
+                stroke="var(--panel)"
+                strokeWidth={2}
+                label={<PickedTooltip point={picked} toRight={(picked.t - from) / (to - from) < 0.6} />}
+              />
+            )}
           </AreaChart>
         </ResponsiveContainer>
       </div>

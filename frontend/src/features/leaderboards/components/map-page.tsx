@@ -30,6 +30,7 @@ import { ChamberHistory } from './chamber-history'
 import { MapLeaderboard, type RenderRunDetails } from './map-leaderboard'
 import { WrHistoryEditor } from './wr-history-editor'
 import { WrHistoryChart } from './wr-history-chart'
+import { toSecond } from '../utils/wr-chart'
 
 const CATEGORIES = [{ value: 'main', label: 'Main Challenge Mode' }]
 const MEL_CATEGORIES = [{ value: 'main', label: 'Challenge Mode' }]
@@ -108,7 +109,7 @@ function MapPageContent({
       to: '.',
       search: (prev: Record<string, unknown>) => {
         const next = { ...prev }
-        if (t) next.at = new Date(t).toISOString().slice(0, 19)
+        if (t) next.at = new Date(toSecond(t)).toISOString().slice(0, 19)
         else delete next.at
         return next
       },
