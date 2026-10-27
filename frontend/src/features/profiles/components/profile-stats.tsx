@@ -4,6 +4,7 @@ import { AppLink } from '@/components/app-link'
 import { Flag } from '@/components/avatar'
 import { Bubble } from '@/components/bubble'
 import { bubbleAnchor } from '@/lib/bubble'
+import { mapPath } from '@/lib/catalog'
 import { GlobeIcon, PeakIcon, SparkleIcon, TrophyFilledIcon } from '@/components/icons'
 import { Card } from '@/components/panel'
 import { countryName } from '@/lib/data/countries'
@@ -239,17 +240,29 @@ function ScoreStat({
   )
 }
 
+/** A place and its map, linking to the map's page. */
 function PlaceStat({ label, entry }: { label: string; entry: MapScore | null }) {
+  const place = (
+    <span className={valueClass('md')}>
+      <Ordinal n={entry?.rank} />
+    </span>
+  )
   return (
     <div className="flex min-w-0 flex-col items-center text-center">
       <StatHead label={label} />
-      <span className={valueClass('md')}>
-        <Ordinal n={entry?.rank} />
-      </span>
-      {entry && (
-        <span className="text-base uppercase">
-          on <b className="font-semibold">{entry.map.title}</b>
-        </span>
+      {entry ? (
+        <AppLink
+          href={mapPath(entry.map)}
+          className="flex flex-col items-center [&:hover_b]:underline"
+          title={`Open ${entry.map.title}`}
+        >
+          {place}
+          <span className="text-base uppercase">
+            on <b className="font-semibold">{entry.map.title}</b>
+          </span>
+        </AppLink>
+      ) : (
+        place
       )}
     </div>
   )

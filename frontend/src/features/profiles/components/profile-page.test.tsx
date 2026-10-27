@@ -81,6 +81,15 @@ describe('Profile page', () => {
     expect(within(stats).getByText('Team Retrieval')).toBeInTheDocument()
     expect(within(stats).getByText('Laser Stairs')).toBeInTheDocument()
     expect(within(stats).getByText('Funnel Catch')).toBeInTheDocument()
+    // Best and worst place open their map.
+    expect(within(stats).getByRole('link', { name: /1st\s*on Laser Stairs/ })).toHaveAttribute(
+      'href',
+      '/map/sp/47736',
+    )
+    expect(within(stats).getByRole('link', { name: /17th\s*on Funnel Catch/ })).toHaveAttribute(
+      'href',
+      expect.stringMatching(/^\/map\/sp\/\d+$/),
+    )
 
     expect(within(card('World Records')).getByText('19')).toBeInTheDocument()
     expect(within(card('Average Place')).getByText('4.5')).toBeInTheDocument()
