@@ -358,6 +358,15 @@ impl ProfileScore {
                 AND cl.banned = 'false'
                 AND cl.verified = 'true'
                 AND cl.category_id = m.default_cat_id
+                -- A co-op run counts once both halves are verified and neither half nor player is
+                -- banned, as on the co-op map page and in points: a faster run with a banned partner
+                -- isn't the profile's PB (it has no rank, and its row on the board is someone else's).
+                AND (cl.coop_id IS NULL OR cl.coop_id NOT IN (
+                    SELECT cb.id FROM coop_bundled AS cb
+                        JOIN changelog AS o ON o.id IN (cb.cl_id1, cb.cl_id2)
+                        JOIN users AS ou ON ou.profile_number = o.profile_number
+                    WHERE NOT o.verified OR o.banned OR ou.banned
+                ))
                 ORDER BY cl.map_id, cl.score ASC, cl.timestamp ASC
             "#,
         )
