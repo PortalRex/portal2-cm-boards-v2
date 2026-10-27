@@ -1,16 +1,17 @@
 import { describe, expect, it } from 'vitest'
 import {
+  type ChartRow,
   chartRows,
+  dayAt,
   dayMs,
   domainFor,
+  labelAlign,
   labelSide,
-  rowsInView,
-  valueAt,
-  type PointsSample,
-  dayAt,
   peakClass,
   peakDayAt,
-  type ChartRow,
+  type PointsSample,
+  rowsInView,
+  valueAt,
 } from './points-chart'
 
 const samples: PointsSample[] = [
@@ -114,5 +115,14 @@ describe('chart clicks', () => {
     expect(peakDayAt(circle, peak)).toBe('2019-08-06')
     expect(peakDayAt(svg, peak)).toBeNull()
     expect(peakDayAt(label, null)).toBeNull()
+  })
+})
+
+describe('labelAlign', () => {
+  it('keeps a peak label inside the plot near its ends, centred elsewhere', () => {
+    expect(labelAlign(990, [0, 1000])).toBe('end')
+    expect(labelAlign(1000, [0, 1000])).toBe('end')
+    expect(labelAlign(500, [0, 1000])).toBe('middle')
+    expect(labelAlign(30, [0, 1000])).toBe('start')
   })
 })

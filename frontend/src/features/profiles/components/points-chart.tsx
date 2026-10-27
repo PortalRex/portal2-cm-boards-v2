@@ -21,6 +21,7 @@ import {
   chartRows,
   dayMs,
   domainFor,
+  labelAlign,
   labelSide,
   PLOT_H,
   PLOT_TOP,
@@ -173,13 +174,15 @@ export function PointsChart({
                   fill={s.color}
                   stroke="var(--panel)"
                   strokeWidth={2}
-                  label={{
-                    value: `Peak ${value}`,
-                    position: labelSide(all, data, keys, zoomed, [from, to], s.key, t, value),
-                    fill: 'var(--text-2)',
-                    fontSize: 11,
-                    className: peakClass(s.key),
-                  }}
+                  label={(props: { viewBox?: DotBox }) => (
+                    <PeakLabel
+                      box={props.viewBox}
+                      text={`Peak ${value}`}
+                      side={labelSide(all, data, keys, zoomed, [from, to], s.key, t, value)}
+                      align={labelAlign(t, [from, to])}
+                      className={peakClass(s.key)}
+                    />
+                  )}
                 />
               )
             })}
@@ -207,5 +210,37 @@ export function PointsChart({
         ))}
       </div>
     </div>
+  )
+}
+
+interface DotBox {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
+/** A peak's "Peak N" over (or under) its dot, lined up so it stays inside the plot ([labelAlign]). */
+function PeakLabel({
+  box,
+  text,
+  side,
+  align,
+  className,
+}: {
+  box: DotBox | undefined
+  text: string
+  side: 'top' | 'bottom'
+  align: 'start' | 'middle' | 'end'
+  className: string
+}) {
+  if (!box) return null
+  const cx = box.x + box.width / 2
+  const x = align === 'end' ? cx + 4 : align === 'start' ? cx - 4 : cx
+  const y = side === 'top' ? box.y - 5 : box.y + box.height + 12
+  return (
+    <text x={x} y={y} textAnchor={align} fill="var(--text-2)" fontSize={11} className={className}>
+      {text}
+    </text>
   )
 }

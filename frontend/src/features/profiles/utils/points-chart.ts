@@ -122,6 +122,16 @@ export function labelSide(
 }
 
 /**
+ * How a peak's label lines up with its dot: centred, but kept inside the plot near its ends
+ * (ending at the dot near the right edge, starting at it near the left), where a centred label
+ * was cut off.
+ */
+export function labelAlign(t: number, [from, to]: [number, number]): 'start' | 'middle' | 'end' {
+  const at = (t - from) / Math.max(1, to - from)
+  return at > 0.88 ? 'end' : at < 0.12 ? 'start' : 'middle'
+}
+
+/**
  * The day a chart click picked: the row under the pointer, or none (a click with no row under it,
  * on a peak's label say, gives null, which as an index would be the first day).
  */
