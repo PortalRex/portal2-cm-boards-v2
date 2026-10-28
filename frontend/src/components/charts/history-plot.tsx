@@ -27,6 +27,7 @@ import {
   HISTORY_MIN_SPAN,
   historyChartData,
   nearestPoint,
+  recordX,
   scoreTicks,
   standingRecord,
   stepRecord,
@@ -395,16 +396,23 @@ export function HistoryPlot<P extends HistoryPoint>({
               activeDot={
                 keyboard
                   ? false
-                  : ({ cx, cy, payload }: { cx?: number; cy?: number; payload?: P }) => (
-                      <circle
-                        cx={cx}
-                        cy={cy}
-                        r={6}
-                        fill={payload ? colorOf(payload.player) : 'var(--history-line)'}
-                        stroke="var(--panel)"
-                        strokeWidth={2}
-                      />
-                    )
+                  : ({ cx, cy, payload }: { cx?: number; cy?: number; payload?: P }) => {
+                      // Near a copy carrying a time along its line, the time's own dot lights up:
+                      // marking the copy looked like the same time set twice.
+                      if (!payload || cx == null || cy == null) return <g />
+                      const x = recordX(payload, cx, from, AXIS_WIDTH)
+                      if (x == null) return <g />
+                      return (
+                        <circle
+                          cx={x}
+                          cy={cy}
+                          r={6}
+                          fill={colorOf(payload.player)}
+                          stroke="var(--panel)"
+                          strokeWidth={2}
+                        />
+                      )
+                    }
               }
               isAnimationActive={false}
             />

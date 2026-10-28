@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   historyChartData,
   nearestPoint,
+  recordX,
   PLAYER_COLORS,
   playerColors,
   scoreTicks,
@@ -61,6 +62,16 @@ describe('nearestPoint', () => {
     expect(nearestPoint(records, 0)?.player).toBe('a')
     expect(nearestPoint([{ t: 0 }, { t: 10 }], 5)).toEqual({ t: 0 })
     expect(nearestPoint([], 5)).toBeUndefined()
+  })
+})
+
+describe('recordX', () => {
+  // Plot from 56px, the view starting at 0: a copy at t 100 drawn at 300px is 2.44px a unit.
+  it('puts the highlight on the dot of the time a copy carries, not on the copy', () => {
+    expect(recordX({ ...record(100, 1, 'a', null), setAt: 50, carried: true }, 300, 0, 56)).toBeCloseTo(178)
+    expect(recordX(record(100, 1, 'a', null), 300, 0, 56)).toBe(300)
+    // Its dot is before the view (zoomed in): nothing to mark.
+    expect(recordX({ ...record(100, 1, 'a', null), setAt: -20, carried: true }, 300, 0, 56)).toBeNull()
   })
 })
 

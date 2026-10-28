@@ -56,6 +56,18 @@ export function historyChartData<P extends HistoryPoint>(
   return points
 }
 
+/**
+ * Where across the plot the time a hovered point stands for sits: the point itself, or for a copy
+ * carrying a time along its line, that time's own dot, worked out from the copy's place (the axis
+ * is linear, `from` at `left`). Null when that dot is before the view.
+ */
+export function recordX(p: HistoryPoint, cx: number, from: number, left: number): number | null {
+  const setAt = p.setAt ?? p.t
+  if (setAt === p.t) return cx
+  if (setAt < from || p.t <= from) return null
+  return left + ((setAt - from) * (cx - left)) / (p.t - from)
+}
+
 /** The point nearest to `t` along the time axis (the first of two as near). */
 export function nearestPoint<P extends { t: number }>(points: P[], t: number): P | undefined {
   let best: P | undefined
