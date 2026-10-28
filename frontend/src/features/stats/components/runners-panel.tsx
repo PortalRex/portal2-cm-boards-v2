@@ -64,7 +64,7 @@ export function RunnersPanel({
     : {}
 
   return (
-    <Panel icon={StatsIcon} title="Runners" className="rounded-tl-none" bodyClassName="pb-9">
+    <Panel icon={StatsIcon} title="Runners" className="rounded-tl-none" bodyClassName="pb-9 upto700:px-4">
       {stats.isPending ? (
         <Loading label="Working out the stats" />
       ) : !stats.data ? (
@@ -133,7 +133,7 @@ function PeakTable({ rows }: { rows: SiteStats['peaks'][string] }) {
   return (
     <Table
       label="Peak points"
-      cols="[--st-cols:44px_minmax(0,1fr)_110px_150px_110px_110px] upto900:[--st-cols:36px_minmax(0,1fr)_90px_110px]"
+      cols="[--st-cols:44px_minmax(0,1fr)_110px_150px_110px_110px] upto900:[--st-cols:36px_minmax(0,1fr)_90px_110px] upto480:[--st-cols:22px_minmax(0,1fr)_60px_84px]"
       head={
         <>
           <span className="text-text-muted">#</span>

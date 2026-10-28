@@ -68,7 +68,7 @@ export function Table({
 
 /** A row of a stats table (striped on even children, as legacy: the header is the first). */
 export const rowClass =
-  'grid min-h-[42px] grid-cols-(--st-cols) items-center gap-3.5 rounded-[4px] px-3 even:bg-row'
+  'grid min-h-[42px] grid-cols-(--st-cols) items-center gap-3.5 rounded-[4px] px-3 even:bg-row upto480:gap-2 upto480:px-2'
 
 export function Row({ className, children }: { className?: string; children: ReactNode }) {
   return (
@@ -90,7 +90,7 @@ export function PlayerCell({
   return (
     <span className={cn('flex min-w-0 items-center gap-2.5', className)}>
       <Avatar src={player.avatar} name={player.name} size={size} />
-      <PlayerLink player={player} />
+      <PlayerLink player={player} className="truncate" />
     </span>
   )
 }
@@ -155,7 +155,8 @@ export function StatsSwitch<T extends string>({
         wide
           ? 'min-w-[120px] px-6 upto900:h-[38px] upto900:min-w-0 upto900:px-3'
           : 'min-w-0 px-[18px] upto900:px-3',
-        body && 'upto900:flex-auto upto700:flex-auto',
+        // Small enough on a phone for three to share a row.
+        body && 'upto900:flex-auto upto700:flex-auto upto480:px-2 upto480:text-[13px]',
       )}
     />
   )

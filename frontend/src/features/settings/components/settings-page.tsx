@@ -59,7 +59,7 @@ export function SettingsPage() {
 
   return (
     <Page background={siteBackground} tint="mono" narrow>
-      <Panel icon={MoreIcon} title="Settings" bodyClassName="flex flex-col gap-7">
+      <Panel icon={MoreIcon} title="Settings" bodyClassName="flex flex-col gap-7 upto700:px-4">
         <Section title="Appearance">
           <Segmented<Theme>
             {...switchProps}

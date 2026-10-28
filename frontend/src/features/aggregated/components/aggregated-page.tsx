@@ -39,7 +39,7 @@ const byTime = (r: AggregatedRow) => r.score
 
 // Legacy's arrow sat 14px inside the 2px border, so 16px from the edge.
 const selectClass =
-  'min-w-[222px] [&_select]:rounded-md! [&_select]:border-2! [&_select]:bg-panel-head! [&_[data-slot=native-select-icon]]:right-4!'
+  'min-w-[222px] upto480:w-full [&_select]:rounded-md! [&_select]:border-2! [&_select]:bg-panel-head! [&_[data-slot=native-select-icon]]:right-4!'
 
 /** An aggregated board's page, or where its address sends you. */
 export function AggregatedPage({
@@ -207,7 +207,7 @@ function BoardTabs({
           href={link(t.path)}
           aria-current={t.kind === kind ? 'page' : undefined}
           className={cn(
-            'rounded-[4px] px-5 py-2 text-lg text-text-2',
+            'rounded-[4px] px-5 py-2 text-lg text-text-2 upto480:px-3 upto480:text-base',
             t.kind === kind ? 'bg-seg-active font-medium text-foreground' : 'hover:bg-seg-hover',
           )}
         >

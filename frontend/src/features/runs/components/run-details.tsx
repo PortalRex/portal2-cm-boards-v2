@@ -266,7 +266,7 @@ function Segments({ loading, data }: { loading: boolean; data: FormattedSegment[
       </div>
     )
   }
-  const cell = 'h-[30px] text-center first:pl-6 first:text-left rd-upto640:first:pl-2'
+  const cell = 'h-[30px] text-center first:pl-6 first:text-left rd-upto640:px-1 rd-upto640:first:pl-2'
   return (
     <table className="w-full border-collapse text-lg rd-upto640:text-sm">
       <thead>

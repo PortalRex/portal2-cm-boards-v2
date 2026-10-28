@@ -202,7 +202,8 @@ export function MapLeaderboard({
                           src={p.avatar}
                           name={p.name}
                           size={30}
-                          className={cn(coop && 'upto900:size-6!')}
+                          // Phones leave co-op names the room instead.
+                          className={cn(coop && 'upto900:size-6! upto480:hidden')}
                         />
                         <PlayerLink
                           player={p}
@@ -216,7 +217,7 @@ export function MapLeaderboard({
                           <TrophyFilledIcon
                             role="img"
                             aria-label="PB"
-                            className="mr-2.5 ml-auto size-[17px] shrink-0"
+                            className="mr-2.5 ml-auto size-[17px] shrink-0 upto480:mr-1 upto480:size-3.5"
                             style={{ color: pbColor(tint) }}
                           />
                         )}

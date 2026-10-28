@@ -1,5 +1,5 @@
-import { Link } from '@tanstack/react-router'
-import type { ReactNode } from 'react'
+import { Link, useLocation } from '@tanstack/react-router'
+import { useEffect, useRef, type ReactNode } from 'react'
 import { siteBackground } from './layouts/backgrounds'
 import { Page } from './layouts/page'
 
@@ -20,9 +20,18 @@ const tab =
  * page's panel, which joins them (pass the panel `className="rounded-tl-none"`).
  */
 export function StatsShell({ children }: { children: ReactNode }) {
+  const nav = useRef<HTMLElement>(null)
+  const { pathname } = useLocation()
+  // On a phone the tabs scroll sideways: bring this page's into view (centred).
+  useEffect(() => {
+    const strip = nav.current
+    const current = strip?.querySelector<HTMLElement>('[aria-current=page]')
+    if (strip && current)
+      strip.scrollLeft = current.offsetLeft - (strip.clientWidth - current.offsetWidth) / 2
+  }, [pathname])
   return (
     <Page background={siteBackground} tint="mono">
-      <nav aria-label="Stats pages" className="flex gap-1.5 overflow-x-auto">
+      <nav ref={nav} aria-label="Stats pages" className="relative flex gap-1.5 overflow-x-auto">
         {TABS.map((t) => (
           <Link
             key={t.to}

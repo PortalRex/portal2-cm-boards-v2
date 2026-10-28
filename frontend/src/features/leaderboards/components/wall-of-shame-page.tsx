@@ -23,7 +23,7 @@ export function WallOfShamePage() {
 
   return (
     <Page background={siteBackground} tint="mono">
-      <Panel icon={MoreIcon} title="Wall Of Shame" bodyClassName="px-8 pt-6 pb-8">
+      <Panel icon={MoreIcon} title="Wall Of Shame" bodyClassName="px-8 pt-6 pb-8 upto700:px-4">
         <div className="mb-5 flex flex-wrap items-center gap-x-5 gap-y-3">
           <SearchBox
             value={search}

@@ -93,7 +93,7 @@ export function ComparePanel({
           base={game}
           season={season}
           onChange={(s) => onChange({ game: '', season: s ?? '' })}
-          className="min-w-[220px]"
+          className="min-w-[220px] upto480:w-full"
         />
         <Segmented
           value={mode}
@@ -173,16 +173,17 @@ function PlayerSlot({
 function PlayerSearch({ label, onPick }: { label: string; onPick: (profileNumber: string) => void }) {
   const [q, setQ] = useState('')
   return (
-    <div className="relative flex-1">
+    <div className="relative w-full flex-1">
       <input
         value={q}
         onChange={(e) => setQ(e.target.value)}
-        placeholder={`${label}: name or Steam ID`}
+        // Short enough for a phone, where the two boxes sit side by side (the label names each).
+        placeholder="Name or Steam ID"
         aria-label={label}
         // The results list below is the suggestions; the browser's own would cover it.
         autoComplete="off"
         autoFocus
-        className="h-10 w-full rounded-[4px] border border-line bg-control px-3 text-base text-foreground"
+        className="h-10 w-full rounded-[4px] border border-line bg-control px-3 text-base text-foreground upto760:px-2 upto760:text-sm"
       />
       <PlayerSuggestions
         q={q}

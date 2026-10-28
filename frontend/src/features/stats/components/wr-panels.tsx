@@ -31,7 +31,13 @@ function Shell({
   const game = useGame()
   const stats = useQuery(wrStatsQueryOptions(catalog, game))
   return (
-    <Panel icon={StatsIcon} title={title} actions={actions} className="rounded-tl-none" bodyClassName="pb-9">
+    <Panel
+      icon={StatsIcon}
+      title={title}
+      actions={actions}
+      className="rounded-tl-none"
+      bodyClassName="pb-9 upto700:px-4"
+    >
       {stats.isPending ? (
         <Loading label="Loading the record history" />
       ) : !stats.data ? (
@@ -109,7 +115,7 @@ export function RecordsPanel({ mode: modeParam, onMode }: { mode?: string; onMod
                   <span className="upto900:col-span-full">Held by</span>
                   <span>Since</span>
                   <span className="text-right">Standing</span>
-                  <span className="text-right" title="Record times the map has had">
+                  <span className={cn('text-right', notOnPhones)} title="Record times the map has had">
                     Records
                   </span>
                 </>
@@ -126,7 +132,10 @@ export function RecordsPanel({ mode: modeParam, onMode }: { mode?: string; onMod
                   </span>
                   <span className={stood}>{formatDate(r.since)}</span>
                   <span className="num text-right">{days(r.days)}</span>
-                  <span className="num text-right text-text-muted">{r.records}</span>
+                  <span className="num text-right text-text-muted upto900:col-span-full upto900:text-left">
+                    {r.records}
+                    <span className={phoneLabel}> records</span>
+                  </span>
                 </Row>
               ))}
             </Table>

@@ -36,7 +36,7 @@ describe('builtInTarget', () => {
         game: 'portal2',
         kind: 'coop',
         title: 'Cooperative',
-        kicker: 'Portal 2 Season 1 · 2026-10-15 – 2026-10-30',
+        kicker: 'Portal 2 Season 1 · 2026-10-15\u00a0–\u00a02026-10-30',
         season: SEASON,
         board: { game: SEASON, board: `${SEASON}-coop` },
       },
@@ -71,7 +71,7 @@ describe('seasonKicker', () => {
     const open = buildCatalog(
       (catalogRaw as CatalogRaw).map((g) => (g.slug === SEASON ? { ...g, ends_at: null } : g)),
     )
-    expect(seasonKicker(open, SEASON)).toBe('Portal 2 Season 1 · 2026-10-15 – ongoing')
+    expect(seasonKicker(open, SEASON)).toBe('Portal 2 Season 1 · 2026-10-15\u00a0–\u00a0ongoing')
   })
 })
 

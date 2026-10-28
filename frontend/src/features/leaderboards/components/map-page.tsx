@@ -137,9 +137,9 @@ function MapPageContent({
                 onChange={() => {}}
                 options={map.game === 'mel' ? MEL_CATEGORIES : CATEGORIES}
                 label="Category"
-                className="w-[218px]"
+                className="w-[218px] upto480:w-full"
               />
-              <SeasonSelect base={map.game} season={season} className="w-[218px]" />
+              <SeasonSelect base={map.game} season={season} className="w-[218px] upto480:w-full" />
             </div>
           </div>
           <div className="flex min-w-0 flex-col gap-[26px]">

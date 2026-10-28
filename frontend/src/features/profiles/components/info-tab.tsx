@@ -7,7 +7,7 @@ function Entry({ term, children }: { term: string; children: ReactNode }) {
   return (
     <>
       <dt className="text-text-muted uppercase">{term}</dt>
-      <dd className="m-0 [&_a:hover]:underline">{children}</dd>
+      <dd className="m-0 min-w-0 [overflow-wrap:anywhere] [&_a:hover]:underline">{children}</dd>
     </>
   )
 }
@@ -15,7 +15,7 @@ function Entry({ term, children }: { term: string; children: ReactNode }) {
 export function InfoTab({ player }: { player: ProfilePlayer }) {
   const youtube = youtubeChannelUrl(player.youtube)
   return (
-    <dl className="m-0 grid grid-cols-[160px_1fr] gap-x-5 gap-y-2.5 text-lg">
+    <dl className="m-0 grid grid-cols-[160px_1fr] gap-x-5 gap-y-2.5 text-lg upto480:grid-cols-[110px_minmax(0,1fr)] upto480:gap-x-3 upto480:text-base">
       <Entry term="Steam ID">
         <span className="num">{player.steam}</span>
       </Entry>

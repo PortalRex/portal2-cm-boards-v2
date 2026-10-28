@@ -52,9 +52,15 @@ export function MapListPage({ search }: { search: MapListSearch }) {
       <Panel icon={PinIcon} title="Leaderboards" bodyClassName="p-0 pb-10">
         <div className="flex flex-wrap gap-x-7 gap-y-[18px] bg-[rgb(var(--page-rgb)/0.55)] px-10 py-[26px] upto700:px-3.5 upto700:py-[18px]">
           {seasonsOf(catalog, game).length > 0 && (
-            <div className="flex flex-col gap-1.5">
+            <div className="flex flex-col gap-1.5 upto480:w-full">
               <span className="text-[22px] font-light uppercase">Season</span>
-              <SeasonSelect base={game} season={season} onChange={(s) => update(mode, s)} size="xl" />
+              <SeasonSelect
+                base={game}
+                season={season}
+                onChange={(s) => update(mode, s)}
+                size="xl"
+                className="upto480:w-full"
+              />
             </div>
           )}
           <div className="flex flex-col gap-1.5">

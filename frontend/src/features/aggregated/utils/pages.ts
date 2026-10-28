@@ -42,7 +42,10 @@ export function seasonKicker(c: Catalog, season: string): string {
   const g = c.games[season]
   if (!g) return season
   const day = (ts: string) => ts.slice(0, 10)
-  return g.startsAt ? `${g.label} · ${day(g.startsAt)} – ${g.endsAt ? day(g.endsAt) : 'ongoing'}` : g.label
+  // No-break spaces keep the date range on one line when the heading wraps on a phone.
+  return g.startsAt
+    ? `${g.label} · ${day(g.startsAt)}\u00a0–\u00a0${g.endsAt ? day(g.endsAt) : 'ongoing'}`
+    : g.label
 }
 
 /** One of `game`'s boards, all-time or in the picked season (if it's one of the game's). */

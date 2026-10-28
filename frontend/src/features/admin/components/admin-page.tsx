@@ -74,7 +74,7 @@ export function AdminPage({
         icon={MoreIcon}
         title={TITLES[shown]}
         actions={staff && <Segmented label="Section" value={shown} onChange={onSection} options={options} />}
-        bodyClassName="px-8 pt-6 pb-[30px]"
+        bodyClassName="px-8 pt-6 pb-[30px] upto700:px-4"
       >
         {!user ? (
           <EmptyState>Sign in with an admin account to see the admin changelog.</EmptyState>

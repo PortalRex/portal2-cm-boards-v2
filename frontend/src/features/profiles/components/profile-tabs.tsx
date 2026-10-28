@@ -104,10 +104,12 @@ function GameProfileTabs({
             role="tab"
             aria-selected={tab === t.key}
             className={cn(
-              'h-[46px] min-w-[124px] flex-none cursor-pointer rounded-t-[10px] border-0 px-7 text-lg font-light text-text-2 uppercase',
+              'h-[46px] min-w-[124px] flex-none cursor-pointer rounded-t-[10px] border-0 px-7 text-lg font-light text-text-2 uppercase upto900:min-w-0 upto900:px-4 upto900:text-base',
               tab === t.key ? 'bg-[rgb(var(--panel-rgb)/0.97)] text-foreground' : 'bg-control-raised',
             )}
-            onClick={() => {
+            onClick={(e) => {
+              // On a phone the tabs scroll sideways: keep the picked one in view.
+              e.currentTarget.scrollIntoView({ block: 'nearest', inline: 'nearest' })
               setTab(t.key)
               setSelectedMap(null)
               // Singleplayer and Cooperative share Portal 2's season; another game starts on all-time.
@@ -160,7 +162,8 @@ function GameProfileTabs({
 }
 
 function Controls({ children }: { children: ReactNode }) {
-  return <div className="flex flex-wrap items-center gap-x-4 gap-y-3">{children}</div>
+  // On a phone each control takes the full width, so they line up.
+  return <div className="flex flex-wrap items-center gap-x-4 gap-y-3 upto480:*:w-full">{children}</div>
 }
 
 function SortSelect({ sort, onSort }: { sort: string; onSort: (sort: string) => void }) {

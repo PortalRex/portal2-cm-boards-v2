@@ -32,7 +32,7 @@ function Figure({
 }) {
   if (hide) return null
   return (
-    <div className="flex flex-col gap-0.5 rounded-md bg-row px-4 py-3.5">
+    <div className="flex flex-col gap-0.5 rounded-md bg-row px-4 py-3.5 upto480:px-3">
       <span className="text-sm tracking-[0.04em] text-text-muted uppercase">{label}</span>
       <span className="num text-[28px] font-semibold">{value}</span>
       {note && <span className="text-sm text-text-muted">{note}</span>}
@@ -40,7 +40,8 @@ function Figure({
   )
 }
 
-const listRow = 'grid min-h-10 grid-cols-[minmax(0,1fr)_140px_80px] items-center gap-3 px-3 text-base'
+const listRow =
+  'grid min-h-10 grid-cols-[minmax(0,1fr)_140px_80px] items-center gap-3 px-3 text-base upto480:grid-cols-[minmax(0,1fr)_84px_60px] upto480:gap-2 upto480:px-2'
 // Legacy striped the odd children: under the partners' header row that's the 1st, 3rd, ... row;
 // the portals list has no header, so there it's the 2nd, 4th, ...
 const stripe = (on: boolean) => (on ? 'bg-row' : undefined)
@@ -77,7 +78,7 @@ export function StatsTab({
   const s = stats.data?.summary
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-3 upto480:*:w-full">
         <SeasonSelect base={game} season={season} onChange={setSeason} />
       </div>
       {stats.isPending ? (
@@ -86,7 +87,7 @@ export function StatsTab({
         <EmptyState>No stats for this player.</EmptyState>
       ) : (
         <>
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(190px,1fr))] gap-3">
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(190px,1fr))] gap-3 upto480:grid-cols-2 upto480:gap-2">
             <Figure label="Runs" value={s.runs} note={`${s.verified_runs} verified`} />
             <Figure
               label="Singleplayer maps"
@@ -204,7 +205,7 @@ function Partners({ pbs, all, allCount }: { pbs: PartnerRow[]; all: PartnerRow[]
         <div key={p.player.profileNumber} className={cn(listRow, stripe(i % 2 === 0))}>
           <span className="flex min-w-0 items-center gap-2.5">
             <Avatar src={p.player.avatar} name={p.player.name} size={28} />
-            <PlayerLink player={p.player} />
+            <PlayerLink player={p.player} className="truncate" />
           </span>
           <span className="num text-right">{p.maps}</span>
           <span className="num text-right text-text-muted">{p.runs}</span>
