@@ -1,5 +1,15 @@
 import { describe, expect, it } from 'vitest'
-import { runningBest, standingRecord, stepRecord, toSecond, wrChartData, type ChartPoint } from './wr-chart'
+import {
+  PLAYER_COLORS,
+  playerColors,
+  runningBest,
+  scoreTicks,
+  standingRecord,
+  stepRecord,
+  toSecond,
+  wrChartData,
+  type ChartPoint,
+} from './wr-chart'
 
 const record = (t: number, score: number, player: string, gain: number | null): ChartPoint => ({
   timestamp: null,
@@ -92,5 +102,34 @@ describe('stepRecord', () => {
     expect(standingRecord(records, toSecond(20_250))).toBe(1)
     expect(standingRecord(records, 5_000)).toBe(-1)
     expect(stepRecord([], null, -1)).toBeUndefined()
+  })
+})
+
+describe('playerColors', () => {
+  it('gives each holder a colour in the order they first set a record, ignoring case', () => {
+    const colorOf = playerColors([{ player: 'a' }, { player: 'B' }, { player: 'A' }, { player: 'c' }])
+    expect(colorOf('a')).toBe(PLAYER_COLORS[0])
+    expect(colorOf('b')).toBe(PLAYER_COLORS[1])
+    expect(colorOf('C')).toBe(PLAYER_COLORS[2])
+  })
+
+  it('goes round again past the last colour', () => {
+    const players = PLAYER_COLORS.map((_, i) => ({ player: `p${i}` }))
+    expect(playerColors([...players, { player: 'next' }])('next')).toBe(PLAYER_COLORS[0])
+  })
+})
+
+describe('scoreTicks', () => {
+  it('puts the lines at round times around the scores', () => {
+    // 22.43 to 29.10: every two seconds.
+    expect(scoreTicks(2243, 2910)).toEqual([2200, 2400, 2600, 2800, 3000])
+    // 23.65 to 24.88: every half second.
+    expect(scoreTicks(2365, 2488)).toEqual([2350, 2400, 2450, 2500])
+    // Minutes: 1:57.83 to 2:10.00, every five seconds.
+    expect(scoreTicks(11783, 13000)).toEqual([11500, 12000, 12500, 13000])
+  })
+
+  it('puts a line either side of a single time', () => {
+    expect(scoreTicks(2400, 2400)).toEqual([2399, 2400, 2401])
   })
 })

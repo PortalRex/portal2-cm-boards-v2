@@ -186,6 +186,22 @@ describe('Map page', () => {
     await waitFor(() => expect(at()).toBeUndefined())
   })
 
+  it('opens a bigger chart, whose arrow keys move the board too without closing it', async () => {
+    serveMap({ wrs: records([2400, 2100]) })
+    const { router } = await renderRoute('/map/sp/47759')
+    await screen.findByText('2 world records')
+    await userEvent.click(screen.getByRole('button', { name: 'Expand the WR history' }))
+    const dialog = await screen.findByRole('dialog', { name: 'World record history' })
+    within(dialog)
+      .getByRole('generic', { name: /World record history/ })
+      .focus()
+    await userEvent.keyboard('{ArrowLeft}')
+    await waitFor(() =>
+      expect((router.state.location.search as { at?: string }).at).toBe('2021-01-01T00:00:00'),
+    )
+    expect(dialog).toBeInTheDocument()
+  })
+
   it("still shows the board's records when the older ones can't be loaded", async () => {
     serveMap({ wrs: records([2400, 2100]) })
     server.use(http.get(`${API}/map/:id/old_wrs`, () => new HttpResponse('Not found', { status: 404 })))

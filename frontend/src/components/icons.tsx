@@ -46,6 +46,7 @@ export {
   ShieldUser as ShieldIcon,
   ArrowUp as SortUpIcon,
   ArrowDown as SortDownIcon,
+  Maximize2 as ExpandIcon,
 } from 'lucide-react'
 
 type IconProps = SVGProps<SVGSVGElement> & { size?: number }

@@ -82,3 +82,47 @@ export function stepRecord(
   if (at == null) return undefined
   return i + 1 < records.length ? records[i + 1]!.t : null
 }
+
+/** The dots' colours, readable on light and dark: each record holder gets one. */
+export const PLAYER_COLORS = [
+  '#ee4444',
+  '#44bbee',
+  '#f0c03e',
+  '#6666ee',
+  '#4ed07a',
+  '#c279e5',
+  '#ee8844',
+  '#e96bb0',
+]
+
+/**
+ * A colour for each record holder (by name, ignoring case), in the order they first set a record,
+ * going round again past the last colour. `records` must be oldest first.
+ */
+export function playerColors(records: { player: string }[]): (player: string) => string {
+  const colors = new Map<string, string>()
+  for (const { player } of records) {
+    const key = player.toLowerCase()
+    if (!colors.has(key)) colors.set(key, PLAYER_COLORS[colors.size % PLAYER_COLORS.length]!)
+  }
+  return (player) => colors.get(player.toLowerCase()) ?? PLAYER_COLORS[0]!
+}
+
+// Gaps between the time axis' lines, in centiseconds: round times from 0.01s to 10 minutes.
+const SCORE_STEPS = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 3000, 6000, 12000, 30000, 60000]
+
+/**
+ * The time axis for scores from `min` to `max` (centiseconds): lines at round times, at most
+ * `count` of them, with the lowest below `min` (or on it) and the highest above `max`.
+ */
+export function scoreTicks(min: number, max: number, count = 5): number[] {
+  for (const step of SCORE_STEPS) {
+    let lo = Math.floor(min / step) * step
+    let hi = Math.ceil(max / step) * step
+    // One time: a line either side of it.
+    if (lo === hi) [lo, hi] = [lo - step, hi + step]
+    if ((hi - lo) / step + 1 <= count)
+      return Array.from({ length: (hi - lo) / step + 1 }, (_, i) => lo + i * step)
+  }
+  return [min, max]
+}
