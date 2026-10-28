@@ -57,7 +57,10 @@ export function ScoreUpdatesList({
   const pageCount = Math.ceil(entries.length / PAGE_SIZE)
   const page = filters.page
   const visible = entries.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
-  const rendered = useRenderedSet(visible, game)
+  const rendered = useRenderedSet(
+    visible.flatMap((e) => [e, ...e.earlier]),
+    game,
+  )
   const setPage = (p: number) => set({ page: String(p) })
   const filtered = isFiltered(filters, query)
 

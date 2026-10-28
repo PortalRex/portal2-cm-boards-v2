@@ -162,14 +162,16 @@ describe('Score Updates', () => {
 
     await userEvent.click(within(row).getByRole('button', { name: 'Show details' }))
     const earlier = within(row).getByRole('list', { name: 'Earlier PBs this session' })
-    expect(
-      within(earlier)
-        .getAllByRole('link')
-        .map((a) => [a.textContent, a.getAttribute('href')]),
-    ).toEqual([
-      ['1:12.16', '/run/2'],
-      ['1:12.26', '/run/1'],
+    const items = within(earlier).getAllByRole('listitem')
+    expect(items.map((li) => within(li).getByText(/^1:12\.\d\d$/).textContent)).toEqual([
+      '1:12.16',
+      '1:12.26',
     ])
+    // Each opens its own run details under it, with its ranks as the rows show them.
+    expect(within(items[0]!).getByTestId('rank-before')).toHaveTextContent('320')
+    server.use(http.get(`${API}/changelog/:id/segments`, () => HttpResponse.json([])))
+    await userEvent.click(within(items[0]!).getByRole('button', { name: 'Show details' }))
+    expect(await within(items[0]!).findByText('SAR Version:')).toBeInTheDocument()
   })
 
   it('pages through the runs, 20 at a time', async () => {

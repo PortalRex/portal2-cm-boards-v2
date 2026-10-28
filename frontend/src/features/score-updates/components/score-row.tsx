@@ -1,11 +1,10 @@
-import { Link } from '@tanstack/react-router'
 import { cn } from 'cn'
 import { useState, type CSSProperties, type ReactNode } from 'react'
 import { AppLink } from '@/components/app-link'
 import { Avatar } from '@/components/avatar'
 import { BannedIcon, PendingIcon, TriangleDown, TrophyFilledIcon } from '@/components/icons'
 import { PlayerLink } from '@/components/player-link'
-import { RankChange, RankNumber } from '@/components/rank'
+import { RankChange } from '@/components/rank'
 import { TimeButton } from '@/components/runs/time-button'
 import { useCoopPbStyle } from '@/hooks/use-coop-pb-style'
 import { useCoopRoleOverrides } from '@/hooks/use-coop-role-overrides'
@@ -208,14 +207,24 @@ export function ScoreRow({
         </button>
       </div>
 
-      {open && earlier.length > 0 && <EarlierPbs runs={earlier} />}
+      {open && earlier.length > 0 && (
+        <EarlierPbs runs={earlier} rendered={rendered} renderRunDetails={renderRunDetails} />
+      )}
       {open && renderRunDetails?.(entry, rendered)}
     </div>
   )
 }
 
-/** The session's earlier PBs, newest first: the rank each got, its time (opening the run), what it took off. */
-function EarlierPbs({ runs }: { runs: ScoreUpdate[] }) {
+/** The session's earlier PBs, newest first, each opening its own run details as the row does. */
+function EarlierPbs({
+  runs,
+  rendered,
+  renderRunDetails,
+}: {
+  runs: ScoreUpdate[]
+  rendered: Map<number, string>
+  renderRunDetails?: (run: Run, rendered: Map<number, string>) => ReactNode
+}) {
   return (
     <div className="px-5 pt-1 pb-2 upto900:px-2">
       <h3 className="m-0 mb-1 text-sm font-normal tracking-[0.04em] text-text-muted uppercase">
@@ -223,35 +232,56 @@ function EarlierPbs({ runs }: { runs: ScoreUpdate[] }) {
       </h3>
       <ol className="m-0 list-none p-0" aria-label="Earlier PBs this session">
         {runs.map((r) => (
-          <li
-            key={r.id}
-            className="grid min-h-8 grid-cols-[110px_90px_80px_minmax(0,1fr)] items-center gap-x-3 text-[15px] odd:bg-row-sub upto900:grid-cols-[auto_minmax(0,1fr)_auto_auto] upto900:gap-x-2 upto900:text-sm"
-          >
-            <span className="num px-2 text-text-2">
-              <RankNumber rank={r.preRank} /> → <RankNumber rank={r.postRank} />
-            </span>
-            <Link
-              to="/run/$runId"
-              params={{ runId: String(r.id) }}
-              title="Open the run"
-              className="num text-right font-semibold hover:underline upto900:order-2"
-            >
-              {formatScore(r.score)}
-            </Link>
-            <span className="num text-right text-text-muted upto900:order-3">
-              {r.scoreDelta != null ? formatDelta(r.scoreDelta, 's') : ''}
-            </span>
-            <span
-              // On a phone all on one line: the ranks, when, then the time and what it took off.
-              className="px-2 text-right text-text-muted upto900:order-1 upto900:px-0 upto900:text-left upto900:text-[13px]"
-              title={formatDateTime(r.timestamp)}
-            >
-              {timeAgo(r.timestamp)}
-            </span>
-          </li>
+          <EarlierPb key={r.id} run={r} rendered={rendered} renderRunDetails={renderRunDetails} />
         ))}
       </ol>
     </div>
+  )
+}
+
+// The ranks as the main rows show them (only the new one on phones), then when, the time, what it
+// took off, and the arrow.
+const EARLIER_COLS =
+  'grid grid-cols-[140px_minmax(0,1fr)_auto_80px_40px] items-center gap-x-3 upto900:grid-cols-[40px_minmax(0,1fr)_auto_auto_28px] upto900:gap-x-2'
+
+function EarlierPb({
+  run,
+  rendered,
+  renderRunDetails,
+}: {
+  run: ScoreUpdate
+  rendered: Map<number, string>
+  renderRunDetails?: (run: Run, rendered: Map<number, string>) => ReactNode
+}) {
+  const [open, setOpen] = useState(false)
+  return (
+    <li className="group/pb mt-0.5" data-open={open || undefined}>
+      <div
+        className={cn(EARLIER_COLS, 'min-h-9 cursor-pointer bg-row-sub text-[15px] upto900:text-sm')}
+        onClick={toggleOnRowClick(() => setOpen((o) => !o))}
+      >
+        <div className="self-stretch [&>div]:min-h-9 [&>div]:text-base upto900:[&>div]:grid-cols-1 upto900:[&>div]:text-sm upto900:[&>div>:first-child]:hidden upto900:[&>div>svg]:hidden">
+          <RankChange pre={run.preRank} post={run.postRank} />
+        </div>
+        <span className="text-text-muted" title={formatDateTime(run.timestamp)}>
+          {timeAgo(run.timestamp)}
+        </span>
+        <span className="num text-right font-semibold">{formatScore(run.score)}</span>
+        <span className="num text-right text-text-muted">
+          {run.scoreDelta != null ? formatDelta(run.scoreDelta, 's') : ''}
+        </span>
+        <button
+          type="button"
+          onClick={() => setOpen((o) => !o)}
+          aria-expanded={open}
+          aria-label={open ? 'Hide details' : 'Show details'}
+          className="inline-flex size-8 cursor-pointer items-center justify-center justify-self-center border-0 bg-transparent transition-transform group-data-[open]/pb:rotate-180"
+        >
+          <TriangleDown size={12} />
+        </button>
+      </div>
+      {open && renderRunDetails?.(run, rendered)}
+    </li>
   )
 }
 
