@@ -208,6 +208,24 @@ describe('Map page', () => {
     expect(parseFloat(view.style.width)).toBeCloseTo(parseFloat(width))
   })
 
+  it('steps through the records with the Earlier and Later buttons (touch screens show them)', async () => {
+    // Records on 2020-01-01 and 2021-01-01.
+    serveMap({ wrs: records([2400, 2100]) })
+    const { router } = await renderRoute('/map/sp/47759')
+    await screen.findByText('2 world records')
+    const at = () => (router.state.location.search as { at?: string }).at
+    const press = (name: string) => userEvent.click(screen.getByRole('button', { name }))
+    await press('Earlier')
+    await waitFor(() => expect(at()).toBe('2021-01-01T00:00:00'))
+    await press('Earlier')
+    await waitFor(() => expect(at()).toBe('2020-01-01T00:00:00'))
+    await press('Later')
+    await waitFor(() => expect(at()).toBe('2021-01-01T00:00:00'))
+    // Past the latest record: today's board.
+    await press('Later')
+    await waitFor(() => expect(at()).toBeUndefined())
+  })
+
   it('zooms the chart with two fingers, keeping the moment between them under them', async () => {
     serveMap({ wrs: records([2400, 2100]) })
     const { router } = await renderRoute('/map/sp/47759')

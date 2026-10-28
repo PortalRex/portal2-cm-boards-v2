@@ -114,6 +114,8 @@ function MapPageContent({
         return next
       },
       replace: true,
+      // Only the board under the chart changes: stay where you are on the page.
+      resetScroll: false,
     })
     setView('board')
   }
