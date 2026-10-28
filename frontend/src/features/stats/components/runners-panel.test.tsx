@@ -28,7 +28,7 @@ describe('Stats: Runners', () => {
     expect(within(tabs).getByRole('link', { name: 'Compare' })).toHaveAttribute('href', '/stats/compare')
   })
 
-  it("lists peak points per board, linking each peak's day to the profile as it was then", async () => {
+  it('lists peak points per board, linking each peak and its day to the profile as it was then', async () => {
     serveStats()
     const { router } = await renderRoute('/stats')
     await screen.findByText('10,443')
@@ -37,10 +37,11 @@ describe('Stats: Runners', () => {
     expect(
       within(table('Peak points')).getByText(formatPoints(overall.current - overall.points)),
     ).toBeInTheDocument()
-    expect(within(table('Peak points')).getAllByRole('link', { name: /\d/ })[0]).toHaveAttribute(
-      'href',
-      `/profile/${overall.profile_number}?at=${overall.date}`,
-    )
+    // The peak itself and the day it was reached.
+    const [peakLink, dayLink] = within(table('Peak points')).getAllByRole('link', { name: /\d/ })
+    for (const link of [peakLink, dayLink])
+      expect(link).toHaveAttribute('href', `/profile/${overall.profile_number}?at=${overall.date}`)
+    expect(peakLink).toHaveTextContent(formatPoints(overall.points))
 
     await userEvent.click(screen.getByRole('radio', { name: 'Singleplayer' }))
     await waitFor(() => expect(router.state.location.search).toEqual({ board: 'sp' }))

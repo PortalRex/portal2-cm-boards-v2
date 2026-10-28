@@ -157,7 +157,7 @@ export function ProfilePage({
             }
           />
           <StatisticsCard summary={summary} />
-          <SideCards summary={summary} peak={cardsPeak} />
+          <SideCards summary={summary} peak={cardsPeak} onPickDay={pickDay} />
         </Row>
         <AggregatedCard profileNumber={p.player.profileNumber} at={at ?? null} />
         {p.history.length > 0 && (

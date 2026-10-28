@@ -326,8 +326,19 @@ function SideCard({
   )
 }
 
-/** Average place, world records and peak points, stacked beside Global Rank and Statistics. */
-export function SideCards({ summary, peak }: { summary: ProfileSummary; peak: PointsPeak | null }) {
+/**
+ * Average place, world records and peak points, stacked beside Global Rank and Statistics. A peak
+ * opens the profile as it was on the day it was reached (`onPickDay`), as the chart's peaks do.
+ */
+export function SideCards({
+  summary,
+  peak,
+  onPickDay,
+}: {
+  summary: ProfileSummary
+  peak: PointsPeak | null
+  onPickDay?: (day: string) => void
+}) {
   const { averagePlace: avg, worldRecords: wrs } = summary
   return (
     <div className="flex flex-col gap-3 upto1200:grid upto1200:grid-cols-2 upto800:grid-cols-1">
@@ -345,14 +356,26 @@ export function SideCards({ summary, peak }: { summary: ProfileSummary; peak: Po
       <SideCard icon={PeakIcon} title="Peak Points" collapseId="profile.peak">
         {summary.slots.map(({ key, short }) => {
           const v = peak?.[key]
-          return (
-            <Stat key={key} size="sm" value={v ? Math.round(v.points) : '–'} label={short}>
+          const stat = (
+            <Stat size="sm" value={v ? Math.round(v.points) : '–'} label={short}>
               {v && (
                 <span className="num mt-0.5 text-[11px] leading-[13px] text-text-muted">
                   {formatDate(v.date)}
                 </span>
               )}
             </Stat>
+          )
+          if (!v || !onPickDay) return <div key={key}>{stat}</div>
+          return (
+            <button
+              key={key}
+              type="button"
+              onClick={() => onPickDay(v.date)}
+              title={`See the profile on ${formatDate(v.date)}, the day it peaked`}
+              className="min-w-0 cursor-pointer rounded-[4px] border-0 bg-transparent p-0 text-inherit hover:bg-seg-hover"
+            >
+              {stat}
+            </button>
           )
         })}
       </SideCard>

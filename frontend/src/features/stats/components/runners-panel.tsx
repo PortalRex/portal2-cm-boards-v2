@@ -151,7 +151,18 @@ function PeakTable({ rows }: { rows: SiteStats['peaks'][string] }) {
           <Row key={r.player.profileNumber}>
             <span className="num text-text-muted">{i + 1}</span>
             <PlayerCell player={r.player} size={26} />
-            <span className="num text-right font-semibold">{formatPoints(r.points)}</span>
+            {/* The peak and its day both open the profile as it was that day. */}
+            <span className="num text-right font-semibold">
+              <Link
+                to="/profile/$profileId"
+                params={{ profileId: r.player.profileNumber! }}
+                search={{ at: r.date }}
+                title="Their profile on the day they reached it"
+                className="hover:underline"
+              >
+                {formatPoints(r.points)}
+              </Link>
+            </span>
             <span className="num">
               <Link
                 to="/profile/$profileId"

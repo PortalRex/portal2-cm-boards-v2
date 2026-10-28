@@ -102,6 +102,15 @@ describe('Profile page', () => {
     expect(within(peak).getAllByText(formatDate('2024-06-10'))).toHaveLength(2)
   })
 
+  it('opens the profile on the day of a peak when the peak is clicked', async () => {
+    serveProfile()
+    const { router } = await renderProfile()
+    const peak = card('Peak Points')
+    await within(peak).findByText('11717')
+    await userEvent.click(within(peak).getByRole('button', { name: /11717/ }))
+    await waitFor(() => expect(router.state.location.search).toEqual({ at: '2024-06-10' }))
+  })
+
   it('collapses and opens every card at once', async () => {
     serveProfile()
     await renderProfile()
