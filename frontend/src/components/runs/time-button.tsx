@@ -2,10 +2,11 @@ import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import { cn } from 'cn'
 import { Dialog as DialogPrimitive } from 'radix-ui'
-import { useMemo, useState } from 'react'
-import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { AppLink } from '@/components/app-link'
 import { Avatar } from '@/components/avatar'
+import { HistoryMinimap } from '@/components/charts/history-minimap'
+import { HistoryPlot, HistoryTooltip } from '@/components/charts/history-plot'
 import { PlayerLink } from '@/components/player-link'
 import { CloseIcon } from '@/components/icons'
 import { RankNumber } from '@/components/rank'
@@ -13,7 +14,15 @@ import { Segmented } from '@/components/segmented'
 import { EmptyState, ErrorState, Loading } from '@/components/status'
 import { unknownPartner } from '@/lib/adapters/runs'
 import { isMultiplayerMode, mapPath, useCatalog } from '@/lib/catalog'
-import { stepPoints } from '@/lib/charts/steps'
+import {
+  formatWhen,
+  HISTORY_MIN_SPAN,
+  PLAYER_COLORS,
+  playerColors,
+  standingRecord,
+  toSecond,
+  type HistoryPoint,
+} from '@/lib/charts/history'
 import { formatDate, formatDateTime, formatDelta, formatScore, parseTimestamp } from '@/lib/format'
 import { changelogQueryOptions } from '@/lib/runs/changelog'
 import type { Player, Run, RunMap } from '@/types/runs'
@@ -82,7 +91,15 @@ function RunHistoryDialog({
       catalog,
     ),
   )
-  const rows = runs.data ?? []
+  const rows = useMemo(() => runs.data ?? [], [runs.data])
+  const coop = isMultiplayerMode(catalog, map.mode)
+  // The run picked on the chart (its moment, in whole seconds); null: none.
+  const [at, setAt] = useState<number | null>(null)
+  const records = useMemo(
+    () => runPoints(rows, coop ? (r) => partnerOf(r, who) : undefined),
+    [rows, coop, who],
+  )
+  const picked = at == null ? undefined : records[standingRecord(records, at)]?.run.id
 
   return (
     <DialogPrimitive.Root open onOpenChange={(o) => !o && onClose()}>
@@ -123,7 +140,10 @@ function RunHistoryDialog({
                 <Segmented
                   size="sm"
                   value={player.profileNumber}
-                  onChange={setWho}
+                  onChange={(next) => {
+                    setWho(next)
+                    setAt(null)
+                  }}
                   label="Player"
                   options={players.map((p) => ({ value: p.profileNumber, label: p.name }))}
                 />
@@ -137,11 +157,19 @@ function RunHistoryDialog({
               <EmptyState>No runs on record.</EmptyState>
             ) : (
               <>
-                <HistoryChart rows={rows} />
+                <HistoryChart
+                  key={who}
+                  records={records}
+                  player={player.name}
+                  coop={coop}
+                  at={at}
+                  onPick={(t) => setAt(t == null ? null : toSecond(t))}
+                />
                 <HistoryTable
                   rows={rows}
                   game={map.game}
-                  partnerOf={isMultiplayerMode(catalog, map.mode) ? (r) => partnerOf(r, who) : undefined}
+                  picked={picked}
+                  partnerOf={coop ? (r) => partnerOf(r, who) : undefined}
                 />
               </>
             )}
@@ -168,17 +196,39 @@ const links = 'upto700:hidden'
 function HistoryTable({
   rows,
   game,
+  picked,
   partnerOf,
 }: {
   rows: Run[]
   game: string
+  /** The run picked on the chart: highlighted, and scrolled to. */
+  picked?: number
   /** On a co-op map, a run's partner. */
   partnerOf?: (run: Run) => Player
 }) {
   const rowGrid = cn(rowBase, partnerOf ? COOP_COLS : SP_COLS)
+  const table = useRef<HTMLDivElement>(null)
+  const pickedRow = useRef<HTMLDivElement>(null)
+  // Scrolls the list (not the dialog, so the chart stays in view) to the picked run.
+  useEffect(() => {
+    const box = table.current
+    const row = pickedRow.current
+    if (!box || !row) return
+    const view = box.getBoundingClientRect()
+    const at = row.getBoundingClientRect()
+    const top = view.top + (box.firstElementChild?.getBoundingClientRect().height ?? 0)
+    if (at.top < top) box.scrollTop -= top - at.top
+    else if (at.bottom > view.bottom) box.scrollTop += at.bottom - view.bottom
+  }, [picked])
   return (
-    <div role="table" className="mx-4 mt-2">
-      <div role="row" className={cn(rowGrid, 'min-h-[26px] text-[13px] text-text-muted uppercase')}>
+    <div role="table" ref={table} className="mx-4 mt-2 max-h-[min(60vh,560px)] overflow-y-auto">
+      <div
+        role="row"
+        className={cn(
+          rowGrid,
+          'sticky top-0 z-[1] min-h-[26px] bg-panel text-[13px] text-text-muted uppercase',
+        )}
+      >
         <span role="columnheader">Date</span>
         <span role="columnheader" className="text-right">
           Rank
@@ -199,11 +249,14 @@ function HistoryTable({
       {rows.map((r, i) => (
         <div
           key={r.id}
+          ref={r.id === picked ? pickedRow : undefined}
           role="row"
+          aria-current={r.id === picked || undefined}
           className={cn(
             rowGrid,
             'min-h-[34px] text-[15px]',
             i % 2 === 0 && 'bg-row',
+            r.id === picked && 'bg-brand/15 shadow-[inset_3px_0_var(--brand)]',
             // Faded, except the staff ban switch (so it's clear which runs it would unban).
             r.banned && '[&>:not(:last-child)]:opacity-55',
           )}
@@ -257,79 +310,105 @@ function PartnerCell({ partner }: { partner: Player }) {
   )
 }
 
-/** The player's time on the map over time (dated, unbanned runs), as a step line. */
-function HistoryChart({ rows }: { rows: Run[] }) {
-  const data = useMemo(
-    () =>
-      rows
-        .filter((r) => r.timestamp && !r.banned)
-        .map((r) => ({ t: parseTimestamp(r.timestamp!).getTime(), score: r.score }))
-        .sort((a, b) => a.t - b.t),
-    [rows],
+/** A run on the chart; on a co-op map `player` is the partner it was run with. */
+interface RunPoint extends HistoryPoint {
+  run: Run
+}
+
+/** The runs to chart (dated and not banned), oldest first. */
+function runPoints(rows: Run[], partnerOf?: (run: Run) => Player): RunPoint[] {
+  return rows
+    .filter((r) => r.timestamp && !r.banned)
+    .map((r) => ({
+      run: r,
+      t: parseTimestamp(r.timestamp!).getTime(),
+      score: r.score,
+      player: partnerOf ? partnerOf(r).name : '',
+      gain: r.scoreDelta != null && r.scoreDelta < 0 ? -r.scoreDelta : null,
+    }))
+    .sort((a, b) => a.t - b.t)
+}
+
+/** A run's tooltip: when, the time and what it took off, the rank it got (and the partner). */
+function RunTooltip({ point: p, color, name }: { point: RunPoint; color: string; name: string }) {
+  return (
+    <HistoryTooltip
+      when={formatWhen(p.setAt ?? p.t)}
+      name={p.player ? `with ${p.player}` : name}
+      color={color}
+      score={p.score}
+      gain={p.gain}
+    >
+      <span className="num text-text-muted">
+        Rank <RankNumber rank={p.run.preRank} colored /> → <RankNumber rank={p.run.postRank} colored />
+        {!p.run.verified && ' · pending'}
+      </span>
+    </HistoryTooltip>
   )
+}
+
+/**
+ * The player's time on the map over time, like a map's WR history: a dot per run, scroll to zoom,
+ * drag to move along, the whole of it in small underneath. Clicking a run (or the arrow keys)
+ * picks it in the list below.
+ */
+function HistoryChart({
+  records,
+  player,
+  coop,
+  at,
+  onPick,
+}: {
+  records: RunPoint[]
+  player: string
+  coop: boolean
+  at: number | null
+  onPick: (t: number | null) => void
+}) {
+  // Co-op dots take their partner's colour; a single player's are all one.
+  const colorOf = useMemo(() => (coop ? playerColors(records) : () => PLAYER_COLORS[1]!), [coop, records])
+  const [zoom, setZoom] = useState<[number, number] | null>(null)
+  const [keyboard, setKeyboard] = useState(false)
   // The line runs on to now; fixed once the dialog shows the rows.
   const [now] = useState(() => Date.now())
-  if (data.length < 2) return null
-  const scores = data.map((d) => d.score)
-  const min = Math.min(...scores)
-  const max = Math.max(...scores)
-  const pad = Math.max(1, Math.round((max - min) * 0.1))
+  if (records.length < 2) return null
+
+  const full: [number, number] = [Math.min(records[0]!.t, now - HISTORY_MIN_SPAN), now]
+  const [from, to] = zoom ?? full
+  const inView = records.filter((r) => r.t >= from && r.t <= to).length
   return (
     <div className="mx-4 mt-3 mb-1">
-      <ResponsiveContainer width="100%" height={120}>
-        <AreaChart
-          // Each time's flat line carries it at both ends, on to now (its tooltip says when it was set).
-          data={stepPoints(data, now)}
-          margin={{ top: 8, right: 12, bottom: 0, left: 0 }}
-        >
-          <defs>
-            <linearGradient id="rhFill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#4ea2ff" stopOpacity={0.3} />
-              <stop offset="100%" stopColor="#4ea2ff" stopOpacity={0.02} />
-            </linearGradient>
-          </defs>
-          <XAxis
-            dataKey="t"
-            type="number"
-            scale="time"
-            domain={['dataMin', 'dataMax']}
-            tickFormatter={(t: number) => String(new Date(t).getFullYear())}
-            tick={{ fill: 'var(--text-muted)', fontSize: 12 }}
-            axisLine={false}
-            tickLine={false}
-            minTickGap={40}
-          />
-          <YAxis
-            domain={[min - pad, max + pad]}
-            ticks={min === max ? [min] : [min, max]}
-            tickFormatter={(v: number) => formatScore(v)}
-            tick={{ fill: 'var(--text-muted)', fontSize: 12 }}
-            axisLine={false}
-            tickLine={false}
-            width={56}
-            allowDataOverflow
-          />
-          <Tooltip
-            isAnimationActive={false}
-            contentStyle={{ background: 'var(--menu)', border: '1px solid var(--line)', borderRadius: 4 }}
-            labelFormatter={(t, payload) => {
-              const point = payload?.[0]?.payload as { setAt?: number } | undefined
-              return formatDate(point?.setAt ?? Number(t))
-            }}
-            formatter={(v) => [formatScore(Number(v)), 'Time']}
-          />
-          <Area
-            type="stepAfter"
-            dataKey="score"
-            stroke="#4ea2ff"
-            strokeWidth={2}
-            fill="url(#rhFill)"
-            dot={false}
-            activeDot={{ r: 4 }}
-            isAnimationActive={false}
-          />
-        </AreaChart>
-      </ResponsiveContainer>
+      <div className="mb-1 flex min-h-6 items-center gap-2">
+        <span className="mr-auto text-sm text-text-muted">
+          {records.length} runs{zoom ? ` · ${inView} in view` : ''}
+        </span>
+        {zoom && (
+          <button
+            type="button"
+            onClick={() => setZoom(null)}
+            className="inline-flex h-6 cursor-pointer items-center rounded-[4px] border-0 bg-seg-active px-2 text-xs whitespace-nowrap text-text-2 hover:bg-control-raised-2 hover:text-foreground"
+          >
+            Reset zoom
+          </button>
+        )}
+      </div>
+      <HistoryPlot
+        records={records}
+        colorOf={colorOf}
+        full={full}
+        zoom={zoom}
+        setZoom={setZoom}
+        now={now}
+        atMs={at}
+        keyboard={keyboard}
+        setKeyboard={setKeyboard}
+        onPick={onPick}
+        height={170}
+        label={`${player}'s time history: click a run, then use the left and right arrow keys`}
+        hint="Scroll to zoom · drag to move · click a run to find it below · arrow keys: previous / next run"
+        tooltip={(p, color) => <RunTooltip point={p} color={color} name={player} />}
+      />
+      <HistoryMinimap records={records} full={full} zoom={zoom} onZoom={setZoom} minSpan={HISTORY_MIN_SPAN} />
     </div>
   )
 }

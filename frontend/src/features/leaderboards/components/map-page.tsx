@@ -30,7 +30,7 @@ import { ChamberHistory } from './chamber-history'
 import { MapLeaderboard, type RenderRunDetails } from './map-leaderboard'
 import { WrHistoryEditor } from './wr-history-editor'
 import { WrHistoryChart } from './wr-history-chart'
-import { toSecond } from '../utils/wr-chart'
+import { toSecond } from '@/lib/charts/history'
 
 const CATEGORIES = [{ value: 'main', label: 'Main Challenge Mode' }]
 const MEL_CATEGORIES = [{ value: 'main', label: 'Challenge Mode' }]

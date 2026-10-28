@@ -192,7 +192,7 @@ describe('Map page', () => {
     const { router } = await renderRoute('/map/sp/47759')
     await screen.findByText('2 world records')
     const chart = screen.getByRole('generic', { name: /World record history/ })
-    const view = screen.getByTestId('wr-minimap-window')
+    const view = screen.getByTestId('history-minimap-window')
     // Zoomed in on the start of the history (jsdom has no layout: the wheel zooms at the left).
     for (let i = 0; i < 12; i++) fireEvent.wheel(chart, { deltaY: -100 })
     await waitFor(() => expect(view.style.left).toBe('0%'))

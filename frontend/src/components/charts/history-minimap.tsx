@@ -1,8 +1,8 @@
 import { useRef, type PointerEvent as ReactPointerEvent } from 'react'
 import { Area, AreaChart, ResponsiveContainer, XAxis, YAxis } from 'recharts'
 import { fitDomain } from '@/hooks/use-wheel-zoom'
-import { timeTicks } from '../utils/time-ticks'
-import { wrChartData, type ChartPoint } from '../utils/wr-chart'
+import { historyChartData, type HistoryPoint } from '@/lib/charts/history'
+import { timeTicks } from '@/lib/charts/time-ticks'
 
 type Domain = [number, number]
 type Drag = { mode: 'move' | 'start' | 'end'; x: number; from: number; to: number }
@@ -11,14 +11,14 @@ type Drag = { mode: 'move' | 'start' | 'end'; x: number; from: number; to: numbe
  * The whole history in small under the chart, with the part in view as a window: drag the window to
  * move the view, drag its edges to zoom, click beside it to move it there.
  */
-export function WrMinimap({
+export function HistoryMinimap({
   records,
   full,
   zoom,
   onZoom,
   minSpan,
 }: {
-  records: ChartPoint[]
+  records: HistoryPoint[]
   full: Domain
   zoom: Domain | null
   onZoom: (domain: Domain | null) => void
@@ -30,7 +30,7 @@ export function WrMinimap({
   const span = f1 - f0
   const [from, to] = zoom ?? full
   const pct = (t: number) => ((t - f0) / span) * 100
-  const data = wrChartData(records, f0, f1, f1)
+  const data = historyChartData(records, f0, f1, f1)
   const scores = data.map((d) => d.score)
   const min = Math.min(...scores)
   const max = Math.max(...scores)
@@ -66,7 +66,7 @@ export function WrMinimap({
   return (
     <div
       ref={box}
-      data-testid="wr-minimap"
+      data-testid="history-minimap"
       className="relative mt-1 h-10 w-full touch-pan-y overflow-hidden rounded-[4px] select-none"
       // Beside the window: move it there (centred on the click), and keep dragging it from there.
       onPointerDown={(e) => {
@@ -88,9 +88,9 @@ export function WrMinimap({
             <Area
               type="stepAfter"
               dataKey="score"
-              stroke="var(--wr-line)"
+              stroke="var(--history-line)"
               strokeWidth={1}
-              fill="var(--wr-line)"
+              fill="var(--history-line)"
               fillOpacity={0.15}
               dot={false}
               activeDot={false}
@@ -116,7 +116,7 @@ export function WrMinimap({
         ))}
       </div>
       <div
-        data-testid="wr-minimap-window"
+        data-testid="history-minimap-window"
         className="absolute inset-y-0 cursor-grab border-x border-brand bg-linear-to-b from-transparent to-brand/20 active:cursor-grabbing"
         style={{ left: `${pct(from)}%`, width: `${pct(to) - pct(from)}%` }}
         onPointerDown={(e) => start(e, 'move')}

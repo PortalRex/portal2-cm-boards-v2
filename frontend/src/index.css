@@ -109,7 +109,7 @@
   --control-raised-2: #3a3b3d;
   --chart-grid: #2a2b2d;
   --chart-line: #2f9bea;
-  --wr-line: #5d8db0;
+  --history-line: #5d8db0;
   --hl-green: #344231;
   --hl-green-2: #2f3d2c;
   --hl-teal: #2a4a40;
@@ -196,7 +196,7 @@
   --control-raised-2: #d5d8dd;
   --chart-grid: #e0e3e7;
   --chart-line: #1b7fd1;
-  --wr-line: #4a7ba0;
+  --history-line: #4a7ba0;
   --hl-green: #dcebd6;
   --hl-green-2: #e3efdf;
   --hl-teal: #d6ece5;
