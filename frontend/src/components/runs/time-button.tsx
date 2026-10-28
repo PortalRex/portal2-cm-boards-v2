@@ -405,7 +405,7 @@ function HistoryChart({
         onPick={onPick}
         height={170}
         label={`${player}'s time history: click a run, then use the left and right arrow keys`}
-        hint="Scroll to zoom · drag to move · click a run to find it below · arrow keys: previous / next run"
+        hint="Scroll or pinch to zoom · drag to move · click a run to find it below · arrow keys: previous / next run"
         tooltip={(p, color) => <RunTooltip point={p} color={color} name={player} />}
       />
       <HistoryMinimap records={records} full={full} zoom={zoom} onZoom={setZoom} minSpan={HISTORY_MIN_SPAN} />

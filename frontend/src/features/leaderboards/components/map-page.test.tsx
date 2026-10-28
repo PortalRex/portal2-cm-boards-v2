@@ -1,7 +1,7 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import changelog from '@/testing/fixtures/changelog.json'
 import coopBoard from '@/testing/fixtures/map-coop-board.json'
 import spBoard from '@/testing/fixtures/map-sp-board.json'
@@ -206,6 +206,36 @@ describe('Map page', () => {
     )
     await waitFor(() => expect(parseFloat(view.style.left)).toBeGreaterThan(0))
     expect(parseFloat(view.style.width)).toBeCloseTo(parseFloat(width))
+  })
+
+  it('zooms the chart with two fingers, keeping the moment between them under them', async () => {
+    serveMap({ wrs: records([2400, 2100]) })
+    const { router } = await renderRoute('/map/sp/47759')
+    await screen.findByText('2 world records')
+    // The chart is 1068px wide: its 56px time axis, 1000px of plot and 12px to the right.
+    const rect = vi
+      .spyOn(HTMLElement.prototype, 'getBoundingClientRect')
+      .mockReturnValue(DOMRect.fromRect({ x: 0, y: 0, width: 1068, height: 200 }))
+    try {
+      const chart = screen.getByRole('generic', { name: /World record history/ })
+      const touch = (type: 'pointerDown' | 'pointerMove' | 'pointerUp', id: number, x: number) =>
+        fireEvent[type](chart, { pointerId: id, pointerType: 'touch', clientX: x, button: 0 })
+      // Fingers 400px and 600px across (around the middle), then the second goes out to the end:
+      // three times as far apart, so a third as wide, with the middle now 700px across.
+      touch('pointerDown', 1, 456)
+      touch('pointerDown', 2, 656)
+      touch('pointerMove', 2, 1056)
+      const view = screen.getByTestId('history-minimap-window')
+      await waitFor(() => expect(parseFloat(view.style.width)).toBeCloseTo(100 / 3))
+      expect(parseFloat(view.style.left)).toBeCloseTo(50 - 70 / 3)
+      touch('pointerUp', 2, 1056)
+      touch('pointerUp', 1, 456)
+      // Lifting the fingers picks nothing.
+      fireEvent.click(chart, { clientX: 456 })
+      expect((router.state.location.search as { at?: string }).at).toBeUndefined()
+    } finally {
+      rect.mockRestore()
+    }
   })
 
   it('opens a bigger chart, whose arrow keys move the board too without closing it', async () => {

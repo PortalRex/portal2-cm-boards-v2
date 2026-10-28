@@ -35,7 +35,7 @@ function WrTooltip({ point: p, color }: { point: ChartPoint; color: string }) {
 
 const PLOT_TEXT = {
   label: 'World record history: click a record, then use the left and right arrow keys',
-  hint: 'Scroll to zoom · drag to move · click to see the board as it stood then · arrow keys: previous / next record',
+  hint: 'Scroll or pinch to zoom · drag to move · click to see the board as it stood then · arrow keys: previous / next record',
   tooltip: (p: ChartPoint, color: string) => <WrTooltip point={p} color={color} />,
   // Records from before the boards (no demo) are hollow.
   hollow: (p: ChartPoint) => Boolean(p.old),

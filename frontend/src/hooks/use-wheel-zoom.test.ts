@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { fitDomain, panDomain, revealDomain, zoomDomain } from './use-wheel-zoom'
+import { fitDomain, panDomain, pinchDomain, revealDomain, zoomDomain } from './use-wheel-zoom'
 
 const full: [number, number] = [0, 1000]
 
@@ -9,6 +9,16 @@ describe('zoom helpers', () => {
     expect(fitDomain(full, -50, 200)).toEqual([0, 200])
     expect(fitDomain(full, 900, 200)).toEqual([800, 1000])
     expect(fitDomain(full, 0, 1000)).toBeNull()
+  })
+
+  it('pinches around the fingers, keeping the moment between them under them', () => {
+    // Fingers twice as far apart, halfway across: half as wide around the middle.
+    expect(pinchDomain([0, 1000], full, 0.5, 0.5, 0.5, 1)).toEqual([250, 750])
+    // Fingers moved to a quarter of the way across while pinching: the middle (500) follows them.
+    expect(pinchDomain([0, 1000], full, 0.5, 0.25, 0.5, 1)).toEqual([375, 875])
+    // Never narrower than the smallest span; pinched out past the whole range: all of it.
+    expect(pinchDomain([400, 600], full, 0.5, 0.5, 0.1, 100)).toEqual([450, 550])
+    expect(pinchDomain([250, 750], full, 0.5, 0.5, 3, 1)).toBeNull()
   })
 
   it('zooms around the pointer, keeping the point under it in place', () => {

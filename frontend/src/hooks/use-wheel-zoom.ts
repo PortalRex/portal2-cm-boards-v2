@@ -28,6 +28,24 @@ export function zoomDomain(
   return fitDomain(full, at - span * frac, span)
 }
 
+/**
+ * The view `start` pinched: `scale` times as wide (under 1 zooms in), with the moment that was
+ * `from` (0-1) of the way across it now `to` of the way across, so it stays under the fingers as
+ * they move. `full` (or wider) is null, all of it.
+ */
+export function pinchDomain(
+  start: Domain,
+  full: Domain,
+  from: number,
+  to: number,
+  scale: number,
+  minSpan = 7 * DAY,
+): Domain | null {
+  const [a, b] = start
+  const span = Math.min(full[1] - full[0], Math.max(minSpan, (b - a) * scale))
+  return fitDomain(full, a + (b - a) * from - span * to, span)
+}
+
 /** The view moved by `by` ms (later when positive), stopping at the ends of `full`. */
 export function panDomain(domain: Domain | null, full: Domain, by: number): Domain | null {
   if (!domain) return null
