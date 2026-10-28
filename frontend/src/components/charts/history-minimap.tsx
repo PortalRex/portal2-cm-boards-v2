@@ -67,7 +67,9 @@ export function HistoryMinimap({
     <div
       ref={box}
       data-testid="history-minimap"
-      className="relative mt-1 h-10 w-full touch-pan-y overflow-hidden rounded-[4px] select-none"
+      // No browser panning here: on a phone a drag that drifts up or down would scroll the page and
+      // drop the window mid-drag.
+      className="relative mt-1 h-10 w-full touch-none overflow-hidden rounded-[4px] select-none upto700:mt-2 upto700:h-12"
       // Beside the window: move it there (centred on the click), and keep dragging it from there.
       onPointerDown={(e) => {
         if (!zoom || !box.current) return
@@ -122,11 +124,16 @@ export function HistoryMinimap({
         onPointerDown={(e) => start(e, 'move')}
       >
         {(['start', 'end'] as const).map((edge) => (
+          // A finger-sized grip on each edge (up to 24px, less on a narrow window so the middle
+          // still moves it), with the small bar showing where it is.
           <div
             key={edge}
-            className={`absolute top-1/2 h-4 w-1 -translate-y-1/2 cursor-ew-resize rounded-full bg-text-2 ${edge === 'start' ? '-left-0.5' : '-right-0.5'}`}
+            data-edge={edge}
+            className={`absolute inset-y-0 flex w-[45%] max-w-6 cursor-ew-resize items-center justify-center ${edge === 'start' ? 'left-0 -translate-x-1/2' : 'right-0 translate-x-1/2'}`}
             onPointerDown={(e) => start(e, edge)}
-          />
+          >
+            <div className="h-4 w-1 rounded-full bg-text-2 upto700:h-6 upto700:w-1.5" />
+          </div>
         ))}
       </div>
     </div>

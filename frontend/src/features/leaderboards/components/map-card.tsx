@@ -98,7 +98,7 @@ export function MapCard({ map, scores }: { map: MapInfo; scores: PreviewRun[] | 
           <li
             key={i}
             className={cn(
-              'flex h-6 items-center gap-1.5 pr-2 pl-2.5 text-[15px] odd:bg-row upto700:h-[22px] upto700:px-1.5 upto700:text-[13px] upto700:nth-[n+3]:hidden',
+              'flex h-6 items-center gap-1.5 pr-2 pl-2.5 text-[15px] odd:bg-row upto700:h-[22px] upto700:px-1.5 upto700:text-[13px] upto700:nth-[n+5]:hidden',
               isMine(entry) && 'me-row',
             )}
           >

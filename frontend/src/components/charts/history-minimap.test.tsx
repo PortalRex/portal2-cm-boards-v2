@@ -46,7 +46,7 @@ describe('HistoryMinimap', () => {
     expect(onZoom).toHaveBeenLastCalledWith([150 * DAY, 350 * DAY])
     fireEvent.pointerUp(win)
 
-    const [start, end] = win.querySelectorAll('div')
+    const [start, end] = win.querySelectorAll('[data-edge]')
     fireEvent.pointerDown(start!, { clientX: 100, button: 0 })
     fireEvent.pointerMove(start!, { clientX: 50 })
     expect(onZoom).toHaveBeenLastCalledWith([50 * DAY, 300 * DAY])
@@ -60,7 +60,7 @@ describe('HistoryMinimap', () => {
 
   it('drops the zoom once the window covers the whole history', () => {
     const onZoom = renderMap([100 * DAY, 1000 * DAY])
-    const start = screen.getByTestId('history-minimap-window').querySelector('div')!
+    const start = screen.getByTestId('history-minimap-window').querySelector('[data-edge=start]')!
     fireEvent.pointerDown(start, { clientX: 100, button: 0 })
     fireEvent.pointerMove(start, { clientX: -500 })
     expect(onZoom).toHaveBeenLastCalledWith(null)
