@@ -1,10 +1,11 @@
+import { Link } from '@tanstack/react-router'
 import { cn } from 'cn'
 import { useState, type CSSProperties, type ReactNode } from 'react'
 import { AppLink } from '@/components/app-link'
 import { Avatar } from '@/components/avatar'
 import { BannedIcon, PendingIcon, TriangleDown, TrophyFilledIcon } from '@/components/icons'
 import { PlayerLink } from '@/components/player-link'
-import { RankChange } from '@/components/rank'
+import { RankChange, RankNumber } from '@/components/rank'
 import { TimeButton } from '@/components/runs/time-button'
 import { useCoopPbStyle } from '@/hooks/use-coop-pb-style'
 import { useCoopRoleOverrides } from '@/hooks/use-coop-role-overrides'
@@ -18,9 +19,10 @@ import {
   tintFor,
   type CoopTint,
 } from '@/lib/coop-roles'
-import { formatDate, formatDateTime, formatDelta, timeAgo } from '@/lib/format'
+import { formatDate, formatDateTime, formatDelta, formatScore, timeAgo } from '@/lib/format'
 import { toggleOnRowClick } from '@/lib/rows'
 import type { Run } from '@/types/runs'
+import { streakSummary } from '../utils/group-streaks'
 import type { ScoreUpdate } from '../utils/merge-coop-halves'
 
 const TINT_BG: Record<CoopTint, string> = {
@@ -33,16 +35,23 @@ const TINT_BG: Record<CoopTint, string> = {
 export const SCORE_COLS =
   'grid grid-cols-(--su-cols) items-center upto900:grid-cols-[40px_minmax(0,1fr)_auto_28px] upto900:gap-x-2 upto900:[grid-template-areas:"rank_map_time_toggle""rank_players_players_toggle"]'
 
+/**
+ * A score update. With `earlier` PBs (a session of improvements folded into this, the newest) the
+ * row shows the session as a whole: the rank before its first PB, and what they gained together;
+ * opening it lists the earlier ones.
+ */
 export function ScoreRow({
   entry,
   rendered,
   renderRunDetails,
 }: {
-  entry: ScoreUpdate
+  entry: ScoreUpdate & { earlier?: ScoreUpdate[] }
   rendered: Map<number, string>
   renderRunDetails?: (run: Run, rendered: Map<number, string>) => ReactNode
 }) {
   const [open, setOpen] = useState(false)
+  const earlier = entry.earlier ?? []
+  const { preRank, scoreDelta, pointsDelta } = earlier.length ? streakSummary({ ...entry, earlier }) : entry
   const { players, rolesKnown } = coopRoles(entry, useCoopRoleOverrides())
   const [pbStyle] = useCoopPbStyle()
   const coop = players.length > 1
@@ -62,7 +71,7 @@ export function ScoreRow({
             'upto900:[&>div]:min-h-10 upto900:[&>div]:grid-cols-1 upto900:[&>div]:text-[15px] upto900:[&>div>:first-child]:hidden upto900:[&>div>svg]:hidden',
           )}
         >
-          <RankChange pre={entry.preRank} post={entry.postRank} />
+          <RankChange pre={preRank} post={entry.postRank} />
         </div>
 
         {/* Only the name links to the map; the rest of the row opens the run. */}
@@ -146,18 +155,23 @@ export function ScoreRow({
 
         <div className="num px-2.5 text-right text-lg font-semibold upto900:p-0 upto900:text-[15px] upto900:[grid-area:time]">
           <TimeButton score={entry.score} players={players} map={entry.map} />
-          {entry.scoreDelta != null && (
+          {scoreDelta != null && (
             <span className="hidden font-normal text-text-muted upto900:inline">
               {' '}
-              ({formatDelta(entry.scoreDelta, 's')})
+              ({formatDelta(scoreDelta, 's')})
+            </span>
+          )}
+          {earlier.length > 0 && (
+            <span className="block text-[13px] leading-tight font-normal text-text-muted">
+              +{earlier.length} earlier PB{earlier.length === 1 ? '' : 's'}
             </span>
           )}
         </div>
         <div className="num px-2.5 text-right text-lg text-text-2 upto900:hidden">
-          {entry.scoreDelta != null ? formatDelta(entry.scoreDelta, 's') : ''}
+          {scoreDelta != null ? formatDelta(scoreDelta, 's') : ''}
         </div>
         <div className="num px-2.5 text-right text-lg text-text-2 upto900:hidden">
-          {entry.pointsDelta != null ? `${entry.pointsDelta > 0 ? '+' : ''}${entry.pointsDelta}` : ''}
+          {pointsDelta != null ? `${pointsDelta > 0 ? '+' : ''}${pointsDelta}` : ''}
         </div>
         <div className="flex flex-col items-end px-2.5 text-lg leading-[1.1] upto900:hidden">
           <span className="text-green" title={formatDateTime(entry.timestamp)}>
@@ -194,7 +208,49 @@ export function ScoreRow({
         </button>
       </div>
 
+      {open && earlier.length > 0 && <EarlierPbs runs={earlier} />}
       {open && renderRunDetails?.(entry, rendered)}
+    </div>
+  )
+}
+
+/** The session's earlier PBs, newest first: the rank each got, its time (opening the run), what it took off. */
+function EarlierPbs({ runs }: { runs: ScoreUpdate[] }) {
+  return (
+    <div className="px-5 pt-1 pb-2 upto900:px-2">
+      <h3 className="m-0 mb-1 text-sm font-normal tracking-[0.04em] text-text-muted uppercase">
+        Earlier PBs this session
+      </h3>
+      <ol className="m-0 list-none p-0" aria-label="Earlier PBs this session">
+        {runs.map((r) => (
+          <li
+            key={r.id}
+            className="grid min-h-8 grid-cols-[110px_90px_80px_minmax(0,1fr)] items-center gap-x-3 text-[15px] odd:bg-row-sub upto900:grid-cols-[auto_minmax(0,1fr)_auto_auto] upto900:gap-x-2 upto900:text-sm"
+          >
+            <span className="num px-2 text-text-2">
+              <RankNumber rank={r.preRank} /> → <RankNumber rank={r.postRank} />
+            </span>
+            <Link
+              to="/run/$runId"
+              params={{ runId: String(r.id) }}
+              title="Open the run"
+              className="num text-right font-semibold hover:underline upto900:order-2"
+            >
+              {formatScore(r.score)}
+            </Link>
+            <span className="num text-right text-text-muted upto900:order-3">
+              {r.scoreDelta != null ? formatDelta(r.scoreDelta, 's') : ''}
+            </span>
+            <span
+              // On a phone all on one line: the ranks, when, then the time and what it took off.
+              className="px-2 text-right text-text-muted upto900:order-1 upto900:px-0 upto900:text-left upto900:text-[13px]"
+              title={formatDateTime(r.timestamp)}
+            >
+              {timeAgo(r.timestamp)}
+            </span>
+          </li>
+        ))}
+      </ol>
     </div>
   )
 }

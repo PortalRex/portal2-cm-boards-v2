@@ -23,6 +23,7 @@ import {
   type FilterChanges,
   type ScoreUpdatesSearch,
 } from '../utils/filters'
+import { groupStreaks } from '../utils/group-streaks'
 import { mergeCoopHalves } from '../utils/merge-coop-halves'
 import { ScoreFilters } from './score-filters'
 import { SCORE_COLS, ScoreRow } from './score-row'
@@ -51,7 +52,8 @@ export function ScoreUpdatesList({
       replace: true,
     })
 
-  const entries = useMemo(() => mergeCoopHalves(changelog.data ?? []), [changelog.data])
+  // A player's session of PBs on one map is one row (pages count rows).
+  const entries = useMemo(() => groupStreaks(mergeCoopHalves(changelog.data ?? [])), [changelog.data])
   const pageCount = Math.ceil(entries.length / PAGE_SIZE)
   const page = filters.page
   const visible = entries.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)

@@ -132,6 +132,46 @@ describe('Score Updates', () => {
     await waitFor(() => expect(router.state.location.search).toEqual({ q: 'Snowx' }))
   })
 
+  it("folds a player's session of PBs on a map into one row, listing the earlier ones when opened", async () => {
+    const base = (changelog as ChangelogRaw[])[0]!
+    const other = (changelog as ChangelogRaw[])[1]!
+    // Three PBs an hour apart, with someone else's run between them.
+    const pb = (id: number, hour: number, score: number, pre: number, post: number) => ({
+      ...base,
+      id,
+      timestamp: `2026-10-17T${hour}:00:00`,
+      score,
+      pre_rank: pre,
+      post_rank: post,
+      score_delta: -10,
+    })
+    serve([
+      pb(3, 22, 7206, 304, 297),
+      { ...other, timestamp: '2026-10-17T21:30:00' },
+      pb(2, 21, 7216, 320, 304),
+      pb(1, 20, 7226, 350, 320),
+    ])
+    await renderRoute('/')
+    const row = await rowFor(base.map_name)
+    expect(within(table()).getAllByRole('link', { name: base.map_name })).toHaveLength(1)
+    expect(row).toHaveTextContent('+2 earlier PBs')
+    // The session as a whole: from the rank before its first PB, and the time all three took off.
+    expect(within(row).getByTestId('rank-after')).toHaveTextContent('297')
+    expect(row).toHaveTextContent('350')
+    expect(row).toHaveTextContent('-0.30s')
+
+    await userEvent.click(within(row).getByRole('button', { name: 'Show details' }))
+    const earlier = within(row).getByRole('list', { name: 'Earlier PBs this session' })
+    expect(
+      within(earlier)
+        .getAllByRole('link')
+        .map((a) => [a.textContent, a.getAttribute('href')]),
+    ).toEqual([
+      ['1:12.16', '/run/2'],
+      ['1:12.26', '/run/1'],
+    ])
+  })
+
   it('pages through the runs, 20 at a time', async () => {
     serve(sampleChangelog({ limit: '45' }))
     const { router } = await renderRoute('/')
