@@ -19,6 +19,7 @@ import {
   Tooltip,
   XAxis,
   YAxis,
+  type MouseHandlerDataParam,
 } from 'recharts'
 import { ChevronLeftIcon, ChevronRightIcon } from '@/components/icons'
 import { panDomain, pinchDomain, revealDomain, useWheelZoomOn } from '@/hooks/use-wheel-zoom'
@@ -265,6 +266,16 @@ export function HistoryPlot<P extends HistoryPoint>({
   // step back to that record look like nothing happened.
   const standing = atMs == null ? undefined : records[standingRecord(records, atMs)]
   const picked = keyboard ? standing : undefined
+  // The point the pointer is on (an index into `data`), for the hover tooltip.
+  const [hoverIndex, setHoverIndex] = useState<number | null>(null)
+  const hovered = keyboard || hoverIndex == null ? undefined : (data[hoverIndex] as P | undefined)
+  // The chart gives the index as a string ("12").
+  const hover = (s: MouseHandlerDataParam) =>
+    setHoverIndex(s.isTooltipActive && s.activeTooltipIndex != null ? Number(s.activeTooltipIndex) : null)
+  const shown = picked && picked.t >= from && picked.t <= to ? picked : hovered
+  // Where the shown time was set, across the view: its tooltip goes beside that dot, so it never
+  // covers it (as one following the pointer along the time's line did).
+  const shownAt = shown ? Math.min(1, Math.max(0, ((shown.setAt ?? shown.t) - from) / (to - from))) : 0
   const step = (dir: -1 | 1) => {
     const next = stepRecord(records, atMs, dir)
     if (next === undefined) return
@@ -350,6 +361,9 @@ export function HistoryPlot<P extends HistoryPoint>({
             // The arrow keys are handled above (they pick a moment too).
             accessibilityLayer={false}
             margin={{ top: 8, right: RIGHT, bottom: 0, left: 0 }}
+            onMouseMove={hover}
+            onTouchMove={hover}
+            onMouseLeave={() => setHoverIndex(null)}
           >
             <defs>
               <linearGradient id={fillId} x1="0" y1="0" x2="0" y2="1">
@@ -379,12 +393,10 @@ export function HistoryPlot<P extends HistoryPoint>({
               tickLine={false}
               width={AXIS_WIDTH}
             />
+            {/* For its hover line and highlight: the tooltip itself is drawn over the chart below. */}
             <Tooltip
               isAnimationActive={false}
-              content={({ active, payload }) => {
-                const p = active && !keyboard ? (payload?.[0]?.payload as P | undefined) : undefined
-                return p ? tooltip(p, colorOf(p.player)) : null
-              }}
+              content={() => null}
               cursor={keyboard ? false : <RecordCursor from={from} />}
             />
             {atMs != null && atMs >= from && atMs <= to && (
@@ -460,18 +472,17 @@ export function HistoryPlot<P extends HistoryPoint>({
             )}
           </AreaChart>
         </ResponsiveContainer>
-        {/* The picked time's tooltip beside its dot (to the right, or left near the end), over the
-            chart so no dot covers it. Drawn by hand: the chart's own tooltip follows the mouse. */}
-        {picked && picked.t >= from && picked.t <= to && (
+        {/* The picked or hovered time's tooltip beside its dot (to the right, or left near the end),
+            over the chart so no dot covers it. Drawn by hand: the chart's own follows the pointer. */}
+        {shown && (
           <div
             className="pointer-events-none absolute top-0 z-[1] w-max max-w-[260px]"
             style={{
-              left: `calc(${AXIS_WIDTH}px + (100% - ${AXIS_WIDTH + RIGHT}px) * ${(picked.t - from) / (to - from)})`,
-              transform:
-                (picked.t - from) / (to - from) < 0.6 ? 'translateX(12px)' : 'translateX(calc(-100% - 12px))',
+              left: `calc(${AXIS_WIDTH}px + (100% - ${AXIS_WIDTH + RIGHT}px) * ${shownAt})`,
+              transform: shownAt < 0.6 ? 'translateX(12px)' : 'translateX(calc(-100% - 12px))',
             }}
           >
-            {tooltip(picked, colorOf(picked.player))}
+            {tooltip(shown, colorOf(shown.player))}
           </div>
         )}
       </div>
