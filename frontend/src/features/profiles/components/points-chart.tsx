@@ -265,7 +265,19 @@ function PeakLabel({
   const x = align === 'end' ? cx + 4 : align === 'start' ? cx - 4 : cx
   const y = side === 'top' ? box.y - 5 : box.y + box.height + 12
   return (
-    <text x={x} y={y} textAnchor={align} fill="var(--text-2)" fontSize={11} className={className}>
+    <text
+      x={x}
+      y={y}
+      textAnchor={align}
+      fill="var(--text-2)"
+      fontSize={11}
+      // An outline in the card's colour, drawn under the letters, keeps a line passing behind readable.
+      stroke="var(--panel)"
+      strokeWidth={3}
+      strokeLinejoin="round"
+      paintOrder="stroke"
+      className={className}
+    >
       {text}
     </text>
   )
