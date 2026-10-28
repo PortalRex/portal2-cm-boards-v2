@@ -239,6 +239,10 @@ export function HistoryPlot<P extends HistoryPoint>({
   })
   const drag = useRef<{ x: number; view: Domain; moved: boolean; slop: number } | null>(null)
   const [dragging, setDragging] = useState(false)
+  // The press that just ended was a drag: the click the browser sends after it isn't a pick. Kept
+  // apart from `drag`, which ends with the press: a drag let go of off the chart gets no click here
+  // to end it, and went on moving the chart along with the mouse after.
+  const dragged = useRef(false)
   // A pinch just ended: the tap the browser may send after it isn't a pick.
   const pinched = useRef(false)
   const pinch = usePinchZoom(full, zoom, setZoom, () => {
@@ -313,6 +317,7 @@ export function HistoryPlot<P extends HistoryPoint>({
           if (keyboard) setKeyboard(false)
           if (pinch.active.current) return
           pinched.current = false
+          dragged.current = false
           // Only a zoomed-in view has anywhere to be dragged to: on the whole history a press that
           // shifts a little is still a click.
           if (e.button === 0 && zoom)
@@ -328,6 +333,12 @@ export function HistoryPlot<P extends HistoryPoint>({
           if (pinch.active.current) return
           const d = drag.current
           if (!d) return
+          // No button held any more: let go of somewhere this chart didn't hear it.
+          if (e.buttons === 0) {
+            drag.current = null
+            setDragging(false)
+            return
+          }
           const dx = e.clientX - d.x
           if (!d.moved) {
             if (Math.abs(dx) < d.slop) return
@@ -341,16 +352,16 @@ export function HistoryPlot<P extends HistoryPoint>({
         }}
         onPointerUp={() => {
           setDragging(false)
-          // Still flagged as moved until the click that ends the drag has been ignored.
-          if (!drag.current?.moved) drag.current = null
+          dragged.current = drag.current?.moved ?? false
+          drag.current = null
         }}
         onPointerCancel={() => {
           setDragging(false)
           drag.current = null
         }}
         onClickCapture={(e) => {
-          if (drag.current?.moved || pinched.current) e.stopPropagation()
-          drag.current = null
+          if (dragged.current || pinched.current) e.stopPropagation()
+          dragged.current = false
           pinched.current = false
         }}
         // The point under the click, as the tooltip finds it (nearest along the time axis). Worked out
