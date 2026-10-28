@@ -82,7 +82,7 @@ export function MapLeaderboard({
   }
 
   const cols = coop
-    ? '[--mp-cols:40px_minmax(0,1fr)_minmax(0,1fr)_minmax(90px,0.6fr)_80px_150px] upto900:[--mp-cols:28px_minmax(0,1fr)_minmax(0,1fr)_58px]'
+    ? '[--mp-cols:40px_minmax(0,1fr)_minmax(0,1fr)_minmax(90px,0.6fr)_80px_150px] upto900:[--mp-cols:28px_minmax(0,1fr)_minmax(0,1fr)_58px] upto480:[--mp-cols:28px_minmax(0,1fr)_minmax(0,1fr)_50px]'
     : '[--mp-cols:40px_minmax(0,1.4fr)_minmax(110px,0.8fr)_90px_150px] upto900:[--mp-cols:32px_minmax(0,1fr)_76px]'
 
   return (
@@ -195,15 +195,16 @@ export function MapLeaderboard({
                         className={cn(
                           'flex min-w-0 items-center gap-3 self-stretch overflow-hidden whitespace-nowrap [&>a]:truncate [&>span]:truncate',
                           coop && TINT_BG[tint],
-                          coop && 'upto900:gap-1.5 upto900:text-sm',
+                          coop &&
+                            'upto900:gap-1.5 upto900:text-sm upto900:[--tint-at:24px] upto480:[--tint-at:18px]',
                         )}
                       >
                         <Avatar
                           src={p.avatar}
                           name={p.name}
                           size={30}
-                          // Phones leave co-op names the room instead.
-                          className={cn(coop && 'upto900:size-6! upto480:hidden')}
+                          // Smaller on phones, leaving co-op names room beside the trophy.
+                          className={cn(coop && 'upto900:size-6! upto480:size-[18px]!')}
                         />
                         <PlayerLink
                           player={p}
