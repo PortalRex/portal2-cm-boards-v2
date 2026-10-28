@@ -81,6 +81,38 @@ export function HistoryTooltip({
 }
 
 /**
+ * The hover line, through the dot of the time the hovered point stands for: near a copy carrying a
+ * time along its line, at that time's own dot (as the highlight is), not where the copy is.
+ * The chart fills in `points` (the line's ends where the pointer is) and `payload`.
+ */
+function RecordCursor({
+  points,
+  payload,
+  from,
+}: {
+  points?: { x: number; y: number }[]
+  payload?: { payload?: HistoryPoint }[]
+  from: number
+}) {
+  const [top, bottom] = points ?? []
+  const point = payload?.[0]?.payload
+  if (!top || !bottom || !point) return null
+  const x = recordX(point, top.x, from, AXIS_WIDTH)
+  if (x == null) return null
+  return (
+    <line
+      x1={x}
+      y1={top.y}
+      x2={x}
+      y2={bottom.y}
+      stroke="var(--line-strong)"
+      strokeOpacity={0.6}
+      pointerEvents="none"
+    />
+  )
+}
+
+/**
  * Two-finger zoom along a chart's time axis. Moving both fingers slides the view along with them.
  * It reads every finger on the screen from each touch event (a pinch out starts wide apart, so
  * the second finger often lands off the chart), rather than keeping its own list of them: a phone
@@ -353,7 +385,7 @@ export function HistoryPlot<P extends HistoryPoint>({
                 const p = active && !keyboard ? (payload?.[0]?.payload as P | undefined) : undefined
                 return p ? tooltip(p, colorOf(p.player)) : null
               }}
-              cursor={keyboard ? false : { stroke: 'var(--line-strong)', strokeOpacity: 0.6 }}
+              cursor={keyboard ? false : <RecordCursor from={from} />}
             />
             {atMs != null && atMs >= from && atMs <= to && (
               <ReferenceLine x={atMs} stroke="var(--brand)" strokeDasharray="4 3" />
