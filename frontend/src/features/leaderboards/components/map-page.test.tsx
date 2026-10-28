@@ -218,8 +218,12 @@ describe('Map page', () => {
       .mockReturnValue(DOMRect.fromRect({ x: 0, y: 0, width: 1068, height: 200 }))
     try {
       const chart = screen.getByRole('generic', { name: /World record history/ })
-      const touch = (type: 'pointerDown' | 'pointerMove' | 'pointerUp', id: number, x: number) =>
-        fireEvent[type](chart, { pointerId: id, pointerType: 'touch', clientX: x, button: 0 })
+      const touch = (
+        type: 'pointerDown' | 'pointerMove' | 'pointerUp',
+        id: number,
+        x: number,
+        on: Element = chart,
+      ) => fireEvent[type](on, { pointerId: id, pointerType: 'touch', clientX: x, button: 0 })
       // Fingers 400px and 600px across (around the middle), then the second goes out to the end:
       // three times as far apart, so a third as wide, with the middle now 700px across.
       touch('pointerDown', 1, 456)
@@ -233,6 +237,15 @@ describe('Map page', () => {
       // Lifting the fingers picks nothing.
       fireEvent.click(chart, { clientX: 456 })
       expect((router.state.location.search as { at?: string }).at).toBeUndefined()
+
+      // Pinching back out, the second finger landing off the chart (it starts wide apart): all of
+      // the history again.
+      touch('pointerDown', 3, 556)
+      touch('pointerDown', 4, 1056, document.body)
+      touch('pointerMove', 4, 600, document.body)
+      await waitFor(() => expect(view.style.width).toBe('100%'))
+      touch('pointerUp', 4, 600, document.body)
+      touch('pointerUp', 3, 556)
     } finally {
       rect.mockRestore()
     }

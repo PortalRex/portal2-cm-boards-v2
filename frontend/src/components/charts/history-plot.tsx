@@ -1,5 +1,14 @@
 import { cn } from 'cn'
-import { useId, useRef, useState, type Dispatch, type ReactNode, type SetStateAction } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type Dispatch,
+  type ReactNode,
+  type SetStateAction,
+} from 'react'
 import {
   Area,
   AreaChart,
@@ -94,6 +103,100 @@ function PickedTooltip({
   )
 }
 
+/**
+ * Two-finger zoom along a chart's time axis. It starts from a finger on the chart, then follows
+ * every finger on the screen until the last one lifts: pinching out starts with the fingers wide
+ * apart, so the second often lands off the chart. Moving both fingers slides the view along with
+ * them. Returns the chart's ref and whether a pinch is on (the chart's own drag stands aside);
+ * `onStart` runs as one begins.
+ */
+function usePinchZoom(
+  full: Domain,
+  zoom: Domain | null,
+  setZoom: Dispatch<SetStateAction<Domain | null>>,
+  onStart: () => void,
+) {
+  const [el, setEl] = useState<HTMLElement | null>(null)
+  const active = useRef(false)
+  const live = useRef({ full, zoom, onStart })
+  useEffect(() => {
+    live.current = { full, zoom, onStart }
+  })
+
+  useEffect(() => {
+    if (!el) return
+    const fingers = new Map<number, { x: number; y: number }>()
+    // The view and the moment between the fingers (0-1 across) when the pinch began, and how far
+    // apart they were.
+    let pinch: { view: Domain; from: number; dist: number } | null = null
+    const across = (x: number) => {
+      const rect = el.getBoundingClientRect()
+      const plot = Math.max(1, rect.width - AXIS_WIDTH - RIGHT)
+      return Math.min(1, Math.max(0, (x - rect.left - AXIS_WIDTH) / plot))
+    }
+    const spread = () => {
+      const [a = { x: 0, y: 0 }, b = a] = fingers.values()
+      return { mid: (a.x + b.x) / 2, dist: Math.max(1, Math.hypot(a.x - b.x, a.y - b.y)) }
+    }
+    const down = (e: PointerEvent) => {
+      if (e.pointerType !== 'touch') return
+      fingers.set(e.pointerId, { x: e.clientX, y: e.clientY })
+      if (fingers.size !== 2 || pinch) return
+      const { mid, dist } = spread()
+      const { zoom, full, onStart } = live.current
+      pinch = { view: zoom ?? full, from: across(mid), dist }
+      active.current = true
+      onStart()
+    }
+    const move = (e: PointerEvent) => {
+      if (!fingers.has(e.pointerId)) return
+      fingers.set(e.pointerId, { x: e.clientX, y: e.clientY })
+      if (!pinch || fingers.size < 2) return
+      const { mid, dist } = spread()
+      const scale = pinch.dist / dist
+      setZoom(pinchDomain(pinch.view, live.current.full, pinch.from, across(mid), scale, HISTORY_MIN_SPAN))
+    }
+    const up = (e: PointerEvent) => {
+      if (!fingers.delete(e.pointerId)) return
+      if (fingers.size < 2) {
+        pinch = null
+        active.current = false
+      }
+      if (!fingers.size) stop()
+    }
+    // The browser's own zoom (or scroll) stays out of it while pinching.
+    const hold = (e: TouchEvent) => {
+      if (pinch) e.preventDefault()
+    }
+    const stop = () => {
+      window.removeEventListener('pointerdown', down, true)
+      window.removeEventListener('pointermove', move, true)
+      window.removeEventListener('pointerup', up, true)
+      window.removeEventListener('pointercancel', up, true)
+      window.removeEventListener('touchmove', hold)
+    }
+    const start = (e: PointerEvent) => {
+      if (e.pointerType !== 'touch') return
+      if (!fingers.size) {
+        window.addEventListener('pointerdown', down, true)
+        window.addEventListener('pointermove', move, true)
+        window.addEventListener('pointerup', up, true)
+        window.addEventListener('pointercancel', up, true)
+        window.addEventListener('touchmove', hold, { passive: false })
+      }
+      down(e)
+    }
+    el.addEventListener('pointerdown', start)
+    return () => {
+      el.removeEventListener('pointerdown', start)
+      stop()
+      active.current = false
+    }
+  }, [el, setZoom])
+
+  return { ref: setEl, active }
+}
+
 export interface HistoryPlotProps<P extends HistoryPoint> {
   /** Oldest first. */
   records: P[]
@@ -151,13 +254,23 @@ export function HistoryPlot<P extends HistoryPoint>({
     minSpan: HISTORY_MIN_SPAN,
   })
   const drag = useRef<{ x: number; view: Domain | null; moved: boolean } | null>(null)
-  // Fingers on the chart (their x), and the pinch two of them make: the view and the moment
-  // between them (0-1 across) when it began, and how far apart they were.
-  const touches = useRef(new Map<number, number>())
-  const pinch = useRef<{ view: Domain; from: number; dist: number } | null>(null)
+  const [dragging, setDragging] = useState(false)
   // A pinch just ended: the tap the browser may send after it isn't a pick.
   const pinched = useRef(false)
-  const [dragging, setDragging] = useState(false)
+  const pinch = usePinchZoom(full, zoom, setZoom, () => {
+    // A second finger: a pinch, instead of the drag the first one started.
+    pinched.current = true
+    drag.current = null
+    setDragging(false)
+  })
+  const pinchRef = pinch.ref
+  const ref = useCallback(
+    (el: HTMLDivElement | null) => {
+      wheelRef(el)
+      pinchRef(el)
+    },
+    [wheelRef, pinchRef],
+  )
   // Each chart's own gradient: two can be on the page at once.
   const fillId = `historyFill${useId().replace(/[^\w-]/g, '')}`
 
@@ -167,23 +280,6 @@ export function HistoryPlot<P extends HistoryPoint>({
   const yTicks = scoreTicks(Math.min(...scores), Math.max(...scores))
   const { ticks, label: tickLabel } = timeTicks(from, to)
   const picked = keyboard ? records[standingRecord(records, atMs)] : undefined
-  // How far across the plot (0-1) the screen's x is, and where the two fingers are.
-  const across = (el: HTMLElement, x: number) => {
-    const rect = el.getBoundingClientRect()
-    return Math.min(
-      1,
-      Math.max(0, (x - rect.left - AXIS_WIDTH) / Math.max(1, rect.width - AXIS_WIDTH - RIGHT)),
-    )
-  }
-  const fingers = () => {
-    const [x1 = 0, x2 = 0] = touches.current.values()
-    return { mid: (x1 + x2) / 2, dist: Math.max(1, Math.abs(x1 - x2)) }
-  }
-  // A finger lifted: one left is no pinch (nor a drag: it doesn't pick up from there).
-  const lift = (id: number) => {
-    touches.current.delete(id)
-    if (touches.current.size < 2) pinch.current = null
-  }
   const step = (dir: -1 | 1) => {
     const next = stepRecord(records, atMs, dir)
     if (next === undefined) return
@@ -195,7 +291,7 @@ export function HistoryPlot<P extends HistoryPoint>({
 
   return (
     <div
-      ref={wheelRef}
+      ref={ref}
       data-history-plot
       // Focused by a click, so the arrow keys work from there.
       tabIndex={0}
@@ -213,32 +309,13 @@ export function HistoryPlot<P extends HistoryPoint>({
         step(e.key === 'ArrowLeft' ? -1 : 1)
       }}
       onPointerDown={(e) => {
-        if (e.pointerType === 'touch') {
-          touches.current.set(e.pointerId, e.clientX)
-          if (touches.current.size === 2) {
-            // A second finger: a pinch, instead of the drag the first one started.
-            const { mid, dist } = fingers()
-            pinch.current = { view: zoom ?? full, from: across(e.currentTarget, mid), dist }
-            pinched.current = true
-            drag.current = null
-            setDragging(false)
-            return
-          }
-        }
-        if (touches.current.size <= 1) pinched.current = false
+        if (pinch.active.current) return
+        pinched.current = false
         if (e.button === 0) drag.current = { x: e.clientX, view: zoom, moved: false }
       }}
       onPointerMove={(e) => {
         if (keyboard) setKeyboard(false)
-        if (touches.current.has(e.pointerId)) touches.current.set(e.pointerId, e.clientX)
-        const p = pinch.current
-        if (p) {
-          if (touches.current.size < 2) return
-          const { mid, dist } = fingers()
-          const to = across(e.currentTarget, mid)
-          setZoom(pinchDomain(p.view, full, p.from, to, p.dist / dist, HISTORY_MIN_SPAN))
-          return
-        }
+        if (pinch.active.current) return
         const d = drag.current
         if (!d) return
         const dx = e.clientX - d.x
@@ -252,14 +329,12 @@ export function HistoryPlot<P extends HistoryPoint>({
         const plot = e.currentTarget.getBoundingClientRect().width - AXIS_WIDTH - RIGHT
         setZoom(panDomain(d.view, full, (-dx / Math.max(1, plot)) * (b - a)))
       }}
-      onPointerUp={(e) => {
-        lift(e.pointerId)
+      onPointerUp={() => {
         setDragging(false)
         // Still flagged as moved until the click that ends the drag has been ignored.
         if (!drag.current?.moved) drag.current = null
       }}
-      onPointerCancel={(e) => {
-        lift(e.pointerId)
+      onPointerCancel={() => {
         setDragging(false)
         drag.current = null
       }}
