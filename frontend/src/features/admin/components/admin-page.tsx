@@ -73,7 +73,19 @@ export function AdminPage({
       <Panel
         icon={MoreIcon}
         title={TITLES[shown]}
-        actions={staff && <Segmented label="Section" value={shown} onChange={onSection} options={options} />}
+        actions={
+          staff && (
+            <Segmented
+              label="Section"
+              value={shown}
+              onChange={onSection}
+              options={options}
+              // Four sections and the reports count fit a phone's width: each as wide as its
+              // label (Reports carries the count), sharing what's left.
+              itemClassName="upto480:flex-auto upto480:px-2 upto480:text-base"
+            />
+          )
+        }
         bodyClassName="px-8 pt-6 pb-[30px] upto700:px-4"
       >
         {!user ? (

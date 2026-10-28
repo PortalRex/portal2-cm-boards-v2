@@ -70,7 +70,8 @@ describe('run reports', () => {
     expect(first.getByText('Cheating or an illegitimate run')).toBeInTheDocument()
     expect(first.getByRole('link', { name: 'Portal Gun' })).toHaveAttribute('href', '/map/sp/47458')
     expect(first.getByRole('link', { name: 'Runner' })).toBeInTheDocument()
-    expect(first.getByText('22.43')).toBeInTheDocument()
+    // The time opens the reported run.
+    expect(first.getByRole('link', { name: '22.43' })).toHaveAttribute('href', '/run/100')
     expect(first.getByText('Timer starts late')).toBeInTheDocument()
     expect(first.getByRole('link', { name: 'Video' })).toHaveAttribute(
       'href',

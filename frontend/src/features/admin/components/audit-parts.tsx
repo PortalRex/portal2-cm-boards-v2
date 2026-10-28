@@ -38,9 +38,9 @@ export function ActedBy({ entry }: { entry: AuditEntry }) {
 }
 
 /** How long ago, with the date under it. */
-export function When({ entry }: { entry: AuditEntry }) {
+export function When({ entry, className }: { entry: AuditEntry; className?: string }) {
   return (
-    <span className="flex min-w-0 flex-col text-right" title={formatDate(entry.created_at)}>
+    <span className={cn('flex min-w-0 flex-col text-right', className)} title={formatDate(entry.created_at)}>
       {timeAgo(entry.created_at)}
       <small className="num text-[13px] text-text-muted">{formatDate(entry.created_at)}</small>
     </span>

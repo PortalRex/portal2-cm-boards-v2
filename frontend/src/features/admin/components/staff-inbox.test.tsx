@@ -91,8 +91,8 @@ describe('the staff inbox', () => {
     expect(links.map((a) => a.getAttribute('href'))).toEqual([
       '/admin?section=reports',
       '/profile/76561198000000011',
-      '/map/sp/47458',
-      '/map/sp/47458',
+      '/run/100',
+      '/run/100',
     ])
     expect(links[0]).toHaveTextContent('New report Portal Gun')
     expect(links[0]).toHaveTextContent('“Spliced”')

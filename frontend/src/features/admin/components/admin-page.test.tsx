@@ -132,7 +132,8 @@ describe('the admin changelog', () => {
     expect(first.getByText('Banned run')).toBeInTheDocument()
     expect(first.getByRole('link', { name: 'Portal Gun' })).toHaveAttribute('href', '/map/sp/47458')
     expect(first.getByRole('link', { name: 'Runner' })).toBeInTheDocument()
-    expect(first.getByText('22.43')).toBeInTheDocument()
+    // The time opens the run.
+    expect(first.getByRole('link', { name: '22.43' })).toHaveAttribute('href', '/run/100')
     expect(first.getByRole('link', { name: 'Admin' })).toHaveAttribute('href', '/profile/76561198000000004')
     expect(first.getByText('Spliced demo')).toBeInTheDocument()
     expect(within(rows[2]!).getByText('Board service')).toBeInTheDocument()
@@ -142,6 +143,8 @@ describe('the admin changelog', () => {
     expect(gone.getByText('Player report')).toBeInTheDocument()
     expect(gone.getByText(/run deleted/)).toBeInTheDocument()
     expect(gone.queryByRole('link', { name: 'Portal Gun' })).toBeNull()
+    // A deleted run has no page to open.
+    expect(gone.queryByRole('link', { name: '22.43' })).toBeNull()
     expect(gone.getByRole('link', { name: 'Partner' })).toBeInTheDocument()
   })
 

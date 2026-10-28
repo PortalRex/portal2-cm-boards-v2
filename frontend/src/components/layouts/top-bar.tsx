@@ -93,7 +93,7 @@ export function TopBar() {
   return (
     // On iPhones its gradient runs up behind the status bar; the bar itself stays below it.
     <header className="relative z-20 bg-linear-to-b from-[rgb(var(--page-rgb)/0.55)] to-[rgb(var(--page-rgb)/0.25)] pt-[env(safe-area-inset-top,0px)]">
-      <div className="mx-auto flex h-[110px] max-w-content items-center justify-center gap-12 px-6 upto1320:h-[72px] upto1320:justify-between upto1320:gap-4 upto480:px-3.5">
+      <div className="mx-auto flex h-[110px] max-w-content items-center justify-center gap-12 px-6 upto1320:h-[72px] upto1320:justify-between upto1320:gap-4 upto480:gap-2 upto480:px-3.5">
         <BrandMenu />
 
         <nav
@@ -110,13 +110,13 @@ export function TopBar() {
           </ul>
         </nav>
 
-        <div className="flex items-center gap-5 upto1320:gap-3">
+        <div className="flex items-center gap-5 upto1320:gap-3 upto480:gap-1.5">
           {user && !user.sample && !readOnly.blocked && slots.submitRun && (
             <button
               type="button"
               onClick={() => setSubmitting(true)}
               title="Submit a run"
-              className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-[4px] border border-line-strong bg-control px-4 text-lg whitespace-nowrap hover:bg-control-raised"
+              className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-[4px] border border-line-strong bg-control px-4 text-lg whitespace-nowrap hover:bg-control-raised upto480:px-2.5"
             >
               <UploadIcon className="size-[18px] stroke-[1.5]" />
               <span className="upto480:hidden">SUBMIT RUN</span>
@@ -127,7 +127,11 @@ export function TopBar() {
             onClick={toggleTheme}
             aria-label={theme === 'light' ? 'Switch to dark theme' : 'Switch to light theme'}
             title={theme === 'light' ? 'Dark theme' : 'Light theme'}
-            className="inline-flex cursor-pointer rounded-full border-0 bg-transparent p-1.5 text-text-2 hover:bg-control-raised hover:text-foreground"
+            className={cn(
+              'inline-flex cursor-pointer rounded-full border-0 bg-transparent p-1.5 text-text-2 hover:bg-control-raised hover:text-foreground',
+              // Signed in on a phone the bar is full (submit, account, inbox); Settings has the theme.
+              user && 'upto480:hidden',
+            )}
           >
             {theme === 'light' ? (
               <DarkModeIcon className="size-[22px] stroke-[1.5]" />

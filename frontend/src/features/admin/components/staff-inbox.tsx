@@ -35,7 +35,15 @@ function describe(catalog: Catalog, e: AuditEntry) {
       title: map?.title || e.map_name || `Run #${e.target_id}`,
       sub: [players, score].filter(Boolean).join(' · '),
       note: e.action === 'report.new' ? e.reason : null,
-      to: e.action === 'report.new' ? REPORTS : map && e.run_exists ? mapPath(map) : '/admin',
+      // The run itself (its time, demo and the staff tools) while it exists, else its map.
+      to:
+        e.action === 'report.new'
+          ? REPORTS
+          : e.run_exists && e.run_id != null
+            ? `/run/${e.run_id}`
+            : map
+              ? mapPath(map)
+              : '/admin',
     }
   }
   if (e.target_type === 'profile')

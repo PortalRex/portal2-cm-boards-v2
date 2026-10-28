@@ -1,4 +1,5 @@
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { Link } from '@tanstack/react-router'
 import { cn } from 'cn'
 import { useState } from 'react'
 import { AppLink } from '@/components/app-link'
@@ -44,6 +45,8 @@ export function Reports() {
         value={status}
         onChange={setStatus}
         options={STATUSES}
+        // On a phone each as wide as its word, so the longer ones don't run together.
+        itemClassName="upto480:flex-auto upto480:px-2 upto480:text-lg"
       />
       <p className="m-0 text-sm text-text-muted">
         Reports are anonymous. Open the run to hide it, mark it pending or fix its details, then resolve the
@@ -112,8 +115,9 @@ function ReportCard({ report: r }: { report: RunReport }) {
           {timeAgo(`${r.created_at}Z`)}
         </span>
       </header>
-      <div className="grid grid-cols-[minmax(0,1.2fr)_minmax(0,1.6fr)_80px_44px_minmax(0,1.4fr)] items-center gap-3 text-base upto900:grid-cols-[1fr_1fr]">
-        <span>
+      {/* Below 900px: the map with the rank and time beside it, then the players, then the run's state. */}
+      <div className="grid grid-cols-[minmax(0,1.2fr)_minmax(0,1.6fr)_80px_44px_minmax(0,1.4fr)] items-center gap-3 text-base upto900:grid-cols-[minmax(0,1fr)_auto] upto900:gap-y-1.5 upto900:[grid-template-areas:'map_time'_'players_players'_'state_state']">
+        <span className="min-w-0 upto900:[grid-area:map]">
           {map ? (
             <AppLink href={mapPath(map)} className="text-brand-light">
               {r.map_name}
@@ -122,7 +126,7 @@ function ReportCard({ report: r }: { report: RunReport }) {
             r.map_name
           )}
         </span>
-        <span>
+        <span className="min-w-0 upto900:[grid-area:players]">
           <PlayerLink player={{ profileNumber: r.profile_number, name: r.user_name }} />
           {r.partner && (
             <>
@@ -131,11 +135,27 @@ function ReportCard({ report: r }: { report: RunReport }) {
             </>
           )}
         </span>
-        <span className="num text-right">{formatScore(r.score)}</span>
-        <span className="text-center text-text-muted">
+        <span className="num text-right upto900:[grid-area:time]">
+          {r.post_rank != null && (
+            <span className="mr-2 hidden text-text-muted upto900:inline">
+              {r.post_rank !== 1 && '#'}
+              <RankNumber rank={r.post_rank} />
+            </span>
+          )}
+          {/* The run: its demo, video and details, and the staff tools to hide it or fix it. */}
+          <Link
+            to="/run/$runId"
+            params={{ runId: String(r.changelog_id) }}
+            title="Open the run"
+            className="hover:underline"
+          >
+            {formatScore(r.score)}
+          </Link>
+        </span>
+        <span className="text-center text-text-muted upto900:hidden">
           <RankNumber rank={r.post_rank} />
         </span>
-        <span className="flex flex-wrap items-center gap-2 text-sm">
+        <span className="flex flex-wrap items-center gap-2 text-sm upto900:[grid-area:state]">
           {r.run_banned && (
             <span className="rounded-[4px] bg-banned px-2 py-0.5 text-[13px] whitespace-nowrap text-banned-text">
               Hidden

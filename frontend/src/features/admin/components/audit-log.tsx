@@ -78,19 +78,27 @@ const TABS: { value: AuditKind; label: string; actions: string[] }[] = [
 ]
 
 const row = 'grid min-h-[52px] items-center gap-x-5 px-4 py-2 text-base [&_a:hover]:underline'
-// The action column fits the longest badge ("Removed from WR history"). Below 1100px a run row
-// keeps action, map, players and time, with the reason on its own line.
+// Below 1100px each entry is a card, its cells placed by name: the action and when, then what it
+// was done to, then the reason and who did it (no header row: the cells say what they are).
+const card = 'upto1100:grid-cols-[minmax(0,1fr)_auto] upto1100:gap-y-1.5 upto1100:py-3'
+// The action column fits the longest badge ("Removed from WR history").
 const runRow = cn(
   row,
   'grid-cols-[196px_minmax(0,1.1fr)_minmax(0,1.3fr)_56px_84px_120px_minmax(0,1.2fr)_110px]',
-  'upto1100:grid-cols-[170px_minmax(0,1fr)_minmax(0,1fr)_70px] upto1100:[&>:nth-child(4)]:hidden upto1100:[&>:nth-child(6)]:hidden upto1100:[&>:nth-child(8)]:hidden upto1100:[&>:nth-child(7)]:col-span-full',
+  card,
+  "upto1100:[grid-template-areas:'action_when'_'map_map'_'players_time'_'reason_reason'_'admin_admin']",
 )
 const otherRow = cn(
   row,
-  'grid-cols-[196px_220px_160px_minmax(0,1fr)_110px] upto1100:grid-cols-[170px_minmax(0,1fr)_minmax(0,1fr)]',
+  'grid-cols-[196px_220px_160px_minmax(0,1fr)_110px]',
+  card,
+  "upto1100:[grid-template-areas:'action_when'_'target_target'_'reason_reason'_'admin_admin']",
 )
-const head = 'min-h-8 text-sm text-text-muted uppercase'
-const actedBy = 'min-w-0 truncate pl-2'
+const head = 'min-h-8 text-sm text-text-muted uppercase upto1100:hidden'
+const actedBy = 'min-w-0 truncate pl-2 upto1100:pl-0 upto1100:text-sm upto1100:[grid-area:admin]'
+const onPhones = 'hidden upto1100:inline'
+// On a card: who did it, with a word saying so.
+const byLabel = <span className={cn(onPhones, 'text-text-muted')}>by </span>
 
 /** Staff: every change staff (or the board's services) have made, by kind, newest first. */
 export function AuditLog() {
@@ -124,7 +132,7 @@ export function AuditLog() {
         />
         <Select
           size="md"
-          className="h-[34px]"
+          className="h-[34px] upto480:w-full"
           label="Action"
           value={action}
           onChange={setAction}
@@ -137,7 +145,7 @@ export function AuditLog() {
           placeholder="Search names, maps, reasons, ids"
           aria-label="Search the admin changelog"
           maxLength={100}
-          className="h-[34px] w-[280px] max-w-full rounded-[4px] border border-line-strong bg-control px-2.5 text-base text-foreground"
+          className="h-[34px] w-[280px] max-w-full rounded-[4px] border border-line-strong bg-control px-2.5 text-base text-foreground upto480:w-full"
         />
       </div>
       {log.isError && <EmptyState>Couldn’t load the admin changelog: {log.error.message}</EmptyState>}
@@ -196,7 +204,7 @@ export function AuditLog() {
 function Reason({ entry, open, onToggle }: { entry: AuditEntry; open: boolean; onToggle: () => void }) {
   const hasDetails = Boolean(entry.details && entry.details !== '{}')
   return (
-    <span className="flex min-w-0 items-center gap-3 wrap-anywhere">
+    <span className="flex min-w-0 items-center gap-3 wrap-anywhere upto1100:[grid-area:reason]">
       {entry.reason || <span className="text-text-muted">—</span>}
       {hasDetails && (
         <button
@@ -296,11 +304,11 @@ function RunEntry({ entry, striped }: { entry: AuditEntry; striped: boolean }) {
   return (
     <div>
       <div role="row" className={cn(runRow, striped && 'bg-row')}>
-        <span className="flex flex-col items-start gap-1">
+        <span className="flex flex-col items-start gap-1 upto1100:flex-row upto1100:flex-wrap upto1100:items-center upto1100:gap-2 upto1100:[grid-area:action]">
           <ActionBadge action={entry.action} />
           <RestoreButton entry={entry} />
         </span>
-        <span className="flex min-w-0 flex-col">
+        <span className="flex min-w-0 flex-col upto1100:flex-row upto1100:flex-wrap upto1100:items-baseline upto1100:gap-x-2 upto1100:[grid-area:map]">
           {map && entry.run_exists ? (
             <AppLink href={mapPath(map)} className={ellipsis}>
               {title}
@@ -313,7 +321,7 @@ function RunEntry({ entry, striped }: { entry: AuditEntry; striped: boolean }) {
             {!entry.run_exists && ' · run deleted'}
           </small>
         </span>
-        <span className="truncate">
+        <span className="truncate upto1100:whitespace-normal upto1100:[grid-area:players]">
           {entry.player && (
             <PlayerLink player={{ profileNumber: entry.player, name: entry.player_name || entry.player }} />
           )}
@@ -326,15 +334,24 @@ function RunEntry({ entry, striped }: { entry: AuditEntry; striped: boolean }) {
             </>
           )}
         </span>
-        <span className="num text-right">
+        <span className="num text-right upto1100:hidden">
           <RankNumber rank={entry.post_rank} />
         </span>
-        <span className="num text-right">{entry.score != null ? formatScore(entry.score) : '—'}</span>
+        <span className="num text-right upto1100:[grid-area:time]">
+          {entry.post_rank != null && (
+            <span className={cn(onPhones, 'mr-2 text-text-muted')}>
+              {entry.post_rank !== 1 && '#'}
+              <RankNumber rank={entry.post_rank} />
+            </span>
+          )}
+          <RunTime entry={entry} />
+        </span>
         <span className={actedBy}>
+          {byLabel}
           <ActedBy entry={entry} />
         </span>
         <Reason entry={entry} open={open} onToggle={() => setOpen((o) => !o)} />
-        <When entry={entry} />
+        <When entry={entry} className="upto1100:[grid-area:when]" />
       </div>
       {open && <Details entry={entry} />}
     </div>
@@ -353,8 +370,8 @@ function CatalogEntry({ entry, striped }: { entry: AuditEntry; striped: boolean 
   return (
     <div>
       <div role="row" className={cn(otherRow, striped && 'bg-row')}>
-        <ActionBadge action={entry.action} />
-        <span>
+        <ActionBadge action={entry.action} className="upto1100:[grid-area:action]" />
+        <span className="upto1100:[grid-area:target]">
           <button
             type="button"
             className="cursor-pointer border-0 bg-transparent p-0 text-left text-brand-light"
@@ -364,10 +381,11 @@ function CatalogEntry({ entry, striped }: { entry: AuditEntry; striped: boolean 
           </button>
         </span>
         <span className={actedBy}>
+          {byLabel}
           <ActedBy entry={entry} />
         </span>
         <Reason entry={entry} open={open} onToggle={() => setOpen((o) => !o)} />
-        <When entry={entry} />
+        <When entry={entry} className="upto1100:[grid-area:when]" />
       </div>
       {open && <Details entry={entry} />}
     </div>
@@ -379,8 +397,8 @@ function ProfileEntry({ entry, striped }: { entry: AuditEntry; striped: boolean 
   return (
     <div>
       <div role="row" className={cn(otherRow, striped && 'bg-row')}>
-        <ActionBadge action={entry.action} />
-        <span>
+        <ActionBadge action={entry.action} className="upto1100:[grid-area:action]" />
+        <span className="upto1100:[grid-area:target]">
           <Link to="/profile/$profileId" params={{ profileId: entry.target_id }}>
             {entry.target_name || entry.target_id}
           </Link>
@@ -389,12 +407,24 @@ function ProfileEntry({ entry, striped }: { entry: AuditEntry; striped: boolean 
           )}
         </span>
         <span className={actedBy}>
+          {byLabel}
           <ActedBy entry={entry} />
         </span>
         <Reason entry={entry} open={open} onToggle={() => setOpen((o) => !o)} />
-        <When entry={entry} />
+        <When entry={entry} className="upto1100:[grid-area:when]" />
       </div>
       {open && <Details entry={entry} />}
     </div>
+  )
+}
+
+/** A run's time, opening the run (its demo, video and details) while it still exists. */
+function RunTime({ entry }: { entry: AuditEntry }) {
+  if (entry.score == null) return <>—</>
+  if (!entry.run_exists || entry.run_id == null) return <>{formatScore(entry.score)}</>
+  return (
+    <Link to="/run/$runId" params={{ runId: String(entry.run_id) }} title="Open the run">
+      {formatScore(entry.score)}
+    </Link>
   )
 }
