@@ -201,9 +201,10 @@ async fn site_stats(
 
 /// **GET** World record statistics for a game (default Portal 2): every map's current record
 /// (`records`, `total_time`), `holders` (maps held now, days holding records, record runs set),
-/// `longest` (longest-lasting records), `domination` (one player holding a map through several
-/// record times), `improvements`, and the `race` (records held per player at the start of each
-/// month, per board and overall, with `race_players`).
+/// `longest` and `shortest` (longest-lasting records, and the quickest-beaten ones), `domination`
+/// (one player holding a map through several record times), `improvements`, and the `race`
+/// (records held per player at the start of each month, per board and overall, with
+/// `race_players`).
 ///
 /// - `/api/v1/stats/wr`
 #[get("/stats/wr")]

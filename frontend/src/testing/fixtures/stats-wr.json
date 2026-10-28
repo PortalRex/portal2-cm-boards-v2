@@ -743,5 +743,75 @@
       "user_name": "unity",
       "avatar": "https://avatars.steamstatic.com/1fcc7701ff71dce31965e10408d79aeb79bdf051_full.jpg"
     }
-  }
+  },
+  "shortest": [
+    {
+      "map_id": "47828",
+      "map_name": "Secret Panel",
+      "is_coop": false,
+      "score": 1810,
+      "start": "2020-11-09T19:56:10",
+      "end": "2020-11-09T19:56:40",
+      "days": 0.0,
+      "teams": [
+        {
+          "players": [
+            {
+              "profile_number": "76561198055826093",
+              "user_name": "Lathil",
+              "avatar": null
+            }
+          ],
+          "since": "2020-11-09T19:56:10"
+        }
+      ],
+      "beaten_by": [
+        {
+          "players": [
+            {
+              "profile_number": "76561198062421428",
+              "user_name": "Zach",
+              "avatar": null
+            }
+          ],
+          "since": "2020-11-09T19:56:40"
+        }
+      ],
+      "beaten_with": 1806
+    },
+    {
+      "map_id": "47458",
+      "map_name": "Portal Gun",
+      "is_coop": false,
+      "score": 2263,
+      "start": "2021-04-05T16:26:00",
+      "end": "2021-04-05T19:46:00",
+      "days": 0.1,
+      "teams": [
+        {
+          "players": [
+            {
+              "profile_number": "76561198062421428",
+              "user_name": "Zach",
+              "avatar": null
+            }
+          ],
+          "since": "2021-04-05T16:26:00"
+        }
+      ],
+      "beaten_by": [
+        {
+          "players": [
+            {
+              "profile_number": "76561198055826093",
+              "user_name": "Lathil",
+              "avatar": null
+            }
+          ],
+          "since": "2021-04-05T19:46:00"
+        }
+      ],
+      "beaten_with": 2253
+    }
+  ]
 }

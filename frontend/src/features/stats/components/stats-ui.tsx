@@ -167,7 +167,9 @@ export function StatsSwitch<T extends string>({
         'h-10 upto900:h-auto upto900:flex-wrap',
         body && 'upto900:w-full',
         // Four or more don't fit a phone's row: two by two, rather than one left on its own.
-        body && options.length > 3 && 'upto480:grid upto480:grid-cols-2',
+        body &&
+          options.length > 3 &&
+          'upto480:grid upto480:grid-cols-2 upto480:[&>:last-child:nth-child(odd)]:col-span-2',
         className,
       )}
       itemClassName={cn(

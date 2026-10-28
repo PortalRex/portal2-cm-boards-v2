@@ -646,7 +646,8 @@ one is built, so no request waits for it.
 record history, each map's records are split into reigns (each faster record time until a faster one; players who tie
 join from their own run). It answers every map's current record with how long it has stood and the total time per
 board; per player the maps held now, days spent holding records and record runs set; the longest-lasting records
-(standing ones included, with who beat them); the longest streaks one player held a map through several record times;
+(standing ones included, with who beat them) and the shortest-lasting (`shortest`: the 100 quickest-beaten, to the
+second, as some fell within minutes); the longest streaks one player held a map through several record times;
 the biggest improvements; how many records each player held at the start of every month since 2012 (the race, per
 board and overall). Cached ten minutes; cleared with the points cache.
 

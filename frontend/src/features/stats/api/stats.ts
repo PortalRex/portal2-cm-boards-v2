@@ -61,15 +61,9 @@ export interface WrStatsRaw {
   })[]
   total_time: Record<string, number>
   holders: { player: PlayerRaw; held: number; days: number; set: number }[]
-  longest: (WhereRaw & {
-    score: number
-    start: string
-    end: string | null
-    days: number
-    teams: TeamRaw[]
-    beaten_by: TeamRaw[] | null
-    beaten_with: number | null
-  })[]
+  longest: ReignRaw[]
+  /** Servers before it don't send it. */
+  shortest?: ReignRaw[]
   domination: (WhereRaw & {
     player: PlayerRaw
     start: string
@@ -140,15 +134,9 @@ export interface WrStats {
   })[]
   totalTime: Record<string, number>
   holders: { player: Player; held: number; days: number; set: number }[]
-  longest: (RecordWhere & {
-    score: number
-    start: string
-    end: string | null
-    days: number
-    teams: Team[]
-    beatenBy: Team[]
-    beatenWith: number | null
-  })[]
+  longest: Reign[]
+  /** The quickest-beaten records (only beaten ones), quickest first. */
+  shortest: Reign[]
   domination: (RecordWhere & {
     player: Player
     start: string
@@ -175,6 +163,38 @@ const pl = (p: PlayerRaw) => player(p.profile_number, p.user_name, p.avatar)
 const teams = (ts: TeamRaw[] | null | undefined): Team[] =>
   (ts ?? []).map((t) => ({ players: t.players.map(pl), since: t.since }))
 const lookupMap = (c: Catalog, id: string, game: string) => getMap(c, id, game) ?? findMap(c, id) ?? null
+/** One record time a map had, from its first run until a faster one (`end` null: standing). */
+type ReignRaw = WhereRaw & {
+  score: number
+  start: string
+  end: string | null
+  days: number
+  teams: TeamRaw[]
+  beaten_by: TeamRaw[] | null
+  beaten_with: number | null
+}
+
+export type Reign = RecordWhere & {
+  score: number
+  start: string
+  end: string | null
+  days: number
+  teams: Team[]
+  beatenBy: Team[]
+  beatenWith: number | null
+}
+
+const reign = (c: Catalog, game: string, r: ReignRaw): Reign => ({
+  ...where(c, game, r),
+  score: r.score,
+  start: r.start,
+  end: r.end,
+  days: r.days,
+  teams: teams(r.teams),
+  beatenBy: teams(r.beaten_by),
+  beatenWith: r.beaten_with,
+})
+
 const where = (c: Catalog, game: string, r: WhereRaw): RecordWhere => ({
   mapId: r.map_id,
   map: lookupMap(c, r.map_id, game),
@@ -230,16 +250,8 @@ export function adaptWrStats(c: Catalog, game: string, s: WrStatsRaw): WrStats {
     })),
     totalTime: s.total_time,
     holders: s.holders.map((h) => ({ player: pl(h.player), held: h.held, days: h.days, set: h.set })),
-    longest: s.longest.map((r) => ({
-      ...where(c, game, r),
-      score: r.score,
-      start: r.start,
-      end: r.end,
-      days: r.days,
-      teams: teams(r.teams),
-      beatenBy: teams(r.beaten_by),
-      beatenWith: r.beaten_with,
-    })),
+    longest: s.longest.map((r) => reign(c, game, r)),
+    shortest: (s.shortest ?? []).map((r) => reign(c, game, r)),
     domination: s.domination.map((r) => ({
       ...where(c, game, r),
       player: pl(r.player),

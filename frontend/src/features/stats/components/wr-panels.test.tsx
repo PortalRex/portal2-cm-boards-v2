@@ -25,14 +25,14 @@ describe('Stats: Records', () => {
     expect(screen.getByRole('link', { name: 'Records' })).toHaveAttribute('aria-current', 'page')
   })
 
-  it('orders the records by how long they have stood, either way', async () => {
+  it('orders the current records by how long they have stood, newest or oldest first', async () => {
     serveStats()
     await renderRoute('/stats/records')
     const maps = () => rowsOf('World records').map((r) => within(r).getAllByRole('link')[0]!.textContent)
-    await userEvent.click(await screen.findByRole('radio', { name: 'Shortest standing' }))
+    await userEvent.click(await screen.findByRole('radio', { name: 'Newest' }))
     // Portal Gun 128 days, Portal Carousel 190, Container Ride 341.
     expect(maps()).toEqual(['Portal Gun', 'Portal Carousel', 'Container Ride'])
-    await userEvent.click(screen.getByRole('radio', { name: 'Longest standing' }))
+    await userEvent.click(screen.getByRole('radio', { name: 'Oldest' }))
     expect(maps()).toEqual(['Container Ride', 'Portal Carousel', 'Portal Gun'])
     await userEvent.click(screen.getByRole('radio', { name: 'Map order' }))
     expect(maps()).toEqual(['Container Ride', 'Portal Carousel', 'Portal Gun'])
@@ -78,6 +78,17 @@ describe('Stats: History', () => {
     await userEvent.click(await screen.findByRole('radio', { name: label }))
     await waitFor(() => expect(router.state.location.search).toEqual({ view }))
     expect(within(table(label)).getByRole('link', { name: first })).toBeInTheDocument()
+  })
+
+  it('lists the records beaten soonest, timed to the second or minute', async () => {
+    serveStats()
+    const { router } = await renderRoute('/stats/history')
+    await userEvent.click(await screen.findByRole('radio', { name: 'Shortest lasting' }))
+    await waitFor(() => expect(router.state.location.search).toEqual({ view: 'shortest' }))
+    const [first, second] = rowsOf('Shortest lasting records')
+    expect(within(first!).getByRole('link', { name: 'Secret Panel' })).toBeInTheDocument()
+    expect(first).toHaveTextContent('30 s')
+    expect(second).toHaveTextContent('3 h 20 min')
   })
 
   it('shows how much each improvement took off', async () => {

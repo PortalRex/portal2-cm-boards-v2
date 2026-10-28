@@ -4,9 +4,10 @@
 //! *reigns*: each faster record time, from the first run with it until a faster one; players who
 //! tie a record join its reign from their own run.
 //!
-//! From that: every map's current record, the longest-lasting records, the longest streaks one
-//! player held a map, the biggest improvements, days spent holding records, and how many records
-//! each player held over time (the race).
+//! From that: every map's current record, the longest- and shortest-lasting records, the longest
+//! streaks one
+//! player held a map, the biggest improvements, days spent holding records, and how many
+//! records each player held over time (the race).
 //! Cached ten minutes per game; dropped with the points cache when runs change.
 use chrono::{Datelike, Duration as ChronoDuration, NaiveDate, NaiveDateTime, Utc};
 use sqlx::{FromRow, PgPool};
@@ -168,6 +169,8 @@ pub struct WrStats {
     pub total_time: BTreeMap<String, i64>,
     pub holders: Vec<Holder>,
     pub longest: Vec<ReignOut>,
+    /// The quickest-beaten records (only beaten ones: a standing record's time isn't up).
+    pub shortest: Vec<ReignOut>,
     pub domination: Vec<Domination>,
     pub improvements: Vec<Improvement>,
     /// Per board key and `overall`.
@@ -205,6 +208,15 @@ pub async fn wr_stats(pool: &PgPool, game_id: i32) -> Result<Arc<WrStats>, sqlx:
 
 fn days(from: NaiveDateTime, to: NaiveDateTime) -> f64 {
     ((to - from).num_seconds().max(0) as f64 / 86400.0 * 10.0).round() / 10.0
+}
+
+/// The beaten records that stood the shortest time, to the second (some fell within minutes),
+/// shortest first; records that stood as long keep their order.
+fn shortest_lasting(reigns: &[ReignOut]) -> Vec<ReignOut> {
+    let mut beaten: Vec<(i64, &ReignOut)> =
+        reigns.iter().filter_map(|r| r.end.map(|end| ((end - r.start).num_seconds(), r))).collect();
+    beaten.sort_by_key(|(stood, _)| *stood);
+    beaten.into_iter().take(LISTED).map(|(_, r)| r.clone()).collect()
 }
 
 async fn compute(pool: &PgPool, game_id: i32) -> Result<WrStats, sqlx::Error> {
@@ -303,7 +315,8 @@ async fn compute(pool: &PgPool, game_id: i32) -> Result<WrStats, sqlx::Error> {
     }
     holders.sort_by(|a, b| b.days.partial_cmp(&a.days).unwrap_or(std::cmp::Ordering::Equal).then(b.held.cmp(&a.held)));
 
-    // Longest-lasting records (still standing ones included).
+    // Every record time a map has had: the longest-lasting (still standing ones included) and the
+    // shortest-lasting.
     let mut longest: Vec<ReignOut> = Vec::new();
     for m in &maps {
         for (i, reign) in m.reigns.iter().enumerate() {
@@ -322,6 +335,7 @@ async fn compute(pool: &PgPool, game_id: i32) -> Result<WrStats, sqlx::Error> {
             });
         }
     }
+    let shortest = shortest_lasting(&longest);
     longest.sort_by(|a, b| b.days.partial_cmp(&a.days).unwrap_or(std::cmp::Ordering::Equal));
     longest.truncate(LISTED);
 
@@ -431,5 +445,39 @@ async fn compute(pool: &PgPool, game_id: i32) -> Result<WrStats, sqlx::Error> {
         race_players.retain(|p, _| named.contains(p));
     }
 
-    Ok(WrStats { records, total_time, holders, longest, domination, improvements, race, race_players })
+    Ok(WrStats { records, total_time, holders, longest, shortest, domination, improvements, race, race_players })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn reign(score: i32, start: &str, end: Option<&str>) -> ReignOut {
+        let at = |t: &str| NaiveDateTime::parse_from_str(t, "%Y-%m-%d %H:%M:%S").unwrap();
+        ReignOut {
+            map_id: "47458".into(),
+            map_name: "Portal Gun".into(),
+            is_coop: false,
+            score,
+            start: at(start),
+            end: end.map(at),
+            days: 0.0,
+            teams: Vec::new(),
+            beaten_by: Vec::new(),
+            beaten_with: None,
+        }
+    }
+
+    #[test]
+    fn shortest_lasting_lists_beaten_records_quickest_first() {
+        let reigns = [
+            reign(2300, "2020-01-01 00:00:00", Some("2020-01-03 00:00:00")),
+            reign(2250, "2020-01-03 00:00:00", Some("2020-01-03 00:04:00")),
+            reign(2240, "2020-01-03 00:04:00", Some("2020-01-03 00:04:30")),
+            // Still standing: its time isn't up, so it isn't listed.
+            reign(2200, "2020-01-03 00:04:30", None),
+        ];
+        let scores: Vec<i32> = shortest_lasting(&reigns).iter().map(|r| r.score).collect();
+        assert_eq!(scores, vec![2240, 2250, 2300]);
+    }
 }

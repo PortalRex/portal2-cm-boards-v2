@@ -7,8 +7,8 @@ import { EmptyState, Loading } from '@/components/status'
 import { useGame } from '@/hooks/use-game'
 import { useCatalog } from '@/lib/catalog'
 import { formatDate, formatLongScore, formatScore } from '@/lib/format'
-import { wrStatsQueryOptions, type WrStats } from '../api/stats'
-import { boardLabel, days, HISTORY_VIEWS, number, pick } from '../utils/format'
+import { wrStatsQueryOptions, type Reign, type WrStats } from '../api/stats'
+import { boardLabel, days, HISTORY_VIEWS, number, pick, stoodFor } from '../utils/format'
 import { orderRecords, RECORD_ORDERS, type RecordOrder } from '../utils/records'
 import { firstTeams, playersOnce } from '../utils/teams'
 import { Race } from './race'
@@ -206,8 +206,10 @@ export function HistoryPanel({ view: viewParam, onView }: { view?: string; onVie
             <Improvements rows={s.improvements} />
           ) : view === 'days' ? (
             <DaysHolding rows={s.holders} />
+          ) : view === 'shortest' ? (
+            <Reigns rows={s.shortest} quickest />
           ) : (
-            <Longest rows={s.longest} />
+            <Reigns rows={s.longest} />
           )}
         </>
       )}
@@ -222,15 +224,22 @@ const mapCell = (r: Parameters<typeof MapName>[0]['where']) => (
   </span>
 )
 
-function Longest({ rows }: { rows: WrStats['longest'] }) {
+/**
+ * Record times by how long they stood: the longest (standing ones counting up to today), or with
+ * `quickest` the soonest beaten, timed to the minute.
+ */
+function Reigns({ rows, quickest = false }: { rows: Reign[]; quickest?: boolean }) {
+  if (!rows.length) return <EmptyState>No records beaten yet.</EmptyState>
   return (
     <>
       <Intro>
-        Every record time a map has had, by how long it stood (records still standing count up to today).
+        {quickest
+          ? 'The record times that were beaten soonest after they were set.'
+          : 'Every record time a map has had, by how long it stood (records still standing count up to today).'}
       </Intro>
       <Table
         cards
-        label="Longest lasting records"
+        label={quickest ? 'Shortest lasting records' : 'Longest lasting records'}
         cols={`[--st-cols:40px_minmax(120px,1fr)_80px_minmax(0,1.2fr)_100px_220px_minmax(0,1.2fr)] ${phoneCols} *:py-1.5`}
         head={
           <>
@@ -252,10 +261,15 @@ function Longest({ rows }: { rows: WrStats['longest'] }) {
             <span className="upto900:col-[2] upto900:row-[2]">
               <Teams teams={r.teams} />
             </span>
-            <span className="num text-right">{days(r.days)}</span>
+            <span className="num text-right">
+              {quickest && r.end ? stoodFor(r.start, r.end) : days(r.days)}
+            </span>
             <span className={cn(stood, phoneLine, smallPrint, 'upto900:whitespace-normal')}>
-              {formatDate(r.start)} –{' '}
-              {r.end ? formatDate(r.end) : <span className={live}>still standing</span>}
+              {formatDate(r.start)}
+              {/* Beaten the day it was set (some within seconds): the day once. */}
+              {r.end && formatDate(r.end) === formatDate(r.start) ? null : (
+                <> – {r.end ? formatDate(r.end) : <span className={live}>still standing</span>}</>
+              )}
             </span>
             <span
               className={cn(

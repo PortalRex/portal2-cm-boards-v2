@@ -3,7 +3,7 @@ import { buildCatalog, type CatalogRaw } from '@/lib/catalog'
 import catalogRaw from '@/testing/fixtures/catalog.json'
 import wrRaw from '@/testing/fixtures/stats-wr.json'
 import { adaptWrStats, type WrStatsRaw } from '../api/stats'
-import { boardLabel, days, hue, number, pick } from './format'
+import { boardLabel, days, hue, number, pick, stoodFor } from './format'
 
 const catalog = buildCatalog(catalogRaw as CatalogRaw)
 
@@ -12,6 +12,15 @@ describe('stats formatting', () => {
     expect(number(10443)).toBe('10,443')
     expect(days(1)).toBe('1 day')
     expect(days(1154.6)).toBe('1,155 days')
+  })
+
+  it('says how long a record stood, to the second when it was beaten that soon', () => {
+    const at = (time: string) => `2020-11-09T${time}`
+    expect(stoodFor(at('19:56:10'), at('19:56:40'))).toBe('30 s')
+    expect(stoodFor(at('19:56:10'), at('20:08:15'))).toBe('12 min')
+    expect(stoodFor(at('10:00:00'), at('13:20:00'))).toBe('3 h 20 min')
+    expect(stoodFor(at('10:00:00'), at('12:00:00'))).toBe('2 h')
+    expect(stoodFor('2020-11-01T10:00:00', at('10:00:00'))).toBe('8 days')
   })
 
   it('names boards and keeps only known ones from the address', () => {

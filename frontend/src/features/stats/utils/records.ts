@@ -1,10 +1,13 @@
 export type RecordOrder = 'map' | 'longest' | 'shortest'
 
-/** The Records table's orders: the game's map order, or by how long each record has stood. */
+/**
+ * The Records table's orders: the game's map order, or by how long each current record has stood
+ * so far (oldest or newest first; records beaten quickly in the past are History's).
+ */
 export const RECORD_ORDERS: { value: RecordOrder; label: string }[] = [
   { value: 'map', label: 'Map order' },
-  { value: 'longest', label: 'Longest standing' },
-  { value: 'shortest', label: 'Shortest standing' },
+  { value: 'longest', label: 'Oldest' },
+  { value: 'shortest', label: 'Newest' },
 ]
 
 /** Records in the chosen order; records that have stood equally long keep map order. */
