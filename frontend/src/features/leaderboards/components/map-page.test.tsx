@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react'
+import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
@@ -184,6 +184,28 @@ describe('Map page', () => {
     expect(at()).toBe('2020-01-01T00:00:00')
     await userEvent.keyboard('{ArrowRight}{ArrowRight}')
     await waitFor(() => expect(at()).toBeUndefined())
+  })
+
+  it('moves a zoomed chart along when the arrow keys step off it', async () => {
+    // Records on 2020-01-01 and 2021-01-01.
+    serveMap({ wrs: records([2400, 2100]) })
+    const { router } = await renderRoute('/map/sp/47759')
+    await screen.findByText('2 world records')
+    const chart = screen.getByRole('generic', { name: /World record history/ })
+    const view = screen.getByTestId('wr-minimap-window')
+    // Zoomed in on the start of the history (jsdom has no layout: the wheel zooms at the left).
+    for (let i = 0; i < 12; i++) fireEvent.wheel(chart, { deltaY: -100 })
+    await waitFor(() => expect(view.style.left).toBe('0%'))
+    const width = view.style.width
+    expect(parseFloat(width)).toBeLessThan(15)
+    chart.focus()
+    // From today back to the 2021 record, which is off the view: the view goes there, as wide as before.
+    await userEvent.keyboard('{ArrowLeft}')
+    await waitFor(() =>
+      expect((router.state.location.search as { at?: string }).at).toBe('2021-01-01T00:00:00'),
+    )
+    await waitFor(() => expect(parseFloat(view.style.left)).toBeGreaterThan(0))
+    expect(parseFloat(view.style.width)).toBeCloseTo(parseFloat(width))
   })
 
   it('opens a bigger chart, whose arrow keys move the board too without closing it', async () => {

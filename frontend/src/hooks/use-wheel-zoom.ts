@@ -35,6 +35,19 @@ export function panDomain(domain: Domain | null, full: Domain, by: number): Doma
 }
 
 /**
+ * The view moved just far enough to show `t` when it's outside it, with `t` a `margin` (a fraction
+ * of the view) in from the edge it came in at. A view already showing `t` stays as it is.
+ */
+export function revealDomain(domain: Domain | null, full: Domain, t: number, margin = 0.1): Domain | null {
+  if (!domain) return null
+  const [a, b] = domain
+  const span = b - a
+  if (t < a) return fitDomain(full, t - span * margin, span)
+  if (t > b) return fitDomain(full, t - span * (1 - margin), span)
+  return domain
+}
+
+/**
  * Scroll-wheel zoom on an element around a chart, feeding `setDomain`. Returns the ref to put on the
  * element. Zooms around the pointer; `left` / `right` are the pixels beside the plot area (axes,
  * margins).

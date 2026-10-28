@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { fitDomain, panDomain, zoomDomain } from './use-wheel-zoom'
+import { fitDomain, panDomain, revealDomain, zoomDomain } from './use-wheel-zoom'
 
 const full: [number, number] = [0, 1000]
 
@@ -24,5 +24,17 @@ describe('zoom helpers', () => {
     expect(panDomain([100, 300], full, 50)).toEqual([150, 350])
     expect(panDomain([100, 300], full, -500)).toEqual([0, 200])
     expect(panDomain(null, full, 50)).toBeNull()
+  })
+
+  it('moves the view to show a moment outside it, a tenth in from the edge', () => {
+    // Inside: stays.
+    expect(revealDomain([100, 300], full, 250)).toEqual([100, 300])
+    // Past the right edge: it's a tenth in from the right.
+    expect(revealDomain([100, 300], full, 500)).toEqual([320, 520])
+    // Before the left edge: a tenth in from the left, stopping at the start.
+    expect(revealDomain([100, 300], full, 50)).toEqual([30, 230])
+    expect(revealDomain([100, 300], full, 5)).toEqual([0, 200])
+    // Not zoomed: everything shows already.
+    expect(revealDomain(null, full, 500)).toBeNull()
   })
 })

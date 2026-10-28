@@ -14,7 +14,7 @@ import {
 import { ExpandIcon, TrophyFilledIcon } from '@/components/icons'
 import { Loading } from '@/components/status'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
-import { panDomain, useWheelZoomOn } from '@/hooks/use-wheel-zoom'
+import { panDomain, revealDomain, useWheelZoomOn } from '@/hooks/use-wheel-zoom'
 import { formatDate, formatScore, parseTimestamp } from '@/lib/format'
 import type { WrPoint } from '../api/map-board'
 import { timeTicks } from '../utils/time-ticks'
@@ -155,6 +155,8 @@ function WrPlot({
     if (next === undefined) return
     setKeyboard(true)
     onPick(next)
+    // Stepping off the zoomed view moves it along to the record (or today).
+    setZoom((d) => revealDomain(d, full, next ?? now))
   }
 
   return (
