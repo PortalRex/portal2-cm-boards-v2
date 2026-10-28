@@ -44,8 +44,10 @@ const AXIS_WIDTH = 56
 const RIGHT = 12
 const stepButton =
   'inline-flex size-8 flex-none cursor-pointer items-center justify-center rounded-[4px] border border-line bg-control text-text-2 active:bg-control-raised'
-// How far the pointer moves before a press becomes a drag (and not a click).
+// How far the pointer moves before a press becomes a drag (and not a click): further for a finger,
+// which shifts a little in a tap.
 const DRAG_PX = 4
+const TOUCH_DRAG_PX = 12
 
 /** A time's tooltip: when, who (in their colour), the time and how much it took off; then `children`. */
 export function HistoryTooltip({
@@ -235,7 +237,7 @@ export function HistoryPlot<P extends HistoryPoint>({
     right: RIGHT,
     minSpan: HISTORY_MIN_SPAN,
   })
-  const drag = useRef<{ x: number; view: Domain | null; moved: boolean } | null>(null)
+  const drag = useRef<{ x: number; view: Domain; moved: boolean; slop: number } | null>(null)
   const [dragging, setDragging] = useState(false)
   // A pinch just ended: the tap the browser may send after it isn't a pick.
   const pinched = useRef(false)
@@ -311,7 +313,15 @@ export function HistoryPlot<P extends HistoryPoint>({
           if (keyboard) setKeyboard(false)
           if (pinch.active.current) return
           pinched.current = false
-          if (e.button === 0) drag.current = { x: e.clientX, view: zoom, moved: false }
+          // Only a zoomed-in view has anywhere to be dragged to: on the whole history a press that
+          // shifts a little is still a click.
+          if (e.button === 0 && zoom)
+            drag.current = {
+              x: e.clientX,
+              view: zoom,
+              moved: false,
+              slop: e.pointerType === 'touch' ? TOUCH_DRAG_PX : DRAG_PX,
+            }
         }}
         onPointerMove={(e) => {
           if (keyboard) setKeyboard(false)
@@ -320,12 +330,12 @@ export function HistoryPlot<P extends HistoryPoint>({
           if (!d) return
           const dx = e.clientX - d.x
           if (!d.moved) {
-            if (Math.abs(dx) < DRAG_PX) return
+            if (Math.abs(dx) < d.slop) return
             d.moved = true
             setDragging(true)
             e.currentTarget.setPointerCapture(e.pointerId)
           }
-          const [a, b] = d.view ?? full
+          const [a, b] = d.view
           const plot = e.currentTarget.getBoundingClientRect().width - AXIS_WIDTH - RIGHT
           setZoom(panDomain(d.view, full, (-dx / Math.max(1, plot)) * (b - a)))
         }}
@@ -345,13 +355,24 @@ export function HistoryPlot<P extends HistoryPoint>({
         }}
         // The point under the click, as the tooltip finds it (nearest along the time axis). Worked out
         // from where the click is: the chart's own hover state lags behind a tap or a quick click.
+        // On a time's line it picks when that time was set, where its tooltip and highlight are:
+        // picking the spot clicked put the moment's line up to a few years from them, often right
+        // beside the next time's dot.
         onClick={(e) => {
           const rect = e.currentTarget.getBoundingClientRect()
           const frac = (e.clientX - rect.left - AXIS_WIDTH) / Math.max(1, rect.width - AXIS_WIDTH - RIGHT)
           if (frac < 0 || frac > 1) return
           const p = nearestPoint(data, from + frac * (to - from))
           if (!p) return
-          onPick(p.now ? null : p.t)
+          // The tooltip goes to it too, even where the chart's hover hasn't caught up.
+          setHoverIndex(data.indexOf(p))
+          if (p.now) onPick(null)
+          else {
+            const t = p.setAt ?? p.t
+            onPick(t)
+            // A time set before the view: the view moves back to it.
+            setZoom((d) => revealDomain(d, full, t))
+          }
           onClicked?.()
         }}
       >
