@@ -227,9 +227,11 @@ export function HistoryPlot<P extends HistoryPoint>({
   const scores = data.map((d) => d.score)
   const yTicks = scoreTicks(Math.min(...scores), Math.max(...scores))
   const { ticks, label: tickLabel } = timeTicks(from, to)
-  // The time standing at the picked moment (none: today), and the one the arrow keys picked.
+  // The time standing at the picked moment (none: today), and the one the arrow keys picked. Today
+  // marks no record: today's board is the latest record's, and marking it would make the first
+  // step back to that record look like nothing happened.
   const standing = atMs == null ? undefined : records[standingRecord(records, atMs)]
-  const picked = keyboard ? records[standingRecord(records, atMs)] : undefined
+  const picked = keyboard ? standing : undefined
   const step = (dir: -1 | 1) => {
     const next = stepRecord(records, atMs, dir)
     if (next === undefined) return

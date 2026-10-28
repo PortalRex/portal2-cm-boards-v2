@@ -78,9 +78,11 @@ export function standingRecord(records: { t: number }[], at: number | null): num
 }
 
 /**
- * Where an arrow key moves the chart's moment `at` (null: today): to the time before or after.
- * From between two times, left goes to the one standing then. Right of the latest time is today
- * (null); undefined when there's nowhere to go.
+ * Where an arrow key moves the chart's moment `at` (null: today): to the time before or after the
+ * one standing then, wherever along its line `at` is. Times set the same second (a co-op run's two
+ * halves, or a tie) are one step: stepping back onto the other would land on the same moment again.
+ * From today left goes to the latest time; right of the latest is today (null); undefined when
+ * there's nowhere to go.
  */
 export function stepRecord(
   records: { t: number }[],
@@ -88,15 +90,14 @@ export function stepRecord(
   dir: -1 | 1,
 ): number | null | undefined {
   if (!records.length) return undefined
+  if (at == null) return dir < 0 ? records[records.length - 1]!.t : undefined
   const i = standingRecord(records, at)
-  if (dir < 0) {
-    // On time i: the one before. Just after it (between times, or today): time i itself.
-    const onRecord = at != null && i >= 0 && toSecond(records[i]!.t) === at
-    const target = onRecord ? i - 1 : i
-    return target >= 0 ? records[target]!.t : undefined
-  }
-  if (at == null) return undefined
-  return i + 1 < records.length ? records[i + 1]!.t : null
+  if (dir > 0) return i + 1 < records.length ? records[i + 1]!.t : null
+  if (i < 0) return undefined
+  const moment = toSecond(records[i]!.t)
+  let before = i - 1
+  while (before >= 0 && toSecond(records[before]!.t) >= moment) before--
+  return before >= 0 ? records[before]!.t : undefined
 }
 
 /** The dots' colours, readable on light and dark: each record holder gets one. */

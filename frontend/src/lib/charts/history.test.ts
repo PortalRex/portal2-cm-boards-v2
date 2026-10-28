@@ -82,12 +82,21 @@ describe('stepRecord', () => {
     expect(stepRecord(records, null, 1)).toBeUndefined()
   })
 
-  it('from a moment between records, goes left to the one standing then and right to the next', () => {
-    expect(stepRecord(records, 25_000, -1)).toBe(20_250)
+  it("from a moment along a record's line (a tap on it), goes to the record before it or after", () => {
+    // 25 s is on the 20.25 s record's line: that record is the one shown, so left is the one before.
+    expect(stepRecord(records, 25_000, -1)).toBe(10_500)
     expect(stepRecord(records, 25_000, 1)).toBe(30_000)
     // Before the first record: nothing to the left, the first to the right.
     expect(stepRecord(records, 5_000, -1)).toBeUndefined()
     expect(stepRecord(records, 5_000, 1)).toBe(10_500)
+  })
+
+  it('takes records set the same second (co-op halves, ties) as one step back', () => {
+    const twins = [{ t: 10_500 }, { t: 20_250 }, { t: 20_250 }, { t: 30_000 }]
+    expect(stepRecord(twins, toSecond(30_000), -1)).toBe(20_250)
+    expect(stepRecord(twins, toSecond(20_250), -1)).toBe(10_500)
+    expect(stepRecord(twins, toSecond(10_500), 1)).toBe(20_250)
+    expect(stepRecord(twins, toSecond(20_250), 1)).toBe(30_000)
   })
 
   it('finds the record standing at a moment', () => {
