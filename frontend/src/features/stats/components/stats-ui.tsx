@@ -41,23 +41,37 @@ export function Intro({ children }: { children: ReactNode }) {
   return <p className="mt-0 mb-4 max-w-[900px] text-text-muted">{children}</p>
 }
 
-/** A stats table: a header row, then rows striped from the first. `cols`: the grid's columns. */
+/**
+ * A stats table: a header row, then rows striped from the first. `cols`: the grid's columns.
+ * `cards`: on phones each row is a little card, its lines closer together and labelling
+ * themselves, so there's no header row (it would be a stack of column names).
+ */
 export function Table({
   label,
   cols,
   head,
+  cards = false,
   children,
 }: {
   label: string
   cols: string
   head: ReactNode
+  cards?: boolean
   children: ReactNode
 }) {
   return (
-    <div role="table" aria-label={label} className={cn('flex flex-col', cols)}>
+    <div
+      role="table"
+      aria-label={label}
+      className={cn('flex flex-col', cols, cards && 'upto900:*:gap-y-1 upto900:*:py-2')}
+    >
       <div
         role="row"
-        className={cn(rowClass, 'min-h-[34px] text-sm tracking-[0.04em] text-text-muted uppercase')}
+        className={cn(
+          rowClass,
+          'min-h-[34px] text-sm tracking-[0.04em] text-text-muted uppercase',
+          cards && 'upto900:hidden',
+        )}
       >
         {head}
       </div>
@@ -149,7 +163,13 @@ export function StatsSwitch<T extends string>({
       onChange={onChange}
       label={label}
       size="md"
-      className={cn('h-10 upto900:h-auto upto900:flex-wrap', body && 'upto900:w-full', className)}
+      className={cn(
+        'h-10 upto900:h-auto upto900:flex-wrap',
+        body && 'upto900:w-full',
+        // Four or more don't fit a phone's row: two by two, rather than one left on its own.
+        body && options.length > 3 && 'upto480:grid upto480:grid-cols-2',
+        className,
+      )}
       itemClassName={cn(
         'h-10 text-[17px] upto900:text-[15px]',
         wide

@@ -4,6 +4,7 @@ import { EmptyState } from '@/components/status'
 import type { Player } from '@/types/runs'
 import type { WrStats } from '../api/stats'
 import { hue } from '../utils/format'
+import { fromFirstRecord } from '../utils/race'
 import { Intro } from './stats-ui'
 
 const ROW = 40
@@ -12,7 +13,8 @@ const STEP_MS = 220
 type Frames = WrStats['race'][string]['frames']
 
 /** Bars sliding between places month by month; play, pause or drag through the months. */
-export function Race({ frames, players }: { frames: Frames; players: Record<string, Player> }) {
+export function Race({ frames: all, players }: { frames: Frames; players: Record<string, Player> }) {
+  const frames = useMemo(() => fromFirstRecord(all), [all])
   const [index, setIndex] = useState(frames.length - 1)
   const [playing, setPlaying] = useState(false)
   useEffect(() => {

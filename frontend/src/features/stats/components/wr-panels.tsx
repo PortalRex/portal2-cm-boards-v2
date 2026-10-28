@@ -58,6 +58,8 @@ const phoneCols = 'upto900:[--st-cols:24px_minmax(0,1fr)_84px]'
 const phoneLine = 'upto900:col-[2/-1]'
 const phoneLabel = 'hidden text-text-muted upto900:inline'
 const notOnPhones = 'upto900:hidden'
+// A card's small print on phones: dates, earlier times, who beat it.
+const smallPrint = 'upto900:text-sm upto900:text-text-muted'
 
 // --- Records ----------------------------------------------------------------------------
 
@@ -106,6 +108,7 @@ export function RecordsPanel({ mode: modeParam, onMode }: { mode?: string; onMod
               <StatsSwitch body label="Order" value={order} onChange={setOrder} options={RECORD_ORDERS} />
             </div>
             <Table
+              cards
               label="World records"
               cols="[--st-cols:minmax(140px,1fr)_90px_minmax(0,1.6fr)_120px_110px_80px] upto900:[--st-cols:minmax(0,1fr)_76px] *:py-1.5"
               head={
@@ -127,15 +130,16 @@ export function RecordsPanel({ mode: modeParam, onMode }: { mode?: string; onMod
                     <MapName where={r} />
                   </span>
                   <span className={strong}>{formatScore(r.score)}</span>
-                  <span className="upto900:col-span-full">
+                  <span className="min-w-0">
                     <Teams teams={playersOnce(r.teams)} />
                   </span>
-                  <span className={stood}>{formatDate(r.since)}</span>
-                  <span className="num text-right">{days(r.days)}</span>
-                  <span className="num text-right text-text-muted upto900:col-span-full upto900:text-left">
-                    {r.records}
-                    <span className={phoneLabel}> records</span>
+                  <span className={cn(stood, smallPrint, 'upto900:col-span-full upto900:row-[3]')}>
+                    <span className={phoneLabel}>Since </span>
+                    {formatDate(r.since)}
+                    <span className={phoneLabel}> · {r.records} records</span>
                   </span>
+                  <span className="num text-right upto900:col-[2] upto900:row-[2]">{days(r.days)}</span>
+                  <span className={cn('num text-right text-text-muted', notOnPhones)}>{r.records}</span>
                 </Row>
               ))}
             </Table>
@@ -225,6 +229,7 @@ function Longest({ rows }: { rows: WrStats['longest'] }) {
         Every record time a map has had, by how long it stood (records still standing count up to today).
       </Intro>
       <Table
+        cards
         label="Longest lasting records"
         cols={`[--st-cols:40px_minmax(120px,1fr)_80px_minmax(0,1.2fr)_100px_220px_minmax(0,1.2fr)] ${phoneCols} *:py-1.5`}
         head={
@@ -248,11 +253,18 @@ function Longest({ rows }: { rows: WrStats['longest'] }) {
               <Teams teams={r.teams} />
             </span>
             <span className="num text-right">{days(r.days)}</span>
-            <span className={`${stood} ${phoneLine} upto900:whitespace-normal`}>
+            <span className={cn(stood, phoneLine, smallPrint, 'upto900:whitespace-normal')}>
               {formatDate(r.start)} –{' '}
               {r.end ? formatDate(r.end) : <span className={live}>still standing</span>}
             </span>
-            <span className={cn(phoneLine, !r.end && notOnPhones)}>
+            <span
+              className={cn(
+                'flex flex-wrap items-center gap-x-1.5',
+                phoneLine,
+                smallPrint,
+                !r.end && notOnPhones,
+              )}
+            >
               {r.end ? (
                 <>
                   <span className={phoneLabel}>Beaten by </span>
@@ -277,6 +289,7 @@ function Domination({ rows }: { rows: WrStats['domination'] }) {
         One player holding a map’s record through several record times in a row: the longest streaks.
       </Intro>
       <Table
+        cards
         label="Longest domination"
         cols={`[--st-cols:40px_minmax(120px,1fr)_minmax(0,1fr)_80px_100px_220px_150px] ${phoneCols} upto900:*:py-1.5`}
         head={
@@ -296,13 +309,16 @@ function Domination({ rows }: { rows: WrStats['domination'] }) {
             {rank(i)}
             {mapCell(r)}
             <PlayerCell player={r.player} size={22} className="upto900:col-[2] upto900:row-[2]" />
-            <span className={`${strong} upto900:col-[3] upto900:row-[2]`}>{r.records}</span>
+            <span className={`${strong} upto900:col-[3] upto900:row-[2]`}>
+              {r.records}
+              <span className={cn(phoneLabel, 'font-normal')}> records</span>
+            </span>
             <span className="num text-right">{days(r.days)}</span>
-            <span className={`${stood} ${phoneLine} upto900:whitespace-normal`}>
+            <span className={cn(stood, phoneLine, smallPrint, 'upto900:whitespace-normal')}>
               {formatDate(r.start)} –{' '}
               {r.end ? formatDate(r.end) : <span className={live}>still holds it</span>}
             </span>
-            <span className={`num text-right text-text-muted upto900:text-left ${phoneLine}`}>
+            <span className={cn('num text-right text-text-muted upto900:text-left', phoneLine, smallPrint)}>
               <span className={phoneLabel}>Times </span>
               {formatScore(r.fromScore)} → {formatScore(r.toScore)}
             </span>
@@ -318,6 +334,7 @@ function Improvements({ rows }: { rows: WrStats['improvements'] }) {
     <>
       <Intro>The biggest single cuts to a world record.</Intro>
       <Table
+        cards
         label="Biggest improvements"
         cols={`[--st-cols:40px_minmax(120px,1fr)_90px_150px_minmax(0,1fr)_110px_minmax(0,1.3fr)] ${phoneCols} *:py-1.5`}
         head={
@@ -337,7 +354,7 @@ function Improvements({ rows }: { rows: WrStats['improvements'] }) {
             {rank(i)}
             {mapCell(r)}
             <span className={`${strong} ${live}`}>−{formatScore(r.delta)}</span>
-            <span className={`num text-right upto900:text-left ${phoneLine}`}>
+            <span className={cn('num text-right upto900:text-left', phoneLine, smallPrint)}>
               <span className="text-text-muted">{formatScore(r.fromScore)} →</span> {formatScore(r.toScore)}
             </span>
             <span className="upto900:col-[2] upto900:row-[2]">
@@ -346,8 +363,8 @@ function Improvements({ rows }: { rows: WrStats['improvements'] }) {
             <span className={`${stood} upto900:col-[3] upto900:row-[2] upto900:text-right`}>
               {formatDate(r.date)}
             </span>
-            <span className={phoneLine}>
-              <span className={phoneLabel}>Previous: </span>
+            <span className={cn('flex flex-wrap items-center gap-x-1.5', phoneLine, smallPrint)}>
+              <span className={phoneLabel}>Previous:</span>
               <Teams teams={r.previous} />{' '}
               <span className="num text-text-muted">(stood {days(r.previousDays)})</span>
             </span>
@@ -366,6 +383,7 @@ function DaysHolding({ rows }: { rows: WrStats['holders'] }) {
         Ties count from the player’s own run.
       </Intro>
       <Table
+        cards
         label="Days holding"
         cols={`[--st-cols:40px_minmax(0,1fr)_130px_80px_120px_100px] ${phoneCols} upto900:*:py-1.5`}
         head={
@@ -383,7 +401,10 @@ function DaysHolding({ rows }: { rows: WrStats['holders'] }) {
           <Row key={h.player.profileNumber}>
             {rank(i)}
             <PlayerCell player={h.player} />
-            <span className={strong}>{number(Math.round(h.days))}</span>
+            <span className={strong}>
+              {number(Math.round(h.days))}
+              <span className={cn(phoneLabel, 'font-normal')}> days</span>
+            </span>
             <span className={`num text-right text-text-muted ${notOnPhones}`}>
               {(h.days / 365.25).toFixed(1)}
             </span>
