@@ -218,34 +218,57 @@ describe('Map page', () => {
       .mockReturnValue(DOMRect.fromRect({ x: 0, y: 0, width: 1068, height: 200 }))
     try {
       const chart = screen.getByRole('generic', { name: /World record history/ })
+      const view = screen.getByTestId('history-minimap-window')
+      // A touch event on `on`, with every finger on the screen as [x, the element it's on].
       const touch = (
-        type: 'pointerDown' | 'pointerMove' | 'pointerUp',
-        id: number,
-        x: number,
+        type: 'touchStart' | 'touchMove' | 'touchEnd',
+        fingers: [number, Element][],
         on: Element = chart,
-      ) => fireEvent[type](on, { pointerId: id, pointerType: 'touch', clientX: x, button: 0 })
+      ) =>
+        fireEvent[type](on, {
+          touches: fingers.map(([x, target]) => ({ clientX: x, clientY: 0, target })),
+        })
+
       // Fingers 400px and 600px across (around the middle), then the second goes out to the end:
       // three times as far apart, so a third as wide, with the middle now 700px across.
-      touch('pointerDown', 1, 456)
-      touch('pointerDown', 2, 656)
-      touch('pointerMove', 2, 1056)
-      const view = screen.getByTestId('history-minimap-window')
+      touch('touchStart', [[456, chart]])
+      touch('touchStart', [
+        [456, chart],
+        [656, chart],
+      ])
+      touch('touchMove', [
+        [456, chart],
+        [1056, chart],
+      ])
       await waitFor(() => expect(parseFloat(view.style.width)).toBeCloseTo(100 / 3))
       expect(parseFloat(view.style.left)).toBeCloseTo(50 - 70 / 3)
-      touch('pointerUp', 2, 1056)
-      touch('pointerUp', 1, 456)
+      // Both fingers lift at once (one "lifted" event, as a phone may send): nothing is left over.
+      touch('touchEnd', [])
       // Lifting the fingers picks nothing.
       fireEvent.click(chart, { clientX: 456 })
       expect((router.state.location.search as { at?: string }).at).toBeUndefined()
 
       // Pinching back out, the second finger landing off the chart (it starts wide apart): all of
       // the history again.
-      touch('pointerDown', 3, 556)
-      touch('pointerDown', 4, 1056, document.body)
-      touch('pointerMove', 4, 600, document.body)
+      touch('touchStart', [[556, chart]])
+      touch(
+        'touchStart',
+        [
+          [556, chart],
+          [1056, document.body],
+        ],
+        document.body,
+      )
+      touch(
+        'touchMove',
+        [
+          [556, chart],
+          [600, document.body],
+        ],
+        document.body,
+      )
       await waitFor(() => expect(view.style.width).toBe('100%'))
-      touch('pointerUp', 4, 600, document.body)
-      touch('pointerUp', 3, 556)
+      touch('touchEnd', [])
     } finally {
       rect.mockRestore()
     }

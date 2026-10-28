@@ -104,11 +104,14 @@ function PickedTooltip({
 }
 
 /**
- * Two-finger zoom along a chart's time axis. It starts from a finger on the chart, then follows
- * every finger on the screen until the last one lifts: pinching out starts with the fingers wide
- * apart, so the second often lands off the chart. Moving both fingers slides the view along with
- * them. Returns the chart's ref and whether a pinch is on (the chart's own drag stands aside);
- * `onStart` runs as one begins.
+ * Two-finger zoom along a chart's time axis. Moving both fingers slides the view along with them.
+ * It reads every finger on the screen from each touch event (a pinch out starts wide apart, so
+ * the second finger often lands off the chart), rather than keeping its own list of them: a phone
+ * browser that drops a finger's "lifted" event would leave that list holding a finger that isn't
+ * there, and every pinch after it would be measured from it. A pinch starts only with a finger on
+ * the chart; while one is on, the browser's own zoom and scroll stay out of it. Returns the
+ * chart's ref and whether a pinch is on (the chart's own drag stands aside); `onStart` runs as one
+ * begins.
  */
 function usePinchZoom(
   full: Domain,
@@ -125,7 +128,6 @@ function usePinchZoom(
 
   useEffect(() => {
     if (!el) return
-    const fingers = new Map<number, { x: number; y: number }>()
     // The view and the moment between the fingers (0-1 across) when the pinch began, and how far
     // apart they were.
     let pinch: { view: Domain; from: number; dist: number } | null = null
@@ -134,62 +136,31 @@ function usePinchZoom(
       const plot = Math.max(1, rect.width - AXIS_WIDTH - RIGHT)
       return Math.min(1, Math.max(0, (x - rect.left - AXIS_WIDTH) / plot))
     }
-    const spread = () => {
-      const [a = { x: 0, y: 0 }, b = a] = fingers.values()
-      return { mid: (a.x + b.x) / 2, dist: Math.max(1, Math.hypot(a.x - b.x, a.y - b.y)) }
-    }
-    const down = (e: PointerEvent) => {
-      if (e.pointerType !== 'touch') return
-      fingers.set(e.pointerId, { x: e.clientX, y: e.clientY })
-      if (fingers.size !== 2 || pinch) return
-      const { mid, dist } = spread()
-      const { zoom, full, onStart } = live.current
-      pinch = { view: zoom ?? full, from: across(mid), dist }
-      active.current = true
-      onStart()
-    }
-    const move = (e: PointerEvent) => {
-      if (!fingers.has(e.pointerId)) return
-      fingers.set(e.pointerId, { x: e.clientX, y: e.clientY })
-      if (!pinch || fingers.size < 2) return
-      const { mid, dist } = spread()
+    const onTouch = (e: TouchEvent) => {
+      const [a, b] = [e.touches[0], e.touches[1]]
+      if (!a || !b) {
+        pinch = null
+        active.current = false
+        return
+      }
+      const mid = (a.clientX + b.clientX) / 2
+      const dist = Math.max(1, Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY))
+      if (!pinch) {
+        if (![...e.touches].some((t) => t.target instanceof Node && el.contains(t.target))) return
+        const { zoom, full, onStart } = live.current
+        pinch = { view: zoom ?? full, from: across(mid), dist }
+        active.current = true
+        onStart()
+      }
+      if (e.cancelable) e.preventDefault()
+      if (e.type !== 'touchmove') return
       const scale = pinch.dist / dist
       setZoom(pinchDomain(pinch.view, live.current.full, pinch.from, across(mid), scale, HISTORY_MIN_SPAN))
     }
-    const up = (e: PointerEvent) => {
-      if (!fingers.delete(e.pointerId)) return
-      if (fingers.size < 2) {
-        pinch = null
-        active.current = false
-      }
-      if (!fingers.size) stop()
-    }
-    // The browser's own zoom (or scroll) stays out of it while pinching.
-    const hold = (e: TouchEvent) => {
-      if (pinch) e.preventDefault()
-    }
-    const stop = () => {
-      window.removeEventListener('pointerdown', down, true)
-      window.removeEventListener('pointermove', move, true)
-      window.removeEventListener('pointerup', up, true)
-      window.removeEventListener('pointercancel', up, true)
-      window.removeEventListener('touchmove', hold)
-    }
-    const start = (e: PointerEvent) => {
-      if (e.pointerType !== 'touch') return
-      if (!fingers.size) {
-        window.addEventListener('pointerdown', down, true)
-        window.addEventListener('pointermove', move, true)
-        window.addEventListener('pointerup', up, true)
-        window.addEventListener('pointercancel', up, true)
-        window.addEventListener('touchmove', hold, { passive: false })
-      }
-      down(e)
-    }
-    el.addEventListener('pointerdown', start)
+    const events = ['touchstart', 'touchmove', 'touchend', 'touchcancel'] as const
+    for (const type of events) window.addEventListener(type, onTouch, { passive: false })
     return () => {
-      el.removeEventListener('pointerdown', start)
-      stop()
+      for (const type of events) window.removeEventListener(type, onTouch)
       active.current = false
     }
   }, [el, setZoom])
