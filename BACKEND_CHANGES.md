@@ -574,10 +574,18 @@ from a day before the newest run we have from it if that's older. Per entry:
   A download that fails is tried again after a wait that doubles each time (half an hour, an hour, two, ... up to a
   day), so a broken demo isn't asked for every pull. The report counts those as `demos_waiting`.
 
+A full pull also catches **runs still pending here that the old board has cleared since**. A demo added to an old run
+there (or a video, or staff verifying it) doesn't change the run's date, so the window above never shows it again and
+it stayed pending here without its demo. The pull reads the board's pending runs (`/changelog/json?pending=1`, about
+5 MB and 2 s for board.portal2.sr), and each run pending here but not there is read by id (`?id=`, up to 500 per
+board per pull) and taken like an entry above. A run without a record in `old_board_runs` (taken before the sync kept
+one) counts as last seen pending, so its verifying applies. Runs the old board no longer lists (deleted there) aren't
+asked about again until the server restarts. The report counts them as `rechecked`.
+
 With `SYNC.OLD_BOARDS_MINUTES` (off unless set; e.g. 15), the schedule also makes a quick pull every so many minutes
 in between the hours. A quick pull does everything above but fetch the backlog of demo files we have a record of and
-no file for (up to 500 per board per pull), which only the full pulls at `SYNC.OLD_BOARDS_HOURS` and the staff
-endpoint do. One quick pull costs the old board one changelog request per board (about a second for board.portal2.sr)
+no file for (up to 500 per board per pull) and the pending runs the old board has cleared, which only the full pulls
+at `SYNC.OLD_BOARDS_HOURS` and the staff endpoint do. One quick pull costs the old board one changelog request per board (about a second for board.portal2.sr)
 plus the demos of runs that are new to us.
 - Status changes and hides are written to the audit log as the service (`run.ban`, `run.unban`, `run.verify`,
   `run.unverify`) with the reason.

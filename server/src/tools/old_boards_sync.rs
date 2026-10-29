@@ -18,6 +18,10 @@
 //!   Co-op halves are paired the way the import paired them: same map and time, set within
 //!   three hours; else with the map's placeholder partner.
 //!
+//! A full pull also catches runs still pending here that the old board has cleared since: a demo
+//! added to an old run (or a video, or staff verifying it) doesn't change its date, so the pull's
+//! window never shows it again. Each is read from the old board and taken like an entry above.
+//!
 //! Demos we have a record of but no file for (submitted after the demo archive was copied) are
 //! downloaded from the old board too.
 //!
@@ -71,6 +75,8 @@ const SUPERSEDED_NOTE: &str = "The old board already has an equal or better time
 const CHANGED_REASON: &str = "Changed on the old board";
 /// At most this many missing demo files fetched per board per pull.
 const MAX_DEMO_FILES: usize = 500;
+/// At most this many runs the old board has cleared ([recheck_pending]) read per board per pull.
+const MAX_RECHECKS: usize = 500;
 /// At most this many lines of detail in a report.
 const MAX_DETAILS: usize = 300;
 
@@ -98,6 +104,8 @@ pub struct BoardReport {
     pub demo_files_missing: usize,
     /// Of those, ones the old board has lost too (not asked for again until the server restarts).
     pub demo_files_gone: usize,
+    /// Runs pending here that the old board has cleared since, read from it again.
+    pub rechecked: usize,
     pub hidden: usize,
     /// Steam's copies of runs the old board already had, deleted.
     pub deleted: usize,
@@ -207,6 +215,14 @@ fn unescape_note(note: &str) -> String {
     out
 }
 
+/// (game, old board id) of runs the old board no longer lists (deleted there), so a pending run
+/// of ours isn't asked about again every pull ([recheck_pending]).
+static GONE_RUNS: std::sync::Mutex<Option<HashSet<(i32, i64)>>> = std::sync::Mutex::new(None);
+
+fn run_gone(game_id: i32, legacy_id: i64) -> bool {
+    GONE_RUNS.lock().map(|g| g.as_ref().is_some_and(|set| set.contains(&(game_id, legacy_id)))).unwrap_or(false)
+}
+
 /// (game, old board id) of demos the old board has lost too, so they aren't asked for every pull.
 static GONE_DEMOS: std::sync::Mutex<Option<HashSet<(i32, i64)>>> = std::sync::Mutex::new(None);
 const GONE: &str = "the old board has lost this demo too";
@@ -262,8 +278,8 @@ pub fn start(pool: PgPool, config: Config, cache: CacheState) {
                 Ok(reports) => {
                     for r in reports {
                         log::info!(
-                            "old-board sync {}: {} entries since {}: {} updated, {} linked to Steam runs, {} added, {} demos added ({} failed, {} waiting), {} demo files restored, {} hidden, {} duplicates deleted, {} skipped{}",
-                            r.board, r.entries, r.since, r.updated, r.matched, r.inserted, r.demos_added, r.demos_failed, r.demos_waiting, r.demo_files_restored, r.hidden, r.deleted, r.skipped,
+                            "old-board sync {}: {} entries since {}: {} updated, {} linked to Steam runs, {} added, {} pending runs cleared there, {} demos added ({} failed, {} waiting), {} demo files restored, {} hidden, {} duplicates deleted, {} skipped{}",
+                            r.board, r.entries, r.since, r.updated, r.matched, r.inserted, r.rechecked, r.demos_added, r.demos_failed, r.demos_waiting, r.demo_files_restored, r.hidden, r.deleted, r.skipped,
                             if r.errors.is_empty() { String::new() } else { format!("; errors: {}", r.errors.join("; ")) }
                         );
                     }
@@ -449,7 +465,100 @@ async fn pull(
     if !full {
         return Ok(());
     }
+    let pulled: HashSet<i64> = entries.iter().map(|e| e.id).collect();
+    recheck_pending(pool, config, client, url, game_id, &maps, &pulled, dry_run, report, touched, &mut accounted).await?;
     restore_demo_files(pool, config, client, url, game_id, dry_run, report).await
+}
+
+/// Which of `ours` (old board id, our id: runs pending here) to read again: those the old board
+/// no longer has pending, leaving out the ones this pull read already (`pulled`) and the ones it no
+/// longer lists (`gone`), at most [MAX_RECHECKS].
+fn cleared_there(ours: Vec<(i64, i64)>, pending_there: &HashSet<i64>, pulled: &HashSet<i64>, gone: impl Fn(i64) -> bool) -> Vec<(i64, i64)> {
+    ours.into_iter()
+        .filter(|(legacy_id, _)| !pending_there.contains(legacy_id) && !pulled.contains(legacy_id) && !gone(*legacy_id))
+        .take(MAX_RECHECKS)
+        .collect()
+}
+
+/// Our runs from this board that are pending here but not on the old board any more (`pulled`:
+/// the entries this pull read already). Each is read from the old board and taken like an entry
+/// of the pull: a demo it has and we don't is added, and its verifying is applied.
+#[allow(clippy::too_many_arguments)]
+async fn recheck_pending(
+    pool: &PgPool,
+    config: &Config,
+    client: &reqwest::Client,
+    url: &str,
+    game_id: i32,
+    maps: &HashMap<String, BoardMap>,
+    pulled: &HashSet<i64>,
+    dry_run: bool,
+    report: &mut BoardReport,
+    touched: &mut HashSet<(String, bool)>,
+    accounted: &mut HashSet<i64>,
+) -> Result<(), sqlx::Error> {
+    let ours: Vec<(i64, i64)> = sqlx::query_as(
+        r#"
+            SELECT l.legacy_id, c.id FROM legacy_changelog_ids AS l JOIN changelog AS c ON c.id = l.changelog_id
+            WHERE l.game_id = $1 AND c.verified = false AND NOT c.banned
+            ORDER BY l.legacy_id DESC
+        "#,
+    )
+    .bind(game_id)
+    .fetch_all(pool)
+    .await?;
+    if ours.is_empty() {
+        return Ok(());
+    }
+    let pending_there: HashSet<i64> = match fetch(client, &format!("{url}/changelog/json?pending=1")).await {
+        Ok(entries) => entries.into_iter().map(|e| e.id).collect(),
+        Err(e) => {
+            report.errors.push(format!("couldn't read the pending runs: {e}"));
+            return Ok(());
+        }
+    };
+    for (legacy_id, cl_id) in cleared_there(ours, &pending_there, pulled, |id| run_gone(game_id, id)) {
+        let e = match fetch(client, &format!("{url}/changelog/json?id={legacy_id}")).await {
+            Ok(entries) => entries.into_iter().find(|e| e.id == legacy_id),
+            Err(err) => {
+                report.errors.push(format!("couldn't read old board run {legacy_id}: {err}"));
+                continue;
+            }
+        };
+        let Some(e) = e else {
+            if let Ok(mut g) = GONE_RUNS.lock() {
+                g.get_or_insert_with(HashSet::new).insert((game_id, legacy_id));
+            }
+            continue;
+        };
+        let Some(map) = maps.get(&e.mapid) else {
+            continue;
+        };
+        report.rechecked += 1;
+        report.note(format!("recheck: run {cl_id} = old board {legacy_id}, cleared there{}", if e.has_demo.unwrap_or(0) != 0 { ", with demo" } else { "" }));
+        if !dry_run {
+            // Runs taken before the sync kept what it saw have no record of it: as last seen, the
+            // run as we have it (pending), so its verifying counts as a change made there.
+            sqlx::query(
+                r#"
+                    INSERT INTO old_board_runs (game_id, legacy_id, banned, pending, youtube_id, note, has_demo, autorender_id, seen_at)
+                    SELECT $1, $2, c.banned, c.verified IS NOT TRUE, c.youtube_id, c.note, c.demo_id IS NOT NULL, c.autorender_id, now() AT TIME ZONE 'utc'
+                    FROM changelog AS c WHERE c.id = $3
+                    ON CONFLICT (game_id, legacy_id) DO NOTHING
+                "#,
+            )
+            .bind(game_id)
+            .bind(legacy_id)
+            .bind(cl_id)
+            .execute(pool)
+            .await?;
+        }
+        if let Err(err) = apply_entry(pool, config, client, url, game_id, map, &e, dry_run, report, touched, accounted).await {
+            log::error!("old-board sync: old board run {legacy_id} ({}): {err}", report.board);
+            report.errors.push(format!("old board run {legacy_id}: {err}"));
+        }
+    }
+    Ok(())
 }
 
 /// Downloads the files of this board's demos that we have a record of but no file for (demos
@@ -1038,10 +1147,21 @@ pub(crate) async fn delete_duplicates(
 
 #[cfg(test)]
 mod tests {
-    use super::{next_pull, note_download, is_waiting, retry_after, unescape_note};
+    use super::{cleared_there, next_pull, note_download, is_waiting, retry_after, unescape_note};
+    use std::collections::HashSet;
     use chrono::TimeZone;
     use chrono_tz::America::Chicago;
     use std::time::Duration;
+
+    #[test]
+    fn rechecks_runs_the_old_board_no_longer_has_pending() {
+        // (old board id, our id) of runs pending here.
+        let ours = vec![(10, 1), (11, 2), (12, 3), (13, 4)];
+        let pending_there: HashSet<i64> = [10].into();
+        // 11 was in this pull's window already; 13 the old board no longer lists.
+        let pulled: HashSet<i64> = [11].into();
+        assert_eq!(cleared_there(ours, &pending_there, &pulled, |id| id == 13), vec![(12, 3)]);
+    }
 
     #[test]
     fn unescapes_notes() {
