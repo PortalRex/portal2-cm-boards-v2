@@ -25,7 +25,8 @@ export const MAP_SORTS: MapSort[] = [
   { value: 'rank', label: 'Best rank first', key: (s) => s.rank },
   { value: 'worst', label: 'Worst rank first', key: (s) => s.rank, desc: true },
   { value: 'date', label: 'Newest first', key: date, desc: true },
-  // A column's first entry is what a click on its header picks; the next click flips it.
+  // A column's first entry is what a click on its header picks; the next click flips it, the one
+  // after goes back to map order.
   { value: 'time', label: 'Fastest time first', key: time, column: 'time' },
   { value: 'time-desc', label: 'Slowest time first', key: time, desc: true, column: 'time' },
   { value: 'next', label: 'Smallest ΔNext first', key: next, column: 'next' },
@@ -36,10 +37,15 @@ export const MAP_SORTS: MapSort[] = [
   { value: 'points-asc', label: 'Fewest points first', key: points, column: 'points' },
 ]
 
-/** The sort a click on a column's header picks: the column's first order, or the other one if it's on. */
+/**
+ * The sort a click on a column's header picks: the column's first order, then the other one, then
+ * back to map order (so the sorting is easily turned off).
+ */
 export function columnSort(column: SortColumn, current: string): string {
   const [first, second] = MAP_SORTS.filter((o) => o.column === column)
-  return current === first!.value ? second!.value : first!.value
+  if (current === first!.value) return second!.value
+  if (current === second!.value) return 'default'
+  return first!.value
 }
 
 /** Which way the table is sorted by a column, if it is. */

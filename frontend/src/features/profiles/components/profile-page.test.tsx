@@ -178,7 +178,7 @@ describe('Profile page', () => {
     expect(first()).toHaveAccessibleName('Show run details for Funnel Catch')
   })
 
-  it('sorts by a column from its header, and the other way on a second click', async () => {
+  it('sorts by a column from its header, the other way on a second click, and not on a third', async () => {
     serveProfile()
     await renderProfile()
     const select = screen.getByRole('combobox', { name: 'Sort maps' })
@@ -195,6 +195,12 @@ describe('Profile page', () => {
     await userEvent.click(header!)
     expect(screen.getByRole('heading', { name: 'Fewest points first', level: 3 })).toBeInTheDocument()
     expect(select).toHaveValue('points-asc')
+    // The third click turns the sorting off: the chapters again.
+    expect(headers()[0]).toHaveAttribute('title', 'Map order')
+    await userEvent.click(headers()[0]!)
+    expect(select).toHaveValue('default')
+    expect(screen.queryByRole('heading', { name: /points first/, level: 3 })).not.toBeInTheDocument()
+    expect(headers().length).toBeGreaterThan(1)
   })
 
   it('shows the Legacy view and the Info tab', async () => {

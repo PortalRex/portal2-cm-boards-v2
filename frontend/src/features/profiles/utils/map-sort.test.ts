@@ -57,13 +57,16 @@ describe('orderedChapters', () => {
 })
 
 describe('columnSort', () => {
-  it("picks the column's first order, then flips it", () => {
+  it("picks the column's first order, then flips it, then goes back to map order", () => {
     expect(columnSort('time', 'default')).toBe('time')
     expect(columnSort('time', 'time')).toBe('time-desc')
-    expect(columnSort('time', 'time-desc')).toBe('time')
+    expect(columnSort('time', 'time-desc')).toBe('default')
     // Points start with the most.
     expect(columnSort('points', 'time')).toBe('points')
     expect(columnSort('points', 'points')).toBe('points-asc')
+    expect(columnSort('points', 'points-asc')).toBe('default')
+    // Another order picked in the menu: the column's first.
+    expect(columnSort('wr', 'rank')).toBe('wr')
   })
 
   it('tells which way a column is sorted', () => {
