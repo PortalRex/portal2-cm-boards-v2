@@ -5,6 +5,7 @@ import {
   dayAt,
   dayMs,
   domainFor,
+  fitLines,
   labelAlign,
   labelSide,
   openingView,
@@ -228,5 +229,29 @@ describe('placeLabels', () => {
       sp: 'bottom',
       coop: null,
     })
+  })
+})
+
+describe('fitLines', () => {
+  it("zoomed in, fits each line to its own range in view, so they're drawn over each other", () => {
+    const rows = chartRows(samples, null)
+    // Single player 200..300 and co-op 50..60 over the 14th-21st: each fills the same height.
+    const fit = fitLines(rows, ['sp', 'coop'], dayMs('2024-01-14'), dayMs('2024-01-21'))
+    expect([fit('sp', 200), fit('sp', 300)]).toEqual([0, 1000])
+    expect([fit('coop', 50), fit('coop', 60)]).toEqual([0, 1000])
+  })
+
+  it("keeps a line's small wobble small: its range is shown as at least 1% of its height", () => {
+    const rows = chartRows(
+      [
+        { date: '2024-01-07', sp: 10000, coop: 0, overall: 10000 },
+        { date: '2024-01-14', sp: 10020, coop: 0, overall: 10020 },
+      ],
+      null,
+    )
+    const fit = fitLines(rows, ['sp'], dayMs('2024-01-07'), dayMs('2024-01-14'))
+    // 20 points of a 100.2-point range (1% of 10020), centred.
+    expect(fit('sp', 10020) - fit('sp', 10000)).toBeCloseTo(199.6, 1)
+    expect(fit('sp', 10000)).toBeCloseTo(400.2, 1)
   })
 })

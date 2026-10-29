@@ -73,6 +73,51 @@ export function scaleRows(rows: ChartRow[], max: BoardMax): ChartRow[] {
   })
 }
 
+// Zoomed in, each line's own range fills this height ([fitLines]).
+const FIT_H = 1000
+// The least a line's range is shown as (a share of its height), so a few points' wobble stays small.
+const MIN_RANGE = 0.01
+
+/**
+ * Zoomed in, each line's own height scale: its range in view (`from`-`to`) fills the plot, so every
+ * line shows its shape and they overlap ("all three graphs drawn at once"), but their heights no
+ * longer compare (the tooltip has the points). A range under 1% of the line's height is shown as
+ * that much, centred. Gives a line's value's height on the plot.
+ */
+export function fitLines(
+  rows: ChartRow[],
+  keys: PointsBoardKey[],
+  from: number,
+  to: number,
+): (key: PointsBoardKey, value: number) => number {
+  const inView = rows.filter((d) => d.t >= from && d.t <= to)
+  const source = inView.length ? inView : rowsInView(rows, from, to)
+  const ranges = new Map<PointsBoardKey, [number, number]>()
+  for (const key of keys) {
+    const values = source.map((d) => d[key]).filter((v): v is number => v != null)
+    if (!values.length) continue
+    const [lo, hi] = [Math.min(...values), Math.max(...values)]
+    const span = Math.max(hi - lo, Math.abs(hi) * MIN_RANGE, 1)
+    ranges.set(key, [(lo + hi) / 2 - span / 2, span])
+  }
+  return (key, value) => {
+    const range = ranges.get(key)
+    return range ? ((value - range[0]) / range[1]) * FIT_H : value
+  }
+}
+
+/** The rows with each line's values put through `fit` ([fitLines]); `pts` keeps the points. */
+export function fitRows(rows: ChartRow[], fit: (key: PointsBoardKey, value: number) => number): ChartRow[] {
+  return rows.map((d) => {
+    const fitted: ChartRow = { ...d }
+    for (const { key } of SERIES) {
+      const v = d[key]
+      if (v != null) fitted[key] = fit(key, v)
+    }
+    return fitted
+  })
+}
+
 const DAY_MS = 24 * 3600 * 1000
 const YEAR_MS = 365 * DAY_MS
 // How far (a share of the top line's height now) a line may be from where it stands now once it
@@ -112,8 +157,9 @@ export type Domain = [number, number | 'dataMax']
 
 /**
  * The plot's height scale for the `shown` lines. The whole history starts at 0 (totals compare);
- * zoomed in, it's fitted to what those lines have in view, so rises and drops show. All lines share
- * it either way: one above another is nearer its board's maximum ([scaleRows]).
+ * zoomed in, it's fitted to what those lines have in view, so rises and drops show (each line
+ * already fitted to its own range, [fitLines]). On the whole history one line above another is
+ * nearer its board's maximum ([scaleRows]).
  */
 export function domainFor(
   shown: PointsBoardKey[],

@@ -24,6 +24,8 @@ import {
   chartRows,
   dayMs,
   domainFor,
+  fitLines,
+  fitRows,
   labelAlign,
   labelSide,
   openingView,
@@ -44,13 +46,15 @@ import {
 } from '../utils/points-chart'
 
 const DAY = 24 * 3600 * 1000
+const SERIES_KEYS = SERIES.map((s) => s.key)
 // The narrowest it zooms in to.
 const MIN_SPAN = 14 * DAY
 
 /**
  * Points over time as they really were: ranks are recomputed against everyone's best times at
- * each date, so being passed shows as a drop. Each line is drawn against its board's most points,
- * so maxed boards meet. It opens past the early climb ([openingView]); scroll over it, or use the
+ * each date, so being passed shows as a drop. On the whole history each line is drawn against its
+ * board's most points, so maxed boards meet; zoomed in, each has its own scale, so all of them show
+ * their shape over each other. It opens past the early climb ([openingView]); scroll over it, or use the
  * bar under it, to zoom; click a day (or pick one in the date box) to see the profile as it was
  * then. Each board's peak is marked.
  */
@@ -116,8 +120,11 @@ export function PointsChart({
   if (all.length < 2) return note('Not enough submissions for a points history yet.')
 
   const [from, to] = zoom ?? full!
-  const data = rowsInView(all, from, to)
   const zoomed = Boolean(zoom)
+  // Zoomed in, each line has its own height scale, so all of them show their shape.
+  const fit = zoomed ? fitLines(all, SERIES_KEYS, from, to) : (_: PointsBoardKey, v: number) => v
+  const drawn = zoomed ? fitRows(all, fit) : all
+  const data = rowsInView(drawn, from, to)
   const shown = series.filter((s) => !hidden[s.key])
   const atMs = at ? dayMs(at) : null
   // The peaks in view, overall's label first.
@@ -130,13 +137,13 @@ export function PointsChart({
     if (t < from || t > to) return []
     const value = Math.round(p.points)
     // Its height on the chart (the line's scale).
-    const scaled = value * scale(s.key)
+    const scaled = fit(s.key, value * scale(s.key))
     const spot: PeakSpot = {
       key: s.key,
       x: ((t - from) / Math.max(1, to - from)) * plotW,
       y: yPx(scaled),
       text: `Peak ${value}`,
-      side: labelSide(all, data, keys, zoomed, [from, to], s.key, t, scaled),
+      side: labelSide(drawn, data, keys, zoomed, [from, to], s.key, t, scaled),
       align: labelAlign(t, [from, to]),
     }
     return [{ ...spot, color: s.color, t, scaled }]
