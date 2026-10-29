@@ -141,6 +141,18 @@ describe('Map page', () => {
     expect(await screen.findByText('2 world records')).toBeInTheDocument()
   })
 
+  it("counts a co-op run's two players' entries as one record", async () => {
+    const [a, b] = records([2400, 2400])
+    serveMap({
+      wrs: [
+        { ...a!, coop_id: 7 },
+        { ...b!, coop_id: 7, timestamp: a!.timestamp },
+      ],
+    })
+    await renderRoute('/map/coop/47741')
+    expect(await screen.findByText('1 world record')).toBeInTheDocument()
+  })
+
   it('adds records from before the boards to the chart, counting only those that were the best yet', async () => {
     // The board's records: 24.00 in 2020, 21.00 in 2021.
     serveMap({ wrs: records([2400, 2100]) })

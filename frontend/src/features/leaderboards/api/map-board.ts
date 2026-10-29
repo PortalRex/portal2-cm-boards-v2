@@ -4,7 +4,7 @@ import { api } from '@/lib/api-client'
 import { gameIdParam, isMultiplayerMode, PORTAL2, type Catalog, type MapInfo } from '@/lib/catalog'
 import { queryKeys } from '@/lib/query-keys'
 import type { ChangelogRaw, CoopRankedRaw, OldWrRaw, RankedRun, Run, SpRankedRaw } from '@/types/runs'
-import { runningBest } from '../utils/wr-chart'
+import { runningBest, wrRuns } from '../utils/wr-chart'
 
 /** A map's board, or as it stood at `at` (a UTC time "2021-04-06T12:00:00"). */
 export async function getMapBoard(
@@ -36,7 +36,8 @@ export interface WrPoint {
 }
 
 /**
- * The map's world records, oldest first (banned ones left out), with Portal 2's records from
+ * The map's world records, oldest first (banned ones left out; a co-op run once, both partners
+ * named), with Portal 2's records from
  * before the boards' history. A record counts only if it was the best yet: the boards' first
  * "records" (their best when the old boards began) can be slower than ones set before.
  */
@@ -60,9 +61,7 @@ export async function getWrHistory(map: MapInfo, c: Catalog, signal?: AbortSigna
       player: o.player_name,
       old: { timeKnown: o.time_known, dateEstimated: o.date_estimated, note: o.note },
     })),
-    ...rows
-      .filter((r) => !r.banned)
-      .map((r) => ({ timestamp: r.timestamp, score: r.score, player: r.user_name })),
+    ...wrRuns(rows.filter((r) => !r.banned)),
   ]
   // Undated runs can't be placed among the others (the chart leaves them out too).
   return runningBest(points.filter((p) => p.timestamp).sort((a, b) => time(a.timestamp) - time(b.timestamp)))
