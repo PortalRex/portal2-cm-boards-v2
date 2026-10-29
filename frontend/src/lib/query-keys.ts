@@ -21,6 +21,7 @@ export const queryKeys = {
   mapBoard: (game: string, mapId: string, at: string | null = null) =>
     ['map-board', game, mapId, at] as const,
   wrHistory: (game: string, mapId: string, staff = false) => ['wr-history', game, mapId, staff] as const,
+  wrDemos: (game: string, mapId: string) => ['wr-demos', game, mapId] as const,
   wallOfShame: () => ['wall-of-shame'] as const,
 
   aggregated: (game: string, board: string) => ['aggregated', game, board] as const,

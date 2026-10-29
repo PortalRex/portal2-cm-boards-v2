@@ -111,7 +111,7 @@ describe('board and preview adapters', () => {
     expect(secondHosted!.players[0]!.name).toBe((coopBoard as CoopRankedRaw[])[1]!.map_data.user_name2)
     // Their demos in the same order: the host's first.
     const second = (coopBoard as CoopRankedRaw[])[1]!.map_data
-    expect(secondHosted!.demoIds).toEqual([second.demo_id2, second.demo_id1])
+    expect(secondHosted!.halves?.map((h) => h.demoId)).toEqual([second.demo_id2, second.demo_id1])
     expect(unknown!.rolesKnown).toBe(false)
     expect(filler!.players[1]!.unknown).toBe(true)
   })
