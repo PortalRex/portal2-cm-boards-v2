@@ -11,7 +11,7 @@ export function RankPoints({ points, children }: { points: number; children: Rea
   const ref = useRef<HTMLButtonElement>(null)
   const [at, setAt] = useState<{ x: number; y: number } | null>(null)
   const [pinned, setPinned] = useState(false)
-  const show = () => setAt(bubbleAnchor(ref.current, 110))
+  const show = () => setAt(bubbleAnchor(ref.current))
   useEffect(() => {
     if (!pinned) return
     const close = (e: PointerEvent) => {

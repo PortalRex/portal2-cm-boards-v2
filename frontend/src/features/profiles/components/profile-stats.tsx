@@ -94,7 +94,7 @@ function RoleBar({ board, points }: { board: PointsBoard; points: number }) {
   const [at, setAt] = useState<{ x: number; y: number } | null>(null)
   const prog = roleProgress(board, points)
   const text = roleProgressText(board, prog)
-  const show = () => setAt(bubbleAnchor(ref.current, 110))
+  const show = () => setAt(bubbleAnchor(ref.current))
   return (
     <span
       ref={ref}
