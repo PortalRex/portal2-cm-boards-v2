@@ -6,7 +6,7 @@ import { TrophyFilledIcon } from '@/components/icons'
 import { ListEnd } from '@/components/list-end'
 import { PlayerLink } from '@/components/player-link'
 import { RankNumber, RankTag } from '@/components/rank'
-import { AutorenderLink, CommentButton, DemoLink, YouTubeLink } from '@/components/runs/run-media'
+import { AutorenderLink, CommentButton, DemoLink, ViewerLink, YouTubeLink } from '@/components/runs/run-media'
 import { TimeButton } from '@/components/runs/time-button'
 import { SearchBox } from '@/components/search-box'
 import { EmptyState, ErrorState, Loading } from '@/components/status'
@@ -220,6 +220,7 @@ export function MapLeaderboard({
                             <AutorenderLink run={half} game={map.game} rendered={rendered} size={20} />
                             <YouTubeLink id={half.youtubeId} size={20} />
                             <DemoLink demoId={half.demoId} size={20} />
+                            <ViewerLink demoIds={[half.demoId, ...(e.halves?.map((h) => h.demoId) ?? [])]} size={20} />
                           </span>
                         )}
                         {pb && pbStyle === 'icon' && (
@@ -253,6 +254,7 @@ export function MapLeaderboard({
                       <AutorenderLink run={e} game={map.game} rendered={rendered} />
                       <YouTubeLink id={e.youtubeId} />
                       <DemoLink demoId={e.demoId} />
+                      <ViewerLink demoIds={[e.demoId]} />
                     </span>
                   )}
                 </div>

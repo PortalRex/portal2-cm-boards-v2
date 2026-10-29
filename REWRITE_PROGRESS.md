@@ -69,6 +69,12 @@
 
 ## Log
 <!-- Newest first. One entry per finished item: date, what was done, commit, tests added. -->
+- 2026-10-29: Asked for (local only): the demo viewer (private PortalRex/demo-viewer) built into
+  `frontend/public/viewer` (git-ignored) is served at `/viewer/` with its own CSP (`viewer-security-headers.conf`);
+  where it's there (`VITE_VIEWER`, set by vite.config.ts), runs get a "Watch in the browser" link next to the demo
+  download (boards, profiles, time popover) and a "Watch in Browser" button in Run Details, co-op runs with both
+  players' demos (`RankedRun.demoIds`, host first). Without it nothing changes. Tests: `lib/runs/viewer.test.ts`,
+  ViewerLink in `run-media.test.tsx`, env and adapter tests updated.
 - 2026-11-01: Asked for: map pages scroll endlessly too. The leaderboard shows 40 rows at a time, more as it
   scrolls ("Your best" shows the board down to your row); the chamber history fetches older runs 200 at a time like
   Score Updates ("200+ runs" while more may follow) and its "Latest N" filter is gone (`RUN_LIMITS` removed). Shared

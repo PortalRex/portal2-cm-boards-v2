@@ -15,6 +15,11 @@ export const envSchema = z.object({
     .enum(['true', 'false'])
     .default('false')
     .transform((v) => v === 'true'),
+  /** The demo viewer is served at /viewer/ (set by vite.config.ts when it's built in). */
+  VITE_VIEWER: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((v) => v === 'true'),
 })
 
 export type Env = z.infer<typeof envSchema>

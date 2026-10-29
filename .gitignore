@@ -125,3 +125,6 @@ target/
 # Submitted demos (DEMO.STORAGE)
 server/demos/
 *.dem
+
+# The demo viewer (PortalRex/demo-viewer, private), built in locally: see frontend/README.md
+frontend/public/viewer/
