@@ -35,8 +35,5 @@ the boards and demos from this site's API. Build it from the viewer's checkout:
 node tools/build-boards.mjs <path to this repo>   # writes frontend/public/viewer (git-ignored)
 ```
 
-For local testing, `DEV_GAME_PROXY` (e.g. `http://localhost:5174`, the viewer's own dev server, which hands out
-the local Portal 2 install at `/__game/`) lets the replays' 3D view run without picking the game folder.
-
 Without it, none of this shows and `/viewer/` is a 404. nginx gives `/viewer/` its own security headers
 (`viewer-security-headers.conf`: it may be framed by the site only).
