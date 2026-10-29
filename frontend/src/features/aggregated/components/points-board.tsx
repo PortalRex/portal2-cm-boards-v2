@@ -19,7 +19,7 @@ const rowClass =
 /**
  * One ranking (Points or Time), 20 players a page; `focus` opens on that player's page, marked.
  * Places come from `rankBy`: equal values share one, and a row without a value has none. `change`
- * marks a player's points change lately with an arrow and how many, by their name; a player's flag
+ * marks a player's points change lately with an arrow and how many, by their points; a player's flag
  * links to `countryHref` (the board for their country).
  */
 export function PointsBoard({
@@ -141,9 +141,11 @@ function BoardRow({
           <Flag code={row.player.country} height={20} />
         )}
         <PlayerLink player={row.player} className="truncate" />
-        {change}
       </span>
-      <span className="num text-right">{value}</span>
+      <span className="num flex items-center justify-end gap-2">
+        {change}
+        {value}
+      </span>
     </div>
   )
 }
