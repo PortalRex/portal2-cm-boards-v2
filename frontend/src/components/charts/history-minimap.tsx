@@ -7,33 +7,41 @@ import { timeTicks } from '@/lib/charts/time-ticks'
 type Domain = [number, number]
 type Drag = { mode: 'move' | 'start' | 'end'; x: number; from: number; to: number }
 
-/**
- * The whole history in small under the chart, with the part in view as a window: drag the window to
- * move the view, drag its edges to zoom, click beside it to move it there.
- */
-export function HistoryMinimap({
-  records,
-  full,
-  zoom,
-  onZoom,
-  minSpan,
-}: {
-  records: HistoryPoint[]
+interface MinimapProps {
   full: Domain
   zoom: Domain | null
   onZoom: (domain: Domain | null) => void
   minSpan: number
-}) {
+}
+
+/** A history chart's [Minimap]: its times as steps. */
+export function HistoryMinimap({ records, ...props }: MinimapProps & { records: HistoryPoint[] }) {
+  const [f0, f1] = props.full
+  const line = historyChartData(records, f0, f1, f1).map((d) => ({ t: d.t, v: d.score }))
+  return <Minimap line={line} curve="stepAfter" {...props} />
+}
+
+/**
+ * A chart's whole time span in small under it (`line`, oldest first), with the part in view as a
+ * window: drag the window to move the view, drag its edges to zoom, click beside it to move it there.
+ */
+export function Minimap({
+  line,
+  curve,
+  full,
+  zoom,
+  onZoom,
+  minSpan,
+}: MinimapProps & { line: { t: number; v: number }[]; curve: 'stepAfter' | 'linear' }) {
   const box = useRef<HTMLDivElement>(null)
   const drag = useRef<Drag | null>(null)
   const [f0, f1] = full
   const span = f1 - f0
   const [from, to] = zoom ?? full
   const pct = (t: number) => ((t - f0) / span) * 100
-  const data = historyChartData(records, f0, f1, f1)
-  const scores = data.map((d) => d.score)
-  const min = Math.min(...scores)
-  const max = Math.max(...scores)
+  const values = line.map((d) => d.v)
+  const min = Math.min(...values)
+  const max = Math.max(...values)
   const pad = Math.max(1, (max - min) * 0.1)
   const { ticks, label } = timeTicks(f0, f1)
   // Labels too near an edge would be cut in half.
@@ -84,12 +92,12 @@ export function HistoryMinimap({
     >
       <div className="pointer-events-none absolute inset-0">
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={data} margin={{ top: 4, right: 0, bottom: 0, left: 0 }} accessibilityLayer={false}>
+          <AreaChart data={line} margin={{ top: 4, right: 0, bottom: 0, left: 0 }} accessibilityLayer={false}>
             <XAxis dataKey="t" type="number" domain={full} hide />
             <YAxis domain={[min - pad, max + pad]} hide />
             <Area
-              type="stepAfter"
-              dataKey="score"
+              type={curve}
+              dataKey="v"
               stroke="var(--history-line)"
               strokeWidth={1}
               fill="var(--history-line)"

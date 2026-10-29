@@ -1,7 +1,7 @@
 import { fireEvent, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { API } from '@/testing/mocks/handlers'
 import { FIXTURE_PLAYER, serveProfile } from '@/testing/mocks/profile'
 import { server } from '@/testing/mocks/server'
@@ -31,6 +31,27 @@ describe('PointsChart', () => {
     fireEvent.wheel(plot, { deltaY: -100 })
     await userEvent.click(await screen.findByRole('button', { name: 'Reset zoom' }))
     expect(screen.queryByRole('button', { name: 'Reset zoom' })).not.toBeInTheDocument()
+  })
+
+  it('zooms with the bar under it, like the other history charts', async () => {
+    serveProfile()
+    await chart()
+    // The bar is 1000px wide; jsdom doesn't capture pointers.
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue(
+      DOMRect.fromRect({ x: 0, y: 0, width: 1000, height: 40 }),
+    )
+    HTMLElement.prototype.setPointerCapture = vi.fn()
+    const win = await screen.findByTestId('history-minimap-window')
+    expect(win).toHaveStyle({ left: '0%', width: '100%' })
+    // Its left edge dragged halfway: the second half of the history in view.
+    const start = win.querySelector('[data-edge="start"]')!
+    fireEvent.pointerDown(start, { clientX: 0, button: 0 })
+    fireEvent.pointerMove(start, { clientX: 500 })
+    fireEvent.pointerUp(start)
+    expect(win).toHaveStyle({ left: '50%', width: '50%' })
+    await userEvent.click(screen.getByRole('button', { name: 'Reset zoom' }))
+    expect(win).toHaveStyle({ left: '0%', width: '100%' })
+    vi.restoreAllMocks()
   })
 
   it('says so when there is too little history', async () => {

@@ -11,8 +11,9 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
+import { Minimap } from '@/components/charts/history-minimap'
 import { DatePicker } from '@/components/date-picker'
-import { useWheelZoom } from '@/hooks/use-wheel-zoom'
+import { useWheelZoomOn } from '@/hooks/use-wheel-zoom'
 import { PORTAL2, useCatalog } from '@/lib/catalog'
 import { formatDate } from '@/lib/format'
 import { pointsHistoryQueryOptions } from '../api/profile'
@@ -35,11 +36,14 @@ import {
 } from '../utils/points-chart'
 
 const DAY = 24 * 3600 * 1000
+// The narrowest it zooms in to.
+const MIN_SPAN = 14 * DAY
 
 /**
  * Points over time as they really were: ranks are recomputed against everyone's best times at
- * each date, so being passed shows as a drop. Scroll over it to zoom; click a day (or pick one in
- * the date box) to see the profile as it was then. Each board's peak is marked.
+ * each date, so being passed shows as a drop. Scroll over it, or use the bar under it, to zoom;
+ * click a day (or pick one in the date box) to see the profile as it was then. Each board's peak is
+ * marked.
  */
 export function PointsChart({
   profileNumber,
@@ -69,7 +73,8 @@ export function PointsChart({
     : SERIES
   const all = useMemo(() => chartRows(history.data ?? [], peak), [history.data, peak])
   const full: [number, number] | null = all.length ? [all[0]!.t, all[all.length - 1]!.t] : null
-  const [zoom, zoomRef, resetZoom] = useWheelZoom(full, { left: 10, right: 10, minSpan: 14 * DAY })
+  const [zoom, setZoom] = useState<[number, number] | null>(null)
+  const zoomRef = useWheelZoomOn(full, setZoom, { left: 10, right: 10, minSpan: MIN_SPAN })
 
   const note = (text: string) => <div className="pt-10 pb-5 text-center text-text-muted">{text}</div>
   if (history.isPending) return note('Loading points history…')
@@ -81,6 +86,12 @@ export function PointsChart({
   const zoomed = Boolean(zoom)
   const shown = series.filter((s) => !hidden[s.key])
   const atMs = at ? dayMs(at) : null
+  // The bar under the chart draws the game's top line (overall, when it has one).
+  const top = (series.find((s) => s.key === 'overall') ?? series[0]!).key
+  const outline = all.flatMap((d) => {
+    const v = d[top]
+    return v != null ? [{ t: d.t, v }] : []
+  })
 
   return (
     <div className="relative mt-[18px]">
@@ -88,7 +99,7 @@ export function PointsChart({
         // Over the chart's top-right corner, so the legend keeps its one line.
         <button
           type="button"
-          onClick={resetZoom}
+          onClick={() => setZoom(null)}
           className="absolute -top-1.5 right-2.5 z-[1] cursor-pointer rounded-[4px] border border-line bg-panel px-2 py-px text-xs text-text-2 uppercase hover:border-line-strong hover:text-foreground"
         >
           Reset zoom
@@ -179,6 +190,10 @@ export function PointsChart({
             })}
           </LineChart>
         </ResponsiveContainer>
+      </div>
+      {/* Lined up with the plot, inside the chart's side margins. */}
+      <div className="px-2.5">
+        <Minimap line={outline} curve="linear" full={full!} zoom={zoom} onZoom={setZoom} minSpan={MIN_SPAN} />
       </div>
       <div className="flex flex-wrap items-center justify-start gap-x-[18px] gap-y-1.5 px-5 pt-2 upto800:justify-center upto800:gap-x-2.5 upto800:gap-y-1.5 upto800:px-0">
         <span className="mr-auto text-sm whitespace-nowrap text-text-muted uppercase upto800:mr-0 upto800:basis-full upto800:text-center">
