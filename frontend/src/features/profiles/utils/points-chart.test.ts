@@ -7,10 +7,14 @@ import {
   domainFor,
   labelAlign,
   labelSide,
+  openingView,
   peakClass,
   peakDayAt,
+  type PeakSpot,
+  placeLabels,
   type PointsSample,
   rowsInView,
+  scaleRows,
   valueAt,
 } from './points-chart'
 
@@ -132,5 +136,61 @@ describe('labelAlign', () => {
     expect(labelAlign(1000, [0, 1000])).toBe('end')
     expect(labelAlign(500, [0, 1000])).toBe('middle')
     expect(labelAlign(30, [0, 1000])).toBe('start')
+  })
+})
+
+describe('scaleRows', () => {
+  it("draws each line against its board's most points, keeping the real points for the tooltip", () => {
+    const [row] = scaleRows(chartRows(samples.slice(2, 3), null), { sp: 1000, coop: 250, overall: 1250 })
+    // Overall is the biggest board: as it is. Single player 300 of 1000 sits where 375 of 1250 would.
+    expect(row).toMatchObject({ sp: 375, coop: 300, overall: 360, pts: { sp: 300, coop: 60, overall: 360 } })
+  })
+
+  it("leaves the lines as they are without the boards' sizes", () => {
+    expect(scaleRows(chartRows(samples, null), {})[1]).toMatchObject({ sp: 200, coop: 50, overall: 250 })
+  })
+})
+
+describe('openingView', () => {
+  const week = (i: number, overall: number) => ({ date: '', t: i * 7 * 24 * 3600 * 1000, overall })
+
+  it('starts when the top line came within 10% of where it stands now', () => {
+    // A climb to 1000 over thirty weeks (900 by week 27), then about level until week 160.
+    const rows = [...Array.from({ length: 11 }, (_, i) => week(i * 3, i * 100)), week(160, 1000)]
+    expect(openingView(rows, 'overall')).toEqual([week(27, 0).t, week(160, 0).t])
+  })
+
+  it('shows a year at least, and all of it when that leaves out little', () => {
+    const settledLate = [week(0, 0), week(100, 950), week(104, 1000)]
+    const year = 365 * 24 * 3600 * 1000
+    expect(openingView(settledLate, 'overall')).toEqual([week(104, 0).t - year, week(104, 0).t])
+    expect(openingView([week(0, 0), week(5, 950), week(52, 1000)], 'overall')).toBeNull()
+  })
+})
+
+describe('placeLabels', () => {
+  const spot = (key: PeakSpot['key'], x: number, y: number): PeakSpot => ({
+    key,
+    x,
+    y,
+    text: 'Peak 21162',
+    side: 'top',
+    align: 'middle',
+  })
+
+  it('keeps apart peaks', () => {
+    expect(placeLabels([spot('overall', 100, 50), spot('sp', 300, 50)])).toEqual({
+      overall: 'top',
+      sp: 'top',
+    })
+  })
+
+  it("moves a label that would cover another to its dot's other side, or leaves it out", () => {
+    // Three peaks on one day, a few pixels apart: the first two take a side each.
+    expect(placeLabels([spot('overall', 200, 40), spot('sp', 205, 44), spot('coop', 210, 47)])).toEqual({
+      overall: 'top',
+      sp: 'bottom',
+      coop: null,
+    })
   })
 })

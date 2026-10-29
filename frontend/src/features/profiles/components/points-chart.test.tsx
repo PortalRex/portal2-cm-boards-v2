@@ -42,6 +42,7 @@ describe('PointsChart', () => {
     )
     HTMLElement.prototype.setPointerCapture = vi.fn()
     const win = await screen.findByTestId('history-minimap-window')
+    await userEvent.click(screen.getByRole('button', { name: 'Reset zoom' }))
     expect(win).toHaveStyle({ left: '0%', width: '100%' })
     // Its left edge dragged halfway: the second half of the history in view.
     const start = win.querySelector('[data-edge="start"]')!
@@ -52,6 +53,29 @@ describe('PointsChart', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Reset zoom' }))
     expect(win).toHaveStyle({ left: '0%', width: '100%' })
     vi.restoreAllMocks()
+  })
+
+  it('opens past the early climb, all of it a click away', async () => {
+    serveProfile()
+    await chart()
+    const win = await screen.findByTestId('history-minimap-window')
+    expect(parseFloat(win.style.left)).toBeGreaterThan(0)
+    await userEvent.click(screen.getByRole('button', { name: 'Reset zoom' }))
+    expect(win).toHaveStyle({ left: '0%', width: '100%' })
+  })
+
+  it('opens on all of a history under a year long', async () => {
+    server.use(
+      http.get(`${API}/profile/points_history/:id`, () =>
+        HttpResponse.json([
+          { date: '2024-01-07', sp: 100, coop: 0, overall: 100 },
+          { date: '2024-03-03', sp: 900, coop: 50, overall: 950 },
+        ]),
+      ),
+    )
+    await chart()
+    expect(await screen.findByTestId('history-minimap-window')).toHaveStyle({ left: '0%', width: '100%' })
+    expect(screen.queryByRole('button', { name: 'Reset zoom' })).not.toBeInTheDocument()
   })
 
   it('says so when there is too little history', async () => {

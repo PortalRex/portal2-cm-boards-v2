@@ -15,6 +15,8 @@ export interface ChartRow extends Partial<Record<PointsBoardKey, number>> {
   t: number
   /** A board's peak, added between the samples (which are weekly and can miss the peak day). */
   peakOf?: PointsBoardKey
+  /** The real points, where the board's value is scaled for drawing ([scaleRows]). */
+  pts?: Partial<Record<PointsBoardKey, number>>
 }
 
 export const SERIES: { key: PointsBoardKey; label: string; color: string }[] = [
@@ -43,6 +45,55 @@ export function chartRows(samples: PointsSample[], peak: PointsPeak | null | und
   return [...rows, ...extra].sort((a, b) => a.t - b.t)
 }
 
+/** The most points each board has. */
+export type BoardMax = Partial<Record<PointsBoardKey, number>>
+
+/** How much a board's points are scaled by to draw them ([scaleRows]). */
+export function scaleOf(max: BoardMax): (key: PointsBoardKey) => number {
+  const top = Math.max(0, ...Object.values(max))
+  return (key) => (max[key] ? top / max[key] : 1)
+}
+
+/**
+ * The rows as the chart draws them: each board's line scaled to the most points that board has
+ * (200 a map), so lines at their board's maximum meet whatever the board's size; `pts` keeps the
+ * real points for the tooltip. A board without a known maximum isn't scaled.
+ */
+export function scaleRows(rows: ChartRow[], max: BoardMax): ChartRow[] {
+  const factor = scaleOf(max)
+  return rows.map((d) => {
+    const scaled: ChartRow = { ...d, pts: {} }
+    for (const { key } of SERIES) {
+      const v = d[key]
+      if (v == null) continue
+      scaled.pts![key] = v
+      scaled[key] = v * factor(key)
+    }
+    return scaled
+  })
+}
+
+const DAY_MS = 24 * 3600 * 1000
+const YEAR_MS = 365 * DAY_MS
+// How close to where it stands now the top line is when the early climb counts as over.
+const SETTLED = 0.9
+
+/**
+ * Where the chart opens: from when the `key` line first came within 10% of where it stands now,
+ * leaving out the early climb, but a year back at least; null (the whole history) when that leaves
+ * out little.
+ */
+export function openingView(rows: ChartRow[], key: PointsBoardKey): [number, number] | null {
+  const samples = rows.filter((d) => d[key] != null && !d.peakOf)
+  if (samples.length < 2) return null
+  const first = rows[0]!.t
+  const last = rows[rows.length - 1]!.t
+  const now = samples[samples.length - 1]![key]!
+  const settled = samples.find((d) => d[key]! >= now * SETTLED)!.t
+  const from = Math.min(settled, last - YEAR_MS)
+  return from - first < (last - first) * 0.1 ? null : [from, last]
+}
+
 /** What's in view, plus the samples either side so the lines run to the edges. */
 export function rowsInView(all: ChartRow[], from: number, to: number): ChartRow[] {
   const first = Math.max(0, all.findIndex((d) => d.t >= from) - 1)
@@ -56,7 +107,7 @@ export type Domain = [number, number | 'dataMax']
 /**
  * The plot's height scale for the `shown` lines. The whole history starts at 0 (totals compare);
  * zoomed in, it's fitted to what those lines have in view, so rises and drops show. All lines share
- * it either way, so one above another really has more points.
+ * it either way: one above another is nearer its board's maximum ([scaleRows]).
  */
 export function domainFor(
   shown: PointsBoardKey[],
@@ -88,6 +139,22 @@ export function valueAt(all: ChartRow[], key: PointsBoardKey, t: number): number
   return a[key]! + ((b[key]! - a[key]!) * (t - a.t)) / (b.t - a.t)
 }
 
+/** Where a value sits on the plot's height scale ([domainFor]), in pixels from its top. */
+export function plotY(
+  data: ChartRow[],
+  shown: PointsBoardKey[],
+  zoomed: boolean,
+  from: number,
+  to: number,
+): (value: number) => number {
+  const sharedMax = Math.max(1, ...data.flatMap((d) => shown.map((s) => d[s] ?? 0)))
+  const [lo, hi] = domainFor(shown, zoomed, data, from, to).map((x) => (x === 'dataMax' ? sharedMax : x)) as [
+    number,
+    number,
+  ]
+  return (value) => PLOT_H - ((value - lo) / Math.max(1, hi - lo)) * PLOT_H
+}
+
 /**
  * Where a peak's label goes: above its dot unless another shown line runs through that space;
  * then below, or whichever side has more room.
@@ -102,13 +169,7 @@ export function labelSide(
   t: number,
   v: number,
 ): 'top' | 'bottom' {
-  const sharedMax = Math.max(1, ...data.flatMap((d) => shown.map((s) => d[s] ?? 0)))
-  const [lo, hi] = domainFor(shown, zoomed, data, from, to).map((x) => (x === 'dataMax' ? sharedMax : x)) as [
-    number,
-    number,
-  ]
-  // Where a value sits on the scale, in pixels from the top of the plot.
-  const yPx = (value: number) => PLOT_H - ((value - lo) / Math.max(1, hi - lo)) * PLOT_H
+  const yPx = plotY(data, shown, zoomed, from, to)
   const y = yPx(v)
   let above = y + PLOT_TOP
   let below = PLOT_H - y
@@ -131,6 +192,49 @@ export function labelSide(
 export function labelAlign(t: number, [from, to]: [number, number]): 'start' | 'middle' | 'end' {
   const at = (t - from) / Math.max(1, to - from)
   return at > 0.88 ? 'end' : at < 0.12 ? 'start' : 'middle'
+}
+
+type Side = 'top' | 'bottom'
+
+/** A peak's label to place: its dot (pixels in the plot), its text and where it would go. */
+export interface PeakSpot {
+  key: PointsBoardKey
+  x: number
+  y: number
+  text: string
+  side: Side
+  align: 'start' | 'middle' | 'end'
+}
+
+// A label's size at 11px: about 6px a character, 11px high.
+const CHAR_W = 6
+const TEXT_H = 11
+
+/** The box a peak's label takes, as PeakLabel draws it beside a dot of radius 4. */
+function labelBox({ x, y, text, align }: PeakSpot, side: Side): [number, number, number, number] {
+  const w = text.length * CHAR_W
+  const x0 = align === 'end' ? x + 4 - w : align === 'start' ? x - 4 : x - w / 2
+  const baseline = side === 'top' ? y - 9 : y + 16
+  return [x0, x0 + w, baseline - TEXT_H + 2, baseline + 2]
+}
+
+const overlap = (a: number[], b: number[]) => a[0]! < b[1]! && b[0]! < a[1]! && a[2]! < b[3]! && b[2]! < a[3]!
+
+/**
+ * Each peak's label side so no two labels cover each other: in `spots` order (the first keeps its
+ * place), each on its own side, else the other, else none (its dot stays; the Peak Points card
+ * has the number).
+ */
+export function placeLabels(spots: PeakSpot[]): Partial<Record<PointsBoardKey, Side | null>> {
+  const placed: number[][] = []
+  const sides: Partial<Record<PointsBoardKey, Side | null>> = {}
+  for (const spot of spots) {
+    const other: Side = spot.side === 'top' ? 'bottom' : 'top'
+    const side = [spot.side, other].find((s) => !placed.some((b) => overlap(b, labelBox(spot, s)))) ?? null
+    sides[spot.key] = side
+    if (side) placed.push(labelBox(spot, side))
+  }
+  return sides
 }
 
 /**
