@@ -40,6 +40,62 @@ describe('wrRuns', () => {
     ])
   })
 
+  it("makes a record's halves filed as separate co-op runs one record", () => {
+    const at = '2014-07-29T00:40:03'
+    expect(
+      wrRuns([
+        // Buttons, 2014: Zypeh's half filed with Bexc, Undead's alone.
+        row({
+          id: 1,
+          coop_id: 163,
+          score: 1936,
+          user_name: 'Zypeh',
+          blue_name: 'Bexc',
+          orange_name: 'Zypeh',
+          timestamp: at,
+        }),
+        row({
+          id: 2,
+          coop_id: 35304,
+          score: 1936,
+          user_name: 'Undead',
+          blue_name: 'Undead',
+          orange_name: 'N/A',
+          timestamp: at,
+        }),
+        // Catapults: one pair's run filed twice, a second apart.
+        row({
+          id: 3,
+          coop_id: 1,
+          score: 1393,
+          user_name: 'Rex',
+          blue_name: 'Rex',
+          orange_name: 'RealCreative',
+          timestamp: '2021-10-02T12:56:22',
+        }),
+        row({
+          id: 4,
+          coop_id: 2,
+          score: 1393,
+          user_name: 'RealCreative',
+          blue_name: 'Rex',
+          orange_name: 'RealCreative',
+          timestamp: '2021-10-02T12:56:23',
+        }),
+        // The same time a day later is a tie, not the same record.
+        row({
+          id: 5,
+          coop_id: 3,
+          score: 1393,
+          user_name: 'Nate',
+          blue_name: 'Nate',
+          orange_name: 'Luke',
+          timestamp: '2021-10-03T12:56:22',
+        }),
+      ]).map((r) => r.player),
+    ).toEqual(['Zypeh & Undead', 'Rex & RealCreative', 'Nate & Luke'])
+  })
+
   it('names a half without a known partner after its own player', () => {
     const half = row({ coop_id: 33606, user_name: 'Imanex', blue_name: 'Imanex', orange_name: 'N/A' })
     expect(wrRuns([half])[0]!.player).toBe('Imanex')

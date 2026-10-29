@@ -4,22 +4,45 @@ import type { WrPoint } from '../api/map-board'
 
 const known = (name: string | null): name is string => Boolean(name) && name !== 'N/A'
 
+// Co-op halves of one record set this close together are one run, whatever runs they're filed under.
+const SAME_RUN_MS = 5000
+
+const time = (r: ChangelogRaw) => (r.timestamp ? Date.parse(`${r.timestamp}Z`) : 0)
+const isCoop = (r: ChangelogRaw) => r.coop_id != null || r.blue_name != null
+
 /**
- * The records as runs: a co-op run's two players' entries (the same co-op run, set within a second
- * of each other) become one, at the earlier time, named after both partners (blue first).
+ * The records as runs: a co-op run's two players' entries become one, at the earlier time, named
+ * after both partners (blue first). Halves of one record filed as separate co-op runs (the old
+ * boards' unpaired or mispaired halves: the same time, set within seconds) are one too, named after
+ * a run's pair when it covers everyone in them, else after the players who have the entries.
  */
 export function wrRuns(rows: ChangelogRaw[]): WrPoint[] {
-  const runs = new Map<string, ChangelogRaw[]>()
+  const filed = new Map<string, ChangelogRaw[]>()
   for (const r of rows) {
     const key = r.coop_id != null ? `coop:${r.coop_id}` : `run:${r.id}`
-    runs.set(key, [...(runs.get(key) ?? []), r])
+    filed.set(key, [...(filed.get(key) ?? []), r])
   }
-  return [...runs.values()].map((halves) => {
-    const first = halves.reduce((a, b) => ((b.timestamp ?? '') < (a.timestamp ?? '') ? b : a))
-    // The partners as the run has them, or (a half the run doesn't know the other of) as the entries do.
-    const pair = [first.blue_name, first.orange_name].filter(known)
-    const names = pair.length === 2 ? pair : [...new Set(halves.map((h) => h.user_name))]
-    return { timestamp: first.timestamp, score: first.score, player: names.join(' & ') }
+  const runs: ChangelogRaw[][] = []
+  const byTime = [...filed.values()].sort((a, b) => Math.min(...a.map(time)) - Math.min(...b.map(time)))
+  for (const run of byTime) {
+    const last = runs[runs.length - 1]
+    const sameRecord =
+      last &&
+      isCoop(run[0]!) &&
+      isCoop(last[0]!) &&
+      run[0]!.score === last[0]!.score &&
+      Math.min(...run.map(time)) - Math.min(...last.map(time)) <= SAME_RUN_MS
+    if (sameRecord) last.push(...run)
+    else runs.push([...run])
+  }
+  return runs.map((halves) => {
+    const first = halves.reduce((a, b) => (time(b) < time(a) ? b : a))
+    const players = [...new Set(halves.map((h) => h.user_name))]
+    // A run's partners, when they cover everyone with an entry; else the entries' players.
+    const pair = halves
+      .map((h) => [h.blue_name, h.orange_name].filter(known))
+      .find((p) => p.length === 2 && players.every((name) => p.includes(name)))
+    return { timestamp: first.timestamp, score: first.score, player: (pair ?? players).join(' & ') }
   })
 }
 
