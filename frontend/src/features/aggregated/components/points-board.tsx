@@ -5,7 +5,9 @@ import { Pagination } from '@/components/pagination'
 import { PlayerLink } from '@/components/player-link'
 import { PointsChange } from '@/components/points-change'
 import { EmptyState } from '@/components/status'
+import { AppLink } from '@/components/app-link'
 import { useIsMe } from '@/hooks/use-is-me'
+import { countryName } from '@/lib/data/countries'
 import type { AggregatedRow } from '../types'
 import { sharedPlaces } from '../utils/points'
 
@@ -17,7 +19,8 @@ const rowClass =
 /**
  * One ranking (Points or Time), 20 players a page; `focus` opens on that player's page, marked.
  * Places come from `rankBy`: equal values share one, and a row without a value has none. `change`
- * marks a player's points change lately with an arrow.
+ * marks a player's points change lately with an arrow and how many, by their name; a player's flag
+ * links to `countryHref` (the board for their country).
  */
 export function PointsBoard({
   title,
@@ -26,6 +29,7 @@ export function PointsBoard({
   value,
   rankBy,
   change,
+  countryHref,
   focus = null,
   empty = 'No players yet.',
 }: {
@@ -35,6 +39,7 @@ export function PointsBoard({
   value: (row: AggregatedRow) => string
   rankBy: (row: AggregatedRow) => number | null
   change?: { days: number; of: (row: AggregatedRow) => number | undefined }
+  countryHref?: (code: string) => string
   focus?: string | null
   empty?: string
 }) {
@@ -73,7 +78,8 @@ export function PointsBoard({
             row={r}
             rank={places[page * PAGE_SIZE + i] ?? null}
             value={value(r)}
-            change={change && <PointsChange change={change.of(r)} days={change.days} />}
+            change={change && <PointsChange change={change.of(r)} days={change.days} showAmount />}
+            countryHref={countryHref}
             striped={i % 2 === 1}
             focused={Boolean(focus) && r.player.profileNumber === focus}
           />
@@ -90,6 +96,7 @@ function BoardRow({
   rank,
   value,
   change,
+  countryHref,
   striped,
   focused,
 }: {
@@ -97,6 +104,7 @@ function BoardRow({
   rank: number | null
   value: string
   change?: ReactNode
+  countryHref?: (code: string) => string
   striped: boolean
   focused: boolean
 }) {
@@ -121,13 +129,21 @@ function BoardRow({
       />
       <span className="num text-center">{rank ?? '–'}</span>
       <span className="flex min-w-0 items-center gap-2.5 overflow-hidden font-medium whitespace-nowrap">
-        <Flag code={row.player.country} height={20} />
+        {row.player.country && countryHref ? (
+          <AppLink
+            href={countryHref(row.player.country)}
+            aria-label={`${countryName(row.player.country) ?? row.player.country} board`}
+            className="shrink-0"
+          >
+            <Flag code={row.player.country} height={20} />
+          </AppLink>
+        ) : (
+          <Flag code={row.player.country} height={20} />
+        )}
         <PlayerLink player={row.player} className="truncate" />
-      </span>
-      <span className="num text-right">
         {change}
-        {value}
       </span>
+      <span className="num text-right">{value}</span>
     </div>
   )
 }

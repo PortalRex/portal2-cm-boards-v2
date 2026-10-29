@@ -43,10 +43,12 @@ const runners = (n: number, extra: (i: number) => Partial<PointsRaw> = () => ({}
 })
 
 const board = (name: 'Points' | 'Time') => screen.getByRole('region', { name })
-const names = (name: 'Points' | 'Time') =>
+// The players' links (not their flags, which link to their country's board).
+const playerLinks = (name: 'Points' | 'Time') =>
   within(board(name))
     .queryAllByRole('link')
-    .map((a) => a.textContent)
+    .filter((a) => !a.getAttribute('aria-label')?.endsWith(' board'))
+const names = (name: 'Points' | 'Time') => playerLinks(name).map((a) => a.textContent)
 
 describe('Aggregated boards (Portal 2)', () => {
   it('shows the points and time rankings of the board', async () => {
@@ -82,12 +84,26 @@ describe('Aggregated boards (Portal 2)', () => {
     expect(
       within(row('Runner 2')).getByRole('img', { name: '-4 points in the last 30 days' }),
     ).toBeInTheDocument()
+    // How many, by the name.
+    expect(within(row('Runner 1')).getByText('+53')).toBeInTheDocument()
+    expect(within(row('Runner 2')).getByText('-4')).toBeInTheDocument()
     expect(
       within(row('Runner 3')).queryByRole('img', { name: /in the last 30 days/ }),
     ).not.toBeInTheDocument()
     // Not on the time board.
     expect(within(board('Time')).queryByRole('img', { name: /in the last 30 days/ })).not.toBeInTheDocument()
     expect(asked).toEqual(['1/sp'])
+  })
+
+  it("links a player's flag to the board for their country", async () => {
+    servePoints(runners(2, (i) => ({ country_id: i === 1 ? 97 : null })))
+    const { router } = await renderRoute(`/leaderboard/sp?season=${SEASON}`)
+    const points = await screen.findByRole('region', { name: 'Points' })
+    const flag = await within(points).findByRole('link', { name: `${countryById(97)!.name} board` })
+    await userEvent.click(flag)
+    await waitFor(() =>
+      expect(router.state.location.search).toEqual({ country: countryById(97)!.code, season: SEASON }),
+    )
   })
 
   it('switches boards with the tabs and marks the open one', async () => {
@@ -148,9 +164,7 @@ describe('Aggregated boards (Portal 2)', () => {
     await userEvent.selectOptions(select, hungary.name)
     await waitFor(() => expect(names('Points')).toEqual(['Runner 1', 'Runner 3', 'Runner 5']))
     expect(router.state.location.search).toEqual({ country: hungary.code })
-    const rows = within(board('Points'))
-      .getAllByRole('link')
-      .map((a) => a.closest('div')!)
+    const rows = playerLinks('Points').map((a) => a.closest('div')!)
     expect(rows.map((r) => within(r).getAllByText(/^\d+$/)[0]!.textContent)).toEqual(['1', '2', '3'])
     const tabs = screen.getByRole('navigation', { name: 'Portal 2 boards' })
     expect(within(tabs).getByRole('link', { name: 'Overall' })).toHaveAttribute(
@@ -164,9 +178,9 @@ describe('Aggregated boards (Portal 2)', () => {
     servePoints(runners(6, (i) => ({ points: [900, 800, 800, 700, 0, 0][i - 1]! })))
     await renderRoute('/leaderboard/sp')
     await waitFor(() => expect(names('Points')).toHaveLength(6))
-    const places = within(board('Points'))
-      .getAllByRole('link')
-      .map((a) => within(a.closest('div')!).getAllByText(/^(\d+|–)$/)[0]!.textContent)
+    const places = playerLinks('Points').map(
+      (a) => within(a.closest('div')!).getAllByText(/^(\d+|–)$/)[0]!.textContent,
+    )
     expect(places).toEqual(['1', '2', '2', '4', '–', '–'])
   })
 

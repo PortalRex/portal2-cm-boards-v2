@@ -109,6 +109,8 @@ function AggregatedBoards({ view, search }: { view: AggregatedView; search: Aggr
     withSeason(country ? `${to}?country=${encodeURIComponent(country)}` : to, s)
   // Like legacy, picking a country starts the address afresh (it drops ?season= and ?player=).
   const setCountry = (c: string) => go(c ? `${pathname}?country=${encodeURIComponent(c)}` : pathname, true)
+  // A player's flag: this board (and season) for their country.
+  const countryHref = (c: string) => withSeason(`${pathname}?country=${encodeURIComponent(c)}`, season)
 
   const rows = board ? data.data : undefined
   const countries = [
@@ -171,6 +173,7 @@ function AggregatedBoards({ view, search }: { view: AggregatedView; search: Aggr
               valueLabel="Aggregated points"
               value={(r) => formatPoints(r.points)}
               rankBy={byPoints}
+              countryHref={countryHref}
               change={
                 changes.data && {
                   days: changes.data.days,
@@ -186,6 +189,7 @@ function AggregatedBoards({ view, search }: { view: AggregatedView; search: Aggr
               valueLabel="Aggregated time"
               value={(r) => formatLongScore(r.score)}
               rankBy={byTime}
+              countryHref={countryHref}
               empty={
                 rows?.mapCount ? `No one has a time on all ${rows.mapCount} maps yet.` : 'No players yet.'
               }
