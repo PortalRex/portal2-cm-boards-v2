@@ -4,13 +4,18 @@ import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YA
 import { HistoryIcon } from '@/components/icons'
 import { Panel } from '@/components/panel'
 import { ErrorState, Loading } from '@/components/status'
+import { useCatalog } from '@/lib/catalog'
 import { ACTIVITY_VIEWS, activityWindow, type ActivityPoint, type ActivityView } from '@/lib/activity'
 import { activityQueryOptions } from '../api/panels'
 import { PanelSwitch, Pager } from './panel-controls'
 
-/** Submissions over time, paged month by month, year by year (weekly totals) or all time (monthly). */
-export function ActivityPanel() {
-  const activity = useQuery(activityQueryOptions())
+/**
+ * The game's submissions over time, paged month by month, year by year (weekly totals) or all time
+ * (monthly).
+ */
+export function ActivityPanel({ game }: { game: string }) {
+  const catalog = useCatalog()
+  const activity = useQuery(activityQueryOptions(game, catalog))
   const [view, setView] = useState<ActivityView>('month')
   const [offset, setOffset] = useState(0)
   const win = useMemo(() => activityWindow(activity.data ?? [], view, offset), [activity.data, view, offset])

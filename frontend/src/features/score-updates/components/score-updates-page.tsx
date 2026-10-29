@@ -25,7 +25,7 @@ export function ScoreUpdatesPage({
     <Page background={siteBackground} tint="mono">
       <div className="mb-[30px] grid grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] gap-[30px] upto1000:grid-cols-1">
         <RecapPanel game={game} />
-        <ActivityPanel />
+        <ActivityPanel game={game} />
       </div>
       <ScoreUpdatesList search={search} renderRunDetails={renderRunDetails} />
     </Page>

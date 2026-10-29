@@ -12,7 +12,7 @@ export const queryKeys = {
 
   // Score updates, a map's chamber history, a profile's history: one list per set of filters.
   changelog: (game: string, params: Params) => ['changelog', game, params] as const,
-  activity: () => ['activity'] as const,
+  activity: (game: string) => ['activity', game] as const,
   recap: (game: string, week: string) => ['recap', game, week] as const,
   daily: (game: string, date: string) => ['daily', game, date] as const,
   followingFeed: (profileNumbers: string[]) => ['following-feed', profileNumbers] as const,

@@ -192,13 +192,19 @@ pub struct GraphQuery {
     /// The viewer's time zone (IANA name, e.g. America/Chicago): runs are counted per day there.
     /// UTC when missing or unknown.
     pub tz: Option<String>,
+    /// The game whose runs are counted (a season counts its own); Portal 2 (1) when missing.
+    pub game_id: Option<i32>,
 }
 
-/// **GET** Runs per day (all games), newest first: `[{ "date", "count" }]`, days in `?tz=`.
+/// **GET** A game's runs per day, newest first: `[{ "date", "count" }]`, days in `?tz=`.
+///
+/// ## Example endpoints
+/// - `/api/v1/graph?tz=Europe/Berlin` (Portal 2)
+/// - `/api/v1/graph?tz=Europe/Berlin&game_id=2`
 #[get("/graph")]
 async fn graph(pool: web::Data<PgPool>, query: web::Query<GraphQuery>) -> Result<impl Responder> {
     let tz = query.tz.as_deref().and_then(|t| t.parse::<chrono_tz::Tz>().ok()).map(|t| t.name().to_string()).unwrap_or_else(|| "UTC".into());
-    Ok(web::Json(Graph::get_graph_data(pool.get_ref(), &tz).await?))
+    Ok(web::Json(Graph::get_graph_data(pool.get_ref(), &tz, query.game_id.unwrap_or(1)).await?))
 }
 
 /// **GET** method for getting a hashmap of all default categories.

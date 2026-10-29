@@ -114,18 +114,21 @@ export const followingFeedQueryOptions = (profileNumbers: string[], c: Catalog) 
     queryFn: () => getFollowingFeed(profileNumbers, c),
   })
 
-/** Runs per day (all games), counted in the viewer's own days, oldest first. */
-export async function getActivity(signal?: AbortSignal): Promise<ActivityDay[]> {
+/** The game's runs per day, counted in the viewer's own days, oldest first. */
+export async function getActivity(game: string, c: Catalog, signal?: AbortSignal): Promise<ActivityDay[]> {
   const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
-  const rows = await api.get<{ date: string | null; count: number }[]>('/graph', { params: { tz }, signal })
+  const rows = await api.get<{ date: string | null; count: number }[]>('/graph', {
+    params: { tz, ...gameIdParam(c, game) },
+    signal,
+  })
   return rows
     .filter((g): g is { date: string; count: number } => Boolean(g.date))
     .map((g) => ({ date: g.date.slice(0, 10), count: g.count }))
     .sort((a, b) => a.date.localeCompare(b.date))
 }
 
-export const activityQueryOptions = () =>
+export const activityQueryOptions = (game: string, c: Catalog) =>
   queryOptions({
-    queryKey: queryKeys.activity(),
-    queryFn: ({ signal }) => getActivity(signal),
+    queryKey: [...queryKeys.activity(game), c.fromServer],
+    queryFn: ({ signal }) => getActivity(game, c, signal),
   })

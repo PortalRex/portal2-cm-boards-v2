@@ -211,6 +211,8 @@ All under `/api/v1`. Auth: **public**, **signed in**, **staff** (any tier or ser
 - **`PUT /changelog/demo`** (backend attaching a demo): verifies the run if it was pending.
 - **`GET /map/sp/{id}`, `/map/coop/{id}`** work for any game; the game is taken from the map unless `game_id` is given.
   Unknown maps no longer panic.
+- **`GET /graph`** (runs per day) counts one game's runs: `game_id`, Portal 2 when missing, like `/recap/weekly`. It
+  counted every game's runs on the score updates page, whichever game was picked.
   Each entry also carries the demo's `portals` and `sar_version` (co-op: `portals1` / `portals2`, `sar_version1` /
   `sar_version2`, one per half), so a run opened on a map page shows them as Score Updates does.
 - **`GET /coop/{coop_id}/halves`** adds each half's `portals` and `sar_version`.
@@ -256,8 +258,8 @@ All under `/api/v1`. Auth: **public**, **signed in**, **staff** (any tier or ser
   pages don't use them; the server keeps them), and the stored gzip copy uses the strongest level (it's built once
   per rebuild, ~50 ms more for the overall board). The Portal 2 overall board went from 824 KB to 514 KB per
   download, single player and co-op from ~470 KB to ~295 KB.
-- **`GET /graph`** (runs per day on the score updates page) is cached for two minutes per time zone: it counted
-  every run (~240 ms) for every visitor; a cached answer takes ~10 ms.
+- **`GET /graph`** (runs per day on the score updates page) is cached for two minutes per game and time zone: it
+  counted every run (~240 ms) for every visitor; a cached answer takes ~10 ms.
 - **`GET /profile/{id}`**: the oldest/newest personal bests are one query instead of four (~70 ms → ~28 ms), and come
   from the player's own run: the old queries matched any run with the same timestamp, so a season copy of a map or
   another run at that second could be shown instead.

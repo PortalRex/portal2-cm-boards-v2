@@ -95,16 +95,18 @@ describe('RecapPanel', () => {
 
 describe('ActivityPanel', () => {
   it('charts submissions by month, year or all time', async () => {
-    let tz: string | null = null
+    let params: URLSearchParams | null = null
     server.use(
       http.get(`${API}/graph`, ({ request }) => {
-        tz = new URL(request.url).searchParams.get('tz')
+        params = new URL(request.url).searchParams
         return HttpResponse.json(sampleActivity())
       }),
     )
-    await renderWithProviders(<ActivityPanel />)
+    await renderWithProviders(<ActivityPanel game="portal2" />)
     expect(await screen.findByRole('heading', { name: 'Daily Activity' })).toBeInTheDocument()
-    expect(tz).toBeTruthy()
+    expect(params!.get('tz')).toBeTruthy()
+    // Portal 2 is the server's default game.
+    expect(params!.get('game_id')).toBeNull()
     await userEvent.click(screen.getByRole('radio', { name: 'Year' }))
     expect(screen.getByRole('heading', { name: 'Weekly Activity' })).toBeInTheDocument()
     await userEvent.click(screen.getByRole('radio', { name: 'All time' }))
@@ -112,9 +114,22 @@ describe('ActivityPanel', () => {
     expect(screen.queryByRole('button', { name: /previous/i })).toBeNull()
   })
 
+  it("counts only the picked game's runs, as the recap does", async () => {
+    let gameId: string | null = null
+    server.use(
+      http.get(`${API}/graph`, ({ request }) => {
+        gameId = new URL(request.url).searchParams.get('game_id')
+        return HttpResponse.json(sampleActivity())
+      }),
+    )
+    await renderWithProviders(<ActivityPanel game="mel" />)
+    expect(await screen.findByRole('heading', { name: 'Daily Activity' })).toBeInTheDocument()
+    expect(gameId).toBe('2')
+  })
+
   it('shows an error state when the graph fails', async () => {
     server.use(http.get(`${API}/graph`, () => new HttpResponse(null, { status: 500 })))
-    await renderWithProviders(<ActivityPanel />)
+    await renderWithProviders(<ActivityPanel game="portal2" />)
     expect(await screen.findByRole('alert')).toBeInTheDocument()
   })
 })
