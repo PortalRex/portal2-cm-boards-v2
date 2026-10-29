@@ -209,7 +209,8 @@ function ModeTab({
           selectedMap={selectedMap}
           onSelectMap={onSelectMap}
           player={profile.player}
-          chapterLink={link(chapter)}
+          // A sorted table lists every chapter's maps: no one chapter's board to link to.
+          chapterLink={chapter.sorted ? undefined : link(chapter)}
           sort={sort}
           onSort={onSort}
           renderRunDetails={renderRunDetails}

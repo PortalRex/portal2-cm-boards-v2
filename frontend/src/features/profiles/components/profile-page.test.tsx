@@ -188,6 +188,10 @@ describe('Profile page', () => {
     await userEvent.click(headers()[0]!)
     expect(screen.getByRole('heading', { name: 'Most points first', level: 3 })).toBeInTheDocument()
     expect(select).toHaveValue('points')
+    // Every chapter's maps in it: its title isn't a link to chapter 1's board.
+    expect(
+      within(screen.getByRole('heading', { name: 'Most points first', level: 3 })).queryByRole('link'),
+    ).not.toBeInTheDocument()
     // One table now, its header showing the order.
     const [header] = headers()
     expect(headers()).toHaveLength(1)
