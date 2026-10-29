@@ -54,11 +54,12 @@ export function rowsInView(all: ChartRow[], from: number, to: number): ChartRow[
 export type Domain = [number, number | 'dataMax']
 
 /**
- * A line's height scale. The whole history shares one scale from 0 (totals compare); zoomed in,
- * each line gets its own scale fitted to what's in view, so its rises and drops show.
+ * The plot's height scale for the `shown` lines. The whole history starts at 0 (totals compare);
+ * zoomed in, it's fitted to what those lines have in view, so rises and drops show. All lines share
+ * it either way, so one above another really has more points.
  */
 export function domainFor(
-  key: PointsBoardKey,
+  shown: PointsBoardKey[],
   zoomed: boolean,
   data: ChartRow[],
   from: number,
@@ -66,7 +67,9 @@ export function domainFor(
 ): Domain {
   if (!zoomed) return [0, 'dataMax']
   const inView = data.filter((d) => d.t >= from && d.t <= to)
-  const values = (inView.length ? inView : data).map((d) => d[key]).filter((v): v is number => v != null)
+  const values = (inView.length ? inView : data)
+    .flatMap((d) => shown.map((key) => d[key]))
+    .filter((v): v is number => v != null)
   if (!values.length) return [0, 'dataMax']
   const lo = Math.min(...values)
   const hi = Math.max(...values)
@@ -100,21 +103,20 @@ export function labelSide(
   v: number,
 ): 'top' | 'bottom' {
   const sharedMax = Math.max(1, ...data.flatMap((d) => shown.map((s) => d[s] ?? 0)))
-  // Where a value sits on its line's scale, in pixels from the top of the plot.
-  const yPx = (k: PointsBoardKey, value: number) => {
-    const [lo, hi] = zoomed
-      ? domainFor(k, true, data, from, to).map((x) => (x === 'dataMax' ? sharedMax : x))
-      : [0, sharedMax]
-    return PLOT_H - ((value - (lo as number)) / Math.max(1, (hi as number) - (lo as number))) * PLOT_H
-  }
-  const y = yPx(key, v)
+  const [lo, hi] = domainFor(shown, zoomed, data, from, to).map((x) => (x === 'dataMax' ? sharedMax : x)) as [
+    number,
+    number,
+  ]
+  // Where a value sits on the scale, in pixels from the top of the plot.
+  const yPx = (value: number) => PLOT_H - ((value - lo) / Math.max(1, hi - lo)) * PLOT_H
+  const y = yPx(v)
   let above = y + PLOT_TOP
   let below = PLOT_H - y
   for (const other of shown) {
     if (other === key) continue
     const o = valueAt(all, other, t)
     if (o == null) continue
-    const oy = yPx(other, o)
+    const oy = yPx(o)
     if (oy <= y) above = Math.min(above, y - oy)
     else below = Math.min(below, oy - y)
   }

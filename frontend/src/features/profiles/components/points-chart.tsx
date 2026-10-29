@@ -80,7 +80,6 @@ export function PointsChart({
   const data = rowsInView(all, from, to)
   const zoomed = Boolean(zoom)
   const shown = series.filter((s) => !hidden[s.key])
-  const axisFor = (key: PointsBoardKey) => (zoomed ? key : 'shared')
   const atMs = at ? dayMs(at) : null
 
   return (
@@ -112,19 +111,17 @@ export function PointsChart({
             }}
           >
             <XAxis dataKey="t" type="number" domain={[from, to]} allowDataOverflow hide />
-            {zoomed ? (
-              SERIES.map((s) => (
-                <YAxis
-                  key={s.key}
-                  yAxisId={s.key}
-                  hide
-                  domain={domainFor(s.key, true, data, from, to)}
-                  allowDataOverflow
-                />
-              ))
-            ) : (
-              <YAxis yAxisId="shared" hide domain={[0, 'dataMax']} />
-            )}
+            <YAxis
+              hide
+              domain={domainFor(
+                shown.map((s) => s.key),
+                zoomed,
+                data,
+                from,
+                to,
+              )}
+              allowDataOverflow={zoomed}
+            />
             <Tooltip
               isAnimationActive={false}
               contentStyle={{ background: 'var(--menu)', border: '1px solid var(--line)', borderRadius: 4 }}
@@ -136,17 +133,11 @@ export function PointsChart({
               formatter={(v, name) => [`${String(v)} pts`, name]}
             />
             {atMs != null && atMs >= from && atMs <= to && (
-              <ReferenceLine
-                x={atMs}
-                yAxisId={zoomed ? 'overall' : 'shared'}
-                stroke="var(--brand)"
-                strokeDasharray="4 3"
-              />
+              <ReferenceLine x={atMs} stroke="var(--brand)" strokeDasharray="4 3" />
             )}
             {shown.map((s) => (
               <Line
                 key={s.key}
-                yAxisId={axisFor(s.key)}
                 type="linear"
                 dataKey={s.key}
                 name={s.label}
@@ -168,7 +159,6 @@ export function PointsChart({
                 <ReferenceDot
                   key={`peak-${s.key}`}
                   className={peakClass(s.key)}
-                  yAxisId={axisFor(s.key)}
                   x={t}
                   y={value}
                   r={4}

@@ -51,13 +51,21 @@ describe('rowsInView', () => {
 })
 
 describe('domainFor', () => {
-  it('shares one scale from 0 for the whole history, and fits each line when zoomed', () => {
+  it('starts at 0 for the whole history, and fits the shown lines when zoomed', () => {
     const rows = chartRows(samples, null)
-    expect(domainFor('sp', false, rows, 0, Infinity)).toEqual([0, 'dataMax'])
+    expect(domainFor(['sp'], false, rows, 0, Infinity)).toEqual([0, 'dataMax'])
     // 200..300 in view, padded by 15% of the range.
-    expect(domainFor('sp', true, rows, dayMs('2024-01-14'), dayMs('2024-01-21'))).toEqual([185, 315])
+    expect(domainFor(['sp'], true, rows, dayMs('2024-01-14'), dayMs('2024-01-21'))).toEqual([185, 315])
     // A flat line still gets some room.
-    expect(domainFor('coop', true, rows, dayMs('2024-01-21'), dayMs('2024-01-21'))).toEqual([57, 63])
+    expect(domainFor(['coop'], true, rows, dayMs('2024-01-21'), dayMs('2024-01-21'))).toEqual([57, 63])
+  })
+
+  it('gives every shown line the same scale when zoomed, so the higher total stays on top', () => {
+    const rows = chartRows(samples, null)
+    // Co-op 50..60 and overall 250..360 in view: one scale over 50..360, not one per line.
+    expect(domainFor(['coop', 'overall'], true, rows, dayMs('2024-01-14'), dayMs('2024-01-21'))).toEqual([
+      3, 407,
+    ])
   })
 })
 
