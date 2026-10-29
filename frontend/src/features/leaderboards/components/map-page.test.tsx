@@ -6,6 +6,8 @@ import changelog from '@/testing/fixtures/changelog.json'
 import coopBoard from '@/testing/fixtures/map-coop-board.json'
 import spBoard from '@/testing/fixtures/map-sp-board.json'
 import { users } from '@/testing/data/users'
+import { env } from '@/config/env'
+import { replaySearchSchema } from '@/lib/runs/viewer'
 import { API } from '@/testing/mocks/handlers'
 import { server } from '@/testing/mocks/server'
 import { renderRoute } from '@/testing/test-utils'
@@ -413,5 +415,90 @@ describe('Map page', () => {
         await waitFor(() => expect(bodies).toEqual([{ hidden: true, reason: 'spliced demo' }]))
       },
     )
+  })
+
+  describe('with the demo viewer built in', () => {
+    // (env.VITE_VIEWER is read when rendering)
+    const withViewer = async (test: () => Promise<void>) => {
+      const was = env.VITE_VIEWER
+      env.VITE_VIEWER = true
+      try {
+        await test()
+      } finally {
+        env.VITE_VIEWER = was
+      }
+    }
+    const demos = spBoard.map((r) => r.map_data.demo_id)
+    // Where the page went: the replay page, with these runs.
+    const replayed = async (router: Awaited<ReturnType<typeof renderRoute>>['router']) => {
+      await waitFor(() => expect(router.state.location.pathname).toBe('/replay'))
+      return replaySearchSchema.parse(router.state.location.search)
+    }
+    const boardLoaded = () => within(board()).findAllByRole('link', { name: 'Watch the replay' })
+
+    it('races the top runs in the replay page', () =>
+      withViewer(async () => {
+        serveMap()
+        const { router } = await renderRoute('/map/sp/47759')
+        await boardLoaded()
+        fireEvent.click(screen.getByRole('button', { name: 'Race Top 5' }))
+        expect(await replayed(router)).toMatchObject({
+          demo: demos[0],
+          race: demos.slice(1).join(','),
+          map: '47759',
+          what: 'top',
+        })
+      }))
+
+    it('swarms the top runs', () =>
+      withViewer(async () => {
+        serveMap()
+        const { router } = await renderRoute('/map/sp/47759')
+        await boardLoaded()
+        fireEvent.click(screen.getByRole('button', { name: 'Swarm Top 100' }))
+        expect(await replayed(router)).toMatchObject({
+          demo: demos[0],
+          swarm: demos.join(','),
+          what: 'swarm',
+        })
+      }))
+
+    it('races the world records with demos, the newest shown', () =>
+      withViewer(async () => {
+        // (one without a demo, and the newest banned: both left out)
+        const wrs: ChangelogRaw[] = records([3000, 2900, 2800, 2700]).map((r, i) => ({
+          ...r,
+          demo_id: [11, null, 33, 44][i]!,
+          banned: i === 3,
+          coop_id: null,
+        }))
+        // (a co-op record's partner entry, a moment apart: raced once)
+        wrs.push({ ...wrs[2]!, demo_id: 34, coop_id: 7, timestamp: '2021-12-31T23:59:59' })
+        wrs[2] = { ...wrs[2]!, coop_id: 7 }
+        const { changelogAsked } = serveMap({ wrs })
+        const { router } = await renderRoute('/map/sp/47759')
+        fireEvent.click(await screen.findByRole('button', { name: 'Race WR History' }))
+        expect(await replayed(router)).toMatchObject({ demo: 33, race: '11', what: 'wr' })
+        expect(changelogAsked.some((q) => q.get('wr_gain') && q.get('has_demo'))).toBe(true)
+      }))
+
+    it('races runs ticked on the board', () =>
+      withViewer(async () => {
+        serveMap()
+        const { router } = await renderRoute('/map/sp/47759')
+        await boardLoaded()
+        fireEvent.click(screen.getByRole('button', { name: 'Pick Runs to Race' }))
+        const race = screen.getByRole('button', { name: 'Race them' })
+        expect(race).toBeDisabled()
+        fireEvent.click(within(board()).getByRole('checkbox', { name: 'Pick #2' }))
+        fireEvent.click(within(board()).getByRole('checkbox', { name: 'Pick #4' }))
+        expect(screen.getByText('2', { selector: 'strong' })).toBeInTheDocument()
+        fireEvent.click(race)
+        expect(await replayed(router)).toMatchObject({
+          demo: demos[1],
+          race: String(demos[3]),
+          what: 'picked',
+        })
+      }))
   })
 })

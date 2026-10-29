@@ -4,6 +4,7 @@ import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
 import changelog from '@/testing/fixtures/changelog.json'
 import coopHalves from '@/testing/fixtures/coop-halves.json'
+import { env } from '@/config/env'
 import { users } from '@/testing/data/users'
 import { API, AUTORENDER } from '@/testing/mocks/handlers'
 import { server } from '@/testing/mocks/server'
@@ -198,5 +199,34 @@ describe('timerNote', () => {
     expect(timerNote(2007, 1204)).toEqual({ ticks: 1204, demo: 2006 })
     expect(timerNote(null, 1201)).toBeNull()
     expect(timerNote(2000, null)).toBeNull()
+  })
+
+  it('plays the demo in the row instead of the video, where the demo viewer is built in', async () => {
+    noSegments()
+    const was = env.VITE_VIEWER
+    env.VITE_VIEWER = true
+    try {
+      await renderWithProviders(<RunDetails run={spRun} map={map} />)
+      const tabs = within(screen.getByRole('tablist', { name: 'Media' }))
+      expect(tabs.getByRole('tab', { name: 'Video' })).toHaveAttribute('aria-selected', 'true')
+      expect(screen.queryByTitle('Doors replay')).not.toBeInTheDocument()
+      await userEvent.click(tabs.getByRole('tab', { name: 'Replay' }))
+      expect(screen.getByTitle('Doors replay')).toHaveAttribute('src', '/viewer/?embed=compact#board=55')
+      const full = new URL(
+        screen.getByRole('link', { name: /Full Replay/ }).getAttribute('href')!,
+        'http://x',
+      )
+      expect(full.pathname).toBe('/replay')
+      expect(full.searchParams.get('demo')).toBe('55')
+    } finally {
+      env.VITE_VIEWER = was
+    }
+  })
+
+  it('offers no replay without the demo viewer', async () => {
+    noSegments()
+    await renderWithProviders(<RunDetails run={spRun} map={map} />)
+    expect(screen.queryByRole('tablist', { name: 'Media' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /Full Replay/ })).not.toBeInTheDocument()
   })
 })

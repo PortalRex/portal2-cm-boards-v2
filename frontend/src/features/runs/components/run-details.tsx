@@ -1,8 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
+import { Link } from '@tanstack/react-router'
 import { cn } from 'cn'
 import { useState, type ReactNode } from 'react'
 import { DownloadIcon, PlayIcon, VideocamIcon, ViewerIcon, YouTubeIcon } from '@/components/icons'
 import { PlayerLink } from '@/components/player-link'
+import { ReplayFrame } from '@/components/runs/replay-frame'
 import { RunVideo } from '@/components/runs/run-media'
 import { apiUrl } from '@/lib/api-client'
 import { env } from '@/config/env'
@@ -10,7 +12,7 @@ import type { FormattedSegment } from '@/lib/autorender'
 import { useCatalog } from '@/lib/catalog'
 import { formatDate, formatDateTime, formatScore, formatSeconds, ordinalSuffix } from '@/lib/format'
 import { runVideo } from '@/lib/runs/video'
-import { viewerUrl } from '@/lib/runs/viewer'
+import { replayOf, replaySearch } from '@/lib/runs/viewer'
 import type { CoopHalf, Player, RunMap } from '@/types/runs'
 import { coopHalvesQueryOptions, segmentsQueryOptions } from '../api/details'
 import { runQueryOptions } from '../api/run'
@@ -115,8 +117,12 @@ export function RunDetails({
   )
   const segments = useQuery({ ...segmentsQueryOptions(ids, map.title), enabled: ids.length > 0 })
   const video = runVideo(view, game, rendered)
-  // (the shown player's demo opened, a co-op partner's with it)
-  const viewer = env.VITE_VIEWER ? viewerUrl([view.demoId, ...(list?.map((h) => h.demoId) ?? [])]) : null
+  // The demo replayed in the row instead of the video, where the demo viewer is built in: the
+  // shown player's demo, a co-op partner's with it.
+  const replay = env.VITE_VIEWER ? replayOf([view.demoId, ...(list?.map((h) => h.demoId) ?? [])]) : null
+  const [media, setMedia] = useState<'video' | 'replay'>('video')
+  const replaying = media === 'replay' && replay != null
+  const fullReplay = replay && replaySearch(replay, { run: own, map: map.id })
   const rank = run.postRank ?? run.rank
   // A board or profile row has the rank now; the rank it got when set comes with the run itself.
   const catalog = useCatalog()
@@ -132,15 +138,30 @@ export function RunDetails({
 
   return (
     <div className="@container/run-details">
+      {replaying && (
+        <div className="border-t-2 border-row bg-panel px-5 pt-5 rd-upto640:px-3 rd-upto640:pt-3">
+          <ReplayFrame
+            runs={replay}
+            embed="compact"
+            title={`${map.title} replay`}
+            className="aspect-video max-h-[70vh]"
+          />
+        </div>
+      )}
       <div className="grid grid-cols-[minmax(240px,345px)_minmax(0,1fr)_minmax(260px,380px)] gap-5 border-t-2 border-row bg-panel p-5 rd-upto1150:grid-cols-[minmax(220px,320px)_minmax(0,1fr)] rd-upto640:grid-cols-1 rd-upto640:p-3">
         <div>
-          <RunVideo
-            key={view.changelogId ?? view.id ?? `partner-${view.demoId}`}
-            run={view}
-            game={game}
-            rendered={rendered}
-            title={`${map.title} run`}
-          />
+          {replay && <MediaToggle media={media} onPick={setMedia} />}
+          {replaying ? (
+            <p className="m-0 text-text-2">The replay plays above. Pick a camera or the 3D view in it.</p>
+          ) : (
+            <RunVideo
+              key={view.changelogId ?? view.id ?? `partner-${view.demoId}`}
+              run={view}
+              game={game}
+              rendered={rendered}
+              title={`${map.title} run`}
+            />
+          )}
           {list && <CoopToggle halves={list} index={index} onPick={setPicked} />}
         </div>
 
@@ -214,7 +235,7 @@ export function RunDetails({
           {own != null && <StaffTools run={{ ...run, changelogId: own }} map={map} game={game} />}
           {children}
           {/* Only what the run has: a dimmed button for a missing demo or video read as available. */}
-          {(view.demoId || youtube || video.ready || canRender || viewer) && (
+          {(view.demoId || youtube || video.ready || canRender || fullReplay) && (
             <div className="mt-3.5 grid grid-cols-2 gap-[18px] rd-upto640:grid-cols-1">
               {view.demoId ? (
                 <a
@@ -226,10 +247,10 @@ export function RunDetails({
                   Download Demo <DownloadIcon />
                 </a>
               ) : null}
-              {viewer && (
-                <a href={viewer} target="_blank" rel="noreferrer" className={outlineButton}>
-                  Watch in Browser <ViewerIcon />
-                </a>
+              {fullReplay && (
+                <Link to="/replay" search={fullReplay} className={outlineButton}>
+                  Full Replay <ViewerIcon />
+                </Link>
               )}
               {youtube && (
                 <a href={youtube} target="_blank" rel="noreferrer" className={outlineButton}>
@@ -327,6 +348,38 @@ function TimerNote({
 }
 
 /** Switches the panel between the two players' halves of a co-op run (blue first when known). */
+/** Video or replay (the demo played in the row): where the demo viewer is built in. */
+function MediaToggle({
+  media,
+  onPick,
+}: {
+  media: 'video' | 'replay'
+  onPick: (m: 'video' | 'replay') => void
+}) {
+  const options = [
+    ['video', 'Video', 'The autorender or YouTube video'],
+    ['replay', 'Replay', 'Play the demo here: any camera, the 2D map or 3D'],
+  ] as const
+  return (
+    <div className="mb-2.5 flex gap-1.5" role="tablist" aria-label="Media">
+      {options.map(([value, label, title]) => (
+        <button
+          key={value}
+          type="button"
+          role="tab"
+          aria-selected={media === value}
+          data-active={media === value || undefined}
+          title={title}
+          onClick={() => onPick(value)}
+          className="h-8 flex-1 cursor-pointer rounded-[4px] border border-line-strong bg-control text-base hover:bg-control-raised data-[active]:border-brand data-[active]:bg-[color-mix(in_srgb,var(--brand)_18%,transparent)]"
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 function CoopToggle({
   halves,
   index,

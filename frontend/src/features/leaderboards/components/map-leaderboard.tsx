@@ -36,12 +36,19 @@ export function MapLeaderboard({
   at,
   onClearAt,
   renderRunDetails,
+  picking = false,
+  onRacePicked,
+  onStopPicking,
 }: {
   map: MapInfo
   board: UseQueryResult<RankedRun[]>
   at: string | null
   onClearAt: () => void
   renderRunDetails?: RenderRunDetails
+  /** Ticking runs (with demos) to race in the replay, instead of opening them. */
+  picking?: boolean
+  onRacePicked?: (runs: RankedRun[]) => void
+  onStopPicking?: () => void
 }) {
   const catalog = useCatalog()
   const me = useCurrentUser()
@@ -64,6 +71,14 @@ export function MapLeaderboard({
   const [pbStyle] = useCoopPbStyle()
   const rowKey = (e: RankedRun) =>
     e.changelogId ?? `${e.rank}-${e.players.map((p) => p.profileNumber).join('-')}`
+  const [picked, setPicked] = useState<ReadonlySet<string | number>>(new Set())
+  const togglePick = (e: RankedRun) =>
+    setPicked((cur) => {
+      const next = new Set(cur)
+      if (!next.delete(rowKey(e))) next.add(rowKey(e))
+      return next
+    })
+  const pickedRuns = all.filter((e) => picked.has(rowKey(e)))
 
   // Jump to a board entry: clear the search, go to its page and open its details.
   const showEntry = (entry: RankedRun) => {
@@ -103,6 +118,33 @@ export function MapLeaderboard({
       ) : (
         <YourBest map={map} board={board.data} onShow={showEntry} />
       )}
+      {picking && (
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-md border border-brand bg-[color-mix(in_srgb,var(--brand)_10%,transparent)] px-3.5 py-2.5">
+          <span>
+            Tick the runs to race: <strong className="num">{pickedRuns.length}</strong> picked
+          </span>
+          <span className="flex gap-4">
+            <button
+              type="button"
+              disabled={!pickedRuns.length}
+              onClick={() => onRacePicked?.(pickedRuns)}
+              className="cursor-pointer border-0 bg-transparent p-0 font-semibold text-brand hover:underline disabled:cursor-default disabled:opacity-50 disabled:no-underline"
+            >
+              Race them
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setPicked(new Set())
+                onStopPicking?.()
+              }}
+              className="cursor-pointer border-0 bg-transparent p-0 text-text-2 hover:underline"
+            >
+              Cancel
+            </button>
+          </span>
+        </div>
+      )}
       <div className="mb-[18px] flex items-center justify-between gap-4 upto900:flex-col upto900:items-stretch">
         <SearchBox
           value={search}
@@ -135,7 +177,8 @@ export function MapLeaderboard({
         ) : visible.length ? (
           visible.map((e) => {
             const key = rowKey(e)
-            const open = openKey === key
+            const open = !picking && openKey === key
+            const pickable = Boolean(e.demoId || e.demoIds?.some(Boolean))
             const { players, rolesKnown } = coopRoles(e, overrides)
             // Unpaired co-op runs have no partner on record; the cell keeps the columns lined up.
             const cells = coop && players.length < 2 ? [...players, null] : players
@@ -149,7 +192,10 @@ export function MapLeaderboard({
                 <div
                   role="row"
                   aria-expanded={open}
-                  onClick={toggleOnRowClick(() => setOpenKey(open ? null : key))}
+                  onClick={toggleOnRowClick(() => {
+                    if (!picking) setOpenKey(open ? null : key)
+                    else if (pickable) togglePick(e)
+                  })}
                   className={cn(
                     rowBase,
                     'cursor-pointer hover:brightness-[1.15]',
@@ -159,9 +205,22 @@ export function MapLeaderboard({
                   )}
                 >
                   <span role="cell" className="num flex justify-center text-[15px]">
-                    <RankPoints points={e.points}>
-                      <RankTag rank={e.rank} className={BOARD_TAG} />
-                    </RankPoints>
+                    {picking ? (
+                      <input
+                        type="checkbox"
+                        checked={picked.has(key)}
+                        disabled={!pickable}
+                        onChange={() => togglePick(e)}
+                        onClick={(ev) => ev.stopPropagation()}
+                        aria-label={pickable ? `Pick #${e.rank}` : `#${e.rank} has no demo`}
+                        title={pickable ? undefined : 'No demo'}
+                        className="size-[18px] cursor-pointer accent-[var(--brand)] disabled:cursor-default"
+                      />
+                    ) : (
+                      <RankPoints points={e.points}>
+                        <RankTag rank={e.rank} className={BOARD_TAG} />
+                      </RankPoints>
+                    )}
                   </span>
                   {cells.map((p, j) => {
                     if (!p) {
@@ -240,7 +299,7 @@ export function MapLeaderboard({
                     <AutorenderLink run={e} game={map.game} rendered={rendered} />
                     <YouTubeLink id={e.youtubeId} />
                     <DemoLink demoId={e.demoId} />
-                    <ViewerLink demoIds={e.demoIds ?? [e.demoId]} />
+                    <ViewerLink demoIds={e.demoIds ?? [e.demoId]} runId={e.changelogId} mapId={map.id} />
                   </span>
                 </div>
                 {open && renderRunDetails?.(e, map, rendered)}

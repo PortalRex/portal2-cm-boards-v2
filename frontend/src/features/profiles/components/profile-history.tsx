@@ -83,7 +83,7 @@ export function ProfileHistory({
               <AutorenderLink run={h} game={game} rendered={rendered} size={22} />
               {h.youtubeId && <YouTubeLink id={h.youtubeId} size={22} />}
               <DemoLink demoId={h.demoId} hideMissing />
-              <ViewerLink demoIds={[h.demoId]} />
+              <ViewerLink demoIds={[h.demoId]} runId={h.id} mapId={h.map.id} />
             </span>
           </div>
         ))

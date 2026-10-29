@@ -1,3 +1,4 @@
+import { Link } from '@tanstack/react-router'
 import { cn } from 'cn'
 import { useEffect, useRef, useState } from 'react'
 import {
@@ -14,7 +15,7 @@ import { bubbleAnchor } from '@/lib/bubble'
 import { runVideo, type VideoRun } from '@/lib/runs/video'
 import { apiUrl } from '@/lib/api-client'
 import { env } from '@/config/env'
-import { viewerUrl } from '@/lib/runs/viewer'
+import { replayOf, replaySearch } from '@/lib/runs/viewer'
 
 const off = 'opacity-[0.18]'
 // Drawn a little under the requested slot size, filled rather than outlined.
@@ -103,33 +104,37 @@ export function DemoLink({
 }
 
 /**
- * Opens the run's demo (and a co-op partner's) in the demo viewer, a replay in the browser. Only
- * where the viewer is built in (env.VITE_VIEWER); nothing without a demo.
+ * Opens the run's replay page (its demo, and a co-op partner's, played in the site). Only where
+ * the demo viewer is built in (env.VITE_VIEWER); nothing without a demo.
  */
 export function ViewerLink({
   demoIds,
+  runId,
+  mapId,
   size = 22,
   viewer = env.VITE_VIEWER,
 }: {
   demoIds: readonly (number | null | undefined)[]
+  /** The run's changelog id and map, which the replay page names. */
+  runId?: number | null
+  mapId?: string
   size?: number
   viewer?: boolean
 }) {
-  const url = viewerUrl(demoIds)
-  if (!viewer || !url) return null
+  const runs = replayOf(demoIds)
+  if (!viewer || !runs) return null
   const icon = { width: size - shrink, height: size - shrink }
   return (
-    <a
-      href={url}
-      target="_blank"
-      rel="noreferrer"
+    <Link
+      to="/replay"
+      search={replaySearch(runs, { run: runId, map: mapId })}
       className={iconLink}
-      title="Watch in the browser"
+      title="Watch the replay"
       onClick={(e) => e.stopPropagation()}
     >
       <ViewerIcon style={icon} aria-hidden />
-      <span className="sr-only">Watch in the browser</span>
-    </a>
+      <span className="sr-only">Watch the replay</span>
+    </Link>
   )
 }
 

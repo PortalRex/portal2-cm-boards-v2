@@ -12,6 +12,7 @@ import { Select } from '@/components/select'
 import { useCurrentUser } from '@/hooks/use-current-user'
 import { useRenderedSet } from '@/hooks/use-rendered-set'
 import { useSeason } from '@/hooks/use-season'
+import { env } from '@/config/env'
 import { isStaff } from '@/lib/auth'
 import {
   findMap,
@@ -28,9 +29,13 @@ import {
 import { mapBoardQueryOptions, wrHistoryQueryOptions } from '../api/map-board'
 import { ChamberHistory } from './chamber-history'
 import { MapLeaderboard, type RenderRunDetails } from './map-leaderboard'
+import { ReplayActions } from './replay-actions'
 import { WrHistoryEditor } from './wr-history-editor'
 import { WrHistoryChart } from './wr-history-chart'
 import { toSecond } from '@/lib/charts/history'
+import { replaySearch } from '@/lib/runs/viewer'
+import type { RankedRun } from '@/types/runs'
+import { raceReplay } from '../utils/replay'
 
 const CATEGORIES = [{ value: 'main', label: 'Main Challenge Mode' }]
 const MEL_CATEGORIES = [{ value: 'main', label: 'Challenge Mode' }]
@@ -103,6 +108,13 @@ function MapPageContent({
   const board = useQuery(mapBoardQueryOptions(data, catalog, at))
   const history = useQuery(wrHistoryQueryOptions(data, catalog))
   const [view, setView] = useState<View>('board')
+  // Ticking runs on the board to race in the replay (where the demo viewer is built in).
+  const [picking, setPicking] = useState(false)
+  const racePicked = (runs: RankedRun[]) => {
+    const replay = raceReplay(runs)
+    if (replay)
+      void navigate({ to: '/replay', search: replaySearch(replay, { map: data.id, what: 'picked' }) })
+  }
   // ?at=: the board as it stood then (picked on the WR history chart). Keeps ?season= and the rest.
   const pickMoment = (t: number | null) => {
     void navigate({
@@ -182,6 +194,18 @@ function MapPageContent({
                 </button>
               )}
             </div>
+            {env.VITE_VIEWER && (
+              <ReplayActions
+                map={data}
+                board={board.data}
+                picking={picking}
+                onPicking={(on) => {
+                  setPicking(on)
+                  if (on) setView('board')
+                }}
+                buttonClassName={cn(outlineButton, 'disabled:cursor-default disabled:opacity-50')}
+              />
+            )}
           </div>
         </div>
 
@@ -193,6 +217,9 @@ function MapPageContent({
               at={at}
               onClearAt={() => pickMoment(null)}
               renderRunDetails={renderRunDetails}
+              picking={picking}
+              onRacePicked={racePicked}
+              onStopPicking={() => setPicking(false)}
             />
           ) : view === 'wr' ? (
             <WrHistoryEditor map={data} />

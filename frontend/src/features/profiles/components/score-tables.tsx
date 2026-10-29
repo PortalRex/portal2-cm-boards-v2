@@ -361,7 +361,7 @@ function ChapterRow({
             {s ? <AutorenderLink run={s} game={game} rendered={rendered} size={24} /> : iconGap}
             <YouTubeLink id={s?.youtubeId} size={24} />
             <DemoLink demoId={s?.demoId} size={24} />
-            <ViewerLink demoIds={[s?.demoId]} size={24} />
+            <ViewerLink demoIds={[s?.demoId]} runId={s?.changelogId} mapId={m.id} size={24} />
           </span>
           {s ? (
             <button
