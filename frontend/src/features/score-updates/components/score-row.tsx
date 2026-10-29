@@ -19,6 +19,7 @@ import {
   type CoopTint,
 } from '@/lib/coop-roles'
 import { formatDate, formatDateTime, formatDelta, formatScore, timeAgo } from '@/lib/format'
+import { ageColor } from '@/lib/age-color'
 import { toggleOnRowClick } from '@/lib/rows'
 import type { Run } from '@/types/runs'
 import { streakSummary } from '../utils/group-streaks'
@@ -89,7 +90,11 @@ export function ScoreRow({
           <span className="text-[13px] whitespace-nowrap text-text-2 uppercase upto900:hidden">
             {entry.map.chapter}
           </span>
-          <span className="hidden text-xs text-green upto900:block" title={formatDateTime(entry.timestamp)}>
+          <span
+            className="hidden text-xs text-text-muted upto900:block"
+            title={formatDateTime(entry.timestamp)}
+            style={{ color: ageColor(entry.timestamp) }}
+          >
             {timeAgo(entry.timestamp)}
           </span>
         </div>
@@ -173,7 +178,11 @@ export function ScoreRow({
           {pointsDelta != null ? `${pointsDelta > 0 ? '+' : ''}${pointsDelta}` : ''}
         </div>
         <div className="flex flex-col items-end px-2.5 text-lg leading-[1.1] upto900:hidden">
-          <span className="text-green" title={formatDateTime(entry.timestamp)}>
+          <span
+            className="text-text-muted"
+            title={formatDateTime(entry.timestamp)}
+            style={{ color: ageColor(entry.timestamp) }}
+          >
             {timeAgo(entry.timestamp)}
           </span>
           <span className="num text-[13px] text-text-muted">{formatDate(entry.timestamp)}</span>
@@ -263,7 +272,11 @@ function EarlierPb({
         <div className="self-stretch [&>div]:min-h-9 [&>div]:text-base upto900:[&>div]:grid-cols-1 upto900:[&>div]:text-sm upto900:[&>div>:first-child]:hidden upto900:[&>div>svg]:hidden">
           <RankChange pre={run.preRank} post={run.postRank} />
         </div>
-        <span className="text-text-muted" title={formatDateTime(run.timestamp)}>
+        <span
+          className="text-text-muted"
+          title={formatDateTime(run.timestamp)}
+          style={{ color: ageColor(run.timestamp) }}
+        >
           {timeAgo(run.timestamp)}
         </span>
         <span className="num text-right font-semibold">{formatScore(run.score)}</span>

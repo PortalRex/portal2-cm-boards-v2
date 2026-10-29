@@ -10,10 +10,10 @@ import { Card } from '@/components/panel'
 import { countryName } from '@/lib/data/countries'
 import { roleProgress, roleProgressText, type PointsBoard } from '@/lib/data/roles'
 import { formatDate, formatDateTime, formatPoints, formatScore, ordinalSuffix, timeAgo } from '@/lib/format'
+import { ageColor } from '@/lib/age-color'
 import { rankVars } from '@/lib/ranks'
 import type { MapScore, PointsPeak, ProfilePlayer, ScoreBrief } from '../types'
 import type { ProfileSummary } from '../utils/summary'
-import { isRecent } from '../utils/tables'
 
 type StatSize = 'md' | 'sm'
 
@@ -208,13 +208,12 @@ function StatHead({ label }: { label: string }) {
 function ScoreStat({
   label,
   entry,
-  green = false,
+  aged = false,
 }: {
   label: string
   entry: ScoreBrief | null
-  green?: boolean
+  aged?: boolean
 }) {
-  const recent = isRecent(entry?.timestamp)
   return (
     <div className="flex min-w-0 flex-col items-center text-center">
       <StatHead label={label} />
@@ -225,10 +224,10 @@ function ScoreStat({
         </span>
       </OnMap>
       {entry?.timestamp && (
-        // Green while it's recent (the past week), grey after.
         <span
-          className={cn('text-sm uppercase', green && recent ? 'text-green' : 'text-text-muted')}
+          className="text-sm text-text-muted uppercase"
           title={formatDateTime(entry.timestamp)}
+          style={aged ? { color: ageColor(entry.timestamp) } : undefined}
         >
           {timeAgo(entry.timestamp)}
         </span>
@@ -290,7 +289,7 @@ export function StatisticsCard({ summary }: { summary: ProfileSummary }) {
     // Legacy's card shared the Stats tab's .pf-stats class, which put a 24 px gap under its header.
     <Card icon={SparkleIcon} title="Statistics" collapseId="profile.stats" className={cn(TALL, 'gap-6')}>
       <div className="grid grid-cols-2 gap-x-2.5 gap-y-[26px] py-3">
-        <ScoreStat label="Newest score" entry={summary.newest} green />
+        <ScoreStat label="Newest score" entry={summary.newest} aged />
         <ScoreStat label="Oldest score" entry={summary.oldest} />
         <PlaceStat label="Best place" entry={summary.best} count={summary.bestCount} />
         <PlaceStat label="Worst place" entry={summary.worst} count={summary.worstCount} />

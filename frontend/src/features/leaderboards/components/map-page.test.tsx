@@ -134,6 +134,26 @@ describe('Map page', () => {
     await waitFor(() => expect(router.state.location.search).toEqual({}))
   })
 
+  it('colours a run set lately by how long ago it was, as the old boards did, and older ones not', async () => {
+    serveMap()
+    const hoursAgo = (h: number) => new Date(Date.now() - h * 3600 * 1000).toISOString().slice(0, 19)
+    const [first, second] = spBoard
+    server.use(
+      http.get(`${API}/map/sp/:id`, () =>
+        HttpResponse.json([
+          { ...first!, map_data: { ...first!.map_data, timestamp: hoursAgo(2) } },
+          { ...second!, map_data: { ...second!.map_data, timestamp: '2020-01-01T00:00:00' } },
+        ]),
+      ),
+    )
+    await renderRoute('/map/sp/47759')
+    // Two hours: just past "new" on the way to a day's darker green.
+    expect((await within(board()).findByText('2 hours ago')).style.color).toBe(
+      'color-mix(in srgb, var(--age-1) 8%, var(--age-0))',
+    )
+    expect(within(board()).getByText(/years ago/).style.color).toBe('')
+  })
+
   it('counts the world records on the chart, leaving out banned ones', async () => {
     const wrs = records([2400, 2300, 2200]).map((r, i) => ({ ...r, banned: i === 2 }))
     serveMap({ wrs })

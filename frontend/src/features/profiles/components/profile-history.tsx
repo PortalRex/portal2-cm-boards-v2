@@ -7,6 +7,7 @@ import { EmptyState } from '@/components/status'
 import { useRenderedSet } from '@/hooks/use-rendered-set'
 import type { MapInfo } from '@/lib/catalog'
 import { formatDateTime, formatDelta, timeAgo } from '@/lib/format'
+import { ageColor } from '@/lib/age-color'
 import { rankTileVars } from '@/lib/ranks'
 import type { Run } from '@/types/runs'
 import { rankClass } from '../utils/tables'
@@ -71,7 +72,8 @@ export function ProfileHistory({
               className="truncate font-light whitespace-nowrap text-text-muted"
               title={formatDateTime(h.timestamp)}
             >
-              {map ? timeAgo(h.timestamp) : `${h.map.title} · ${timeAgo(h.timestamp)}`}
+              {!map && `${h.map.title} · `}
+              <span style={{ color: ageColor(h.timestamp) }}>{timeAgo(h.timestamp)}</span>
             </span>
             <span className="num text-right">
               <TimeButton score={h.score} players={h.players} map={h.map} />

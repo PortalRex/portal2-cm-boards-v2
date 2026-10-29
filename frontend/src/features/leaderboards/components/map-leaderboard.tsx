@@ -17,6 +17,7 @@ import { useRenderedSet } from '@/hooks/use-rendered-set'
 import { isMultiplayerMode, useCatalog, type MapInfo } from '@/lib/catalog'
 import { coopRoles, NOT_PB_NAME, PB_NAME, pbColor, pbNameVars, tintFor } from '@/lib/coop-roles'
 import { formatDateTime, formatScore, timeAgo } from '@/lib/format'
+import { ageColor } from '@/lib/age-color'
 import { RANK_TAG_BASE } from '@/lib/ranks'
 import { toggleOnRowClick } from '@/lib/rows'
 import { profileScoresQueryOptions } from '@/lib/runs/profile-scores'
@@ -288,6 +289,7 @@ export function MapLeaderboard({
                     role="cell"
                     className="text-base font-light whitespace-nowrap text-text-muted upto900:hidden"
                     title={formatDateTime(e.timestamp)}
+                    style={{ color: ageColor(e.timestamp) }}
                   >
                     {timeAgo(e.timestamp)}
                   </span>
@@ -355,7 +357,7 @@ function YourBest({
       </span>
       <span className="num font-semibold">{formatScore(score)}</span>
       {partner && <span className="text-text-muted">with {partner.name}</span>}
-      <span className="text-text-muted" title={formatDateTime(when)}>
+      <span className="text-text-muted" title={formatDateTime(when)} style={{ color: ageColor(when) }}>
         {timeAgo(when)}
       </span>
       {entry ? (

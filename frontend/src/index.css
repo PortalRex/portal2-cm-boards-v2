@@ -88,6 +88,11 @@
   --brand: #0775bd;
   --brand-light: #8ecbf5;
   --green: #8ad97c;
+  /* How long ago a run was set (lib/age-color.ts): now, a day, two weeks, two months. */
+  --age-0: #4fdc4f;
+  --age-1: #3aab3a;
+  --age-2: #e3b821;
+  --age-3: #f08a2e;
   --wr-row: #2c2431;
   --trophy: #db7eff;
 
@@ -175,6 +180,10 @@
   --brand: #0775bd;
   --brand-light: #075e98;
   --green: #2b7f1f;
+  --age-0: #239f23;
+  --age-1: #1c7a1c;
+  --age-2: #a68400;
+  --age-3: #c96500;
   --wr-row: #f1e4f8;
   --trophy: #9333c4;
 

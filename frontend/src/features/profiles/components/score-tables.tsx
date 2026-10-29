@@ -10,6 +10,7 @@ import { AutorenderLink, CommentButton, DemoLink, ViewerLink, YouTubeLink } from
 import { TimeButton } from '@/components/runs/time-button'
 import { mapPath, type Chapter, type MapInfo } from '@/lib/catalog'
 import { formatDateTime, formatDelta, timeAgo } from '@/lib/format'
+import { ageColor } from '@/lib/age-color'
 import { RANK_TAG, rankTileVars } from '@/lib/ranks'
 import { toggleOnRowClick } from '@/lib/rows'
 import { scrollToCentre } from '@/lib/scroll'
@@ -327,7 +328,13 @@ function ChapterRow({
             title={s?.timestamp ? formatDateTime(s.timestamp) : undefined}
           >
             {sorted ? `${m.chapter} · ` : ''}
-            {s?.timestamp ? timeAgo(s.timestamp) : s ? '' : 'No score'}
+            {s?.timestamp ? (
+              <span style={{ color: ageColor(s.timestamp) }}>{timeAgo(s.timestamp)}</span>
+            ) : s ? (
+              ''
+            ) : (
+              'No score'
+            )}
           </small>
         </span>
         {/* No score: dashes, the time one still opening the history (to find banned runs). */}
