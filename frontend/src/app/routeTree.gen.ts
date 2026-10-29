@@ -13,7 +13,6 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as CompareRouteImport } from './routes/compare'
 import { Route as MapsRouteImport } from './routes/maps'
-import { Route as ReplayRouteImport } from './routes/replay'
 import { Route as LeaderboardIndexRouteImport } from './routes/leaderboard.index'
 import { Route as LeaderboardKindRouteImport } from './routes/leaderboard.$kind'
 import { Route as MorePageRouteImport } from './routes/more.$page'
@@ -56,11 +55,6 @@ const CompareRoute = CompareRouteImport.update({
 const MapsRoute = MapsRouteImport.update({
   id: '/maps',
   path: '/maps',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ReplayRoute = ReplayRouteImport.update({
-  id: '/replay',
-  path: '/replay',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LeaderboardIndexRoute = LeaderboardIndexRouteImport.update({
@@ -187,7 +181,6 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRoute
   '/compare': typeof CompareRoute
   '/maps': typeof MapsRoute
-  '/replay': typeof ReplayRoute
   '/leaderboard/$kind': typeof LeaderboardKindRoute
   '/more/$page': typeof MorePageRoute
   '/more/about': typeof MoreAboutRoute
@@ -217,7 +210,6 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminRoute
   '/compare': typeof CompareRoute
   '/maps': typeof MapsRoute
-  '/replay': typeof ReplayRoute
   '/leaderboard/$kind': typeof LeaderboardKindRoute
   '/more/$page': typeof MorePageRoute
   '/more/about': typeof MoreAboutRoute
@@ -248,7 +240,6 @@ export interface FileRoutesById {
   '/admin': typeof AdminRoute
   '/compare': typeof CompareRoute
   '/maps': typeof MapsRoute
-  '/replay': typeof ReplayRoute
   '/leaderboard/$kind': typeof LeaderboardKindRoute
   '/more/$page': typeof MorePageRoute
   '/more/about': typeof MoreAboutRoute
@@ -280,7 +271,6 @@ export interface FileRouteTypes {
     | '/admin'
     | '/compare'
     | '/maps'
-    | '/replay'
     | '/leaderboard/$kind'
     | '/more/$page'
     | '/more/about'
@@ -310,7 +300,6 @@ export interface FileRouteTypes {
     | '/admin'
     | '/compare'
     | '/maps'
-    | '/replay'
     | '/leaderboard/$kind'
     | '/more/$page'
     | '/more/about'
@@ -340,7 +329,6 @@ export interface FileRouteTypes {
     | '/admin'
     | '/compare'
     | '/maps'
-    | '/replay'
     | '/leaderboard/$kind'
     | '/more/$page'
     | '/more/about'
@@ -371,7 +359,6 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRoute
   CompareRoute: typeof CompareRoute
   MapsRoute: typeof MapsRoute
-  ReplayRoute: typeof ReplayRoute
   LeaderboardKindRoute: typeof LeaderboardKindRoute
   MorePageRoute: typeof MorePageRoute
   MoreAboutRoute: typeof MoreAboutRoute
@@ -425,13 +412,6 @@ declare module '@tanstack/react-router' {
       path: '/maps'
       fullPath: '/maps'
       preLoaderRoute: typeof MapsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/replay': {
-      id: '/replay'
-      path: '/replay'
-      fullPath: '/replay'
-      preLoaderRoute: typeof ReplayRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/leaderboard/': {
@@ -603,7 +583,6 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRoute,
   CompareRoute: CompareRoute,
   MapsRoute: MapsRoute,
-  ReplayRoute: ReplayRoute,
   LeaderboardKindRoute: LeaderboardKindRoute,
   MorePageRoute: MorePageRoute,
   MoreAboutRoute: MoreAboutRoute,

@@ -73,30 +73,6 @@ export const wrHistoryQueryOptions = (map: MapInfo, c: Catalog) =>
     queryFn: ({ signal }) => getWrHistory(map, c, signal),
   })
 
-/**
- * The demos of the map's world records, newest first (banned ones left out; a co-op record's
- * two players' entries once): for racing its WR history in the replay.
- */
-export async function getWrDemos(map: MapInfo, c: Catalog, signal?: AbortSignal): Promise<number[]> {
-  const rows = await api.get<ChangelogRaw[]>('/changelog', {
-    params: { chamber: map.id, wr_gain: true, has_demo: true, ...gameIdParam(c, map.game) },
-    signal,
-  })
-  const seen = new Set<string>()
-  const time = (t: string | null) => (t ? Date.parse(`${t}Z`) : 0)
-  return rows
-    .filter((r) => r.demo_id && !r.banned)
-    .sort((a, b) => time(b.timestamp) - time(a.timestamp))
-    .filter((r) => {
-      // (a co-op record's two players' entries share their co-op run)
-      const key = r.coop_id != null ? `coop:${r.coop_id}` : `${r.score}:${r.timestamp}`
-      if (seen.has(key)) return false
-      seen.add(key)
-      return true
-    })
-    .map((r) => r.demo_id!)
-}
-
 /** Staff: every world record on the map, including runs removed from the history. */
 export async function getStaffWrHistory(map: MapInfo, c: Catalog, signal?: AbortSignal): Promise<Run[]> {
   const rows = await api.get<ChangelogRaw[]>('/changelog', {

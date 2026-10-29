@@ -75,22 +75,20 @@ describe('run media links', () => {
 })
 
 describe('ViewerLink', () => {
-  it("opens the run's replay page, a co-op partner's demo with it", async () => {
-    await renderWithProviders(<ViewerLink demoIds={[7, 9]} runId={55} mapId="47458" viewer />)
-    const link = screen.getByRole('link', { name: 'Watch the replay' })
-    const url = new URL(link.getAttribute('href')!, 'http://x')
-    expect(url.pathname).toBe('/replay')
-    expect(url.searchParams.get('demo')).toBe('7')
-    expect(url.searchParams.get('with')).toContain('9')
-    expect(url.searchParams.get('run')).toBe('55')
+  it('opens the run in the demo viewer, a co-op partner with it', async () => {
+    await renderWithProviders(<ViewerLink demoIds={[7, 9]} viewer />)
+    expect(screen.getByRole('link', { name: 'Watch in the browser' })).toHaveAttribute(
+      'href',
+      '/viewer/#board=7&with=9',
+    )
   })
 
   it("shows nothing without a demo, or where the viewer isn't built in", async () => {
     const { unmount } = await renderWithProviders(<ViewerLink demoIds={[null]} viewer />)
-    expect(screen.queryByRole('link', { name: 'Watch the replay' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Watch in the browser' })).not.toBeInTheDocument()
     unmount()
     await renderWithProviders(<ViewerLink demoIds={[7]} viewer={false} />)
-    expect(screen.queryByRole('link', { name: 'Watch the replay' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Watch in the browser' })).not.toBeInTheDocument()
   })
 })
 

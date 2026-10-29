@@ -290,7 +290,7 @@ function HistoryTable({
             <AutorenderLink run={r} game={game} size={20} />
             <YouTubeLink id={r.youtubeId} size={22} />
             <DemoLink demoId={r.demoId} size={20} />
-            <ViewerLink demoIds={[r.demoId]} runId={r.id} mapId={r.map.id} size={20} />
+            <ViewerLink demoIds={[r.demoId]} size={20} />
             <BanToggle run={r} />
           </span>
         </div>

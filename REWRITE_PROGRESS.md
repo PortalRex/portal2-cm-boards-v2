@@ -69,14 +69,6 @@
 
 ## Log
 <!-- Newest first. One entry per finished item: date, what was done, commit, tests added. -->
-- 2026-10-29: Asked for (local only): the demo viewer inside the site. `/replay` (`features/runs/components/
-  replay-page.tsx`): the viewer embedded full size (`components/runs/replay-frame.tsx`, `?embed=full`) under a bar
-  naming the map and the run or what's raced; every Watch link goes there. Run Details: a Video / Replay switch
-  plays the demo in the row (`?embed=compact`), plus a Full Replay button. Map page (`replay-actions.tsx`): Race Top
-  5, Race WR History (`getWrDemos`: changelog wr_gain + has_demo, a co-op record once), Swarm Top 100, and Pick Runs
-  to Race (checkboxes on the board). Site CSP frame-src 'self'; the viewer may be framed by the site only. Tests:
-  `lib/runs/viewer.test.ts`, `features/leaderboards/utils/replay.test.ts`, `replay-page.test.tsx`, map page and
-  run details tests with the viewer on.
 - 2026-10-29: Asked for (local only): the demo viewer (private PortalRex/demo-viewer) built into
   `frontend/public/viewer` (git-ignored) is served at `/viewer/` with its own CSP (`viewer-security-headers.conf`);
   where it's there (`VITE_VIEWER`, set by vite.config.ts), runs get a "Watch in the browser" link next to the demo

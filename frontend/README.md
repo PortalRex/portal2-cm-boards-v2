@@ -26,14 +26,12 @@ Settings (`.env.local` or the environment, all optional):
 ## Demo viewer
 
 Where the demo viewer (a replay of a run's demo in the browser, from the private PortalRex/demo-viewer repo) is
-built into `public/viewer/`, the site serves it at `/viewer/` and plays runs in its own pages: a **Replay** page
-(`/replay`, the viewer under the site's header, linked next to each run's demo), a Video / Replay switch in a run's
-details, and Race Top 5 / Race WR History / Swarm Top 100 / Pick Runs to Race on a map's page. The viewer reads
-the boards and demos from this site's API. Build it from the viewer's checkout:
+built into `public/viewer/`, the site serves it at `/viewer/` and shows a **Watch in the browser** link next to each
+run's demo. It reads the boards and demos from this site's API. Build it from the viewer's checkout:
 
 ```bash
 node tools/build-boards.mjs <path to this repo>   # writes frontend/public/viewer (git-ignored)
 ```
 
-Without it, none of this shows and `/viewer/` is a 404. nginx gives `/viewer/` its own security headers
-(`viewer-security-headers.conf`: it may be framed by the site only).
+Without it, nothing links to it and `/viewer/` is a 404. nginx gives `/viewer/` its own security headers
+(`viewer-security-headers.conf`).
