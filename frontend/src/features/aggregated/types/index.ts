@@ -17,6 +17,13 @@ export interface PointsWrapperRaw {
   points: [string, PointsRaw][]
 }
 
+/** GET /points/game/{game_id}/{board}/changes. */
+export interface PointsChangesRaw {
+  days: number
+  /** Points change by Steam ID; players whose points didn't change are left out. */
+  changes: Record<string, number>
+}
+
 export interface AggregatedRow {
   player: Player & { country: string | null }
   points: number

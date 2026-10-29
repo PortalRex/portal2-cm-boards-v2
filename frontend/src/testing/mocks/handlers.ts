@@ -26,6 +26,7 @@ export const handlers: RequestHandler[] = [
   http.get(`${API}/daily`, () => HttpResponse.json({ date: '2026-10-17', chambers: [] })),
   // Aggregated boards: nobody unless a test says otherwise.
   http.get(`${API}/points/game/:game/:board`, () => HttpResponse.json({ id: null, points: [] })),
+  http.get(`${API}/points/game/:game/:board/changes`, () => HttpResponse.json({ days: 30, changes: {} })),
   // Countries: none unless a test says otherwise.
   http.get(`${API}/countries/stats`, () => HttpResponse.json([])),
   // Nobody banned unless a test says otherwise.

@@ -151,6 +151,7 @@ pub fn init(cfg: &mut web::ServiceConfig) {
             .service(badges)
             .service(users_badges)
             .service(points_game)
+            .service(points_game_changes)
             .service(ranks_game),
     );
 }

@@ -2,8 +2,9 @@ import { useQuery } from '@tanstack/react-query'
 import { cn } from 'cn'
 import { useState } from 'react'
 import { AppLink } from '@/components/app-link'
-import { BarsIcon, SortDownIcon, SortUpIcon, TriangleDown, TriangleUp } from '@/components/icons'
+import { BarsIcon, SortDownIcon, SortUpIcon } from '@/components/icons'
 import { Card } from '@/components/panel'
+import { PointsChange } from '@/components/points-change'
 import { RankNumber } from '@/components/rank'
 import { EmptyState, Loading } from '@/components/status'
 import { useGame } from '@/hooks/use-game'
@@ -190,7 +191,7 @@ function Table({
                   <RankNumber rank={s?.rank} colored />
                 </span>
                 <span role="cell" className="num text-right font-semibold">
-                  <Change change={change?.(line)} />
+                  <PointsChange change={change?.(line)} days={RECENT_DAYS} />
                   {s ? value(s) : '–'}
                 </span>
                 <span role="cell" className="num text-right text-text-muted">
@@ -205,20 +206,5 @@ function Table({
         </div>
       ))}
     </section>
-  )
-}
-
-/** A green arrow up or red arrow down for points gained or lost lately, saying how many. */
-function Change({ change }: { change: number | undefined }) {
-  if (!change) return null
-  const Arrow = change > 0 ? TriangleUp : TriangleDown
-  const text = `${change > 0 ? '+' : ''}${Number.isInteger(change) ? change : change.toFixed(1)} point${Math.abs(change) === 1 ? '' : 's'} in the last ${RECENT_DAYS} days`
-  return (
-    <span
-      title={text}
-      className={cn('mr-1 inline-flex align-[-1px]', change > 0 ? 'text-green' : 'text-destructive')}
-    >
-      <Arrow size={10} role="img" aria-label={text} />
-    </span>
   )
 }

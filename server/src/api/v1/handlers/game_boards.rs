@@ -1,9 +1,12 @@
 use crate::tools::{
+    config::Config,
     error::Result,
     points_cache::{PointsCache, Scope},
+    points_history, ratelimit,
 };
 use actix_web::{get, http::header, web, HttpRequest, HttpResponse, Responder};
 use sqlx::PgPool;
+use std::time::Duration;
 
 /// Chapter `game_mode`s (and chapter, for `chapter-<id>`) that make up each aggregated board.
 /// `overall`, `chapter-<id>`, or a chapter `game_mode` (board key).
@@ -54,6 +57,32 @@ async fn points_game(req: HttpRequest, pool: web::Data<PgPool>, cache: web::Data
             .body(board.gzip.as_slice().to_owned())
     } else {
         HttpResponse::Ok().content_type("application/json").body(board.json.as_str().to_owned())
+    })
+}
+
+/// **GET** each player's points change on an aggregated board over the last 30 days: points
+/// gained, or lost to being passed, since the start of the day 30 days ago (UTC). Players whose
+/// points didn't change are left out. `board` as for `/points/game/{game_id}/{board}`.
+///
+/// ## Example endpoint
+/// - `/api/v1/points/game/1/overall/changes`
+///
+/// ## Example JSON output
+/// ```json
+/// { "days": 30, "changes": { "76561198039230536": 12.5, "76561198254956991": -3.1 } }
+/// ```
+#[get("/points/game/{game_id}/{board}/changes")]
+async fn points_game_changes(req: HttpRequest, config: web::Data<Config>, pool: web::Data<PgPool>, path: web::Path<(i32, String)>) -> Result<impl Responder> {
+    if let Err(limited) = ratelimit::check(&req, &config, "points", 60, Duration::from_secs(60)) {
+        return Ok(limited);
+    }
+    let (game_id, board) = path.into_inner();
+    if scope_for(&board).is_none() {
+        return Ok(HttpResponse::NotFound().body("Unknown board."));
+    }
+    Ok(match points_history::board_changes(pool.get_ref(), game_id, &board).await? {
+        Some(changes) => HttpResponse::Ok().json(serde_json::json!({ "days": points_history::CHANGE_DAYS, "changes": changes })),
+        None => HttpResponse::NotFound().body("Unknown board."),
     })
 }
 

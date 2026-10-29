@@ -25,6 +25,7 @@ export const queryKeys = {
   wallOfShame: () => ['wall-of-shame'] as const,
 
   aggregated: (game: string, board: string) => ['aggregated', game, board] as const,
+  aggregatedChanges: (game: string, board: string) => ['aggregated', game, board, 'changes'] as const,
 
   profile: (profileNumber: string) => ['profile', profileNumber] as const,
   profileGame: (profileNumber: string, game: string) => ['profile', profileNumber, 'game', game] as const,

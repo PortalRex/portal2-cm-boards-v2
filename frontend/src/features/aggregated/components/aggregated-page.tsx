@@ -20,7 +20,7 @@ import {
 } from '@/lib/catalog'
 import { countryName } from '@/lib/data/countries'
 import { formatLongScore, formatPoints } from '@/lib/format'
-import { aggregatedQueryOptions } from '../api/aggregated'
+import { aggregatedQueryOptions, pointsChangesQueryOptions } from '../api/aggregated'
 import type { AggregatedRow } from '../types'
 import { boardTabs, type AggregatedTarget, type AggregatedView } from '../utils/pages'
 import { PointsBoard } from './points-board'
@@ -96,6 +96,11 @@ function AggregatedBoards({ view, search }: { view: AggregatedView; search: Aggr
     ...aggregatedQueryOptions(catalog, board ?? { game, board: kind }),
     enabled: Boolean(board),
   })
+  // Each player's points change lately, for arrows by their points (none if it can't be had).
+  const changes = useQuery({
+    ...pointsChangesQueryOptions(catalog, board ?? { game, board: kind }),
+    enabled: Boolean(board),
+  })
   const country = search.country ?? ''
   const focus = search.player || null
   const go = (href: string, replace = false) => void navigate({ href, replace })
@@ -166,6 +171,12 @@ function AggregatedBoards({ view, search }: { view: AggregatedView; search: Aggr
               valueLabel="Aggregated points"
               value={(r) => formatPoints(r.points)}
               rankBy={byPoints}
+              change={
+                changes.data && {
+                  days: changes.data.days,
+                  of: (r) => changes.data.changes.get(r.player.profileNumber ?? ''),
+                }
+              }
             />
             <PointsBoard
               key={`time-${boardKey}`}

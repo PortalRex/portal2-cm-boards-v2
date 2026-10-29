@@ -82,6 +82,8 @@ export function sampleHandlers(api: string): RequestHandler[] {
     http.get(`${api}/points/game/:game/:board`, ({ params }) =>
       HttpResponse.json(samplePoints(String(params.game) === '2' ? 'mel' : 'portal2', String(params.board))),
     ),
+    // No points history to work changes out from in sample data.
+    http.get(`${api}/points/game/:game/:board/changes`, () => HttpResponse.json({ days: 30, changes: {} })),
     // Profiles: no peak or past days in sample data (legacy's sample profile had neither).
     http.get(`${api}/profile/points_peak/:id`, () => HttpResponse.json({})),
     http.get(`${api}/profile/aggregated/:id`, () => HttpResponse.json([])),

@@ -457,21 +457,52 @@ pub async fn aggregates(pool: &PgPool, game_id: i32, profile_number: &str, at: O
     let Some(&me) = t.players.get(profile_number) else {
         return Ok(None);
     };
-    let key = (game_id, at);
-    let cached = cache().snapshots.lock().await.get(&key).cloned();
-    let snap = match cached {
-        Some(s) => s,
-        None => {
-            let s = Arc::new(snapshot(&t, at.unwrap_or_else(|| Utc::now().naive_utc())));
-            let mut snaps = cache().snapshots.lock().await;
-            if snaps.len() >= MAX_SNAPSHOTS {
-                snaps.retain(|(_, a), _| a.is_none());
-            }
-            snaps.insert(key, s.clone());
-            s
-        }
-    };
+    let snap = snapshot_at(&t, game_id, at).await;
     Ok(Some(snap.boards.iter().map(|(board, points, times)| aggregate_row(board, points, times, me as usize)).collect()))
+}
+
+/// Every board's totals now (`at` None) or as of `at`, kept for the next asker.
+async fn snapshot_at(t: &Timeline, game_id: i32, at: Option<NaiveDateTime>) -> Arc<Snapshot> {
+    let key = (game_id, at);
+    if let Some(s) = cache().snapshots.lock().await.get(&key) {
+        return s.clone();
+    }
+    let s = Arc::new(snapshot(t, at.unwrap_or_else(|| Utc::now().naive_utc())));
+    let mut snaps = cache().snapshots.lock().await;
+    if snaps.len() >= MAX_SNAPSHOTS {
+        snaps.retain(|(_, a), _| a.is_none());
+    }
+    snaps.insert(key, s.clone());
+    s
+}
+
+/// How far back [board_changes] looks.
+pub const CHANGE_DAYS: i64 = 30;
+
+/// Each player's points change on one aggregated board (`chapter-{id}`, a mode or `overall`) since
+/// the start of the day CHANGE_DAYS ago (UTC): points gained, or lost to being passed. Players
+/// whose points didn't change are left out. None when the game has no such board.
+pub async fn board_changes(pool: &PgPool, game_id: i32, board: &str) -> Result<Option<BTreeMap<String, f64>>, sqlx::Error> {
+    let t = timeline(pool, game_id).await?;
+    // The start of a day, so a day's askers share one snapshot.
+    let since = (Utc::now().date_naive() - ChronoDuration::days(CHANGE_DAYS)).and_hms_opt(0, 0, 0).expect("midnight exists");
+    let (now, then) = (snapshot_at(&t, game_id, None).await, snapshot_at(&t, game_id, Some(since)).await);
+    let points = |snap: &Snapshot| snap.boards.iter().find(|(key, ..)| key == board).map(|(_, points, _)| points.clone());
+    let (Some(now), Some(then)) = (points(&now), points(&then)) else {
+        return Ok(None);
+    };
+    Ok(Some(point_changes(&t.players, &now, &then)))
+}
+
+/// Each player's points `now` minus `then` (indexed as in `players`), to a tenth, left out when 0.
+fn point_changes(players: &HashMap<String, u32>, now: &[f64], then: &[f64]) -> BTreeMap<String, f64> {
+    players
+        .iter()
+        .filter_map(|(profile, &i)| {
+            let change = ((now[i as usize] - then[i as usize]) * 10.0).round() / 10.0;
+            (change != 0.0).then(|| (profile.clone(), change))
+        })
+        .collect()
 }
 
 /// The player's standing on one board from everyone's totals.
@@ -1017,5 +1048,17 @@ mod tests {
         let p = a_after.points.unwrap();
         assert_eq!(p.rank, 2);
         assert!(p.next.unwrap() < 0.0 && p.wr < 0.0, "points gaps are below the players ahead");
+    }
+
+    #[test]
+    fn changes_count_points_gained_and_lost_to_being_passed() {
+        let t = timeline();
+        let (before, after) = (snapshot(&t, ts(2)), snapshot(&t, ts(6)));
+        let changes = point_changes(&t.players, &after.boards[0].1, &before.boards[0].1);
+        // b set a time after day 2 (gained); a, passed by it, lost some.
+        assert!(changes["b"] > 0.0 && changes["a"] < 0.0, "{changes:?}");
+        // c stayed third.
+        assert!(!changes.contains_key("c"));
+        assert!(point_changes(&t.players, &after.boards[0].1, &after.boards[0].1).is_empty());
     }
 }

@@ -64,6 +64,32 @@ describe('Aggregated boards (Portal 2)', () => {
     expect(asked).toEqual(['1/sp'])
   })
 
+  it("marks players' points that changed in the last 30 days with a green or red arrow", async () => {
+    servePoints(runners(3))
+    const asked: string[] = []
+    server.use(
+      http.get(`${API}/points/game/:game/:board/changes`, ({ params }) => {
+        asked.push(`${String(params.game)}/${String(params.board)}`)
+        return HttpResponse.json({ days: 30, changes: { [runner(1)[0]]: 52.5, [runner(2)[0]]: -4 } })
+      }),
+    )
+    await renderRoute('/leaderboard/sp')
+    const points = await screen.findByRole('region', { name: 'Points' })
+    const row = (name: string) => within(points).getByRole('link', { name }).closest('div')!
+    expect(
+      await within(row('Runner 1')).findByRole('img', { name: '+52.5 points in the last 30 days' }),
+    ).toBeInTheDocument()
+    expect(
+      within(row('Runner 2')).getByRole('img', { name: '-4 points in the last 30 days' }),
+    ).toBeInTheDocument()
+    expect(
+      within(row('Runner 3')).queryByRole('img', { name: /in the last 30 days/ }),
+    ).not.toBeInTheDocument()
+    // Not on the time board.
+    expect(within(board('Time')).queryByRole('img', { name: /in the last 30 days/ })).not.toBeInTheDocument()
+    expect(asked).toEqual(['1/sp'])
+  })
+
   it('switches boards with the tabs and marks the open one', async () => {
     const asked = servePoints()
     const { router } = await renderRoute('/leaderboard/overall')

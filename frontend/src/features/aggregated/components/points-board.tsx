@@ -1,8 +1,9 @@
 import { cn } from 'cn'
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { Avatar, Flag } from '@/components/avatar'
 import { Pagination } from '@/components/pagination'
 import { PlayerLink } from '@/components/player-link'
+import { PointsChange } from '@/components/points-change'
 import { EmptyState } from '@/components/status'
 import { useIsMe } from '@/hooks/use-is-me'
 import type { AggregatedRow } from '../types'
@@ -15,7 +16,8 @@ const rowClass =
 
 /**
  * One ranking (Points or Time), 20 players a page; `focus` opens on that player's page, marked.
- * Places come from `rankBy`: equal values share one, and a row without a value has none.
+ * Places come from `rankBy`: equal values share one, and a row without a value has none. `change`
+ * marks a player's points change lately with an arrow.
  */
 export function PointsBoard({
   title,
@@ -23,6 +25,7 @@ export function PointsBoard({
   valueLabel,
   value,
   rankBy,
+  change,
   focus = null,
   empty = 'No players yet.',
 }: {
@@ -31,6 +34,7 @@ export function PointsBoard({
   valueLabel: string
   value: (row: AggregatedRow) => string
   rankBy: (row: AggregatedRow) => number | null
+  change?: { days: number; of: (row: AggregatedRow) => number | undefined }
   focus?: string | null
   empty?: string
 }) {
@@ -69,6 +73,7 @@ export function PointsBoard({
             row={r}
             rank={places[page * PAGE_SIZE + i] ?? null}
             value={value(r)}
+            change={change && <PointsChange change={change.of(r)} days={change.days} />}
             striped={i % 2 === 1}
             focused={Boolean(focus) && r.player.profileNumber === focus}
           />
@@ -84,12 +89,14 @@ function BoardRow({
   row,
   rank,
   value,
+  change,
   striped,
   focused,
 }: {
   row: AggregatedRow
   rank: number | null
   value: string
+  change?: ReactNode
   striped: boolean
   focused: boolean
 }) {
@@ -117,7 +124,10 @@ function BoardRow({
         <Flag code={row.player.country} height={20} />
         <PlayerLink player={row.player} className="truncate" />
       </span>
-      <span className="num text-right">{value}</span>
+      <span className="num text-right">
+        {change}
+        {value}
+      </span>
     </div>
   )
 }
