@@ -6,7 +6,7 @@ import { TrophyFilledIcon } from '@/components/icons'
 import { Pagination } from '@/components/pagination'
 import { PlayerLink } from '@/components/player-link'
 import { RankNumber, RankTag } from '@/components/rank'
-import { AutorenderLink, CommentButton, DemoLink, ViewerLink, YouTubeLink } from '@/components/runs/run-media'
+import { AutorenderLink, CommentButton, DemoLink, YouTubeLink } from '@/components/runs/run-media'
 import { TimeButton } from '@/components/runs/time-button'
 import { SearchBox } from '@/components/search-box'
 import { EmptyState, ErrorState, Loading } from '@/components/status'
@@ -242,7 +242,6 @@ export function MapLeaderboard({
                     <AutorenderLink run={e} game={map.game} rendered={rendered} />
                     <YouTubeLink id={e.youtubeId} />
                     <DemoLink demoId={e.demoId} />
-                    <ViewerLink demoIds={e.demoIds ?? [e.demoId]} />
                   </span>
                 </div>
                 {open && renderRunDetails?.(e, map, rendered)}

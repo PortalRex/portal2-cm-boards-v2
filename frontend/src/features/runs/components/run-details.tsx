@@ -1,16 +1,14 @@
 import { useQuery } from '@tanstack/react-query'
 import { cn } from 'cn'
 import { useState, type ReactNode } from 'react'
-import { DownloadIcon, PlayIcon, VideocamIcon, ViewerIcon, YouTubeIcon } from '@/components/icons'
+import { DownloadIcon, PlayIcon, VideocamIcon, YouTubeIcon } from '@/components/icons'
 import { PlayerLink } from '@/components/player-link'
 import { RunVideo } from '@/components/runs/run-media'
 import { apiUrl } from '@/lib/api-client'
-import { env } from '@/config/env'
 import type { FormattedSegment } from '@/lib/autorender'
 import { useCatalog } from '@/lib/catalog'
 import { formatDate, formatDateTime, formatScore, formatSeconds, ordinalSuffix } from '@/lib/format'
 import { runVideo } from '@/lib/runs/video'
-import { viewerUrl } from '@/lib/runs/viewer'
 import type { CoopHalf, Player, RunMap } from '@/types/runs'
 import { coopHalvesQueryOptions, segmentsQueryOptions } from '../api/details'
 import { runQueryOptions } from '../api/run'
@@ -115,8 +113,6 @@ export function RunDetails({
   )
   const segments = useQuery({ ...segmentsQueryOptions(ids, map.title), enabled: ids.length > 0 })
   const video = runVideo(view, game, rendered)
-  // (the shown player's demo opened, a co-op partner's with it)
-  const viewer = env.VITE_VIEWER ? viewerUrl([view.demoId, ...(list?.map((h) => h.demoId) ?? [])]) : null
   const rank = run.postRank ?? run.rank
   // A board or profile row has the rank now; the rank it got when set comes with the run itself.
   const catalog = useCatalog()
@@ -214,7 +210,7 @@ export function RunDetails({
           {own != null && <StaffTools run={{ ...run, changelogId: own }} map={map} game={game} />}
           {children}
           {/* Only what the run has: a dimmed button for a missing demo or video read as available. */}
-          {(view.demoId || youtube || video.ready || canRender || viewer) && (
+          {(view.demoId || youtube || video.ready || canRender) && (
             <div className="mt-3.5 grid grid-cols-2 gap-[18px] rd-upto640:grid-cols-1">
               {view.demoId ? (
                 <a
@@ -226,11 +222,6 @@ export function RunDetails({
                   Download Demo <DownloadIcon />
                 </a>
               ) : null}
-              {viewer && (
-                <a href={viewer} target="_blank" rel="noreferrer" className={outlineButton}>
-                  Watch in Browser <ViewerIcon />
-                </a>
-              )}
               {youtube && (
                 <a href={youtube} target="_blank" rel="noreferrer" className={outlineButton}>
                   YouTube <YouTubeIcon />

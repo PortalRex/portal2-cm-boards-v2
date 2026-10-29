@@ -27,7 +27,7 @@ import { formatDate, formatDateTime, formatDelta, formatScore, parseTimestamp } 
 import { changelogQueryOptions } from '@/lib/runs/changelog'
 import type { Player, Run, RunMap } from '@/types/runs'
 import { BanToggle } from './ban-toggle'
-import { AutorenderLink, CommentButton, DemoLink, ViewerLink, YouTubeLink } from './run-media'
+import { AutorenderLink, CommentButton, DemoLink, YouTubeLink } from './run-media'
 
 type Person = Pick<Player, 'profileNumber' | 'name' | 'avatar'>
 
@@ -290,7 +290,6 @@ function HistoryTable({
             <AutorenderLink run={r} game={game} size={20} />
             <YouTubeLink id={r.youtubeId} size={22} />
             <DemoLink demoId={r.demoId} size={20} />
-            <ViewerLink demoIds={[r.demoId]} size={20} />
             <BanToggle run={r} />
           </span>
         </div>

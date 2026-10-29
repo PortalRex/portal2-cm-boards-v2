@@ -218,8 +218,6 @@ export interface RankedRun {
   changelogId: number | null
   /** Co-op: both halves' changelog entries. */
   changelogIds?: [number | null, number | null]
-  /** Co-op: both players' demos, the host's first when it's known. */
-  demoIds?: [number | null, number | null]
   coopId?: number | null
   rolesKnown?: boolean
   rank: number

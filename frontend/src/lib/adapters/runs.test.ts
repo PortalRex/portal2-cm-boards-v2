@@ -95,9 +95,7 @@ describe('adaptChangelog', () => {
 describe('board and preview adapters', () => {
   it('match the legacy adapters', () => {
     expect((spBoard as SpRankedRaw[]).map(adaptSpRanked)).toEqual(legacy.spBoard)
-    // (demoIds is the new site's own: the viewer opens both players' demos)
-    const withoutDemoIds = ({ demoIds: _demoIds, ...run }: ReturnType<typeof adaptCoopRanked>) => run
-    expect((coopBoard as CoopRankedRaw[]).map(adaptCoopRanked).map(withoutDemoIds)).toEqual(legacy.coopBoard)
+    expect((coopBoard as CoopRankedRaw[]).map(adaptCoopRanked)).toEqual(legacy.coopBoard)
     expect((spPreviews as SpPreviewRaw[][]).flat().map(adaptPreview)).toEqual(legacy.spPreviews)
     expect((coopPreviews as CoopPreviewRaw[][]).flat().map(adaptPreview)).toEqual(legacy.coopPreviews)
     expect((coopHalves as CoopHalfRaw[]).map(adaptCoopHalf)).toEqual(legacy.coopHalves)
@@ -108,9 +106,6 @@ describe('board and preview adapters', () => {
     expect(hostFirst!.players[0]!.name).toBe((coopBoard as CoopRankedRaw[])[0]!.map_data.user_name1)
     // p1_is_host false: the second player played blue.
     expect(secondHosted!.players[0]!.name).toBe((coopBoard as CoopRankedRaw[])[1]!.map_data.user_name2)
-    // Their demos in the same order: the host's first.
-    const second = (coopBoard as CoopRankedRaw[])[1]!.map_data
-    expect(secondHosted!.demoIds).toEqual([second.demo_id2, second.demo_id1])
     expect(unknown!.rolesKnown).toBe(false)
     expect(filler!.players[1]!.unknown).toBe(true)
   })
