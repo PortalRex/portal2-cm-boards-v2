@@ -152,19 +152,55 @@ describe('scaleRows', () => {
 })
 
 describe('openingView', () => {
-  const week = (i: number, overall: number) => ({ date: '', t: i * 7 * 24 * 3600 * 1000, overall })
+  const week = (i: number, overall: number, coop?: number) => ({
+    date: '',
+    t: i * 7 * 24 * 3600 * 1000,
+    overall,
+    ...(coop != null ? { coop } : {}),
+  })
+  const year = 365 * 24 * 3600 * 1000
 
-  it('starts when the top line came within 10% of where it stands now', () => {
-    // A climb to 1000 over thirty weeks (900 by week 27), then about level until week 160.
-    const rows = [...Array.from({ length: 11 }, (_, i) => week(i * 3, i * 100)), week(160, 1000)]
-    expect(openingView(rows, 'overall')).toEqual([week(27, 0).t, week(160, 0).t])
+  it('starts after the last big move, so what came since is readable', () => {
+    // Up to 900, a drop to 600, back up to 1000 by week 60, then within 5% of it until week 200.
+    const rows = [
+      week(0, 0),
+      week(20, 900),
+      week(40, 600),
+      week(59, 900),
+      week(60, 1000),
+      week(120, 980),
+      week(200, 990),
+    ]
+    expect(openingView(rows, ['overall'])).toEqual([week(60, 0).t, week(200, 0).t])
+  })
+
+  it('waits for every line to settle, each held to 5% of the top line', () => {
+    // Overall settles at week 60; co-op (drawn at the same scale) jumps at week 90.
+    const rows = [
+      week(0, 0, 0),
+      week(60, 1000, 500),
+      week(89, 1000, 600),
+      week(90, 1000, 950),
+      week(200, 1000, 960),
+    ]
+    expect(openingView(rows, ['overall', 'coop'])).toEqual([week(90, 0).t, week(200, 0).t])
+    expect(openingView(rows, ['overall'])).toEqual([week(60, 0).t, week(200, 0).t])
   })
 
   it('shows a year at least, and all of it when that leaves out little', () => {
-    const settledLate = [week(0, 0), week(100, 950), week(104, 1000)]
-    const year = 365 * 24 * 3600 * 1000
-    expect(openingView(settledLate, 'overall')).toEqual([week(104, 0).t - year, week(104, 0).t])
-    expect(openingView([week(0, 0), week(5, 950), week(52, 1000)], 'overall')).toBeNull()
+    const movedLately = [week(0, 0), week(100, 800), week(104, 1000)]
+    expect(openingView(movedLately, ['overall'])).toEqual([week(104, 0).t - year, week(104, 0).t])
+    expect(openingView([week(0, 0), week(5, 990), week(52, 1000)], ['overall'])).toBeNull()
+  })
+
+  it('ignores the peaks added between the samples', () => {
+    const rows = [
+      week(0, 0),
+      week(60, 1000),
+      { ...week(150, 2000), peakOf: 'overall' as const },
+      week(200, 1000),
+    ]
+    expect(openingView(rows, ['overall'])).toEqual([week(60, 0).t, week(200, 0).t])
   })
 })
 

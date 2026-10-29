@@ -97,7 +97,12 @@ export function PointsChart({
   const [openedOn, setOpenedOn] = useState<unknown>(null)
   if (history.data && history.data !== openedOn) {
     setOpenedOn(history.data)
-    setZoom(openingView(all, top))
+    setZoom(
+      openingView(
+        all,
+        series.map((s) => s.key),
+      ),
+    )
   }
   const zoomRef = useWheelZoomOn(full, setZoom, { left: 10, right: 10, minSpan: MIN_SPAN })
   // The chart's width, to keep the peaks' labels apart.

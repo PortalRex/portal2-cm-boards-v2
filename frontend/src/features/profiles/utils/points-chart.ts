@@ -75,21 +75,27 @@ export function scaleRows(rows: ChartRow[], max: BoardMax): ChartRow[] {
 
 const DAY_MS = 24 * 3600 * 1000
 const YEAR_MS = 365 * DAY_MS
-// How close to where it stands now the top line is when the early climb counts as over.
-const SETTLED = 0.9
+// How far (a share of the top line's height now) a line may be from where it stands now once it
+// has settled.
+const SETTLED = 0.05
 
 /**
- * Where the chart opens: from when the `key` line first came within 10% of where it stands now,
- * leaving out the early climb, but a year back at least; null (the whole history) when that leaves
- * out little.
+ * Where the chart opens: from the last big move, when every one of the `keys` lines came to stay
+ * within 5% (of the top line's height) of where it stands now, so the early climb and old drops
+ * don't flatten what came since; but a year back at least. Null (the whole history) when that
+ * leaves out little. `rows` are as drawn ([scaleRows]), so the lines' heights compare.
  */
-export function openingView(rows: ChartRow[], key: PointsBoardKey): [number, number] | null {
-  const samples = rows.filter((d) => d[key] != null && !d.peakOf)
+export function openingView(rows: ChartRow[], keys: PointsBoardKey[]): [number, number] | null {
+  const samples = rows.filter((d) => !d.peakOf)
   if (samples.length < 2) return null
   const first = rows[0]!.t
   const last = rows[rows.length - 1]!.t
-  const now = samples[samples.length - 1]![key]!
-  const settled = samples.find((d) => d[key]! >= now * SETTLED)!.t
+  const latest = samples[samples.length - 1]!
+  const room = SETTLED * Math.max(0, ...keys.map((k) => latest[k] ?? 0))
+  const moved = (d: ChartRow) =>
+    keys.some((k) => d[k] != null && latest[k] != null && Math.abs(d[k] - latest[k]) > room)
+  const lastMove = samples.findLastIndex(moved)
+  const settled = samples[lastMove + 1]?.t ?? last
   const from = Math.min(settled, last - YEAR_MS)
   return from - first < (last - first) * 0.1 ? null : [from, last]
 }
