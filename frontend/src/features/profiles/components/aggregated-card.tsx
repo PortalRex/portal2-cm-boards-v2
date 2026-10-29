@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { cn } from 'cn'
 import { useState } from 'react'
 import { AppLink } from '@/components/app-link'
-import { BarsIcon, SortDownIcon, SortUpIcon } from '@/components/icons'
+import { BarsIcon, SortDownIcon, SortUpIcon, TriangleDown, TriangleUp } from '@/components/icons'
 import { Card } from '@/components/panel'
 import { RankNumber } from '@/components/rank'
 import { EmptyState, Loading } from '@/components/status'
@@ -16,6 +16,9 @@ import {
   aggregatedLines,
   formatPointsGap,
   nextAggregatedSort,
+  pointsChanges,
+  RECENT_DAYS,
+  recentFrom,
   sortAggregated,
   sortsDescending,
   type AggregatedColumn,
@@ -31,8 +34,9 @@ const nameCell = 'truncate upto700:col-span-4'
 /**
  * The old boards' "aggregated times and points": the player's place on every chapter's, course's
  * and total board, for points and for time (where they have a time on every map), with the gap to
- * the next player up and to first. As of the profile's day when looking back. For the game picked
- * under the logo, like the tabs below it.
+ * the next player up and to first, and an arrow by the points that changed in the last 30 days.
+ * As of the profile's day when looking back. For the game picked under the logo, like the tabs
+ * below it.
  */
 export function AggregatedCard({ profileNumber, at }: { profileNumber: string; at: string | null }) {
   const catalog = useCatalog()
@@ -40,6 +44,11 @@ export function AggregatedCard({ profileNumber, at }: { profileNumber: string; a
   const gameName = catalog.games[game]?.label ?? 'Portal 2'
   const data = useQuery(aggregatedQueryOptions(catalog, profileNumber, game, at))
   const missing = data.error instanceof ApiError && data.error.status === 404
+  // The boards as they stood RECENT_DAYS before, for the arrows (no runs by then: none yet).
+  const before = useQuery(aggregatedQueryOptions(catalog, profileNumber, game, recentFrom(at)))
+  const noneBefore = before.error instanceof ApiError && before.error.status === 404
+  const changes =
+    data.data && (before.data || noneBefore) ? pointsChanges(data.data, before.data ?? []) : undefined
   return (
     <Card
       icon={BarsIcon}
@@ -63,6 +72,7 @@ export function AggregatedCard({ profileNumber, at }: { profileNumber: string; a
             morePointsFirst
             value={(s) => formatPoints(s.value)}
             gap={formatPointsGap}
+            change={(line) => changes?.get(line.key)}
           />
           <Table
             title="Times"
@@ -128,6 +138,7 @@ function Table({
   morePointsFirst = false,
   value,
   gap,
+  change,
 }: {
   title: string
   valueLabel: string
@@ -137,6 +148,8 @@ function Table({
   morePointsFirst?: boolean
   value: (s: StandingRaw) => string
   gap: (g: number | null) => string
+  /** The line's points change lately, shown as an arrow by its value. */
+  change?: (line: AggregatedLine) => number | undefined
 }) {
   const [sort, setSort] = useState<AggregatedSort | null>(null)
   const header = { sort, onSort: setSort, morePointsFirst }
@@ -177,6 +190,7 @@ function Table({
                   <RankNumber rank={s?.rank} colored />
                 </span>
                 <span role="cell" className="num text-right font-semibold">
+                  <Change change={change?.(line)} />
                   {s ? value(s) : '–'}
                 </span>
                 <span role="cell" className="num text-right text-text-muted">
@@ -191,5 +205,20 @@ function Table({
         </div>
       ))}
     </section>
+  )
+}
+
+/** A green arrow up or red arrow down for points gained or lost lately, saying how many. */
+function Change({ change }: { change: number | undefined }) {
+  if (!change) return null
+  const Arrow = change > 0 ? TriangleUp : TriangleDown
+  const text = `${change > 0 ? '+' : ''}${Number.isInteger(change) ? change : change.toFixed(1)} point${Math.abs(change) === 1 ? '' : 's'} in the last ${RECENT_DAYS} days`
+  return (
+    <span
+      title={text}
+      className={cn('mr-1 inline-flex align-[-1px]', change > 0 ? 'text-green' : 'text-destructive')}
+    >
+      <Arrow size={10} role="img" aria-label={text} />
+    </span>
   )
 }

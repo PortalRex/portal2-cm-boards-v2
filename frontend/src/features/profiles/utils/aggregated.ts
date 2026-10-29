@@ -58,6 +58,29 @@ export function aggregatedLines(
 }
 
 /** A points gap as the old boards showed it: whole points, signed ("-26"). */
+/** How far back the points tables' arrows look. */
+export const RECENT_DAYS = 30
+
+/** The day RECENT_DAYS before the profile's day (`at`, YYYY-MM-DD; today when null). */
+export function recentFrom(at: string | null, now = Date.now()): string {
+  const day = at ? Date.parse(`${at}T00:00:00Z`) : now
+  return new Date(day - RECENT_DAYS * 24 * 3600 * 1000).toISOString().slice(0, 10)
+}
+
+/**
+ * Each board's points change since `before` (the boards as they stood then; none when the player
+ * had no runs yet), to a tenth of a point; boards that didn't change are left out.
+ */
+export function pointsChanges(now: AggregateRowRaw[], before: AggregateRowRaw[]): Map<string, number> {
+  const then = new Map(before.map((r) => [r.board, r.points?.value ?? 0]))
+  const changes = new Map<string, number>()
+  for (const r of now) {
+    const change = Math.round(((r.points?.value ?? 0) - (then.get(r.board) ?? 0)) * 10) / 10
+    if (change !== 0) changes.set(r.board, change)
+  }
+  return changes
+}
+
 export const formatPointsGap = (gap: number | null | undefined): string =>
   gap == null ? '–' : Math.round(gap) === 0 ? '0' : `${Math.round(gap) > 0 ? '+' : ''}${Math.round(gap)}`
 

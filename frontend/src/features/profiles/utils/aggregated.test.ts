@@ -4,6 +4,8 @@ import {
   aggregatedLines,
   formatPointsGap,
   nextAggregatedSort,
+  pointsChanges,
+  recentFrom,
   sortAggregated,
   type AggregatedSort,
 } from './aggregated'
@@ -135,5 +137,31 @@ describe('sortAggregated', () => {
     expect(reversed).toEqual({ column: 'wr', reversed: true })
     expect(nextAggregatedSort('wr', reversed)).toBeNull()
     expect(nextAggregatedSort('rank', reversed)).toEqual({ column: 'rank', reversed: false })
+  })
+})
+
+describe('points changes', () => {
+  const row = (board: string, value: number | null) => ({
+    board,
+    points: value == null ? null : { rank: 1, value, next: null, wr: 0 },
+    time: null,
+  })
+
+  it("look back 30 days from the profile's day", () => {
+    expect(recentFrom('2026-10-29')).toBe('2026-09-29')
+    expect(recentFrom(null, Date.parse('2026-03-15T18:00:00Z'))).toBe('2026-02-13')
+  })
+
+  it("give each board's change to a tenth, leaving out boards that didn't change", () => {
+    const now = [row('chapter-7', 1450.54), row('chapter-8', 900), row('sp', 5000), row('coop', 40)]
+    const before = [row('chapter-7', 1438), row('chapter-8', 912), row('sp', 5000)]
+    // Co-op: no points then (no board row).
+    expect(pointsChanges(now, before)).toEqual(
+      new Map([
+        ['chapter-7', 12.5],
+        ['chapter-8', -12],
+        ['coop', 40],
+      ]),
+    )
   })
 })

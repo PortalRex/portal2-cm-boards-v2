@@ -10,6 +10,7 @@ import { FIXTURE_PLAYER, serveProfile } from '@/testing/mocks/profile'
 import { server } from '@/testing/mocks/server'
 import { renderRoute, renderWithProviders } from '@/testing/test-utils'
 import type { RenderRunDetails } from '../types'
+import { recentFrom } from '../utils/aggregated'
 import { ProfilePage } from './profile-page'
 
 const SEASON = 'portal-2-season-1'
@@ -319,6 +320,38 @@ describe('Profile page', () => {
     await waitFor(() =>
       expect(requests.asked).toContain(`/profile/aggregated/${FIXTURE_PLAYER}?game_id=1&at=2021-04-06`),
     )
+  })
+
+  it('marks the points that changed in the last 30 days with a green or red arrow', async () => {
+    const board = (key: string, value: number) => ({
+      board: key,
+      points: { rank: 5, value, next: -10, wr: -100 },
+      time: null,
+    })
+    serveProfile({
+      aggregated: [board('chapter-7', 1450.5), board('chapter-8', 900), board('overall', 18900)],
+    })
+    // A month back: chapter 7 lower, chapter 8 higher (passed since), overall the same.
+    server.use(
+      http.get(`${API}/profile/aggregated/:id`, ({ request }) => {
+        const at = new URL(request.url).searchParams.get('at')
+        return HttpResponse.json(
+          at === recentFrom(null)
+            ? [board('chapter-7', 1438), board('chapter-8', 912), board('overall', 18900)]
+            : [board('chapter-7', 1450.5), board('chapter-8', 900), board('overall', 18900)],
+        )
+      }),
+    )
+    await renderProfile()
+    const points = await screen.findByRole('table', { name: 'Points' })
+    const row = (name: RegExp) => within(points).getByRole('row', { name })
+    expect(
+      await within(row(/The Courtesy Call/)).findByRole('img', { name: '+12.5 points in the last 30 days' }),
+    ).toBeInTheDocument()
+    expect(
+      within(row(/The Cold Boot/)).getByRole('img', { name: '-12 points in the last 30 days' }),
+    ).toBeInTheDocument()
+    expect(within(row(/Overall/)).queryByRole('img')).not.toBeInTheDocument()
   })
 
   it('sorts an aggregated table from its headers: best first, reversed, then chapter order', async () => {

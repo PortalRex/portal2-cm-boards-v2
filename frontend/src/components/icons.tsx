@@ -62,7 +62,12 @@ const svg = ({ size = 24, ...rest }: IconProps) => ({
   ...rest,
 })
 
-// Filled triangles used by the pagination control and the rank change arrow.
+// Filled triangles used by the pagination control, the rank change arrow and points changes.
+export const TriangleUp = ({ size = 14, ...rest }: IconProps) => (
+  <svg {...svg({ size, ...rest })}>
+    <path d="M3 18h18L12 4z" />
+  </svg>
+)
 export const TriangleLeft = ({ size = 14, ...rest }: IconProps) => (
   <svg {...svg({ size, ...rest })}>
     <path d="M18 3v18L4 12z" />
