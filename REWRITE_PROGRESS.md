@@ -69,6 +69,12 @@
 
 ## Log
 <!-- Newest first. One entry per finished item: date, what was done, commit, tests added. -->
+- 2026-10-29: Asked for (local only): the demo viewer (private PortalRex/demo-viewer) built into
+  `frontend/public/viewer` (git-ignored) is served at `/viewer/` with its own CSP (`viewer-security-headers.conf`);
+  where it's there (`VITE_VIEWER`, set by vite.config.ts), runs get a "Watch in the browser" link next to the demo
+  download (boards, profiles, time popover) and a "Watch in Browser" button in Run Details, co-op runs with both
+  players' demos (`RankedRun.demoIds`, host first). Without it nothing changes. Tests: `lib/runs/viewer.test.ts`,
+  ViewerLink in `run-media.test.tsx`, env and adapter tests updated.
 - 2026-10-24: New (asked for, like the old boards' profile box): "Aggregated Times and Points" card on the profile
   (`aggregated-card.tsx`): Points and Times tables with rank, value, Δnext and ΔWR for every single player chapter,
   co-op course and total, each linking to its board on the player; follows the profile's look-back day. Server:

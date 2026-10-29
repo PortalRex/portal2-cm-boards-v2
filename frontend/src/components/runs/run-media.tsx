@@ -1,11 +1,20 @@
 import { cn } from 'cn'
 import { useEffect, useRef, useState } from 'react'
-import { CommentIcon, DownloadIcon, PlayIcon, VideocamIcon, YouTubeIcon } from '@/components/icons'
+import {
+  CommentIcon,
+  DownloadIcon,
+  PlayIcon,
+  VideocamIcon,
+  ViewerIcon,
+  YouTubeIcon,
+} from '@/components/icons'
 import { YouTubeEmbed } from '@/components/youtube-embed'
 import { Bubble } from '@/components/bubble'
 import { bubbleAnchor } from '@/lib/bubble'
 import { runVideo, type VideoRun } from '@/lib/runs/video'
 import { apiUrl } from '@/lib/api-client'
+import { env } from '@/config/env'
+import { viewerUrl } from '@/lib/runs/viewer'
 
 const off = 'opacity-[0.18]'
 // Drawn a little under the requested slot size, filled rather than outlined.
@@ -89,6 +98,37 @@ export function DemoLink({
     >
       <DownloadIcon style={icon} aria-hidden />
       <span className="sr-only">Download demo</span>
+    </a>
+  )
+}
+
+/**
+ * Opens the run's demo (and a co-op partner's) in the demo viewer, a replay in the browser. Only
+ * where the viewer is built in (env.VITE_VIEWER); nothing without a demo.
+ */
+export function ViewerLink({
+  demoIds,
+  size = 22,
+  viewer = env.VITE_VIEWER,
+}: {
+  demoIds: readonly (number | null | undefined)[]
+  size?: number
+  viewer?: boolean
+}) {
+  const url = viewerUrl(demoIds)
+  if (!viewer || !url) return null
+  const icon = { width: size - shrink, height: size - shrink }
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noreferrer"
+      className={iconLink}
+      title="Watch in the browser"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <ViewerIcon style={icon} aria-hidden />
+      <span className="sr-only">Watch in the browser</span>
     </a>
   )
 }

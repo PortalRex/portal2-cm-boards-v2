@@ -1,7 +1,7 @@
 import { cn } from 'cn'
 import { TriangleRight } from '@/components/icons'
 import { RankNumber } from '@/components/rank'
-import { AutorenderLink, DemoLink, YouTubeLink } from '@/components/runs/run-media'
+import { AutorenderLink, DemoLink, ViewerLink, YouTubeLink } from '@/components/runs/run-media'
 import { TimeButton } from '@/components/runs/time-button'
 import { EmptyState } from '@/components/status'
 import { useRenderedSet } from '@/hooks/use-rendered-set'
@@ -83,6 +83,7 @@ export function ProfileHistory({
               <AutorenderLink run={h} game={game} rendered={rendered} size={22} />
               {h.youtubeId && <YouTubeLink id={h.youtubeId} size={22} />}
               <DemoLink demoId={h.demoId} hideMissing />
+              <ViewerLink demoIds={[h.demoId]} />
             </span>
           </div>
         ))

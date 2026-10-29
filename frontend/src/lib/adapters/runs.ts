@@ -130,6 +130,7 @@ export function adaptCoopRanked(row: CoopRankedRaw): RankedRun {
     youtubeId: d.youtube_id1 || d.youtube_id2,
     autorenderId: d.autorender_id1 || d.autorender_id2 || null,
     demoId: d.demo_id1 || d.demo_id2,
+    demoIds: d.p1_is_host === false ? [d.demo_id2, d.demo_id1] : [d.demo_id1, d.demo_id2],
     note: d.note1 || d.note2,
     // Each half's own are shown once the halves load (Run Details); these cover the moment before.
     portals: d.portals1 ?? d.portals2 ?? null,

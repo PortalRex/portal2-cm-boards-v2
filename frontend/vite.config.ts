@@ -3,7 +3,29 @@ import tailwindcss from '@tailwindcss/vite'
 import { tanstackRouter } from '@tanstack/router-plugin/vite'
 import react from '@vitejs/plugin-react'
 import { msw } from 'msw/vite'
-import { defineConfig, loadEnv } from 'vite'
+import { existsSync } from 'node:fs'
+import { defineConfig, loadEnv, type Plugin } from 'vite'
+
+// The demo viewer is built into public/viewer only on machines that have it (it lives in a separate,
+// private repo): its "Watch in browser" links are shown only when it's there.
+process.env.VITE_VIEWER ??= existsSync(fileURLToPath(new URL('./public/viewer/index.html', import.meta.url)))
+  ? 'true'
+  : 'false'
+
+// The dev server serves public/ files only by their full path: /viewer/ (as nginx serves it) would
+// get the site instead of the viewer's page.
+const viewerIndex = (): Plugin => ({
+  name: 'viewer-index',
+  apply: 'serve',
+  configureServer(server) {
+    server.middlewares.use((req, _res, next) => {
+      if (req.url === '/viewer' || req.url === '/viewer/') {
+        req.url = '/viewer/index.html'
+      }
+      next()
+    })
+  },
+})
 
 // The dev server passes /api to the Rust web server (DEV_API_PROXY), so the site can use the
 // same-origin /api/v1 base as production and work from other devices without CORS changes.
@@ -20,6 +42,7 @@ export default defineConfig(({ mode }) => ({
     }),
     react(),
     tailwindcss(),
+    viewerIndex(),
     // Sample-data mode (VITE_USE_MOCK=true) serves MSW's worker script; normal builds leave it out.
     ...(loadEnv(mode, process.cwd(), 'VITE_').VITE_USE_MOCK === 'true' ? [msw({ mode: 'worker-only' })] : []),
   ],

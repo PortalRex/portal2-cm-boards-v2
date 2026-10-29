@@ -9,6 +9,7 @@ describe('parseEnv', () => {
       VITE_AUTORENDER_STORAGE_URL: 'https://portal2.fsn1.your-objectstorage.com',
       VITE_MEL_GAME_ID: 2,
       VITE_USE_MOCK: false,
+      VITE_VIEWER: false,
     })
   })
 

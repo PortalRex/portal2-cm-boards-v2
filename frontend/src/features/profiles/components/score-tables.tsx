@@ -6,7 +6,7 @@ import { Avatar } from '@/components/avatar'
 import { ChevronDownIcon, SortDownIcon, SortUpIcon } from '@/components/icons'
 import { PlayerLink } from '@/components/player-link'
 import { RankNumber } from '@/components/rank'
-import { AutorenderLink, CommentButton, DemoLink, YouTubeLink } from '@/components/runs/run-media'
+import { AutorenderLink, CommentButton, DemoLink, ViewerLink, YouTubeLink } from '@/components/runs/run-media'
 import { TimeButton } from '@/components/runs/time-button'
 import { mapPath, type Chapter, type MapInfo } from '@/lib/catalog'
 import { formatDateTime, formatDelta, timeAgo } from '@/lib/format'
@@ -361,6 +361,7 @@ function ChapterRow({
             {s ? <AutorenderLink run={s} game={game} rendered={rendered} size={24} /> : iconGap}
             <YouTubeLink id={s?.youtubeId} size={24} />
             <DemoLink demoId={s?.demoId} size={24} />
+            <ViewerLink demoIds={[s?.demoId]} size={24} />
           </span>
           {s ? (
             <button

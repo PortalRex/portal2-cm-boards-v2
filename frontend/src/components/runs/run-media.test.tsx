@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import { AUTORENDER } from '@/testing/mocks/handlers'
 import { renderWithProviders } from '@/testing/test-utils'
-import { AutorenderLink, CommentButton, DemoLink, RunVideo, YouTubeLink } from './run-media'
+import { AutorenderLink, CommentButton, DemoLink, RunVideo, ViewerLink, YouTubeLink } from './run-media'
 
 const STORAGE = 'https://portal2.fsn1.your-objectstorage.com'
 
@@ -71,6 +71,24 @@ describe('run media links', () => {
     expect(screen.getByRole('tooltip')).toHaveTextContent('Finally got the cube boost')
     await userEvent.click(screen.getByText('elsewhere'))
     expect(screen.queryByRole('tooltip')).toBeNull()
+  })
+})
+
+describe('ViewerLink', () => {
+  it('opens the run in the demo viewer, a co-op partner with it', async () => {
+    await renderWithProviders(<ViewerLink demoIds={[7, 9]} viewer />)
+    expect(screen.getByRole('link', { name: 'Watch in the browser' })).toHaveAttribute(
+      'href',
+      '/viewer/#board=7&with=9',
+    )
+  })
+
+  it("shows nothing without a demo, or where the viewer isn't built in", async () => {
+    const { unmount } = await renderWithProviders(<ViewerLink demoIds={[null]} viewer />)
+    expect(screen.queryByRole('link', { name: 'Watch in the browser' })).not.toBeInTheDocument()
+    unmount()
+    await renderWithProviders(<ViewerLink demoIds={[7]} viewer={false} />)
+    expect(screen.queryByRole('link', { name: 'Watch in the browser' })).not.toBeInTheDocument()
   })
 })
 

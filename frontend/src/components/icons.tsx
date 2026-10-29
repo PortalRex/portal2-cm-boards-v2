@@ -13,6 +13,7 @@ export {
   Trophy as TrophyIcon,
   Mountain as PeakIcon,
   ArrowDownToLine as DownloadIcon,
+  MonitorPlay as ViewerIcon,
   Flag as FlagIcon,
   Upload as UploadIcon,
   Play as PlayIcon,
