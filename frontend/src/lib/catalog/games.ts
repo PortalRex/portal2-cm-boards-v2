@@ -1,7 +1,7 @@
 import melBackground from '@/assets/MelBackground.png'
 import portal2Logo from '@/assets/portal2logo.png'
 import melLogo from '@/assets/psmcm.png'
-import { PORTAL2 } from './selectors'
+import { chapterByDbId, PORTAL2 } from './selectors'
 import type { Catalog } from './types'
 
 // The game the site shows (Score Updates, the map list, Aggregate, Stats, Compare, profiles),
@@ -24,6 +24,8 @@ export function gameFromLocation(c: Catalog, pathname: string, search: string): 
   if (pathname.startsWith('/leaderboard/mel')) return 'mel'
   const custom = pathname.match(/^\/leaderboard\/game\/([^/]+)/)
   if (custom) return baseGame(c, custom[1])
+  const chapter = pathname.match(/^\/leaderboard\/chapter\/([^/]+)/)
+  if (chapter) return baseGame(c, chapterByDbId(c, chapter[1]!)?.game) ?? PORTAL2
   if (pathname.startsWith('/leaderboard/')) return PORTAL2
   const map = pathname.match(/^\/map\/([^/]+)\//)
   if (map) {
