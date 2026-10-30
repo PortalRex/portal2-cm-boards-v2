@@ -96,8 +96,10 @@ describe('wrRuns', () => {
     ).toEqual(['Zypeh & Undead', 'Rex & RealCreative', 'Nate & Luke'])
   })
 
-  it('names a half without a known partner after its own player', () => {
-    const half = row({ coop_id: 33606, user_name: 'Imanex', blue_name: 'Imanex', orange_name: 'N/A' })
-    expect(wrRuns([half])[0]!.player).toBe('Imanex')
+  it('names a half without a known partner after its player and an unknown partner, in colour order', () => {
+    const blue = row({ coop_id: 36567, user_name: 'Yarby', blue_name: 'Yarby', orange_name: 'N/A' })
+    expect(wrRuns([blue])[0]!.player).toBe('Yarby & Unknown partner')
+    const orange = row({ coop_id: 33606, user_name: 'Imanex', blue_name: null, orange_name: 'Imanex' })
+    expect(wrRuns([orange])[0]!.player).toBe('Unknown partner & Imanex')
   })
 })

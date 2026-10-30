@@ -3,6 +3,8 @@ import type { ChangelogRaw } from '@/types/runs'
 import type { WrPoint } from '../api/map-board'
 
 const known = (name: string | null): name is string => Boolean(name) && name !== 'N/A'
+// As run details name the filler user of an unpaired co-op half.
+const UNKNOWN_PARTNER = 'Unknown partner'
 
 // Co-op halves of one record set this close together are one run, whatever runs they're filed under.
 const SAME_RUN_MS = 5000
@@ -42,8 +44,15 @@ export function wrRuns(rows: ChangelogRaw[]): WrPoint[] {
     const pair = halves
       .map((h) => [h.blue_name, h.orange_name].filter(known))
       .find((p) => p.length === 2 && players.every((name) => p.includes(name)))
-    return { timestamp: first.timestamp, score: first.score, player: (pair ?? players).join(' & ') }
+    const names = pair ?? (isCoop(first) && players.length === 1 ? withUnknownPartner(first) : players)
+    return { timestamp: first.timestamp, score: first.score, player: names.join(' & ') }
   })
+}
+
+/** A co-op half whose partner isn't known: the player and an unknown partner, in their colours' order. */
+function withUnknownPartner(half: ChangelogRaw): string[] {
+  const player = half.user_name
+  return half.orange_name === player ? [UNKNOWN_PARTNER, player] : [player, UNKNOWN_PARTNER]
 }
 
 /**
