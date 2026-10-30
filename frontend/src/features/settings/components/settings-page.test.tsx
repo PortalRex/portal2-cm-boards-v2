@@ -61,8 +61,10 @@ describe('Settings', () => {
     await userEvent.click(screen.getByRole('radio', { name: 'Light' }))
     expect(document.documentElement.dataset.theme).toBe('light')
     expect(localStorage.getItem('p2cm.theme')).toBe('light')
-    await userEvent.click(screen.getByRole('radio', { name: 'Coloured name' }))
-    expect(localStorage.getItem('p2cm.coopPbStyle')).toBe('border')
+    // The coloured name until the trophy is picked.
+    expect(screen.getByRole('radio', { name: 'Coloured name' })).toBeChecked()
+    await userEvent.click(screen.getByRole('radio', { name: 'Trophy' }))
+    expect(localStorage.getItem('p2cm.coopPbStyle')).toBe('icon')
   })
 
   it('saves your own name, and goes back to the Steam one', async () => {

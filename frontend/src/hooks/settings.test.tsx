@@ -1,5 +1,5 @@
 import { act, renderHook } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { useCollapsed, useCollapsedGroup } from './use-collapsed'
 import { useCoopPbStyle } from './use-coop-pb-style'
 import { useFollows } from './use-follows'
@@ -26,30 +26,16 @@ describe('useTheme', () => {
 })
 
 describe('useCoopPbStyle', () => {
-  afterEach(() => vi.unstubAllGlobals())
-
-  it('defaults to the coloured name on phones, the trophy elsewhere, until one is picked', () => {
-    const screenIs = (phone: boolean) =>
-      vi.stubGlobal('matchMedia', (q: string) => ({ matches: phone && q.includes('max-width'), media: q }))
-    screenIs(true)
+  it('defaults to the coloured name until the trophy is picked, and syncs every user', () => {
     expect(renderHook(() => useCoopPbStyle()).result.current[0]).toBe('border')
-    screenIs(false)
-    expect(renderHook(() => useCoopPbStyle()).result.current[0]).toBe('icon')
-    // Picked: it stays, phone or not.
     localStorage.setItem('p2cm.coopPbStyle', 'icon')
-    screenIs(true)
-    expect(renderHook(() => useCoopPbStyle()).result.current[0]).toBe('icon')
-  })
-
-  it('defaults to the trophy, reads the legacy value and syncs every user', () => {
-    localStorage.setItem('p2cm.coopPbStyle', 'border')
     const a = renderHook(() => useCoopPbStyle())
     const b = renderHook(() => useCoopPbStyle())
-    expect(a.result.current[0]).toBe('border')
-    act(() => a.result.current[1]('icon'))
-    expect(b.result.current[0]).toBe('icon')
+    expect(a.result.current[0]).toBe('icon')
+    act(() => a.result.current[1]('border'))
+    expect(b.result.current[0]).toBe('border')
     localStorage.setItem('p2cm.coopPbStyle', 'weird')
-    expect(renderHook(() => useCoopPbStyle()).result.current[0]).toBe('icon')
+    expect(renderHook(() => useCoopPbStyle()).result.current[0]).toBe('border')
   })
 })
 

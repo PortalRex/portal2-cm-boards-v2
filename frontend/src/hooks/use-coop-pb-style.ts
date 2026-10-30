@@ -11,14 +11,8 @@ export const COOP_PB_STYLES: { value: CoopPbStyle; label: string }[] = [
   { value: 'border', label: 'Coloured name' },
 ]
 
-// Until it's picked in Settings: the trophy, but on phones the coloured name, as a trophy beside
-// each name leaves co-op names too little room there.
-const PHONE = '(max-width: 700px)'
-const defaultStyle = (): CoopPbStyle =>
-  typeof window !== 'undefined' && window.matchMedia?.(PHONE).matches ? 'border' : 'icon'
-
-const parseStyle = (raw: string | null): CoopPbStyle =>
-  raw === 'border' || raw === 'icon' ? raw : defaultStyle()
+// Until it's picked in Settings: the coloured name.
+const parseStyle = (raw: string | null): CoopPbStyle => (raw === 'icon' ? 'icon' : 'border')
 
 export function useCoopPbStyle(): [CoopPbStyle, (style: CoopPbStyle) => void] {
   const style = useStored(STORAGE_KEYS.coopPbStyle, parseStyle)

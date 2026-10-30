@@ -59,11 +59,17 @@ describe('Score Updates', () => {
     expect(within(row).queryByRole('link', { name: 'Unknown partner' })).toBeNull()
   })
 
-  it('marks who set a PB with a co-op run with a trophy, or their name with the "Coloured name" setting', async () => {
+  it('marks who set a PB with a co-op run by their name in colour, or a trophy with the "Trophy" setting', async () => {
     serve()
-    await renderRoute('/')
+    const { unmount } = await renderRoute('/')
     const row = await rowFor('Catapult Block')
-    expect(within(row).getAllByRole('img', { name: 'PB' })).toHaveLength(1)
+    expect(within(row).queryByRole('img', { name: 'PB' })).toBeNull()
+    expect(row.querySelectorAll('a[style*="--pb-rgb"]')).toHaveLength(1)
+    unmount()
+    localStorage.setItem('p2cm.coopPbStyle', 'icon')
+    await renderRoute('/')
+    const withTrophy = await rowFor('Catapult Block')
+    expect(within(withTrophy).getAllByRole('img', { name: 'PB' })).toHaveLength(1)
   })
 
   it('keeps the filters in the URL, sends them to the server and clears them', async () => {

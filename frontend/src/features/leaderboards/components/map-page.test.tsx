@@ -70,6 +70,7 @@ describe('Map page', () => {
 
   it('marks each co-op player whose PB the run is, as Score Updates does', async () => {
     serveMap()
+    localStorage.setItem('p2cm.coopPbStyle', 'icon')
     await renderRoute('/map/coop/47741')
     // RealCreative is on the record (733) and again on the slower 736, where unity set their PB.
     const notPb = await within(board()).findAllByTitle("Not RealCreative's PB")
