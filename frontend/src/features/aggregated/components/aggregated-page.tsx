@@ -11,9 +11,10 @@ import { Select } from '@/components/select'
 import { EmptyState, ErrorState, Loading } from '@/components/status'
 import {
   chapterDbId,
+  chapterHasBoard,
   chaptersFor,
   gameBoardPath,
-  PORTAL2,
+  isMultiplayerMode,
   useCatalog,
   withSeason,
   type Catalog,
@@ -78,14 +79,18 @@ function NoSeason() {
   )
 }
 
-// Portal 2's Single Player / Cooperative boards: all of the mode's chapters, or one chapter / course.
-const chapterOptions = (c: Catalog, mode: string) => [
-  { value: `/leaderboard/${mode}`, label: mode === 'coop' ? 'All courses' : 'All chapters' },
-  ...chaptersFor(c, mode).map((ch) => ({
-    value: `/leaderboard/chapter/${chapterDbId(ch)}`,
-    label: `${ch.multiplayer ? 'Course' : 'Chapter'} ${ch.number}: ${ch.name}`,
-  })),
-]
+// A mode's board: all of its chapters, or one chapter / course (when its chapters have boards).
+const chapterOptions = (c: Catalog, game: string, mode: string) => {
+  const chapters = chaptersFor(c, mode).filter((ch) => ch.mode === mode && chapterHasBoard(c, ch))
+  if (!chapters.length) return null
+  return [
+    { value: gameBoardPath(game, mode), label: isMultiplayerMode(c, mode) ? 'All courses' : 'All chapters' },
+    ...chapters.map((ch) => ({
+      value: `/leaderboard/chapter/${chapterDbId(ch)}`,
+      label: `${ch.multiplayer ? 'Course' : 'Chapter'} ${ch.number}: ${ch.name}`,
+    })),
+  ]
+}
 
 function AggregatedBoards({ view, search }: { view: AggregatedView; search: AggregatedSearch }) {
   const catalog = useCatalog()
@@ -119,6 +124,7 @@ function AggregatedBoards({ view, search }: { view: AggregatedView; search: Aggr
   const inCountry = (list: AggregatedRow[] = []) =>
     country ? list.filter((r) => r.player.country === country) : list
   const boardKey = `${board?.game ?? ''}:${board?.board ?? ''}:${country}`
+  const chapters = kind === 'overall' ? null : chapterOptions(catalog, game, kind)
 
   return (
     <Page background={boardsBackground} tint="warm">
@@ -132,11 +138,11 @@ function AggregatedBoards({ view, search }: { view: AggregatedView; search: Aggr
             }
             className={selectClass}
           />
-          {!season && game === PORTAL2 && (kind === 'sp' || kind === 'coop') && (
+          {!season && chapters && (
             <Select
               value={pathname}
               onChange={(to) => go(keep(to))}
-              options={chapterOptions(catalog, kind)}
+              options={chapters}
               label="Chapter"
               className={selectClass}
             />

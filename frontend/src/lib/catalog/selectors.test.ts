@@ -13,7 +13,8 @@ import {
   mapsForGame,
   mapsForMode,
   modeLabel,
-  p2ChapterByDbId,
+  chapterByDbId,
+  chapterHasBoard,
   p2Chapters,
   pickableGames,
 } from './selectors'
@@ -57,7 +58,15 @@ describe('catalog selectors', () => {
     expect(p2Chapters(BUILTIN_CATALOG).map((c) => chapterDbId(c))).toEqual([
       7, 8, 9, 10, 11, 12, 13, 14, 15, 1, 2, 3, 4, 5, 6,
     ])
-    expect(p2ChapterByDbId(catalog, '9')?.name).toBe('The Return')
+    expect(chapterByDbId(catalog, '9')?.name).toBe('The Return')
+  })
+
+  it("finds any game's chapter board by id, but not a season's, nor built-in Mel's (no ids)", () => {
+    expect(chapterByDbId(catalog, 17)).toMatchObject({ name: 'Extended Relaxation', mode: 'story' })
+    expect(chapterByDbId(catalog, 25)).toMatchObject({ name: 'First', game: 'custom-game' })
+    expect(chapterByDbId(catalog, 28)).toBeUndefined()
+    expect(chapterByDbId(BUILTIN_CATALOG, 9)?.name).toBe('The Return')
+    expect(chapterHasBoard(BUILTIN_CATALOG, chaptersFor(BUILTIN_CATALOG, 'story')[0]!)).toBe(false)
   })
 
   it('offers only visible games (not seasons) in the banner', () => {

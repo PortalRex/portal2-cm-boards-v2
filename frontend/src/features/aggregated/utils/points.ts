@@ -1,5 +1,5 @@
 import { player } from '@/lib/adapters/runs'
-import { mapsForGame, mapsForMode, MEL, modeOf, p2ChapterByDbId, PORTAL2, type Catalog } from '@/lib/catalog'
+import { mapsForGame, mapsForMode, MEL, modeOf, chapterByDbId, PORTAL2, type Catalog } from '@/lib/catalog'
 import { countryById } from '@/lib/data/countries'
 import type { AggregatedBoard, BoardRef, PointsWrapperRaw } from '../types'
 
@@ -45,7 +45,7 @@ export function serverBoard(c: Catalog, { game, board }: BoardRef): ServerBoard 
   const builtIn = BUILT_IN_MAP_COUNTS[`${game}:${board}`]
   if (builtIn != null) return { gameId, board, mapCount: builtIn }
   const chapterId = /^chapter-(\d+)$/.exec(board)?.[1]
-  if (chapterId) return { gameId, board, mapCount: p2ChapterByDbId(c, chapterId)?.maps.length ?? 0 }
+  if (chapterId) return { gameId, board, mapCount: chapterByDbId(c, chapterId)?.maps.length ?? 0 }
   const maps = board === 'overall' ? mapsForGame(c, game) : mapsForMode(c, board)
   // The server keys boards by the chapters' game_mode; the site's keys carry the game's slug.
   return { gameId, board: modeOf(game, board), mapCount: maps.length }

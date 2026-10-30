@@ -5,7 +5,7 @@ import {
   gameBoardsPath,
   MEL,
   modeLabel,
-  p2ChapterByDbId,
+  chapterByDbId,
   PORTAL2,
   seasonBoard,
   seasonFor,
@@ -90,19 +90,19 @@ export function builtInTarget(
   return boardView(c, game, kind, title, picked)
 }
 
-/** /leaderboard/chapter/{id}: one Portal 2 chapter or co-op course (all-time only). */
+/** /leaderboard/chapter/{id}: one chapter or co-op course, in any game (all-time only). */
 export function chapterTarget(c: Catalog, chapterId: string): AggregatedTarget {
-  const chapter = p2ChapterByDbId(c, chapterId)
+  const chapter = chapterByDbId(c, chapterId)
   if (!chapter) return { redirect: gameBoardsPath(PORTAL2) }
   const kicker = `${modeLabel(c, chapter.mode)} · ${chapter.multiplayer ? 'Course' : 'Chapter'} ${chapter.number}`
   return {
     view: {
-      game: PORTAL2,
+      game: chapter.game,
       kind: chapter.mode,
       title: chapter.name,
       kicker,
       season: null,
-      board: { game: PORTAL2, board: `chapter-${chapterId}` },
+      board: { game: chapter.game, board: `chapter-${chapterId}` },
     },
   }
 }

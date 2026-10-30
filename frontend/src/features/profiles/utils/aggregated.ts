@@ -1,10 +1,10 @@
-import { chapterDbId, chaptersFor, modeLabel, PORTAL2, type Catalog } from '@/lib/catalog'
+import { chapterDbId, chapterHasBoard, chaptersFor, modeLabel, PORTAL2, type Catalog } from '@/lib/catalog'
 import type { AggregateRowRaw, StandingRaw } from '../types'
 import { boardPath, serverMode } from './summary'
 
 /**
  * One line of the aggregated tables: a chapter, a mode or the overall total, with its board's
- * address (none for another game's chapters, which have no board page of their own).
+ * address (none for a chapter without a board page of its own, such as a season's).
  */
 export interface AggregatedLine {
   key: string
@@ -35,8 +35,9 @@ export function aggregatedLines(
       return {
         key,
         label: chapter.name,
-        href:
-          game === PORTAL2 ? `/leaderboard/chapter/${chapterDbId(chapter)}?player=${profileNumber}` : null,
+        href: chapterHasBoard(c, chapter)
+          ? `/leaderboard/chapter/${chapterDbId(chapter)}?player=${profileNumber}`
+          : null,
         row: byBoard.get(key) ?? null,
       }
     })

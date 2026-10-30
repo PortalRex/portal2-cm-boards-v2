@@ -259,9 +259,25 @@ describe('Aggregated boards (Mel, chapters, other games)', () => {
         .getAllByRole('link')
         .map((a) => a.getAttribute('href')),
     ).toEqual(['/leaderboard/mel/overall', '/leaderboard/mel/story', '/leaderboard/mel/advanced'])
-    expect(screen.queryByRole('combobox', { name: 'Chapter' })).not.toBeInTheDocument()
+    const chapters = screen.getByRole('combobox', { name: 'Chapter' })
+    expect(chapters).toHaveValue('/leaderboard/mel/story')
+    expect(within(chapters).getByRole('option', { name: 'Chapter 1: 1952' })).toHaveValue(
+      '/leaderboard/chapter/16',
+    )
     await screen.findAllByRole('link', { name: 'hero' })
     expect(asked).toEqual(['2/story'])
+  })
+
+  it("shows a Mel chapter's board under Mel's tabs", async () => {
+    const asked = servePoints()
+    await renderRoute('/leaderboard/chapter/17')
+    expect(await screen.findByRole('heading', { name: 'Extended Relaxation', level: 1 })).toBeInTheDocument()
+    expect(screen.getByText('Story Mode · Chapter 2')).toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: 'Chapter' })).toHaveValue('/leaderboard/chapter/17')
+    const tabs = screen.getByRole('navigation', { name: 'Mel boards' })
+    expect(within(tabs).getByRole('link', { name: 'Story Mode' })).toHaveAttribute('aria-current', 'page')
+    await screen.findAllByRole('link', { name: 'hero' })
+    expect(asked).toEqual(['2/chapter-17'])
   })
 
   it("shows a Portal 2 chapter's board, with the chapter picked in the list", async () => {

@@ -52,7 +52,7 @@ export function Summary({
   chapters: Chapter[]
   scores: Record<string, MapScore>
   onSelectMap: (map: MapInfo) => void
-  chapterLink?: (chapter: Chapter) => string
+  chapterLink?: (chapter: Chapter) => string | undefined
 }) {
   const openRun = (m: MapInfo) => {
     onSelectMap(m)

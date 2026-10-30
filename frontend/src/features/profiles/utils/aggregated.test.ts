@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import { BUILTIN_CATALOG, chapterDbId, chaptersFor, MEL, PORTAL2 } from '@/lib/catalog'
+import {
+  BUILTIN_CATALOG,
+  buildCatalog,
+  chapterDbId,
+  chaptersFor,
+  MEL,
+  PORTAL2,
+  type CatalogRaw,
+} from '@/lib/catalog'
+import raw from '@/testing/fixtures/catalog.json'
 import {
   aggregatedLines,
   formatPointsGap,
@@ -71,9 +80,12 @@ describe('aggregatedLines for Mel', () => {
     expect(groups.flat().some((l) => l.label === 'Single Player' || l.label === 'Cooperative')).toBe(false)
   })
 
-  it("links Mel's boards, and leaves its chapters (which have no board page) unlinked", () => {
+  it("links Mel's boards, and its chapters once the catalog has their ids", () => {
     expect(groups[0]![0]!.row?.points?.rank).toBe(3)
+    // The built-in catalog doesn't know Mel's chapter ids: no chapter board to link to.
     expect(groups[0]![0]!.href).toBeNull()
+    const fromServer = aggregatedLines(buildCatalog(raw as CatalogRaw), MEL, rows, pn)
+    expect(fromServer[0]![1]!.href).toBe(`/leaderboard/chapter/17?player=${pn}`)
     expect(groups[2]![0]!.row?.points?.value).toBe(4000)
     expect(groups[2]![0]!.href).toBe(`/leaderboard/mel/story?player=${pn}`)
     expect(groups[2]![2]!.href).toBe(`/leaderboard/mel/overall?player=${pn}`)

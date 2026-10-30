@@ -48,8 +48,18 @@ export const p2Chapters = (c: Catalog): Chapter[] => [
   ...(c.chaptersByMode.coop ?? []),
 ]
 
-export const p2ChapterByDbId = (c: Catalog, id: string | number): Chapter | undefined =>
-  p2Chapters(c).find((ch) => chapterDbId(ch) === Number(id))
+/**
+ * Whether a chapter has a board of its own (/leaderboard/chapter/{id}): Portal 2's chapters, and
+ * another game's when its id is known (from the server's catalog). Seasons' chapters don't.
+ */
+export const chapterHasBoard = (c: Catalog, chapter: Chapter): boolean =>
+  chapter.game === PORTAL2 || (chapter.dbId != null && c.games[chapter.game]?.kind === 'game')
+
+/** A chapter with a board, in any game, by its id in the database. */
+export const chapterByDbId = (c: Catalog, id: string | number): Chapter | undefined =>
+  Object.values(c.chaptersByMode)
+    .flat()
+    .find((ch) => chapterHasBoard(c, ch) && chapterDbId(ch) === Number(id))
 
 /** The games that can be picked in the banner: kind "game", not hidden. */
 export const pickableGames = (c: Catalog): Game[] =>

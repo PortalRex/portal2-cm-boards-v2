@@ -9,6 +9,7 @@ import { useGame } from '@/hooks/use-game'
 import { useRenderedSet } from '@/hooks/use-rendered-set'
 import { useSeason } from '@/hooks/use-season'
 import {
+  chapterHasBoard,
   chaptersFor,
   isMultiplayerMode,
   modeLabel,
@@ -267,6 +268,7 @@ function GameTab({
   if (results.isPending) return <Loading label={`Loading ${label} results`} />
   const scores = results.data?.scores ?? {}
   const chapters = board ? chaptersFor(catalog, board) : []
+  const link = (c: Chapter) => (chapterHasBoard(catalog, c) ? chapterBoardPath(c, player) : undefined)
   if (!Object.keys(scores).length || !board) {
     return (
       <>
@@ -282,7 +284,7 @@ function GameTab({
     <>
       {controls}
       <SectionTitle>Summary</SectionTitle>
-      <Summary chapters={chapters} scores={scores} onSelectMap={onSelectMap} />
+      <Summary chapters={chapters} scores={scores} onSelectMap={onSelectMap} chapterLink={link} />
       {orderedChapters(chapters, scores, sort).map((chapter) => (
         <ChapterTable
           key={chapter.dbId ?? `${chapter.mode}-${chapter.name}`}
@@ -293,6 +295,7 @@ function GameTab({
           selectedMap={selectedMap}
           onSelectMap={onSelectMap}
           player={player}
+          chapterLink={chapter.sorted ? undefined : link(chapter)}
           sort={sort}
           onSort={onSort}
           renderRunDetails={renderRunDetails}

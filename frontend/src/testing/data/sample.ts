@@ -3,7 +3,7 @@ import {
   isMultiplayerMode,
   mapsForGame,
   mapsForMode,
-  p2ChapterByDbId,
+  chapterByDbId,
   type MapInfo,
 } from '@/lib/catalog'
 import { countryIdByCode } from '@/lib/data/countries'
@@ -252,7 +252,7 @@ export function samplePreviews(game: string, coop: boolean): (SpPreviewRaw[] | C
 
 function boardMaps(game: string, board: string): MapInfo[] {
   const chapterId = /^chapter-(\d+)$/.exec(board)?.[1]
-  if (chapterId) return p2ChapterByDbId(BUILTIN_CATALOG, chapterId)?.maps ?? []
+  if (chapterId) return chapterByDbId(BUILTIN_CATALOG, chapterId)?.maps ?? []
   if (board === 'overall') return mapsForGame(BUILTIN_CATALOG, game)
   return mapsForMode(BUILTIN_CATALOG, board)
 }

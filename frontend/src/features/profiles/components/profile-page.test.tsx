@@ -287,6 +287,11 @@ describe('Profile page', () => {
     const tramride = await screen.findByTitle('Tramride — rank 3')
     await userEvent.click(tramride)
     expect(screen.getByTestId('run-details')).toHaveTextContent('Tramride · mel · 900001')
+    // A chapter's title leads to its board.
+    const titles = screen.getAllByTitle('1952 board').filter((a) => a.matches('a'))
+    expect(titles.length).toBeGreaterThan(0)
+    for (const a of titles)
+      expect(a).toHaveAttribute('href', `/leaderboard/chapter/16?player=${FIXTURE_PLAYER}`)
     expect(requests.asked).toContain(`/ranks/game/2/${FIXTURE_PLAYER}`)
     expect(requests.asked).toContain(`/changelog?profile_number=${FIXTURE_PLAYER}&limit=5000&game_id=2`)
   })
@@ -413,6 +418,11 @@ describe('Profile page', () => {
     expect(within(points).getByRole('link', { name: /Story/ })).toHaveAttribute(
       'href',
       expect.stringContaining('/leaderboard/mel/story'),
+    )
+    // Mel's chapters lead to their own boards, like Portal 2's.
+    expect(within(points).getByRole('link', { name: '1952' })).toHaveAttribute(
+      'href',
+      `/leaderboard/chapter/16?player=${FIXTURE_PLAYER}`,
     )
     expect(requests.asked).toContain(`/profile/aggregated/${FIXTURE_PLAYER}?game_id=2`)
   })

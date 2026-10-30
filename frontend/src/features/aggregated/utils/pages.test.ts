@@ -122,6 +122,21 @@ describe('chapterTarget', () => {
     })
     expect(chapterTarget(catalog, '99')).toEqual({ redirect: '/leaderboard/overall' })
   })
+
+  it("opens another game's chapter under that game's tabs", () => {
+    expect(chapterTarget(catalog, '17')).toEqual({
+      view: {
+        game: 'mel',
+        kind: 'story',
+        title: 'Extended Relaxation',
+        kicker: 'Story Mode · Chapter 2',
+        season: null,
+        board: { game: 'mel', board: 'chapter-17' },
+      },
+    })
+    // A season's chapters have no board of their own.
+    expect(chapterTarget(catalog, '28')).toEqual({ redirect: '/leaderboard/overall' })
+  })
 })
 
 describe('gameTarget', () => {

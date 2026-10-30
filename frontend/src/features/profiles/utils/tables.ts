@@ -6,6 +6,6 @@ import type { ProfilePlayer } from '../types'
 export const rankClass = (rank: number | null | undefined, raised = false) =>
   rank === 1 ? cn('wr-glow', raised && 'wr-glow-raised') : rank ? 'rank-tile' : undefined
 
-/** A Portal 2 chapter's aggregated board, opened on the player's row. */
+/** A chapter's aggregated board, opened on the player's row (see chapterHasBoard). */
 export const chapterBoardPath = (chapter: Chapter, player: ProfilePlayer) =>
   `/leaderboard/chapter/${chapterDbId(chapter)}?player=${player.profileNumber}`
