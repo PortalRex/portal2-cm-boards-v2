@@ -7,6 +7,7 @@ import { Panel } from '@/components/panel'
 import { PlayerLink } from '@/components/player-link'
 import { EmptyState, Loading } from '@/components/status'
 import { useGame } from '@/hooks/use-game'
+import { useTableSort } from '@/hooks/use-table-sort'
 import { isMultiplayerMode, useCatalog } from '@/lib/catalog'
 import { formatDate, formatPoints, formatScore, timeAgo } from '@/lib/format'
 import { siteStatsQueryOptions, wrStatsQueryOptions, type Leader, type SiteStats } from '../api/stats'
@@ -128,28 +129,38 @@ function Totals({ totals: t }: { totals: SiteStats['totals'] }) {
 
 const desktop = 'upto900:hidden'
 
-function PeakTable({ rows }: { rows: SiteStats['peaks'][string] }) {
-  if (!rows.length) return <EmptyState>No points on this board yet.</EmptyState>
+type Peak = SiteStats['peaks'][string][number]
+
+function PeakTable({ rows: own }: { rows: Peak[] }) {
+  const { rows, rankOf, header } = useTableSort<Peak>(own, {
+    player: { value: (r) => r.player.name, first: 'asc' },
+    peak: { value: (r) => r.points, first: 'desc' },
+    reached: { value: (r) => r.date, first: 'desc' },
+    now: { value: (r) => r.current, first: 'desc' },
+    // The biggest fall from the peak first.
+    change: { value: (r) => r.current - r.points, first: 'asc' },
+  })
+  if (!own.length) return <EmptyState>No points on this board yet.</EmptyState>
   return (
     <Table
       label="Peak points"
       cols="[--st-cols:44px_minmax(0,1fr)_110px_150px_110px_110px] upto900:[--st-cols:36px_minmax(0,1fr)_90px_110px] upto480:[--st-cols:22px_minmax(0,1fr)_60px_84px]"
       head={
         <>
-          <span className="text-text-muted">#</span>
-          <span>Player</span>
-          <span className="text-right">Peak</span>
-          <span>Reached</span>
-          <span className={cn('text-right', desktop)}>Now</span>
-          <span className={cn('text-right', desktop)}>Change</span>
+          {header('rank', '#', 'text-text-muted')}
+          {header('player', 'Player')}
+          {header('peak', 'Peak', 'text-right')}
+          {header('reached', 'Reached')}
+          {header('now', 'Now', cn('text-right', desktop))}
+          {header('change', 'Change', cn('text-right', desktop))}
         </>
       }
     >
-      {rows.map((r, i) => {
+      {rows.map((r) => {
         const drop = r.current - r.points
         return (
           <Row key={r.player.profileNumber}>
-            <span className="num text-text-muted">{i + 1}</span>
+            <span className="num text-text-muted">{rankOf(r)}</span>
             <PlayerCell player={r.player} size={26} />
             {/* The peak and its day both open the profile as it was that day. */}
             <span className="num text-right font-semibold">
@@ -225,25 +236,34 @@ function LeaderCard({
   )
 }
 
-function LongestTable({ rows }: { rows: SiteStats['longestWrs'] }) {
-  if (!rows.length) return <EmptyState>No dated records yet.</EmptyState>
+type StandingRecord = SiteStats['longestWrs'][number]
+
+function LongestTable({ rows: own }: { rows: StandingRecord[] }) {
+  const { rows, rankOf, header } = useTableSort<StandingRecord>(own, {
+    map: { value: (r) => r.mapName, first: 'asc' },
+    heldBy: { value: (r) => r.players[0]?.name, first: 'asc' },
+    time: { value: (r) => r.score, first: 'asc' },
+    // Oldest first, as the table starts.
+    since: { value: (r) => r.since, first: 'asc' },
+  })
+  if (!own.length) return <EmptyState>No dated records yet.</EmptyState>
   return (
     <Table
       label="Longest-standing world records"
       cols="[--st-cols:44px_minmax(0,1fr)_minmax(0,1.2fr)_110px_240px] upto900:[--st-cols:36px_minmax(0,1fr)_90px]"
       head={
         <>
-          <span className="text-text-muted">#</span>
-          <span>Map</span>
-          <span className={desktop}>Held by</span>
-          <span className="text-right">Time</span>
-          <span className={desktop}>Since</span>
+          {header('rank', '#', 'text-text-muted')}
+          {header('map', 'Map')}
+          {header('heldBy', 'Held by', desktop)}
+          {header('time', 'Time', 'text-right')}
+          {header('since', 'Since', desktop)}
         </>
       }
     >
-      {rows.map((r, i) => (
+      {rows.map((r) => (
         <Row key={r.mapId}>
-          <span className="num text-text-muted">{i + 1}</span>
+          <span className="num text-text-muted">{rankOf(r)}</span>
           <span>
             <MapName where={r} />
             {r.isCoop && <span className="text-text-muted"> · co-op</span>}

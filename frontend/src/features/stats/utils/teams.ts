@@ -28,3 +28,7 @@ export function firstTeams(teams: Team[]): Team[] {
   const first = dated.reduce((a, t) => (t.since! < a ? t.since! : a), dated[0]!.since!)
   return dated.filter((t) => t.since === first)
 }
+
+/** The first player's name of the teams, to sort a table by who set the time (none: null). */
+export const teamName = (teams: Team[] | null | undefined): string | null =>
+  teams?.[0]?.players[0]?.name ?? null

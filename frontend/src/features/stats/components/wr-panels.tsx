@@ -1,16 +1,18 @@
 import { useQuery } from '@tanstack/react-query'
 import { cn } from 'cn'
-import { useState, type ReactNode } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { StatsIcon } from '@/components/icons'
 import { Panel } from '@/components/panel'
 import { EmptyState, Loading } from '@/components/status'
 import { useGame } from '@/hooks/use-game'
+import { useTableSort } from '@/hooks/use-table-sort'
 import { useCatalog } from '@/lib/catalog'
 import { formatDate, formatLongScore, formatScore } from '@/lib/format'
+import type { SortColumn } from '@/lib/table-sort'
 import { wrStatsQueryOptions, type Reign, type WrStats } from '../api/stats'
 import { boardLabel, days, HISTORY_VIEWS, number, pick, stoodFor } from '../utils/format'
 import { orderRecords, RECORD_ORDERS, type RecordOrder } from '../utils/records'
-import { firstTeams, playersOnce } from '../utils/teams'
+import { firstTeams, playersOnce, teamName } from '../utils/teams'
 import { Race } from './race'
 import { Figures, Intro, MapName, PlayerCell, Row, SectionTitle, StatsSwitch, Table, Teams } from './stats-ui'
 
@@ -61,6 +63,11 @@ const notOnPhones = 'upto900:hidden'
 // A card's small print on phones: dates, earlier times, who beat it.
 const smallPrint = 'upto900:text-sm upto900:text-text-muted'
 
+// Sortable columns: which way a header click orders them first.
+const asc = <T,>(value: SortColumn<T>['value']): SortColumn<T> => ({ value, first: 'asc' })
+const desc = <T,>(value: SortColumn<T>['value']): SortColumn<T> => ({ value, first: 'desc' })
+const byMap = asc<{ mapName: string }>((r) => r.mapName)
+
 // --- Records ----------------------------------------------------------------------------
 
 /** Every map's current record for one of the game's modes, and who holds how many. */
@@ -107,42 +114,7 @@ export function RecordsPanel({ mode: modeParam, onMode }: { mode?: string; onMod
             <div className="mb-3 flex justify-end">
               <StatsSwitch body label="Order" value={order} onChange={setOrder} options={RECORD_ORDERS} />
             </div>
-            <Table
-              cards
-              label="World records"
-              cols="[--st-cols:minmax(140px,1fr)_90px_minmax(0,1.6fr)_120px_110px_80px] upto900:[--st-cols:minmax(0,1fr)_76px] *:py-1.5"
-              head={
-                <>
-                  <span>Map</span>
-                  <span className="text-right">Record</span>
-                  <span className="upto900:col-span-full">Held by</span>
-                  <span>Since</span>
-                  <span className="text-right">Standing</span>
-                  <span className={cn('text-right', notOnPhones)} title="Record times the map has had">
-                    Records
-                  </span>
-                </>
-              }
-            >
-              {rows.map((r) => (
-                <Row key={r.mapId}>
-                  <span className="min-w-0 truncate whitespace-nowrap upto900:whitespace-normal">
-                    <MapName where={r} />
-                  </span>
-                  <span className={strong}>{formatScore(r.score)}</span>
-                  <span className="min-w-0">
-                    <Teams teams={playersOnce(r.teams)} />
-                  </span>
-                  <span className={cn(stood, smallPrint, 'upto900:col-span-full upto900:row-[3]')}>
-                    <span className={phoneLabel}>Since </span>
-                    {formatDate(r.since)}
-                    <span className={phoneLabel}> · {r.records} records</span>
-                  </span>
-                  <span className="num text-right upto900:col-[2] upto900:row-[2]">{days(r.days)}</span>
-                  <span className={cn('num text-right text-text-muted', notOnPhones)}>{r.records}</span>
-                </Row>
-              ))}
-            </Table>
+            <RecordsTable key={order} rows={rows} />
             <SectionTitle>Records held now</SectionTitle>
             <Intro>Every map’s current record, by player (ties count for everyone tied).</Intro>
             <ShareBars rows={s.holders.filter((h) => h.held > 0)} total={s.records.length} />
@@ -150,6 +122,61 @@ export function RecordsPanel({ mode: modeParam, onMode }: { mode?: string; onMod
         )
       }}
     </Shell>
+  )
+}
+
+type RecordRow = WrStats['records'][number]
+const RECORD_COLUMNS: Record<string, SortColumn<RecordRow>> = {
+  map: byMap,
+  record: asc((r) => r.score),
+  heldBy: asc((r) => teamName(playersOnce(r.teams))),
+  since: desc((r) => r.since),
+  standing: desc((r) => r.days),
+  records: desc((r) => r.records),
+}
+
+/** The mode's records, sorted by a column header (picking another order starts unsorted). */
+function RecordsTable({ rows: own }: { rows: RecordRow[] }) {
+  const { rows, header } = useTableSort(own, RECORD_COLUMNS)
+  return (
+    <Table
+      cards
+      label="World records"
+      cols="[--st-cols:minmax(140px,1fr)_90px_minmax(0,1.6fr)_120px_110px_80px] upto900:[--st-cols:minmax(0,1fr)_76px] *:py-1.5"
+      head={
+        <>
+          {header('map', 'Map')}
+          {header('record', 'Record', 'text-right')}
+          {header('heldBy', 'Held by', 'upto900:col-span-full')}
+          {header('since', 'Since')}
+          {header('standing', 'Standing', 'text-right')}
+          {header(
+            'records',
+            <span title="Record times the map has had">Records</span>,
+            cn('text-right', notOnPhones),
+          )}
+        </>
+      }
+    >
+      {rows.map((r) => (
+        <Row key={r.mapId}>
+          <span className="min-w-0 truncate whitespace-nowrap upto900:whitespace-normal">
+            <MapName where={r} />
+          </span>
+          <span className={strong}>{formatScore(r.score)}</span>
+          <span className="min-w-0">
+            <Teams teams={playersOnce(r.teams)} />
+          </span>
+          <span className={cn(stood, smallPrint, 'upto900:col-span-full upto900:row-[3]')}>
+            <span className={phoneLabel}>Since </span>
+            {formatDate(r.since)}
+            <span className={phoneLabel}> · {r.records} records</span>
+          </span>
+          <span className="num text-right upto900:col-[2] upto900:row-[2]">{days(r.days)}</span>
+          <span className={cn('num text-right text-text-muted', notOnPhones)}>{r.records}</span>
+        </Row>
+      ))}
+    </Table>
   )
 }
 
@@ -207,9 +234,9 @@ export function HistoryPanel({ view: viewParam, onView }: { view?: string; onVie
           ) : view === 'days' ? (
             <DaysHolding rows={s.holders} />
           ) : view === 'shortest' ? (
-            <Reigns rows={s.shortest} quickest />
+            <Reigns key="shortest" rows={s.shortest} quickest />
           ) : (
-            <Reigns rows={s.longest} />
+            <Reigns key="longest" rows={s.longest} />
           )}
         </>
       )}
@@ -217,7 +244,8 @@ export function HistoryPanel({ view: viewParam, onView }: { view?: string; onVie
   )
 }
 
-const rank = (i: number) => <span className="num text-text-muted">{i + 1}</span>
+// A row's place in the table's own order, whatever it's sorted by now.
+const rank = (n: number) => <span className="num text-text-muted">{n}</span>
 const mapCell = (r: Parameters<typeof MapName>[0]['where']) => (
   <span className="min-w-0 truncate whitespace-nowrap upto900:whitespace-normal">
     <MapName where={r} />
@@ -228,8 +256,19 @@ const mapCell = (r: Parameters<typeof MapName>[0]['where']) => (
  * Record times by how long they stood: the longest (standing ones counting up to today), or with
  * `quickest` the soonest beaten, timed to the minute.
  */
-function Reigns({ rows, quickest = false }: { rows: Reign[]; quickest?: boolean }) {
-  if (!rows.length) return <EmptyState>No records beaten yet.</EmptyState>
+// How long a record stood, to the minute (one still standing: up to now).
+const reignLength = (r: Reign) => (r.end ? Date.parse(r.end) : Date.now()) - Date.parse(r.start)
+
+function Reigns({ rows: own, quickest = false }: { rows: Reign[]; quickest?: boolean }) {
+  const { rows, rankOf, header } = useTableSort<Reign>(own, {
+    map: byMap,
+    time: asc((r) => r.score),
+    setBy: asc((r) => teamName(r.teams)),
+    stood: quickest ? asc(reignLength) : desc(reignLength),
+    from: desc((r) => r.start),
+    beatenBy: asc((r) => (r.end ? teamName(firstTeams(r.beatenBy)) : null)),
+  })
+  if (!own.length) return <EmptyState>No records beaten yet.</EmptyState>
   return (
     <>
       <Intro>
@@ -243,19 +282,19 @@ function Reigns({ rows, quickest = false }: { rows: Reign[]; quickest?: boolean 
         cols={`[--st-cols:40px_minmax(120px,1fr)_80px_minmax(0,1.2fr)_100px_220px_minmax(0,1.2fr)] ${phoneCols} *:py-1.5`}
         head={
           <>
-            <span className="text-text-muted">#</span>
-            <span>Map</span>
-            <span className="text-right upto900:col-[3] upto900:row-[2]">Time</span>
-            <span className="upto900:col-[2] upto900:row-[2]">Set by</span>
-            <span className="text-right">Stood</span>
-            <span className={notOnPhones}>From – to</span>
-            <span className={notOnPhones}>Beaten by</span>
+            {header('rank', '#', 'text-text-muted')}
+            {header('map', 'Map')}
+            {header('time', 'Time', 'text-right upto900:col-[3] upto900:row-[2]')}
+            {header('setBy', 'Set by', 'upto900:col-[2] upto900:row-[2]')}
+            {header('stood', 'Stood', 'text-right')}
+            {header('from', 'From – to', notOnPhones)}
+            {header('beatenBy', 'Beaten by', notOnPhones)}
           </>
         }
       >
-        {rows.map((r, i) => (
+        {rows.map((r) => (
           <Row key={`${r.mapId}-${r.score}`}>
-            {rank(i)}
+            {rank(rankOf(r))}
             {mapCell(r)}
             <span className={`${strong} upto900:col-[3] upto900:row-[2]`}>{formatScore(r.score)}</span>
             <span className="upto900:col-[2] upto900:row-[2]">
@@ -296,7 +335,17 @@ function Reigns({ rows, quickest = false }: { rows: Reign[]; quickest?: boolean 
   )
 }
 
-function Domination({ rows }: { rows: WrStats['domination'] }) {
+type Streak = WrStats['domination'][number]
+
+function Domination({ rows: own }: { rows: Streak[] }) {
+  const { rows, rankOf, header } = useTableSort<Streak>(own, {
+    map: byMap,
+    player: asc((r) => r.player.name),
+    records: desc((r) => r.records),
+    held: desc((r) => r.days),
+    from: desc((r) => r.start),
+    times: asc((r) => r.toScore),
+  })
   return (
     <>
       <Intro>
@@ -308,19 +357,19 @@ function Domination({ rows }: { rows: WrStats['domination'] }) {
         cols={`[--st-cols:40px_minmax(120px,1fr)_minmax(0,1fr)_80px_100px_220px_150px] ${phoneCols} upto900:*:py-1.5`}
         head={
           <>
-            <span className="text-text-muted">#</span>
-            <span>Map</span>
-            <span className="upto900:col-[2] upto900:row-[2]">Player</span>
-            <span className="text-right upto900:col-[3] upto900:row-[2]">Records</span>
-            <span className="text-right">Held</span>
-            <span className={notOnPhones}>From – to</span>
-            <span className={`text-right ${notOnPhones}`}>Times</span>
+            {header('rank', '#', 'text-text-muted')}
+            {header('map', 'Map')}
+            {header('player', 'Player', 'upto900:col-[2] upto900:row-[2]')}
+            {header('records', 'Records', 'text-right upto900:col-[3] upto900:row-[2]')}
+            {header('held', 'Held', 'text-right')}
+            {header('from', 'From – to', notOnPhones)}
+            {header('times', 'Times', `text-right ${notOnPhones}`)}
           </>
         }
       >
-        {rows.map((r, i) => (
+        {rows.map((r) => (
           <Row key={`${r.mapId}-${r.player.profileNumber}-${r.start}`}>
-            {rank(i)}
+            {rank(rankOf(r))}
             {mapCell(r)}
             <PlayerCell player={r.player} size={22} className="upto900:col-[2] upto900:row-[2]" />
             <span className={`${strong} upto900:col-[3] upto900:row-[2]`}>
@@ -343,7 +392,17 @@ function Domination({ rows }: { rows: WrStats['domination'] }) {
   )
 }
 
-function Improvements({ rows }: { rows: WrStats['improvements'] }) {
+type Cut = WrStats['improvements'][number]
+
+function Improvements({ rows: own }: { rows: Cut[] }) {
+  const { rows, rankOf, header } = useTableSort<Cut>(own, {
+    map: byMap,
+    saved: desc((r) => r.delta),
+    time: asc((r) => r.toScore),
+    by: asc((r) => teamName(r.teams)),
+    date: desc((r) => r.date),
+    previous: asc((r) => teamName(r.previous)),
+  })
   return (
     <>
       <Intro>The biggest single cuts to a world record.</Intro>
@@ -353,19 +412,19 @@ function Improvements({ rows }: { rows: WrStats['improvements'] }) {
         cols={`[--st-cols:40px_minmax(120px,1fr)_90px_150px_minmax(0,1fr)_110px_minmax(0,1.3fr)] ${phoneCols} *:py-1.5`}
         head={
           <>
-            <span className="text-text-muted">#</span>
-            <span>Map</span>
-            <span className="text-right">Saved</span>
-            <span className={`text-right ${notOnPhones}`}>Time</span>
-            <span className="upto900:col-[2] upto900:row-[2]">By</span>
-            <span className="upto900:col-[3] upto900:row-[2] upto900:text-right">Date</span>
-            <span className={notOnPhones}>Previous record</span>
+            {header('rank', '#', 'text-text-muted')}
+            {header('map', 'Map')}
+            {header('saved', 'Saved', 'text-right')}
+            {header('time', 'Time', `text-right ${notOnPhones}`)}
+            {header('by', 'By', 'upto900:col-[2] upto900:row-[2]')}
+            {header('date', 'Date', 'upto900:col-[3] upto900:row-[2] upto900:text-right')}
+            {header('previous', 'Previous record', notOnPhones)}
           </>
         }
       >
-        {rows.map((r, i) => (
+        {rows.map((r) => (
           <Row key={`${r.mapId}-${r.toScore}`}>
-            {rank(i)}
+            {rank(rankOf(r))}
             {mapCell(r)}
             <span className={`${strong} ${live}`}>−{formatScore(r.delta)}</span>
             <span className={cn('num text-right upto900:text-left', phoneLine, smallPrint)}>
@@ -389,7 +448,17 @@ function Improvements({ rows }: { rows: WrStats['improvements'] }) {
   )
 }
 
-function DaysHolding({ rows }: { rows: WrStats['holders'] }) {
+type Holder = WrStats['holders'][number]
+
+function DaysHolding({ rows: all }: { rows: Holder[] }) {
+  // The top hundred by record-days; a header sorts them.
+  const top = useMemo(() => all.slice(0, 100), [all])
+  const { rows, rankOf, header } = useTableSort<Holder>(top, {
+    player: asc((r) => r.player.name),
+    days: desc((r) => r.days),
+    set: desc((r) => r.set),
+    held: desc((r) => r.held),
+  })
   return (
     <>
       <Intro>
@@ -402,18 +471,18 @@ function DaysHolding({ rows }: { rows: WrStats['holders'] }) {
         cols={`[--st-cols:40px_minmax(0,1fr)_130px_80px_120px_100px] ${phoneCols} upto900:*:py-1.5`}
         head={
           <>
-            <span className="text-text-muted">#</span>
-            <span>Player</span>
-            <span className="text-right">Record-days</span>
-            <span className={`text-right ${notOnPhones}`}>Years</span>
-            <span className={`text-right ${notOnPhones}`}>Records set</span>
-            <span className={`text-right ${notOnPhones}`}>Held now</span>
+            {header('rank', '#', 'text-text-muted')}
+            {header('player', 'Player')}
+            {header('days', 'Record-days', 'text-right')}
+            {header('days', 'Years', `text-right ${notOnPhones}`)}
+            {header('set', 'Records set', `text-right ${notOnPhones}`)}
+            {header('held', 'Held now', `text-right ${notOnPhones}`)}
           </>
         }
       >
-        {rows.slice(0, 100).map((h, i) => (
+        {rows.map((h) => (
           <Row key={h.player.profileNumber}>
-            {rank(i)}
+            {rank(rankOf(h))}
             <PlayerCell player={h.player} />
             <span className={strong}>
               {number(Math.round(h.days))}

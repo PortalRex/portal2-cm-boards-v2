@@ -17,6 +17,21 @@ const playersIn = (el: HTMLElement) =>
     .map((a) => a.textContent)
 
 describe('Stats: Runners', () => {
+  it('sorts peak points by a column header', async () => {
+    serveStats()
+    await renderRoute('/stats')
+    await screen.findByText('10,443')
+    await userEvent.click(within(table('Peak points')).getByRole('button', { name: 'Now' }))
+    // Points now: unity 20261, Bexc 19495, Zypeh 19165 (peaks: Zypeh, Bexc, unity).
+    expect(playersIn(table('Peak points')).slice(0, 3)).toEqual(['unity', 'Bexc', 'Zypeh'])
+    await userEvent.click(within(table('Peak points')).getByRole('button', { name: 'Player' }))
+    expect(playersIn(table('Peak points'))[0]).toBe(
+      [...site.peaks.overall]
+        .map((p) => p.user_name)
+        .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))[0],
+    )
+  })
+
   it('shows the totals, with the Runners tab marked', async () => {
     serveStats()
     await renderRoute('/stats')

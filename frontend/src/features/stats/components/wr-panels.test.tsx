@@ -38,6 +38,26 @@ describe('Stats: Records', () => {
     expect(maps()).toEqual(['Container Ride', 'Portal Carousel', 'Portal Gun'])
   })
 
+  it('sorts the records by a column header: its way first, then the other, then map order', async () => {
+    serveStats()
+    await renderRoute('/stats/records')
+    const maps = () => rowsOf('World records').map((r) => within(r).getAllByRole('link')[0]!.textContent)
+    const record = await screen.findByRole('button', { name: 'Record' })
+    await userEvent.click(record)
+    // Fastest first: 22.43, 23.63, 5:44.73.
+    expect(maps()).toEqual(['Portal Gun', 'Portal Carousel', 'Container Ride'])
+    expect(record.closest('[role=columnheader]')).toHaveAttribute('aria-sort', 'ascending')
+    await userEvent.click(record)
+    expect(maps()).toEqual(['Container Ride', 'Portal Carousel', 'Portal Gun'])
+    expect(record.closest('[role=columnheader]')).toHaveAttribute('aria-sort', 'descending')
+    await userEvent.click(screen.getByRole('button', { name: 'Standing' }))
+    expect(maps()).toEqual(['Container Ride', 'Portal Carousel', 'Portal Gun'])
+    await userEvent.click(screen.getByRole('button', { name: 'Standing' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Standing' }))
+    expect(record.closest('[role=columnheader]')).toHaveAttribute('aria-sort', 'none')
+    expect(maps()).toEqual(['Container Ride', 'Portal Carousel', 'Portal Gun'])
+  })
+
   it('switches mode in the address', async () => {
     serveStats()
     const { router } = await renderRoute('/stats/records')
@@ -78,6 +98,28 @@ describe('Stats: History', () => {
     await userEvent.click(await screen.findByRole('radio', { name: label }))
     await waitFor(() => expect(router.state.location.search).toEqual({ view }))
     expect(within(table(label)).getByRole('link', { name: first })).toBeInTheDocument()
+  })
+
+  it('sorts the history by a column header, each record keeping its place (#)', async () => {
+    serveStats()
+    await renderRoute('/stats/history')
+    await screen.findByRole('table', { name: 'Longest lasting records' })
+    await userEvent.click(screen.getByRole('button', { name: 'Time' }))
+    const rows = rowsOf('Longest lasting records')
+    // 14.95, 15.03, 27.35: the second, third and first longest-lasting.
+    expect(rows.map((r) => within(r).getAllByRole('link')[0]!.textContent)).toEqual([
+      'Stop the Box',
+      'Laser Platform',
+      'Propulsion Catch',
+    ])
+    expect(rows.map((r) => r.firstElementChild!.textContent)).toEqual(['2', '3', '1'])
+    // Another view starts in its own order.
+    await userEvent.click(screen.getByRole('radio', { name: 'Shortest lasting' }))
+    expect(
+      within(table('Shortest lasting records'))
+        .getByRole('button', { name: 'Time' })
+        .closest('[role=columnheader]'),
+    ).toHaveAttribute('aria-sort', 'none')
   })
 
   it('lists the records beaten soonest, timed to the second or minute', async () => {
