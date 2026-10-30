@@ -118,6 +118,7 @@ export function ProfilePage({
       ? p2Summary(catalog, view)
       : gameSummary(catalog, game, gameBoards.data ?? [], gameResults.data ?? { scores: {}, history: [] })
   const cardsPeak = game === PORTAL2 ? peakData : gamePeak.isSuccess ? gamePeak.data : null
+  const activity = game === PORTAL2 ? p.history : (gameResults.data?.history ?? [])
 
   return (
     <Page background={p.player.avatar} blur>
@@ -160,9 +161,9 @@ export function ProfilePage({
           <SideCards summary={summary} peak={cardsPeak} onPickDay={pickDay} />
         </Row>
         <AggregatedCard profileNumber={p.player.profileNumber} at={at ?? null} />
-        {p.history.length > 0 && (
+        {activity.length > 0 && (
           <Card icon={HistoryIcon} title="Activity" collapseId="profile.activity" className="mb-5">
-            <ActivityHeatmap history={p.history} />
+            <ActivityHeatmap key={game} history={activity} />
           </Card>
         )}
         <ProfileTabs profile={view} renderRunDetails={renderRunDetails} />

@@ -258,6 +258,10 @@ describe('Profile page', () => {
 
     await waitFor(() => expect(within(card('World Records')).getAllByText('1')).toHaveLength(2)) // Story and overall
     expect(within(card('Statistics')).getAllByText('Tramride').length).toBeGreaterThan(0)
+    // Activity counts Mel's one run, not the player's Portal 2 runs.
+    const activity = card('Activity')
+    await userEvent.selectOptions(within(activity).getByRole('combobox', { name: 'Year' }), 'All time')
+    expect(within(activity).getByText('1', { selector: 'strong' })).toBeInTheDocument()
     expect(requests.asked).toContain(`/profile/points_peak/${FIXTURE_PLAYER}?game_id=2`)
     await waitFor(() =>
       expect(requests.asked).toContain(`/profile/points_history/${FIXTURE_PLAYER}?game_id=2`),
