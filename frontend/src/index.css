@@ -366,15 +366,13 @@
   }
 }
 
-/* A rank tile (profile summary, chapter tables): tinted with the rank colour, the number in it. */
+/* A rank tile (profile summary, chapter tables, history): coloured like the map boards' rank tags
+   (RankTag), the rank's deeper colour toned down with grey and a white number, so a rank looks the
+   same on a profile as on a map. */
 @utility rank-tile {
-  background: color-mix(in srgb, var(--rank-color-dark) 32%, var(--track)) !important;
-  color: var(--rank-color-dark) !important;
+  background: color-mix(in oklab, var(--rank-color) 80%, #6b6b6b) !important;
+  color: #fff !important;
   font-weight: 600;
-  :root[data-theme='light'] & {
-    background: color-mix(in srgb, var(--rank-color) 20%, var(--track)) !important;
-    color: var(--rank-color) !important;
-  }
 }
 
 /* The signed-in player's own row on boards and lists. */
