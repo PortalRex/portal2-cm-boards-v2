@@ -183,7 +183,7 @@ describe('ranks', () => {
       </>,
     )
     expect(screen.getByRole('img', { name: 'World record (rank 1)' })).toBeInTheDocument()
-    expect(screen.getByText('20')).toHaveStyle({ '--rank-color-dark': 'rgb(66, 255, 66)' })
+    expect(screen.getByText('20')).toHaveStyle({ '--rank-color': 'rgb(0, 100, 0)' })
     expect(screen.getByText('–')).toBeInTheDocument()
   })
 

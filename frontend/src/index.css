@@ -357,7 +357,7 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* A rank number in its colour (style={rankVars(rank)}): the bright scale on dark, the deeper one on light. */
+/* A rank number in its colour (style={rankVars(rank)}): lifted towards white on dark, as it is on light. */
 @utility rank-tint {
   color: var(--rank-color-dark, inherit);
   font-weight: 600;
