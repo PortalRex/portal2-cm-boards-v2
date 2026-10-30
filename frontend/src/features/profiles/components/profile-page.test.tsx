@@ -112,15 +112,19 @@ describe('Profile page', () => {
     await waitFor(() => expect(router.state.location.search).toEqual({ at: '2024-06-10' }))
   })
 
-  it('collapses and opens every card at once', async () => {
+  it('collapses and opens the cards at once, all but the points card', async () => {
     serveProfile()
     await renderProfile()
     await userEvent.click(screen.getByRole('button', { name: /Collapse all/ }))
-    expect(screen.getByRole('button', { name: /Challenge Mode Points/ })).toHaveAttribute(
+    expect(screen.getByRole('button', { name: /Peak Points/ })).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.getByRole('button', { name: /Aggregated Times and Points/ })).toHaveAttribute(
       'aria-expanded',
       'false',
     )
-    expect(screen.getByRole('button', { name: /Peak Points/ })).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.getByRole('button', { name: /Challenge Mode Points/ })).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    )
     await userEvent.click(screen.getByRole('button', { name: /Expand all/ }))
     expect(screen.getByRole('button', { name: /Peak Points/ })).toHaveAttribute('aria-expanded', 'true')
   })

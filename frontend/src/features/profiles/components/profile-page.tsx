@@ -29,14 +29,14 @@ import { ProfileHeader } from './profile-header'
 import { GlobalRankCard, PointsCard, SideCards, StatisticsCard } from './profile-stats'
 import { ProfileTabs } from './profile-tabs'
 
-// The profile's cards above the tabs.
+// The profile's cards above the tabs that Collapse all closes (the points card stays open).
 const PROFILE_CARDS = [
-  'profile.points',
   'profile.rank',
   'profile.stats',
   'profile.average',
   'profile.wrs',
   'profile.peak',
+  'profile.aggregated',
   'profile.activity',
 ]
 
