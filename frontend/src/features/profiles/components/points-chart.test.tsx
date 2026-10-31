@@ -28,6 +28,8 @@ describe('PointsChart', () => {
     serveProfile()
     await chart()
     const plot = await screen.findByTestId('points-chart')
+    // On the view it opened on, there's nothing to reset.
+    expect(screen.queryByRole('button', { name: 'Reset zoom' })).not.toBeInTheDocument()
     fireEvent.wheel(plot, { deltaY: -100 })
     await userEvent.click(await screen.findByRole('button', { name: 'Reset zoom' }))
     expect(screen.queryByRole('button', { name: 'Reset zoom' })).not.toBeInTheDocument()
@@ -42,26 +44,36 @@ describe('PointsChart', () => {
     )
     HTMLElement.prototype.setPointerCapture = vi.fn()
     const win = await screen.findByTestId('history-minimap-window')
-    await userEvent.click(screen.getByRole('button', { name: 'Reset zoom' }))
+    const opened = win.style.left
+    const drag = (to: number) => {
+      const start = win.querySelector('[data-edge="start"]')!
+      const from = (parseFloat(win.style.left) / 100) * 1000
+      fireEvent.pointerDown(start, { clientX: from, button: 0 })
+      fireEvent.pointerMove(start, { clientX: to })
+      fireEvent.pointerUp(start)
+    }
+    // Its left edge dragged to the start: all of the history in view.
+    drag(0)
     expect(win).toHaveStyle({ left: '0%', width: '100%' })
-    // Its left edge dragged halfway: the second half of the history in view.
-    const start = win.querySelector('[data-edge="start"]')!
-    fireEvent.pointerDown(start, { clientX: 0, button: 0 })
-    fireEvent.pointerMove(start, { clientX: 500 })
-    fireEvent.pointerUp(start)
+    // Then halfway: the second half.
+    drag(500)
     expect(win).toHaveStyle({ left: '50%', width: '50%' })
     await userEvent.click(screen.getByRole('button', { name: 'Reset zoom' }))
-    expect(win).toHaveStyle({ left: '0%', width: '100%' })
+    expect(win.style.left).toBe(opened)
     vi.restoreAllMocks()
   })
 
-  it('opens past the early climb, all of it a click away', async () => {
+  it('opens past the early climb, and Reset zoom goes back there, not to all of it', async () => {
     serveProfile()
     await chart()
     const win = await screen.findByTestId('history-minimap-window')
-    expect(parseFloat(win.style.left)).toBeGreaterThan(0)
+    const opened = { left: win.style.left, width: win.style.width }
+    expect(parseFloat(opened.left)).toBeGreaterThan(0)
+    fireEvent.wheel(screen.getByTestId('points-chart'), { deltaY: -100 })
+    expect(win.style.width).not.toBe(opened.width)
     await userEvent.click(screen.getByRole('button', { name: 'Reset zoom' }))
-    expect(win).toHaveStyle({ left: '0%', width: '100%' })
+    expect({ left: win.style.left, width: win.style.width }).toEqual(opened)
+    expect(screen.queryByRole('button', { name: 'Reset zoom' })).not.toBeInTheDocument()
   })
 
   it('opens on all of a history under a year long', async () => {
