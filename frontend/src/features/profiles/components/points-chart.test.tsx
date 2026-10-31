@@ -63,16 +63,16 @@ describe('PointsChart', () => {
     vi.restoreAllMocks()
   })
 
-  it('opens past the early climb, and Reset zoom goes back there, not to all of it', async () => {
+  it('opens on the whole history, which Reset zoom goes back to', async () => {
     serveProfile()
     await chart()
     const win = await screen.findByTestId('history-minimap-window')
-    const opened = { left: win.style.left, width: win.style.width }
-    expect(parseFloat(opened.left)).toBeGreaterThan(0)
+    expect(win).toHaveStyle({ left: '0%', width: '100%' })
+    expect(screen.queryByRole('button', { name: 'Reset zoom' })).not.toBeInTheDocument()
     fireEvent.wheel(screen.getByTestId('points-chart'), { deltaY: -100 })
-    expect(win.style.width).not.toBe(opened.width)
+    expect(win.style.width).not.toBe('100%')
     await userEvent.click(screen.getByRole('button', { name: 'Reset zoom' }))
-    expect({ left: win.style.left, width: win.style.width }).toEqual(opened)
+    expect(win).toHaveStyle({ left: '0%', width: '100%' })
     expect(screen.queryByRole('button', { name: 'Reset zoom' })).not.toBeInTheDocument()
   })
 

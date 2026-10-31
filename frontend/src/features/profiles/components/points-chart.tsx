@@ -28,7 +28,6 @@ import {
   fitRows,
   labelAlign,
   labelSide,
-  openingView,
   placeLabels,
   PLOT_H,
   PLOT_TOP,
@@ -54,9 +53,10 @@ const MIN_SPAN = 14 * DAY
  * Points over time as they really were: ranks are recomputed against everyone's best times at
  * each date, so being passed shows as a drop. On the whole history each line is drawn against its
  * board's most points, so maxed boards meet; zoomed in, each has its own scale, so all of them show
- * their shape over each other. It opens past the early climb ([openingView]), where Reset zoom
- * goes back to; scroll over it, or use the bar under it, to zoom (all of it too); click a day (or
- * pick one in the date box) to see the profile as it was then. Each board's peak is marked.
+ * their shape over each other. It opens on all of it, from just before the first points
+ * ([chartRows]), where Reset zoom goes back to; scroll over it, or use the bar under it, to zoom;
+ * click a day (or pick one in the date box) to see the profile as it was then. Each board's peak
+ * is marked.
  */
 export function PointsChart({
   profileNumber,
@@ -97,20 +97,12 @@ export function PointsChart({
   // The bar under the chart draws the game's top line (overall, when it has one).
   const top = (series.find((s) => s.key === 'overall') ?? series[0]!).key
   const [zoom, setZoom] = useState<[number, number] | null>(null)
-  // A history (the player's, or another game's) opens on its part worth seeing, which Reset zoom
-  // goes back to (null: all of it).
-  const [openedOn, setOpenedOn] = useState<unknown>(null)
-  const [opening, setOpening] = useState<[number, number] | null>(null)
-  if (history.data && history.data !== openedOn) {
-    const view = openingView(
-      all,
-      series.map((s) => s.key),
-    )
-    setOpenedOn(history.data)
-    setOpening(view)
-    setZoom(view)
+  // A history (the player's, or another game's) opens on all of it.
+  const [shownFor, setShownFor] = useState<unknown>(null)
+  if (history.data !== shownFor) {
+    setShownFor(history.data)
+    setZoom(null)
   }
-  const atOpening = zoom?.[0] === opening?.[0] && zoom?.[1] === opening?.[1]
   const zoomRef = useWheelZoomOn(full, setZoom, { left: 10, right: 10, minSpan: MIN_SPAN })
   // The chart's width, to keep the peaks' labels apart.
   const [widthRef, width] = useWidth()
@@ -160,11 +152,11 @@ export function PointsChart({
 
   return (
     <div className="relative mt-[18px]">
-      {!atOpening && (
+      {zoomed && (
         // Over the chart's top-right corner, so the legend keeps its one line.
         <button
           type="button"
-          onClick={() => setZoom(opening)}
+          onClick={() => setZoom(null)}
           className="absolute -top-1.5 right-2.5 z-[1] cursor-pointer rounded-[4px] border border-line bg-panel px-2 py-px text-xs text-text-2 uppercase hover:border-line-strong hover:text-foreground"
         >
           Reset zoom
