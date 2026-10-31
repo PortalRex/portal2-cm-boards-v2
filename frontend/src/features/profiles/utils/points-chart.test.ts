@@ -42,6 +42,29 @@ describe('chartRows', () => {
     expect(rows[3]).toEqual({ date: '2024-01-24', t: dayMs('2024-01-24'), sp: 310, peakOf: 'sp' })
   })
 
+  it('starts just before the first points, not years earlier at the first run', () => {
+    const rows = chartRows(
+      [
+        { date: '2021-11-27', sp: 0, coop: 0, overall: 0 },
+        { date: '2023-05-01', sp: 0, coop: 0, overall: 0 },
+        { date: '2025-11-07', sp: 0, coop: 0, overall: 0 },
+        { date: '2025-11-18', sp: 0, coop: 25, overall: 25 },
+        { date: '2025-11-29', sp: 1, coop: 67, overall: 68 },
+      ],
+      null,
+    )
+    // The last day at 0, so the line rises from it.
+    expect(rows.map((r) => r.date)).toEqual(['2025-11-07', '2025-11-18', '2025-11-29'])
+  })
+
+  it('keeps a history without points whole', () => {
+    const none = [
+      { date: '2024-01-07', sp: 0, coop: 0, overall: 0 },
+      { date: '2024-01-14', sp: 0, coop: 0, overall: 0 },
+    ]
+    expect(chartRows(none, null)).toHaveLength(2)
+  })
+
   it('adds no peaks to a history too short to draw', () => {
     expect(chartRows(samples.slice(0, 1), { sp: { points: 9, date: '2024-02-01' } })).toHaveLength(1)
   })

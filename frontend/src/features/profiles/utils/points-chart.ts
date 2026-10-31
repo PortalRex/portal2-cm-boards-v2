@@ -33,9 +33,19 @@ const LABEL_ROOM = 20
 
 export const dayMs = (date: string) => Date.parse(`${date.slice(0, 10)}T00:00:00Z`)
 
-/** The samples plus each board's peak, by date. */
+/**
+ * The samples from the last one without points before the first with them: the history starts at
+ * a player's first run on the boards, which can be years before their first points (a run outside
+ * the points places), and those years would all be a flat 0.
+ */
+export function fromFirstPoints(samples: PointsSample[]): PointsSample[] {
+  const first = samples.findIndex((s) => s.sp > 0 || s.coop > 0 || s.overall > 0)
+  return first <= 0 ? samples : samples.slice(first - 1)
+}
+
+/** The samples (from just before the first points) plus each board's peak, by date. */
 export function chartRows(samples: PointsSample[], peak: PointsPeak | null | undefined): ChartRow[] {
-  const rows: ChartRow[] = samples.map((d) => ({ ...d, t: dayMs(d.date) }))
+  const rows: ChartRow[] = fromFirstPoints(samples).map((d) => ({ ...d, t: dayMs(d.date) }))
   if (rows.length < 2) return rows
   const extra = SERIES.flatMap(({ key }) => {
     const p = peak?.[key]
