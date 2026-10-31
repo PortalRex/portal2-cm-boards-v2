@@ -38,7 +38,17 @@ describe('chartRows', () => {
       '2024-01-24',
       '2024-01-28',
     ])
-    expect(rows[3]).toEqual({ date: '2024-01-24', t: dayMs('2024-01-24'), sp: 310, peakOf: 'sp' })
+    expect(rows[3]).toEqual({ date: '2024-01-24', t: dayMs('2024-01-24'), sp: 310, peakOf: ['sp'] })
+  })
+
+  it('puts boards that peaked the same day in one row, so its tooltip names them all', () => {
+    const rows = chartRows(samples, {
+      sp: { points: 310.4, date: '2024-01-24' },
+      overall: { points: 370, date: '2024-01-24T00:00:00' },
+    })
+    expect(rows.filter((r) => r.peakOf)).toEqual([
+      { date: '2024-01-24', t: dayMs('2024-01-24'), sp: 310, overall: 370, peakOf: ['sp', 'overall'] },
+    ])
   })
 
   it('starts just before the first points, not years earlier at the first run', () => {

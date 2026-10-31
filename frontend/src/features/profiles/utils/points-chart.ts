@@ -13,8 +13,9 @@ export interface PointsSample {
 export interface ChartRow extends Partial<Record<PointsBoardKey, number>> {
   date: string
   t: number
-  /** A board's peak, added between the samples (which are weekly and can miss the peak day). */
-  peakOf?: PointsBoardKey
+  /** The boards whose peak this is, added between the samples (which are weekly and can miss the
+   *  peak day); boards that peaked the same day share one, so its tooltip names them all. */
+  peakOf?: PointsBoardKey[]
   /** The real points, where the board's value is scaled for drawing ([scaleRows]). */
   pts?: Partial<Record<PointsBoardKey, number>>
 }
@@ -43,16 +44,21 @@ export function fromFirstPoints(samples: PointsSample[]): PointsSample[] {
   return first <= 0 ? samples : samples.slice(first - 1)
 }
 
-/** The samples (from just before the first points) plus each board's peak, by date. */
+/** The samples (from just before the first points) plus each board's peak, one row a day, by date. */
 export function chartRows(samples: PointsSample[], peak: PointsPeak | null | undefined): ChartRow[] {
   const rows: ChartRow[] = fromFirstPoints(samples).map((d) => ({ ...d, t: dayMs(d.date) }))
   if (rows.length < 2) return rows
-  const extra = SERIES.flatMap(({ key }) => {
+  const peaks = new Map<string, ChartRow & { peakOf: PointsBoardKey[] }>()
+  for (const { key } of SERIES) {
     const p = peak?.[key]
-    if (!p?.date || !(p.points > 0)) return []
-    return [{ date: p.date.slice(0, 10), t: dayMs(p.date), [key]: Math.round(p.points), peakOf: key }]
-  })
-  return [...rows, ...extra].sort((a, b) => a.t - b.t)
+    if (!p?.date || !(p.points > 0)) continue
+    const date = p.date.slice(0, 10)
+    const row = peaks.get(date) ?? { date, t: dayMs(date), peakOf: [] }
+    row[key] = Math.round(p.points)
+    row.peakOf.push(key)
+    peaks.set(date, row)
+  }
+  return [...rows, ...peaks.values()].sort((a, b) => a.t - b.t)
 }
 
 /** The most points each board has. */
