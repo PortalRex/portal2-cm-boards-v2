@@ -12,29 +12,36 @@ interface MapSort {
   key?: (s: MapScore) => number | null | undefined
   desc?: boolean
   column?: SortColumn
+  /** The column's numbers run the other way from `key`'s (points go down as ranks go up). */
+  opposite?: boolean
 }
 
 const time = (s: MapScore) => s.score
 const next = (s: MapScore) => s.deltaNext
 const wr = (s: MapScore) => s.deltaWr
-const points = (s: MapScore) => s.points
 const date = (s: MapScore) => (s.timestamp ? parseTimestamp(s.timestamp)?.getTime() : null)
 
+// A column's first entry is what a click on its header picks; the next click flips it, the one
+// after goes back to map order. The Points column sorts by rank: the most points are the best rank
+// (no separate points orders, which were the rank ones again).
 export const MAP_SORTS: MapSort[] = [
   { value: 'default', label: 'Map order' },
-  { value: 'rank', label: 'Best rank first', key: (s) => s.rank },
-  { value: 'worst', label: 'Worst rank first', key: (s) => s.rank, desc: true },
+  { value: 'rank', label: 'Best rank first', key: (s) => s.rank, column: 'points', opposite: true },
+  {
+    value: 'worst',
+    label: 'Worst rank first',
+    key: (s) => s.rank,
+    desc: true,
+    column: 'points',
+    opposite: true,
+  },
   { value: 'date', label: 'Newest first', key: date, desc: true },
-  // A column's first entry is what a click on its header picks; the next click flips it, the one
-  // after goes back to map order.
   { value: 'time', label: 'Fastest time first', key: time, column: 'time' },
   { value: 'time-desc', label: 'Slowest time first', key: time, desc: true, column: 'time' },
   { value: 'next', label: 'Smallest ΔNext first', key: next, column: 'next' },
   { value: 'next-desc', label: 'Largest ΔNext first', key: next, desc: true, column: 'next' },
   { value: 'wr', label: 'Smallest ΔWR first', key: wr, column: 'wr' },
   { value: 'wr-desc', label: 'Largest ΔWR first', key: wr, desc: true, column: 'wr' },
-  { value: 'points', label: 'Most points first', key: points, desc: true, column: 'points' },
-  { value: 'points-asc', label: 'Fewest points first', key: points, column: 'points' },
 ]
 
 /**
@@ -48,11 +55,11 @@ export function columnSort(column: SortColumn, current: string): string {
   return first!.value
 }
 
-/** Which way the table is sorted by a column, if it is. */
+/** Which way a column's numbers go in the table's order, if it's sorted by that column. */
 export function columnDirection(column: SortColumn, current: string): 'asc' | 'desc' | null {
   const sort = MAP_SORTS.find((o) => o.value === current)
   if (sort?.column !== column) return null
-  return sort.desc ? 'desc' : 'asc'
+  return Boolean(sort.desc) !== Boolean(sort.opposite) ? 'desc' : 'asc'
 }
 
 /**

@@ -189,25 +189,26 @@ describe('Profile page', () => {
     // The score tables' headers, not the aggregated card's.
     const headers = () =>
       screen.getAllByRole('button', { name: 'Sort by Points' }).filter((b) => !b.closest('[role="table"]'))
+    // Points sort by rank: the most points are the best rank.
     await userEvent.click(headers()[0]!)
-    expect(screen.getByRole('heading', { name: 'Most points first', level: 3 })).toBeInTheDocument()
-    expect(select).toHaveValue('points')
+    expect(screen.getByRole('heading', { name: 'Best rank first', level: 3 })).toBeInTheDocument()
+    expect(select).toHaveValue('rank')
     // Every chapter's maps in it: its title isn't a link to chapter 1's board.
     expect(
-      within(screen.getByRole('heading', { name: 'Most points first', level: 3 })).queryByRole('link'),
+      within(screen.getByRole('heading', { name: 'Best rank first', level: 3 })).queryByRole('link'),
     ).not.toBeInTheDocument()
     // One table now, its header showing the order.
     const [header] = headers()
     expect(headers()).toHaveLength(1)
-    expect(header).toHaveAttribute('title', 'Fewest points first')
+    expect(header).toHaveAttribute('title', 'Worst rank first')
     await userEvent.click(header!)
-    expect(screen.getByRole('heading', { name: 'Fewest points first', level: 3 })).toBeInTheDocument()
-    expect(select).toHaveValue('points-asc')
+    expect(screen.getByRole('heading', { name: 'Worst rank first', level: 3 })).toBeInTheDocument()
+    expect(select).toHaveValue('worst')
     // The third click turns the sorting off: the chapters again.
     expect(headers()[0]).toHaveAttribute('title', 'Map order')
     await userEvent.click(headers()[0]!)
     expect(select).toHaveValue('default')
-    expect(screen.queryByRole('heading', { name: /points first/, level: 3 })).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: /rank first/, level: 3 })).not.toBeInTheDocument()
     expect(headers().length).toBeGreaterThan(1)
   })
 

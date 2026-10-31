@@ -46,13 +46,13 @@ describe('orderedChapters', () => {
     expect(maps('next')).toEqual([A, C, B, D])
     expect(maps('next-desc')).toEqual([C, A, B, D])
     expect(maps('wr')).toEqual([B, C, A, D])
-    expect(maps('points')).toEqual([B, A, C, D])
-    expect(maps('points-asc')).toEqual([A, B, C, D])
+    expect(maps('rank')).toEqual([B, A, C, D])
+    expect(maps('worst')).toEqual([A, C, B, D])
   })
 
   it('names the one table after the order', () => {
-    const [table] = orderedChapters(chapters, scores, 'points')
-    expect(table).toMatchObject({ name: 'Most points first', sorted: true })
+    const [table] = orderedChapters(chapters, scores, 'rank')
+    expect(table).toMatchObject({ name: 'Best rank first', sorted: true })
   })
 })
 
@@ -61,18 +61,20 @@ describe('columnSort', () => {
     expect(columnSort('time', 'default')).toBe('time')
     expect(columnSort('time', 'time')).toBe('time-desc')
     expect(columnSort('time', 'time-desc')).toBe('default')
-    // Points start with the most.
-    expect(columnSort('points', 'time')).toBe('points')
-    expect(columnSort('points', 'points')).toBe('points-asc')
-    expect(columnSort('points', 'points-asc')).toBe('default')
+    // Points sort by rank (the most points are the best rank), starting with the best.
+    expect(columnSort('points', 'time')).toBe('rank')
+    expect(columnSort('points', 'rank')).toBe('worst')
+    expect(columnSort('points', 'worst')).toBe('default')
     // Another order picked in the menu: the column's first.
     expect(columnSort('wr', 'rank')).toBe('wr')
   })
 
   it('tells which way a column is sorted', () => {
     expect(columnDirection('wr', 'wr')).toBe('asc')
-    expect(columnDirection('points', 'points')).toBe('desc')
-    expect(columnDirection('wr', 'points')).toBeNull()
+    // Best rank first: the points go down.
+    expect(columnDirection('points', 'rank')).toBe('desc')
+    expect(columnDirection('points', 'worst')).toBe('asc')
+    expect(columnDirection('wr', 'worst')).toBeNull()
     expect(columnDirection('wr', 'rank')).toBeNull()
   })
 })
