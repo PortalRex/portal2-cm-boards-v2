@@ -109,7 +109,7 @@ export function NavDropdown({ expanded, children }: { expanded: boolean; childre
       role="menu"
       className={cn(
         menuPanel,
-        'invisible absolute top-[92px] -left-3 z-30 min-w-[220px] -translate-y-1 opacity-0 transition-[opacity,transform,visibility] duration-100',
+        'invisible absolute top-[92px] -left-3 z-30 min-[1321px]:glass-float min-w-[220px] -translate-y-1 opacity-0 transition-[opacity,transform,visibility] duration-100',
         'group-hover/nav:visible group-hover/nav:translate-y-0 group-hover/nav:opacity-100 group-has-[:focus-visible]/nav:visible group-has-[:focus-visible]/nav:translate-y-0 group-has-[:focus-visible]/nav:opacity-100',
         'upto1320:visible upto1320:static upto1320:translate-y-0 upto1320:bg-transparent upto1320:pt-0 upto1320:pb-2 upto1320:pl-10 upto1320:opacity-100 upto1320:shadow-none',
         !expanded && 'upto1320:hidden',

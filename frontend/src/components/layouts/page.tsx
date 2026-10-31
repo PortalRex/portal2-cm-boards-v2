@@ -50,7 +50,7 @@ export function Page({
         aria-hidden
         data-testid="page-background"
         className={cn(
-          'fixed inset-0 z-0 bg-page bg-cover bg-top after:absolute after:inset-0 after:content-[""] ios:absolute ios:bottom-auto ios:h-lvh',
+          'glass-backdrop fixed inset-0 z-0 bg-page bg-cover bg-top after:absolute after:inset-0 after:content-[""] ios:absolute ios:bottom-auto ios:h-lvh',
           TINTS[tint],
           blur && 'scale-[1.08] blur-[18px] brightness-[0.85]',
         )}

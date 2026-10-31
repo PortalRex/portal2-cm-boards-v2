@@ -187,7 +187,7 @@ function HistoryTable({ rows, stale, map }: { rows: Run[]; stale: boolean; map: 
         <div
           key={e.id}
           role="row"
-          className={cn(rowBase, hideOnPhones, i % 2 === 0 ? 'bg-row' : 'bg-[rgb(var(--panel-rgb)/0.9)]')}
+          className={cn(rowBase, hideOnPhones, i % 2 === 0 ? 'bg-row' : 'bg-row-stripe')}
         >
           <span role="cell" className="text-text-muted" title={formatDateTime(e.timestamp)}>
             {formatDate(e.timestamp)}

@@ -52,7 +52,7 @@ export function MapCard({ map, scores }: { map: MapInfo; scores: PreviewRun[] | 
   const demoColumn = [wr, ...shown].some((e) => e?.demoId)
 
   return (
-    <article className="min-w-0 border-t-[3px] border-brand bg-panel">
+    <article className="glass min-w-0 border-t-[3px] border-brand bg-panel">
       <AppLink
         href={mapLink(catalog, map)}
         className="group/head relative flex h-[77px] items-center justify-center bg-cover bg-center px-2.5 before:absolute before:inset-0 before:bg-black/35 before:transition-colors before:content-[''] hover:before:bg-black/15 upto700:h-[58px] upto700:px-1.5"

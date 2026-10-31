@@ -4,7 +4,7 @@ import { readJson, readStorage, STORAGE_KEYS, subscribeStorage, writeStorage } f
 describe('storage', () => {
   afterEach(() => vi.restoreAllMocks())
 
-  it('keeps the legacy keys', () => {
+  it("keeps the legacy keys, plus the new site's own", () => {
     expect(STORAGE_KEYS).toEqual({
       game: 'p2cm.game',
       theme: 'p2cm.theme',
@@ -12,6 +12,7 @@ describe('storage', () => {
       coopPbStyle: 'p2cm.coopPbStyle',
       collapsed: 'p2cm.collapsed',
       follows: 'p2cm.follows',
+      glass: 'p2cm.glass',
     })
   })
 

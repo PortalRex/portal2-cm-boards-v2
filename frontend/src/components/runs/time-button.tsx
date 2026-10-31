@@ -110,7 +110,7 @@ function RunHistoryDialog({
         >
           <DialogPrimitive.Content
             aria-describedby={undefined}
-            className="w-full max-w-[760px] rounded-md border border-line bg-panel pb-3 text-foreground shadow-[0_12px_40px_rgba(0,0,0,0.5)] outline-none"
+            className="glass w-full max-w-[760px] rounded-md border border-line bg-panel pb-3 text-foreground shadow-[0_12px_40px_rgba(0,0,0,0.5)] outline-none"
           >
             <header className="flex items-center gap-3 rounded-t-md bg-panel-head px-4 py-3">
               <Avatar src={player.avatar} name={player.name} size={36} />

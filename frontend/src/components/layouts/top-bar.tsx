@@ -92,14 +92,14 @@ export function TopBar() {
 
   return (
     // On iPhones its gradient runs up behind the status bar; the bar itself stays below it.
-    <header className="relative z-20 bg-linear-to-b from-[rgb(var(--page-rgb)/0.55)] to-[rgb(var(--page-rgb)/0.25)] pt-[env(safe-area-inset-top,0px)]">
+    <header className="glass relative z-20 bg-linear-to-b from-[rgb(var(--page-rgb)/0.55)] to-[rgb(var(--page-rgb)/0.25)] pt-[env(safe-area-inset-top,0px)]">
       <div className="mx-auto flex h-[110px] max-w-content items-center justify-center gap-12 px-6 upto1320:h-[72px] upto1320:justify-between upto1320:gap-4 upto480:gap-2 upto480:px-3.5">
         <BrandMenu />
 
         <nav
           aria-label="Main"
           className={cn(
-            'upto1320:absolute upto1320:top-[72px] upto1320:right-0 upto1320:left-0 upto1320:bg-menu upto1320:shadow-[0_12px_30px_rgba(0,0,0,0.45)]',
+            'upto1320:absolute upto1320:top-[72px] upto1320:right-0 upto1320:left-0 upto1320:glass-float upto1320:bg-menu upto1320:shadow-[0_12px_30px_rgba(0,0,0,0.45)]',
             !open && 'upto1320:hidden',
           )}
         >

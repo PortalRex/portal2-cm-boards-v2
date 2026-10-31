@@ -106,7 +106,7 @@ function GameProfileTabs({
             aria-selected={tab === t.key}
             className={cn(
               'h-[46px] min-w-[124px] flex-none cursor-pointer rounded-t-[10px] border-0 px-7 text-lg font-light text-text-2 uppercase upto900:min-w-0 upto900:px-4 upto900:text-base',
-              tab === t.key ? 'bg-[rgb(var(--panel-rgb)/0.97)] text-foreground' : 'bg-control-raised',
+              tab === t.key ? 'bg-panel-body text-foreground' : 'bg-control-raised',
             )}
             onClick={(e) => {
               // On a phone the tabs scroll sideways: keep the picked one in view.
@@ -123,7 +123,7 @@ function GameProfileTabs({
       </div>
 
       <div
-        className="rounded-[0_12px_12px_12px] bg-[rgb(var(--panel-rgb)/0.97)] px-9 pt-[26px] pb-10 upto800:px-2.5 upto800:pt-4 upto800:pb-6"
+        className="glass rounded-[0_12px_12px_12px] bg-panel-body px-9 pt-[26px] pb-10 upto800:px-2.5 upto800:pt-4 upto800:pb-6"
         role="tabpanel"
       >
         {P2_MODES.includes(tab) && season ? (

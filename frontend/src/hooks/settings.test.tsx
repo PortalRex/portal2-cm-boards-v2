@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { useCollapsed, useCollapsedGroup } from './use-collapsed'
 import { useCoopPbStyle } from './use-coop-pb-style'
 import { useFollows } from './use-follows'
+import { useGlass } from './use-glass'
 import { useTheme } from './use-theme'
 
 describe('useTheme', () => {
@@ -22,6 +23,30 @@ describe('useTheme', () => {
   it('opens with a theme saved by the legacy site', () => {
     localStorage.setItem('p2cm.theme', 'light')
     expect(renderHook(() => useTheme()).result.current.theme).toBe('light')
+  })
+})
+
+describe('useGlass', () => {
+  it('is off by default, and puts the glass look on <html> while on', () => {
+    const { result } = renderHook(() => useGlass())
+    expect(result.current[0]).toBe(false)
+    expect(document.documentElement.dataset.glass).toBeUndefined()
+    act(() => result.current[1](true))
+    expect(result.current[0]).toBe(true)
+    expect(document.documentElement.dataset.glass).toBe('on')
+    expect(localStorage.getItem('p2cm.glass')).toBe('1')
+    act(() => result.current[1](false))
+    expect(document.documentElement.dataset.glass).toBeUndefined()
+    expect(localStorage.getItem('p2cm.glass')).toBeNull()
+  })
+
+  it('opens with the saved choice, and leaves the theme alone', () => {
+    localStorage.setItem('p2cm.glass', '1')
+    localStorage.setItem('p2cm.theme', 'light')
+    expect(renderHook(() => useGlass()).result.current[0]).toBe(true)
+    expect(renderHook(() => useTheme()).result.current.theme).toBe('light')
+    expect(document.documentElement.dataset.glass).toBe('on')
+    expect(document.documentElement.dataset.theme).toBe('light')
   })
 })
 

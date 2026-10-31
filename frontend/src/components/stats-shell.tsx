@@ -39,7 +39,7 @@ export function StatsShell({ children }: { children: ReactNode }) {
             activeOptions={{ exact: true, includeSearch: false }}
             className={tab}
             activeProps={{
-              className: 'bg-[rgb(var(--panel-rgb)/0.97)]! text-foreground!',
+              className: 'bg-panel-body! text-foreground!',
               'aria-current': 'page',
             }}
           >

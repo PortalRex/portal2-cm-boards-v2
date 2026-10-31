@@ -9,6 +9,7 @@ import { TopBar } from '@/components/layouts/top-bar'
 import { SampleDataNotice } from '@/components/sample-data-notice'
 import { StaffInbox } from '@/features/admin/components/staff-inbox'
 import { SubmitRun } from '@/features/runs/components/submit-run'
+import { useGlass } from '@/hooks/use-glass'
 import { useTheme } from '@/hooks/use-theme'
 import { meQueryOptions, siteQueryOptions } from '@/lib/auth'
 import { catalogQueryOptions } from '@/lib/catalog'
@@ -39,8 +40,10 @@ const slots: LayoutSlots = {
 }
 
 function RootLayout() {
-  // Keeps <html data-theme> and the browser's theme colour in step with the saved theme.
+  // Keeps <html data-theme> and the browser's theme colour in step with the saved theme, and
+  // <html data-glass> with the glass look.
   useTheme()
+  useGlass()
   return (
     <PrivateGate>
       <LayoutSlotsContext.Provider value={slots}>

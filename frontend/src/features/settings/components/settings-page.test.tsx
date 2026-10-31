@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
@@ -65,6 +65,22 @@ describe('Settings', () => {
     expect(screen.getByRole('radio', { name: 'Coloured name' })).toBeChecked()
     await userEvent.click(screen.getByRole('radio', { name: 'Trophy' }))
     expect(localStorage.getItem('p2cm.coopPbStyle')).toBe('icon')
+  })
+
+  it('turns the liquid glass look on and off, saved in this browser', async () => {
+    await renderWithProviders(<SettingsPage />)
+    const glass = within(screen.getByRole('radiogroup', { name: 'Liquid glass' }))
+    expect(glass.getByRole('radio', { name: 'Off' })).toBeChecked()
+    await userEvent.click(glass.getByRole('radio', { name: 'On' }))
+    expect(document.documentElement.dataset.glass).toBe('on')
+    expect(localStorage.getItem('p2cm.glass')).toBe('1')
+    // A look on top of the theme: the theme switch keeps its own choice.
+    await userEvent.click(screen.getByRole('radio', { name: 'Light' }))
+    expect(document.documentElement.dataset.theme).toBe('light')
+    expect(document.documentElement.dataset.glass).toBe('on')
+    await userEvent.click(glass.getByRole('radio', { name: 'Off' }))
+    expect(document.documentElement.dataset.glass).toBeUndefined()
+    expect(localStorage.getItem('p2cm.glass')).toBeNull()
   })
 
   it('saves your own name, and goes back to the Steam one', async () => {

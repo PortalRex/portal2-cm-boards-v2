@@ -23,7 +23,7 @@ export function PlayerSuggestions({
   return (
     <ul
       aria-label={label}
-      className="absolute inset-x-0 top-[calc(100%+4px)] z-20 m-0 list-none rounded-md border border-line bg-menu p-1"
+      className="glass-float absolute inset-x-0 top-[calc(100%+4px)] z-20 m-0 list-none rounded-md border border-line bg-menu p-1"
     >
       {(results.data ?? []).map((p) => (
         <li key={p.profileNumber}>

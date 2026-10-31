@@ -69,6 +69,16 @@
 
 ## Log
 <!-- Newest first. One entry per finished item: date, what was done, commit, tests added. -->
+- 2026-10-31: New (asked for): a liquid glass look, switched on in Settings → Appearance → Liquid glass
+  (`hooks/use-glass.ts`, saved as `p2cm.glass` = "1", the new site's own key; `public/theme.js` applies it before
+  first paint). It sits on top of the dark or light theme: `html[data-glass]` swaps the surface tokens for
+  translucent ones and widens `--radius`, `<Page>`'s background shows through with a blue / orange glow
+  (`glass-backdrop`), and surfaces marked `glass` (in the flow) or `glass-float` (already positioned: menus,
+  popups, dialogs) blur what's behind them under a bright rim. The blur is on `::before`, not the element, so it
+  doesn't become the containing block of fixed children or cut off a menu's blur inside it. The panel colour
+  at fixed opacities (`rgb(var(--panel-rgb)/0.97|0.9|0.6)`) became tokens (`bg-panel-body`, `bg-row-stripe`,
+  `bg-panel-soft`) so glass can swap them; nothing changes with glass off. Checked in the browser on Score Updates,
+  a map, aggregated, a profile, menus, light and phone. Commit (pending). Tests: 4.
 - 2026-10-24: New (asked for, like the old boards' profile box): "Aggregated Times and Points" card on the profile
   (`aggregated-card.tsx`): Points and Times tables with rank, value, Δnext and ΔWR for every single player chapter,
   co-op course and total, each linking to its board on the player; follows the profile's look-back day. Server:

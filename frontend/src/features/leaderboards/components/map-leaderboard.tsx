@@ -156,7 +156,7 @@ export function MapLeaderboard({
                     'cursor-pointer hover:brightness-[1.15]',
                     // Legacy's board isn't striped: its two stripe rules tie, and the later one (the
                     // translucent panel) matches every entry's row.
-                    open ? 'bg-seg-active' : 'bg-[rgb(var(--panel-rgb)/0.9)]',
+                    open ? 'bg-seg-active' : 'bg-row-stripe',
                   )}
                 >
                   <span role="cell" className="num flex justify-center text-[15px]">
@@ -280,7 +280,7 @@ function YourBest({
     'mb-4 flex w-full flex-wrap items-center gap-x-[18px] gap-y-1.5 rounded-md border px-4 py-2.5 text-left text-lg'
   if (!entry && !pb) {
     return (
-      <div className={cn(box, 'border-line bg-[rgb(var(--panel-rgb)/0.6)] text-base text-text-muted')}>
+      <div className={cn(box, 'border-line bg-panel-soft text-base text-text-muted')}>
         You don’t have a time on this map yet.
       </div>
     )
@@ -311,14 +311,11 @@ function YourBest({
     <button
       type="button"
       onClick={() => onShow(entry)}
-      className={cn(
-        box,
-        'cursor-pointer border-brand bg-[rgb(var(--panel-rgb)/0.6)] text-foreground hover:bg-seg-hover',
-      )}
+      className={cn(box, 'cursor-pointer border-brand bg-panel-soft text-foreground hover:bg-seg-hover')}
     >
       {body}
     </button>
   ) : (
-    <div className={cn(box, 'border-brand bg-[rgb(var(--panel-rgb)/0.6)]')}>{body}</div>
+    <div className={cn(box, 'border-brand bg-panel-soft')}>{body}</div>
   )
 }

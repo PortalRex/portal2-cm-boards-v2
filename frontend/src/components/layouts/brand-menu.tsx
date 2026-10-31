@@ -68,7 +68,7 @@ export function BrandMenu() {
             aria-label="Game"
             className={cn(
               menuPanel,
-              'invisible absolute top-full -left-3 z-30 flex min-w-[260px] -translate-y-1 flex-col py-2 opacity-0 transition-[opacity,transform,visibility] duration-100',
+              'glass-float invisible absolute top-full -left-3 z-30 flex min-w-[260px] -translate-y-1 flex-col py-2 opacity-0 transition-[opacity,transform,visibility] duration-100',
               '[@media(hover:hover)]:group-hover/brand:visible [@media(hover:hover)]:group-hover/brand:translate-y-0 [@media(hover:hover)]:group-hover/brand:opacity-100 group-has-[:focus-visible]/brand:visible group-has-[:focus-visible]/brand:translate-y-0 group-has-[:focus-visible]/brand:opacity-100',
               open && 'visible translate-y-0 opacity-100',
               picked && 'invisible! opacity-0!',

@@ -120,7 +120,7 @@ function StaffDialog({
         <DialogPrimitive.Overlay className="fixed inset-0 z-[1000] flex items-start justify-center overflow-y-auto bg-black/60 px-4 pt-[72px] pb-4">
           <DialogPrimitive.Content
             aria-describedby={undefined}
-            className="w-full max-w-[640px] rounded-md border border-line bg-panel text-foreground shadow-[0_12px_40px_rgba(0,0,0,0.5)] outline-none"
+            className="glass w-full max-w-[640px] rounded-md border border-line bg-panel text-foreground shadow-[0_12px_40px_rgba(0,0,0,0.5)] outline-none"
           >
             <header className="flex items-center gap-2.5 rounded-t-md bg-panel-head px-4 py-3">
               <ShieldIcon className="size-6" />

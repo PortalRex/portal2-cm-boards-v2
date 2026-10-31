@@ -263,7 +263,7 @@ function TipCard({
       aria-label={pinned ? `Runs on ${title}` : undefined}
       style={style}
       className={cn(
-        'fixed z-50 flex flex-col gap-1 rounded-md border border-line bg-panel-head px-3 py-2.5 text-[13px] shadow-[0_6px_20px_rgb(0_0_0/35%)]',
+        'glass-float fixed z-50 flex flex-col gap-1 rounded-md border border-line bg-panel-head px-3 py-2.5 text-[13px] shadow-[0_6px_20px_rgb(0_0_0/35%)]',
         !pinned && 'pointer-events-none',
       )}
     >

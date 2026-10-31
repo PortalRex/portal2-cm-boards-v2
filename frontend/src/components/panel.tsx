@@ -23,7 +23,7 @@ export function Panel({
   children?: ReactNode
 }) {
   return (
-    <section className={cn('overflow-hidden rounded-md bg-[rgb(var(--panel-rgb)/0.97)]', className)}>
+    <section className={cn('glass overflow-hidden rounded-md bg-panel-body', className)}>
       {title && (
         <header className="flex h-12 items-center gap-2.5 bg-panel-head px-5 upto700:h-auto upto700:min-h-12 upto700:flex-wrap upto700:gap-y-2 upto700:px-3.5 upto700:py-2.5">
           {Icon && <Icon className="size-5 shrink-0 stroke-[1.5]" />}
@@ -73,7 +73,7 @@ export function Card({
   return (
     <section
       className={cn(
-        'flex flex-col overflow-hidden rounded-lg bg-panel',
+        'glass flex flex-col overflow-hidden rounded-lg bg-panel',
         collapsed && 'w-full self-start',
         className,
       )}
