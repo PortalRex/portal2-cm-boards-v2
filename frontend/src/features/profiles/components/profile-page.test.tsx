@@ -129,14 +129,13 @@ describe('Profile page', () => {
     expect(screen.getByRole('button', { name: /Peak Points/ })).toHaveAttribute('aria-expanded', 'true')
   })
 
-  it("opens a map's run from the summary, narrowing the history to that map", async () => {
+  it("opens a map's run from the summary, and has no history list under the tables", async () => {
     serveProfile()
     await renderProfile()
     expect(tab('Singleplayer')).toHaveAttribute('aria-selected', 'true')
-    expect(screen.getByRole('heading', { name: 'History' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: /^History/ })).not.toBeInTheDocument()
     await userEvent.click(screen.getByTitle('Portal Gun — rank 4'))
     expect(await screen.findByTestId('run-details')).toHaveTextContent(/^Portal Gun · portal2 · 336335 ·$/)
-    expect(screen.getByRole('heading', { name: 'History · Portal Gun' })).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Hide run details for Portal Gun' }))
     expect(screen.queryByTestId('run-details')).not.toBeInTheDocument()
   })

@@ -24,7 +24,6 @@ import { gameResultsQueryOptions } from '../api/profile'
 import type { Profile, ProfilePlayer, RenderRunDetails } from '../types'
 import { InfoTab } from './info-tab'
 import { LegacyTab } from './legacy-tab'
-import { ProfileHistory } from './profile-history'
 import { StatsTab } from './stats-tab'
 import { MAP_SORTS, orderedChapters } from '../utils/map-sort'
 import { chapterBoardPath } from '../utils/tables'
@@ -222,9 +221,6 @@ function ModeTab({
           renderRunDetails={renderRunDetails}
         />
       ))}
-      <div className="mt-[30px]">
-        <ProfileHistory history={profile.history} game={PORTAL2} map={selectedMap} />
-      </div>
     </>
   )
 }
@@ -306,9 +302,6 @@ function GameTab({
           renderRunDetails={renderRunDetails}
         />
       ))}
-      <div className="mt-[30px]">
-        <ProfileHistory history={results.data?.history ?? []} game={source} map={selectedMap} />
-      </div>
     </>
   )
 }
