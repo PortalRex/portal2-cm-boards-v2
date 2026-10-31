@@ -69,6 +69,10 @@
 
 ## Log
 <!-- Newest first. One entry per finished item: date, what was done, commit, tests added. -->
+- 2026-10-31: Review fix (PR #3): the CRT background's loop could start again after its page had gone, when a
+  channel picture finished loading late (`onLoad` → `run()` after cleanup), leaving an animation running until the
+  tab closed. `crt.tsx` now marks itself disposed on cleanup and `run` does nothing then. Tests: 1 (fails without
+  the fix).
 - 2026-10-31: Asked for: the profile's Challenge Mode Points show the green / red arrow by each board's points for
   the last 30 days, as the aggregated tables do (shared `features/profiles/hooks/use-recent-points-changes.ts`, the
   same two cached requests); every `PointsChange` arrow now says how many in a hover / focus bubble (`Bubble`),

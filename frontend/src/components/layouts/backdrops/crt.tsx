@@ -39,9 +39,12 @@ export function Crt({ preview = false }: { preview?: boolean }) {
     const start = performance.now()
     let timer = 0
     let raf = 0
+    // Set on cleanup: a picture that loads after the page has gone must not start the loop again.
+    let disposed = false
     // Steps the signal now, then again when it asks (on a screen refresh, so not while the tab is
     // hidden).
     const run = () => {
+      if (disposed) return
       window.clearTimeout(timer)
       cancelAnimationFrame(raf)
       const wait = signal.step((performance.now() - start) / 1000)
@@ -61,6 +64,7 @@ export function Crt({ preview = false }: { preview?: boolean }) {
     observer.observe(canvas)
     fit()
     return () => {
+      disposed = true
       window.clearTimeout(timer)
       cancelAnimationFrame(raf)
       observer.disconnect()
