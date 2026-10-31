@@ -40,7 +40,7 @@
 use crate::{
     controllers::{
         moderation::{self, FILLER},
-        submissions::BoardMap,
+        submissions::{self, BoardMap},
     },
     tools::{auth::AdminOrService, cache::CacheState, config::Config, points_cache, steam_sync},
 };
@@ -762,6 +762,9 @@ async fn apply_entry(
     if map.is_coop && !new.banned && fresh {
         pair(&mut tx, id, map, &e.profile_number, e.score as i32, when).await?;
     }
+    if map.is_coop && fresh {
+        rank_coop_run(&mut tx, id, map, &e.profile_number, e.score as i32, when).await?;
+    }
     sqlx::query(
         r#"
             INSERT INTO old_board_runs (game_id, legacy_id, banned, pending, youtube_id, note, has_demo, autorender_id, seen_at)
@@ -922,6 +925,35 @@ async fn update(
         moderation::log_action(tx, &AdminOrService::Service, action, "run", &ours.id.to_string(), Some(reason), json!({ "old_board_id": e.id, "changelog_ids": [ours.id] })).await?;
     }
     Ok(true)
+}
+
+/// Ranks a co-op run as our boards do, instead of taking the old board's ranks: it ranks each
+/// player, so a co-op run takes two places there (a 34th here is a 40th there). `post_rank` is the
+/// run's rank when it was set, `pre_rank` the player's best's just before.
+async fn rank_coop_run(tx: &mut Transaction<'_, Postgres>, id: i64, map: &BoardMap, profile: &str, score: i32, when: Option<NaiveDateTime>) -> Result<(), sqlx::Error> {
+    let cat = map.default_cat_id.unwrap_or_default();
+    let previous: Option<i32> = sqlx::query_scalar(
+        r#"
+            SELECT MIN(score) FROM changelog
+            WHERE profile_number = $1 AND map_id = $2 AND category_id = $3 AND id <> $4 AND score > $5
+              AND verified AND NOT banned AND mirror_of IS NULL AND ($6::timestamp IS NULL OR timestamp < $6)
+        "#,
+    )
+    .bind(profile)
+    .bind(&map.steam_id)
+    .bind(cat)
+    .bind(id)
+    .bind(score)
+    .bind(when)
+    .fetch_one(&mut **tx)
+    .await?;
+    let post = submissions::rank_at(&mut **tx, &map.steam_id, cat, profile, score, when).await?;
+    let pre = match previous {
+        Some(p) => Some(submissions::rank_at(&mut **tx, &map.steam_id, cat, profile, p, when).await?),
+        None => None,
+    };
+    sqlx::query("UPDATE changelog SET post_rank = $2, pre_rank = $3 WHERE id = $1").bind(id).bind(post).bind(pre).execute(&mut **tx).await?;
+    Ok(())
 }
 
 /// Pairs a co-op run with its partner's half (same map and time, set within

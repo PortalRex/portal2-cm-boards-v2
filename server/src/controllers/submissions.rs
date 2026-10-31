@@ -177,13 +177,15 @@ pub async fn settle_coop_proof(tx: &mut sqlx::Transaction<'_, sqlx::Postgres>, c
     Ok(Some(verified))
 }
 
-/// Players whose best (verified, unbanned, in the category) is faster than a time.
+/// Players whose best (verified, unbanned, in the category) is faster than a time; with `$6`, only
+/// runs set by then.
 const FASTER_PLAYERS: &str = r#"
     SELECT COUNT(DISTINCT cl.profile_number) FROM changelog AS cl
     JOIN users AS u ON u.profile_number = cl.profile_number
     WHERE cl.map_id = $1 AND cl.category_id = $2 AND cl.score < $3
       AND cl.verified AND NOT cl.banned AND NOT u.banned
       AND cl.profile_number <> $4 AND cl.profile_number <> $5
+      AND ($6::timestamp IS NULL OR cl.timestamp <= $6)
       -- A co-op run counts once both halves are verified and neither half nor player is banned
       -- (as on the co-op map page).
       AND NOT EXISTS (
@@ -204,6 +206,7 @@ const FASTER_RUNS: &str = r#"
         WHERE cl.map_id = $1 AND cl.category_id = $2 AND cl.score < $3
           AND cl.verified AND NOT cl.banned AND NOT u.banned
           AND cl.profile_number <> $4 AND cl.profile_number <> $5
+          AND ($6::timestamp IS NULL OR cl.timestamp <= $6)
           -- A co-op run counts once both halves are verified and neither half nor player is banned
           -- (as on the co-op map page).
           AND NOT EXISTS (
@@ -223,28 +226,34 @@ fn faster_query() -> &'static str {
 /// Rank a time would have on a map: 1 + players whose best is faster, the same ranking the
 /// boards use.
 async fn rank_for(tx: &mut sqlx::Transaction<'_, sqlx::Postgres>, map: &BoardMap, profile_number: &str, score: i32) -> Result<i32, sqlx::Error> {
-    let faster: i64 = sqlx::query_scalar(faster_query())
-        .bind(&map.steam_id)
-        .bind(map.default_cat_id)
-        .bind(score)
-        .bind(profile_number)
-        .bind(FILLER)
-        .fetch_one(&mut **tx)
-        .await?;
-    Ok(faster as i32 + 1)
+    rank_at(&mut **tx, &map.steam_id, map.default_cat_id.unwrap_or_default(), profile_number, score, None).await
 }
 
-/// Whether a new run without a demo would be pending: it would rank within [PROOF_RANK].
-pub async fn needs_proof(pool: &PgPool, map_id: &str, category_id: i32, profile_number: &str, score: i32) -> Result<bool, sqlx::Error> {
+/// Rank a player's time had on a map at `at` (now when None), as the boards rank: 1 + the players
+/// (or, with co-op ranked by run, the co-op runs) whose best by then was faster.
+pub async fn rank_at<'e, E: sqlx::PgExecutor<'e>>(
+    executor: E,
+    map_id: &str,
+    category_id: i32,
+    profile_number: &str,
+    score: i32,
+    at: Option<chrono::NaiveDateTime>,
+) -> Result<i32, sqlx::Error> {
     let faster: i64 = sqlx::query_scalar(faster_query())
         .bind(map_id)
         .bind(category_id)
         .bind(score)
         .bind(profile_number)
         .bind(FILLER)
-        .fetch_one(pool)
+        .bind(at)
+        .fetch_one(executor)
         .await?;
-    Ok(faster as i32 + 1 <= PROOF_RANK)
+    Ok(faster as i32 + 1)
+}
+
+/// Whether a new run without a demo would be pending: it would rank within [PROOF_RANK].
+pub async fn needs_proof(pool: &PgPool, map_id: &str, category_id: i32, profile_number: &str, score: i32) -> Result<bool, sqlx::Error> {
+    Ok(rank_at(pool, map_id, category_id, profile_number, score, None).await? <= PROOF_RANK)
 }
 
 /// A run a demo is being added to.
