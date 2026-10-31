@@ -187,8 +187,8 @@ function Table({
                     line.label
                   )}
                 </span>
-                {/* The rank colours, 15% more vivid here (as the Global Rank card's). */}
-                <span role="cell" className="num text-right saturate-115">
+                {/* The rank colours, 25% more vivid here (as the Global Rank card's). */}
+                <span role="cell" className="num text-right saturate-125">
                   <RankNumber rank={s?.rank} colored />
                 </span>
                 <span role="cell" className="num text-right font-semibold">
