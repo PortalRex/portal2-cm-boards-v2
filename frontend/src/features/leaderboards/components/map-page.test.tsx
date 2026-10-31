@@ -68,6 +68,33 @@ describe('Map page', () => {
     expect(await within(board()).findByText('Unknown partner')).toBeInTheDocument()
   })
 
+  it("puts each co-op player's own comment, video and demo by their name", async () => {
+    serveMap()
+    await renderRoute('/map/coop/47741')
+    await within(board()).findAllByRole('link', { name: 'unity' })
+    const [record] = within(board()).getAllByRole('row').slice(1)
+    const [, blue, orange] = within(record!).getAllByRole('cell')
+    // unity's half has the demo, the autorender and the comment; RealCreative's has none.
+    expect(within(blue!).getByRole('link', { name: 'Download demo' })).toBeInTheDocument()
+    expect(within(blue!).getByRole('link', { name: 'Watch autorender' })).toBeInTheDocument()
+    expect(within(blue!).getByRole('button', { name: 'Show comment' })).toBeInTheDocument()
+    expect(within(orange!).getByRole('img', { name: 'No demo' })).toBeInTheDocument()
+    expect(within(orange!).getByRole('img', { name: 'No autorender' })).toBeInTheDocument()
+    // No links column after the time on co-op boards.
+    expect(within(record!).getAllByRole('cell')).toHaveLength(5)
+  })
+
+  it("switches the co-op world record's video between the players' POVs", async () => {
+    serveMap()
+    await renderRoute('/map/coop/47741')
+    const pov = await screen.findByRole('radiogroup', { name: 'Whose POV' })
+    // It opens on unity's, the one with a video.
+    expect(within(pov).getByRole('radio', { name: 'unity' })).toBeChecked()
+    expect(screen.getByTitle('Doors world record')).toBeInTheDocument()
+    await userEvent.click(within(pov).getByRole('radio', { name: 'RealCreative' }))
+    expect(screen.getByText('No video')).toBeInTheDocument()
+  })
+
   it('marks each co-op player whose PB the run is, as Score Updates does', async () => {
     serveMap()
     localStorage.setItem('p2cm.coopPbStyle', 'icon')

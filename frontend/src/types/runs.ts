@@ -214,10 +214,21 @@ export interface Run {
 }
 
 /** A row of a map's board. */
+/** One player's half of a co-op run: their own entry, demo, video and comment. */
+export interface RunHalf {
+  changelogId: number | null
+  youtubeId: string | null
+  autorenderId: string | null
+  demoId: number | null
+  note: string | null
+}
+
 export interface RankedRun {
   changelogId: number | null
   /** Co-op: both halves' changelog entries. */
   changelogIds?: [number | null, number | null]
+  /** Co-op: each player's half, in the order of `players`. */
+  halves?: RunHalf[]
   coopId?: number | null
   rolesKnown?: boolean
   rank: number

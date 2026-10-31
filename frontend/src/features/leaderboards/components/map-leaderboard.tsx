@@ -56,7 +56,11 @@ export function MapLeaderboard({
   const rows = all.filter((e) => !q || e.players.some((p) => p.name.toLowerCase().includes(q)))
   const pageCount = Math.ceil(rows.length / PAGE_SIZE)
   const visible = rows.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
-  const rendered = useRenderedSet(visible, map.game)
+  // Co-op: each half's own video (they're rendered from each player's demo).
+  const rendered = useRenderedSet(
+    visible.flatMap((e) => e.halves ?? [e]),
+    map.game,
+  )
   const [openKey, setOpenKey] = useState<string | number | null>(null)
   const overrides = useCoopRoleOverrides()
   // Co-op: each player whose PB the run is gets marked as on Score Updates (trophy, or glowing
@@ -83,7 +87,8 @@ export function MapLeaderboard({
   }
 
   const cols = coop
-    ? '[--mp-cols:40px_minmax(0,1fr)_minmax(0,1fr)_minmax(90px,0.6fr)_80px_150px] upto900:[--mp-cols:28px_minmax(0,1fr)_minmax(0,1fr)_58px] upto480:[--mp-cols:28px_minmax(0,1fr)_minmax(0,1fr)_50px]'
+    ? // Co-op: no links column, each player's are by their name.
+      '[--mp-cols:40px_minmax(0,1fr)_minmax(0,1fr)_minmax(90px,0.6fr)_80px] upto900:[--mp-cols:28px_minmax(0,1fr)_minmax(0,1fr)_58px] upto480:[--mp-cols:28px_minmax(0,1fr)_minmax(0,1fr)_50px]'
     : '[--mp-cols:40px_minmax(0,1.4fr)_minmax(110px,0.8fr)_90px_150px] upto900:[--mp-cols:32px_minmax(0,1fr)_76px]'
 
   return (
@@ -127,7 +132,7 @@ export function MapLeaderboard({
           <span role="columnheader" className="text-right">
             Time
           </span>
-          <span role="columnheader" className="upto900:hidden" />
+          {!coop && <span role="columnheader" className="upto900:hidden" />}
         </div>
         {board.isPending ? (
           <Loading />
@@ -178,6 +183,8 @@ export function MapLeaderboard({
                       )
                     }
                     const pb = Boolean(coop && p.profileNumber && !notPb.get(e)?.has(p.profileNumber))
+                    // The player's own half (staff may have swapped who was blue: by player, not place).
+                    const half = coop ? e.halves?.[e.players.indexOf(p)] : undefined
                     const tint = tintFor(rolesKnown && players.length > 1, j)
                     const marked = pb && pbStyle === 'border'
                     return (
@@ -215,11 +222,22 @@ export function MapLeaderboard({
                           )}
                           style={marked ? pbNameVars(tint) : undefined}
                         />
+                        {half?.changelogId != null && (
+                          <span className="ml-auto flex shrink-0 items-center gap-2 pr-1 upto900:hidden [&_svg]:block">
+                            <CommentButton note={half.note} size={20} />
+                            <AutorenderLink run={half} game={map.game} rendered={rendered} size={20} />
+                            <YouTubeLink id={half.youtubeId} size={20} />
+                            <DemoLink demoId={half.demoId} size={20} />
+                          </span>
+                        )}
                         {pb && pbStyle === 'icon' && (
                           <TrophyFilledIcon
                             role="img"
                             aria-label="PB"
-                            className="mr-2.5 ml-auto size-[17px] shrink-0 upto480:mr-1 upto480:size-3.5"
+                            className={cn(
+                              'mr-2.5 size-[17px] shrink-0 upto480:mr-1 upto480:size-3.5',
+                              half?.changelogId != null ? 'upto900:ml-auto' : 'ml-auto',
+                            )}
                             style={{ color: pbColor(tint) }}
                           />
                         )}
@@ -237,12 +255,14 @@ export function MapLeaderboard({
                   <span role="cell" className="num text-right font-semibold">
                     <TimeButton score={e.score} players={players} map={map} />
                   </span>
-                  <span role="cell" className="flex justify-end gap-2.5 upto900:hidden">
-                    <CommentButton note={e.note} />
-                    <AutorenderLink run={e} game={map.game} rendered={rendered} />
-                    <YouTubeLink id={e.youtubeId} />
-                    <DemoLink demoId={e.demoId} />
-                  </span>
+                  {!coop && (
+                    <span role="cell" className="flex justify-end gap-2.5 upto900:hidden">
+                      <CommentButton note={e.note} />
+                      <AutorenderLink run={e} game={map.game} rendered={rendered} />
+                      <YouTubeLink id={e.youtubeId} />
+                      <DemoLink demoId={e.demoId} />
+                    </span>
+                  )}
                 </div>
                 {open && renderRunDetails?.(e, map, rendered)}
               </div>

@@ -13,6 +13,7 @@ import type {
   CoopHalfRaw,
   CoopPreviewRaw,
   CoopRankedRaw,
+  RankedRun,
   SpPreviewRaw,
   SpRankedRaw,
 } from '@/types/runs'
@@ -95,7 +96,9 @@ describe('adaptChangelog', () => {
 describe('board and preview adapters', () => {
   it('match the legacy adapters', () => {
     expect((spBoard as SpRankedRaw[]).map(adaptSpRanked)).toEqual(legacy.spBoard)
-    expect((coopBoard as CoopRankedRaw[]).map(adaptCoopRanked)).toEqual(legacy.coopBoard)
+    // Each player's half is new (legacy merged them): compared without it.
+    const withoutHalves = ({ halves, ...run }: RankedRun) => (void halves, run)
+    expect((coopBoard as CoopRankedRaw[]).map(adaptCoopRanked).map(withoutHalves)).toEqual(legacy.coopBoard)
     expect((spPreviews as SpPreviewRaw[][]).flat().map(adaptPreview)).toEqual(legacy.spPreviews)
     expect((coopPreviews as CoopPreviewRaw[][]).flat().map(adaptPreview)).toEqual(legacy.coopPreviews)
     expect((coopHalves as CoopHalfRaw[]).map(adaptCoopHalf)).toEqual(legacy.coopHalves)
@@ -108,5 +111,18 @@ describe('board and preview adapters', () => {
     expect(secondHosted!.players[0]!.name).toBe((coopBoard as CoopRankedRaw[])[1]!.map_data.user_name2)
     expect(unknown!.rolesKnown).toBe(false)
     expect(filler!.players[1]!.unknown).toBe(true)
+  })
+
+  it("gives each co-op player their own half (demo, video, comment), in the players' order", () => {
+    const rows = coopBoard as CoopRankedRaw[]
+    const [first, second] = rows.map(adaptCoopRanked)
+    expect(first!.halves!.map((h) => h.changelogId)).toEqual([
+      rows[0]!.map_data.cl_id1,
+      rows[0]!.map_data.cl_id2,
+    ])
+    // The second player hosted: their half comes first, with them.
+    const d = rows[1]!.map_data
+    expect(second!.halves!.map((h) => h.changelogId)).toEqual([d.cl_id2, d.cl_id1])
+    expect(second!.halves![0]!.demoId).toBe(d.demo_id2 || null)
   })
 })

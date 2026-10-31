@@ -113,7 +113,7 @@ export function adaptSpRanked(row: SpRankedRaw): RankedRun {
 
 // Co-op players are shown blue (host) first, orange second. p1_is_host is false when the second
 // player hosted; when it's unknown the stored order is kept.
-const hostFirst = (isHost: boolean | null, [first, second]: [Player, Player]): [Player, Player] =>
+const hostFirst = <T>(isHost: boolean | null, [first, second]: [T, T]): [T, T] =>
   isHost === false ? [second, first] : [first, second]
 
 export function adaptCoopRanked(row: CoopRankedRaw): RankedRun {
@@ -140,6 +140,22 @@ export function adaptCoopRanked(row: CoopRankedRaw): RankedRun {
         player(d.profile_number2, d.user_name2, d.avatar2),
       ]),
     ),
+    halves: hostFirst(d.p1_is_host, [
+      {
+        changelogId: d.cl_id1 ?? null,
+        youtubeId: d.youtube_id1 || null,
+        autorenderId: d.autorender_id1 || null,
+        demoId: d.demo_id1 || null,
+        note: d.note1 || null,
+      },
+      {
+        changelogId: d.cl_id2 ?? null,
+        youtubeId: d.youtube_id2 || null,
+        autorenderId: d.autorender_id2 || null,
+        demoId: d.demo_id2 || null,
+        note: d.note2 || null,
+      },
+    ]),
   }
 }
 

@@ -8,6 +8,7 @@ import { Redirect } from '@/components/redirect'
 import { Panel } from '@/components/panel'
 import { RunVideo } from '@/components/runs/run-media'
 import { SeasonSelect } from '@/components/season-select'
+import { Segmented } from '@/components/segmented'
 import { Select } from '@/components/select'
 import { useCurrentUser } from '@/hooks/use-current-user'
 import { useRenderedSet } from '@/hooks/use-rendered-set'
@@ -31,6 +32,7 @@ import { MapLeaderboard, type RenderRunDetails } from './map-leaderboard'
 import { WrHistoryEditor } from './wr-history-editor'
 import { WrHistoryChart } from './wr-history-chart'
 import { toSecond } from '@/lib/charts/history'
+import type { RankedRun, RunHalf } from '@/types/runs'
 
 const CATEGORIES = [{ value: 'main', label: 'Main Challenge Mode' }]
 const MEL_CATEGORIES = [{ value: 'main', label: 'Challenge Mode' }]
@@ -120,7 +122,6 @@ function MapPageContent({
     setView('board')
   }
   const wr = board.data?.[0]
-  const wrRendered = useRenderedSet(wr ? [wr] : [], data.game)
   const toggleView = (v: View) => setView((cur) => (cur === v ? 'board' : v))
 
   return (
@@ -146,7 +147,12 @@ function MapPageContent({
           </div>
           <div className="flex min-w-0 flex-col gap-[26px]">
             {wr ? (
-              <RunVideo run={wr} game={data.game} rendered={wrRendered} title={`${map.title} world record`} />
+              <WrVideo
+                key={wr.changelogId ?? 0}
+                wr={wr}
+                game={data.game}
+                title={`${map.title} world record`}
+              />
             ) : (
               <div className="flex aspect-video w-full items-center justify-center overflow-hidden rounded-lg border border-track bg-row-sub-alt text-text-dim">
                 No video
@@ -202,5 +208,34 @@ function MapPageContent({
         </div>
       </Panel>
     </Page>
+  )
+}
+
+/**
+ * The world record's video. A co-op record has one per player (each renders from their own demo):
+ * a switch under it picks whose POV, opening on the first player with a video.
+ */
+function WrVideo({ wr, game, title }: { wr: RankedRun; game: string; title: string }) {
+  const halves = (wr.halves?.filter((h) => h.changelogId != null).length ?? 0) > 1 ? wr.halves! : null
+  const rendered = useRenderedSet(halves ?? [wr], game)
+  const [picked, setPicked] = useState<number | null>(null)
+  const hasVideo = (h: RunHalf) =>
+    Boolean(h.autorenderId || h.youtubeId || (h.changelogId != null && rendered.has(h.changelogId)))
+  const pov = picked ?? Math.max(0, halves?.findIndex(hasVideo) ?? 0)
+  return (
+    <div className="flex flex-col gap-2.5">
+      <RunVideo run={halves ? halves[pov]! : wr} game={game} rendered={rendered} title={title} />
+      {halves && (
+        <Segmented
+          size="sm"
+          label="Whose POV"
+          value={String(pov)}
+          onChange={(v) => setPicked(Number(v))}
+          options={wr.players.map((p, i) => ({ value: String(i), label: p.name }))}
+          className="w-full"
+          itemClassName="flex-1"
+        />
+      )}
+    </div>
   )
 }
