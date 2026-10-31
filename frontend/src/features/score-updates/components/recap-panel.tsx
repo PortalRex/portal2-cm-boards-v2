@@ -27,10 +27,20 @@ const DAY_MS = 24 * 3600 * 1000
 const WEEK_MS = 7 * DAY_MS
 
 type Tab = 'recap' | 'daily' | 'following'
-const TABS: { value: Tab; label: string; title: string }[] = [
-  { value: 'recap', label: 'Weekly', title: 'Weekly Recap' },
-  { value: 'daily', label: 'Daily', title: 'Daily Chambers' },
-  { value: 'following', label: 'Following', title: 'Following' },
+const TABS: { value: Tab; label: string; title: string; about: string }[] = [
+  { value: 'recap', label: 'Weekly', title: 'Weekly Recap', about: 'The top 5 runs of the week' },
+  {
+    value: 'daily',
+    label: 'Daily',
+    title: 'Daily Chambers',
+    about: 'Each board’s chamber of the day, and the runs set on it that day',
+  },
+  {
+    value: 'following',
+    label: 'Following',
+    title: 'Following',
+    about: 'The latest runs of the players you follow',
+  },
 ]
 
 const shortDate = (iso: string) =>
@@ -87,32 +97,33 @@ export function RecapPanel({ game }: { game: string }) {
           }
         : null
 
-  const actions = (
-    <div className="flex items-center gap-3.5 normal-case upto600:w-full upto600:flex-wrap upto600:justify-between upto600:gap-y-2">
-      <PanelSwitch value={tab} onChange={setTab} options={TABS} label="Panel" />
-      {pager ? (
-        <Pager
-          label={pager.label}
-          unit={pager.unit}
-          onPrev={() => pager.set((o) => o + 1)}
-          onNext={() => pager.set((o) => Math.max(0, o - 1))}
-          nextDisabled={pager.offset === 0}
-        />
-      ) : (
-        // Following has no pager; its space is kept so the tabs don't jump when switching.
-        <Pager placeholder label="This week" unit="week" />
-      )}
-    </div>
-  )
+  const current = TABS.find((t) => t.value === tab)!
 
   return (
     <Panel
       icon={HistoryIcon}
-      title={TABS.find((t) => t.value === tab)!.title}
-      actions={actions}
+      title={current.title}
+      actions={
+        <div className="normal-case">
+          <PanelSwitch value={tab} onChange={setTab} options={TABS} label="Panel" />
+        </div>
+      }
       className="[&_h2]:whitespace-nowrap"
-      bodyClassName="px-5 pt-3.5 pb-[18px]"
+      bodyClassName="px-5 pt-3 pb-[18px]"
     >
+      {/* The week or day picked is the tab's own, so its picker sits in the tab, by what it shows. */}
+      <div className="mb-2 flex min-h-7 flex-wrap items-center gap-x-4 gap-y-1">
+        {pager && (
+          <Pager
+            label={pager.label}
+            unit={pager.unit}
+            onPrev={() => pager.set((o) => o + 1)}
+            onNext={() => pager.set((o) => Math.max(0, o - 1))}
+            nextDisabled={pager.offset === 0}
+          />
+        )}
+        <p className="m-0 text-[13px] text-text-muted">{current.about}</p>
+      </div>
       {tab === 'recap' ? (
         <WeeklyRecap query={recap} />
       ) : tab === 'daily' ? (
@@ -135,6 +146,18 @@ interface PanelQuery<T> {
 
 const listClass = 'm-0 list-none p-0'
 const rowClass = (cols: string) => cn('grid h-7 items-center gap-2.5 text-sm odd:bg-row', cols)
+/** A list's column names, laid out as its rows. */
+const Head = ({ cols, children }: { cols: string; children: ReactNode }) => (
+  <div
+    aria-hidden
+    className={cn(
+      'grid h-6 items-end gap-2.5 pb-0.5 text-xs tracking-[0.04em] text-text-muted uppercase',
+      cols,
+    )}
+  >
+    {children}
+  </div>
+)
 
 // Recap rows: map, players, rank, time, improvement (phones drop the improvement and stack co-op names).
 const RECAP_COLS =
@@ -201,6 +224,13 @@ function WeeklyRecap({ query }: { query: PanelQuery<RecapData> }) {
   if (!runs.length) return <EmptyState>No runs this week yet.</EmptyState>
   return (
     <Stale stale={query.isPlaceholderData}>
+      <Head cols={RECAP_COLS}>
+        <span>Map</span>
+        <span>Player(s)</span>
+        <span className="text-center">Rank</span>
+        <span className="text-right upto600:pr-1.5">Time</span>
+        <span className="pr-2 text-right">Δ</span>
+      </Head>
       <ol className={listClass}>
         {runs.map((e) => (
           <li key={`${e.game}-${e.id}`} className={rowClass(RECAP_COLS)}>
@@ -297,30 +327,39 @@ function Following() {
   const entries = feed.data ?? []
   if (!entries.length) return <EmptyState>The players you follow have no runs yet.</EmptyState>
   return (
-    <ul className={listClass}>
-      {entries.map((e) => {
-        const followed =
-          e.players.find((p) => follows.some((f) => f.profileNumber === p.profileNumber)) ?? e.players[0]!
-        return (
-          <li key={`${e.game}-${e.id}`} className={rowClass(FOLLOWING_COLS)}>
-            <MapLink run={e} />
-            <span className="flex min-w-0 items-center gap-2 overflow-hidden whitespace-nowrap">
-              <Avatar src={followed.avatar} name={followed.name} size={22} />
-              <PlayerLink player={followed} />
-            </span>
-            <RecapRank rank={e.postRank} />
-            <span className="text-[13px] whitespace-nowrap text-green" title={formatDateTime(e.timestamp)}>
-              {timeAgo(e.timestamp)}
-            </span>
-            <span
-              className="num pr-2 text-[13px] whitespace-nowrap text-text-muted"
-              title={formatDateTime(e.timestamp)}
-            >
-              {formatDate(e.timestamp)}
-            </span>
-          </li>
-        )
-      })}
-    </ul>
+    <>
+      <Head cols={FOLLOWING_COLS}>
+        <span>Map</span>
+        <span>Player</span>
+        <span className="text-center">Rank</span>
+        <span>Set</span>
+        <span>Date</span>
+      </Head>
+      <ul className={listClass}>
+        {entries.map((e) => {
+          const followed =
+            e.players.find((p) => follows.some((f) => f.profileNumber === p.profileNumber)) ?? e.players[0]!
+          return (
+            <li key={`${e.game}-${e.id}`} className={rowClass(FOLLOWING_COLS)}>
+              <MapLink run={e} />
+              <span className="flex min-w-0 items-center gap-2 overflow-hidden whitespace-nowrap">
+                <Avatar src={followed.avatar} name={followed.name} size={22} />
+                <PlayerLink player={followed} />
+              </span>
+              <RecapRank rank={e.postRank} />
+              <span className="text-[13px] whitespace-nowrap text-green" title={formatDateTime(e.timestamp)}>
+                {timeAgo(e.timestamp)}
+              </span>
+              <span
+                className="num pr-2 text-[13px] whitespace-nowrap text-text-muted"
+                title={formatDateTime(e.timestamp)}
+              >
+                {formatDate(e.timestamp)}
+              </span>
+            </li>
+          )
+        })}
+      </ul>
+    </>
   )
 }

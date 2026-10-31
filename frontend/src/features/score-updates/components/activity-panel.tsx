@@ -21,17 +21,9 @@ export function ActivityPanel({ game }: { game: string }) {
   const win = useMemo(() => activityWindow(activity.data ?? [], view, offset), [activity.data, view, offset])
   const title = ACTIVITY_VIEWS.find((v) => v.value === view)!.title
 
+  // The month or year picker comes first, so the switch stays put when All time hides it.
   const actions = (
     <div className="flex items-center gap-3.5 normal-case upto600:w-full upto600:flex-wrap upto600:justify-between upto600:gap-y-2">
-      <PanelSwitch
-        value={view}
-        onChange={(v) => {
-          setView(v)
-          setOffset(0)
-        }}
-        options={ACTIVITY_VIEWS}
-        label="Activity"
-      />
       {view !== 'all' && (
         <Pager
           numeric
@@ -43,6 +35,15 @@ export function ActivityPanel({ game }: { game: string }) {
           nextDisabled={!win.hasNext}
         />
       )}
+      <PanelSwitch
+        value={view}
+        onChange={(v) => {
+          setView(v)
+          setOffset(0)
+        }}
+        options={ACTIVITY_VIEWS}
+        label="Activity"
+      />
     </div>
   )
   return (
@@ -61,7 +62,7 @@ export function ActivityPanel({ game }: { game: string }) {
 function ActivityChart({ points }: { points: ActivityPoint[] }) {
   return (
     <ResponsiveContainer width="100%" height={170}>
-      <LineChart data={points} margin={{ top: 8, right: 16, bottom: 0, left: -18 }}>
+      <LineChart data={points} margin={{ top: 8, right: 16, bottom: 0, left: -4 }}>
         <CartesianGrid stroke="var(--chart-grid)" vertical={false} />
         <XAxis
           dataKey="label"
@@ -76,6 +77,13 @@ function ActivityChart({ points }: { points: ActivityPoint[] }) {
           axisLine={false}
           tickLine={false}
           allowDecimals={false}
+          label={{
+            value: 'Scores',
+            angle: -90,
+            position: 'insideLeft',
+            offset: 12,
+            style: { fill: 'var(--text-muted)', fontSize: 12, textAnchor: 'middle' },
+          }}
         />
         <Tooltip
           isAnimationActive={false}
