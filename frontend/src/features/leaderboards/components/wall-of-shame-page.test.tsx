@@ -24,6 +24,13 @@ const cards = () =>
 const names = (...expected: string[]) => expected.map((n) => expect.stringContaining(n) as unknown)
 
 describe('Wall of Shame', () => {
+  it('heads the page with the gavel, as the menu does', async () => {
+    serve(banned)
+    await renderRoute('/more/wall-of-shame')
+    const heading = await screen.findByRole('heading', { name: 'Wall Of Shame' })
+    expect(heading.parentElement!.querySelector('svg.lucide-gavel')).not.toBeNull()
+  })
+
   it('lists banned players by name, ignoring case and accents, linking to their profiles', async () => {
     serve(banned)
     await renderRoute('/more/wall-of-shame')
