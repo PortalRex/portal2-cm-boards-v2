@@ -18,5 +18,6 @@ afterEach(() => {
   resetUnsavedStorage()
   delete document.documentElement.dataset.theme
   delete document.documentElement.dataset.glass
+  delete document.documentElement.dataset.rankContrast
 })
 afterAll(() => server.close())

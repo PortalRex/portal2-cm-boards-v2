@@ -10,6 +10,7 @@ import { SampleDataNotice } from '@/components/sample-data-notice'
 import { StaffInbox } from '@/features/admin/components/staff-inbox'
 import { SubmitRun } from '@/features/runs/components/submit-run'
 import { useGlass } from '@/hooks/use-glass'
+import { useRankContrast } from '@/hooks/use-rank-contrast'
 import { useTheme } from '@/hooks/use-theme'
 import { meQueryOptions, siteQueryOptions } from '@/lib/auth'
 import { catalogQueryOptions } from '@/lib/catalog'
@@ -41,9 +42,10 @@ const slots: LayoutSlots = {
 
 function RootLayout() {
   // Keeps <html data-theme> and the browser's theme colour in step with the saved theme, and
-  // <html data-glass> with the glass look.
+  // <html data-glass> and <html data-rank-contrast> with the glass look and rank contrast.
   useTheme()
   useGlass()
+  useRankContrast()
   return (
     <PrivateGate>
       <LayoutSlotsContext.Provider value={slots}>

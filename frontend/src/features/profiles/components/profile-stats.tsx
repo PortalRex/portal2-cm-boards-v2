@@ -73,7 +73,7 @@ function Stat({
   )
 }
 
-/** A rank as "20th"; `colored` uses the rank colours the boards use elsewhere, 25% more vivid. */
+/** A rank as "20th"; `colored` uses the rank colours the boards use elsewhere. */
 function Ordinal({ n, colored = false }: { n: number | null | undefined; colored?: boolean }) {
   if (!n) return <>–</>
   const text = (
@@ -83,7 +83,7 @@ function Ordinal({ n, colored = false }: { n: number | null | undefined; colored
     </>
   )
   return colored ? (
-    <span className="rank-tint saturate-125" style={rankVars(n)}>
+    <span className="rank-tint" style={rankVars(n)}>
       {text}
     </span>
   ) : (

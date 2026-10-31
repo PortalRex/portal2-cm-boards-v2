@@ -36,6 +36,27 @@ describe('RecapPanel', () => {
     expect(screen.getByRole('button', { name: 'Next week' })).toBeEnabled()
   })
 
+  it("colours each run's new rank as rank tags are: the rank fill, a world record glowing", async () => {
+    const [wr, tagged, far] = (changelog as { post_rank: number | null }[]).slice(0, 3).map((run, i) => ({
+      ...run,
+      post_rank: [1, 437, 600][i]!,
+    }))
+    server.use(
+      http.get(`${API}/recap/weekly`, () =>
+        HttpResponse.json({ start: '2026-10-12', end: '2026-10-19', runs: [wr, tagged, far] }),
+      ),
+    )
+    await renderWithProviders(<RecapPanel game="portal2" />)
+    const panel = within(recapPanel())
+    expect((await panel.findByRole('img', { name: 'World record (rank 1)' })).parentElement).toHaveClass(
+      'wr-glow',
+    )
+    expect(panel.getByText('437')).toHaveClass('rank-fill', 'text-white')
+    // Past 500 there's no tag colour: the plain cell.
+    expect(panel.getByText('600')).toHaveClass('bg-rank-new')
+    expect(panel.getByText('600')).not.toHaveClass('rank-fill')
+  })
+
   it("says when the week has no runs, and sends the game's id", async () => {
     let gameId: string | null = null
     server.use(

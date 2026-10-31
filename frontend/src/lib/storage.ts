@@ -9,6 +9,7 @@
 // and the new site's own:
 //   p2cm.glass         "1" when the liquid glass look is on (otherwise absent)
 //   p2cm.background    a background for every page: a preset id or a picture address (otherwise absent)
+//   p2cm.rankContrast  "low" for low-contrast rank tags (otherwise absent: high contrast)
 //
 // Every access is wrapped: storage can be blocked (private windows, strict settings). A value
 // that couldn't be stored is kept in memory instead, so the choice lasts for this page view.
@@ -22,6 +23,7 @@ export const STORAGE_KEYS = {
   follows: 'p2cm.follows',
   glass: 'p2cm.glass',
   background: 'p2cm.background',
+  rankContrast: 'p2cm.rankContrast',
 } as const
 
 export type StorageKey = (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS]

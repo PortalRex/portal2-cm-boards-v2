@@ -478,22 +478,47 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* A rank number in its colour (style={rankVars(rank)}): lifted towards white on dark, as it is on light. */
+/* A rank number in its colour (style={rankVars(rank)}): lifted towards white on dark, as it is on
+   light, and 25% more vivid. (Rank tags have their own colours: rank-fill, rank-tile.) */
 @utility rank-tint {
   color: var(--rank-color-dark, inherit);
   font-weight: 600;
+  filter: saturate(1.25);
   :root[data-theme='light'] & {
     color: var(--rank-color, inherit);
   }
 }
 
+/* A rank tag's fill (RankTag: map boards, Score Updates): the rank's deeper colour toned down with
+   grey under a white number. With low-contrast rank colours (Settings, data-rank-contrast on <html>)
+   as the profile's tiles were before they took these colours: tinted with the rank's colour from the
+   old site's dark scale (--rank-color-soft, see rankVars), the number in it. */
+@utility rank-fill {
+  background: color-mix(in oklab, var(--rank-color) 80%, #6b6b6b);
+  :root[data-rank-contrast='low'] & {
+    background: color-mix(in srgb, var(--rank-color-soft) 32%, var(--track));
+    color: var(--rank-color-soft);
+  }
+  :root[data-rank-contrast='low'][data-theme='light'] & {
+    background: color-mix(in srgb, var(--rank-color) 20%, var(--track));
+    color: var(--rank-color);
+  }
+}
+
 /* A rank tile (profile summary, chapter tables, history): coloured like the map boards' rank tags
-   (RankTag), the rank's deeper colour toned down with grey and a white number, so a rank looks the
-   same on a profile as on a map. */
+   (rank-fill, low contrast too), so a rank looks the same on a profile as on a map. */
 @utility rank-tile {
   background: color-mix(in oklab, var(--rank-color) 80%, #6b6b6b) !important;
   color: #fff !important;
   font-weight: 600;
+  :root[data-rank-contrast='low'] & {
+    background: color-mix(in srgb, var(--rank-color-soft) 32%, var(--track)) !important;
+    color: var(--rank-color-soft) !important;
+  }
+  :root[data-rank-contrast='low'][data-theme='light'] & {
+    background: color-mix(in srgb, var(--rank-color) 20%, var(--track)) !important;
+    color: var(--rank-color) !important;
+  }
 }
 
 /* The signed-in player's own row on boards and lists. */

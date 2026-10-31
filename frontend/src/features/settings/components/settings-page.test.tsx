@@ -83,6 +83,18 @@ describe('Settings', () => {
     expect(localStorage.getItem('p2cm.glass')).toBeNull()
   })
 
+  it('switches the rank colours between high and low contrast, saved in this browser', async () => {
+    await renderWithProviders(<SettingsPage />)
+    const contrast = within(screen.getByRole('radiogroup', { name: 'Rank colours' }))
+    expect(contrast.getByRole('radio', { name: 'High contrast' })).toBeChecked()
+    await userEvent.click(contrast.getByRole('radio', { name: 'Low contrast' }))
+    expect(document.documentElement.dataset.rankContrast).toBe('low')
+    expect(localStorage.getItem('p2cm.rankContrast')).toBe('low')
+    await userEvent.click(contrast.getByRole('radio', { name: 'High contrast' }))
+    expect(document.documentElement.dataset.rankContrast).toBeUndefined()
+    expect(localStorage.getItem('p2cm.rankContrast')).toBeNull()
+  })
+
   it('puts a preset or a Steam / Imgur picture behind every page, saved in this browser', async () => {
     await renderWithProviders(<SettingsPage />)
     const choices = within(screen.getByRole('radiogroup', { name: 'Background' }))

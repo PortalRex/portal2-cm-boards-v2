@@ -8,6 +8,9 @@ import type { CSSProperties } from 'react'
 // separate bright scale had other hues, a teal 13 where the tag is blue).
 const STOPS = [0, 10, 20, 50, 500]
 const SCALE = ['#9400d3', '#0000ff', '#006400', '#d67104', '#8b0000']
+// The old site's dark-background scale: the profile's rank tiles were tinted with it before they took
+// the map tags' colours, and every rank tag is with low-contrast rank colours (Settings).
+const SOFT_SCALE = ['#ee82ee', '#add8e6', '#42ff42', '#ffa542', '#ff4242']
 export const WR_COLOR = '#d980ff'
 
 // How much white lifts a rank colour for text and bars on dark backgrounds.
@@ -15,13 +18,13 @@ const DARK_LIFT = 45
 
 const hexToRgb = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16))
 
-function blend(rank: number) {
+function blend(rank: number, scale = SCALE) {
   const i = Math.max(0, STOPS.findIndex((stop) => rank <= stop) - 1)
   const lo = STOPS[i]!
   const hi = STOPS[i + 1]!
   const t = (rank - lo) / (hi - lo)
-  const a = hexToRgb(SCALE[i]!)
-  const b = hexToRgb(SCALE[i + 1]!)
+  const a = hexToRgb(scale[i]!)
+  const b = hexToRgb(scale[i + 1]!)
   return `rgb(${a.map((v, k) => Math.round(v + (b[k]! - v) * t)).join(', ')})`
 }
 
@@ -33,18 +36,25 @@ export function rankTextColor(rank: number | null | undefined): string | null {
   return blend(rank)
 }
 
-export type RankVars = CSSProperties & { '--rank-color': string; '--rank-color-dark': string }
+export type RankVars = CSSProperties & {
+  '--rank-color': string
+  '--rank-color-dark': string
+  '--rank-color-soft': string
+}
 
 /**
  * CSS variables carrying a rank's colour for both themes (see the `rank-tint` utility): as it is on
- * light backgrounds, lifted towards white on dark ones (a world record's pink as it is).
+ * light backgrounds, lifted towards white on dark ones (a world record's pink as it is). The soft
+ * colour is the rank's on the old site's dark scale, for low-contrast rank tags (`rank-fill`,
+ * `rank-tile`).
  */
 export function rankVars(rank: number | null | undefined): RankVars | undefined {
   if (rank == null) return undefined
   const r = Math.round(rank)
   const color = rankTextColor(r)!
   const dark = r <= 1 ? color : `color-mix(in oklab, ${color} ${100 - DARK_LIFT}%, white)`
-  return { '--rank-color': color, '--rank-color-dark': dark }
+  const soft = r <= 1 ? color : r > 500 ? '#888888' : blend(r, SOFT_SCALE)
+  return { '--rank-color': color, '--rank-color-dark': dark, '--rank-color-soft': soft }
 }
 
 /**
@@ -54,7 +64,13 @@ export function rankVars(rank: number | null | undefined): RankVars | undefined 
  */
 export function rankTileVars(rank: number | null | undefined): RankVars | undefined {
   if (rank == null) return undefined
-  if (Math.round(rank) <= 1) return { '--rank-color': 'var(--trophy)', '--rank-color-dark': 'var(--trophy)' }
+  if (Math.round(rank) <= 1) {
+    return {
+      '--rank-color': 'var(--trophy)',
+      '--rank-color-dark': 'var(--trophy)',
+      '--rank-color-soft': 'var(--trophy)',
+    }
+  }
   return rankVars(rank)
 }
 

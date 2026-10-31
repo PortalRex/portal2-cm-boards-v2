@@ -42,7 +42,8 @@ export function RankNumber({
 
 /**
  * A rank as a tag: ranks 2–500 in the rank's deeper colour (the light-theme scale), toned down
- * with grey so white numbers read on it; a world record glows. Other ranks are a plain number.
+ * with grey so white numbers read on it (softly tinted with low-contrast rank colours: see
+ * rank-fill); a world record glows. Other ranks are a plain number.
  * `className` sizes it (RANK_TAG by default).
  */
 export function RankTag({
@@ -57,8 +58,8 @@ export function RankTag({
     <span
       className={cn(
         className,
-        'bg-[color-mix(in_oklab,var(--rank-color)_80%,#6b6b6b)] font-semibold text-white',
-        rank === 1 && 'wr-glow wr-glow-raised',
+        'font-semibold text-white',
+        rank === 1 ? 'wr-glow wr-glow-raised' : 'rank-fill',
       )}
       style={rankVars(rank)}
     >
