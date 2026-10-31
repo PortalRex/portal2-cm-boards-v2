@@ -1,15 +1,25 @@
 import { parseTimestamp } from '@/lib/format'
-import type { ScoreUpdate } from './merge-coop-halves'
+import type { Run } from '@/types/runs'
+
+// A player's sessions of PBs: Score Updates and profiles' history fold each into one row.
+
+/** What grouping a run into a session needs. */
+export type StreakRun = Pick<
+  Run,
+  'game' | 'players' | 'timestamp' | 'banned' | 'preRank' | 'scoreDelta' | 'pointsDelta'
+> & {
+  map: { id: string }
+}
 
 /** PBs closer together than this, one after another, are one session. */
 export const STREAK_GAP_MS = 3 * 3600 * 1000
 
-/** A score update with the earlier PBs of its session folded under it, newest first. */
-export type StreakUpdate = ScoreUpdate & { earlier: ScoreUpdate[] }
+/** A run with the earlier PBs of its session folded under it, newest first. */
+export type Streak<T extends StreakRun> = T & { earlier: T[] }
 
-const time = (e: ScoreUpdate) => (e.timestamp ? parseTimestamp(e.timestamp).getTime() : NaN)
+const time = (e: StreakRun) => (e.timestamp ? parseTimestamp(e.timestamp).getTime() : NaN)
 // The same player (or co-op pair) on the same map.
-const streakKey = (e: ScoreUpdate) =>
+const streakKey = (e: StreakRun) =>
   `${e.game}|${e.map.id}|${e.players
     .map((p) => p.profileNumber ?? p.name)
     .sort()
@@ -21,9 +31,9 @@ const streakKey = (e: ScoreUpdate) =>
  * even with other players' updates in between. Banned and undated runs stay on their own.
  * `entries` are newest first.
  */
-export function groupStreaks(entries: ScoreUpdate[], gap = STREAK_GAP_MS): StreakUpdate[] {
-  const out: StreakUpdate[] = []
-  const sessions = new Map<string, StreakUpdate>()
+export function groupStreaks<T extends StreakRun>(entries: T[], gap = STREAK_GAP_MS): Streak<T>[] {
+  const out: Streak<T>[] = []
+  const sessions = new Map<string, Streak<T>>()
   for (const e of entries) {
     const t = time(e)
     if (e.banned || Number.isNaN(t)) {
@@ -37,7 +47,7 @@ export function groupStreaks(entries: ScoreUpdate[], gap = STREAK_GAP_MS): Strea
       session.earlier.push(e)
       continue
     }
-    const fresh: StreakUpdate = { ...e, earlier: [] }
+    const fresh: Streak<T> = { ...e, earlier: [] }
     sessions.set(key, fresh)
     out.push(fresh)
   }
@@ -52,7 +62,7 @@ const total = (values: (number | null)[]) =>
  * A session as a whole: the rank before its first PB, and the time and points all its PBs
  * gained together.
  */
-export function streakSummary(s: StreakUpdate): {
+export function streakSummary(s: Streak<StreakRun>): {
   preRank: number | null
   scoreDelta: number | null
   pointsDelta: number | null

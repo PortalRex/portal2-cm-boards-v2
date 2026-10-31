@@ -23,7 +23,7 @@ import {
   type FilterChanges,
   type ScoreUpdatesSearch,
 } from '../utils/filters'
-import { groupStreaks } from '../utils/group-streaks'
+import { groupStreaks } from '@/lib/runs/group-streaks'
 import { mergeCoopHalves } from '../utils/merge-coop-halves'
 import { ScoreFilters } from './score-filters'
 import { SCORE_COLS, ScoreRow } from './score-row'

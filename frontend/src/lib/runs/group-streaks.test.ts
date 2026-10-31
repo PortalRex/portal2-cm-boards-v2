@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { ScoreUpdate } from './merge-coop-halves'
+import type { Run } from '@/types/runs'
 import { groupStreaks, streakSummary } from './group-streaks'
 
 const map = { id: '47458', title: 'Portal Gun', mode: 'sp', game: 'portal2', chapter: 'The Courtesy Call' }
@@ -7,7 +7,7 @@ const player = (name: string) => ({ profileNumber: `7656119800000${name.length}$
 
 let nextId = 1
 /** A PB by `who` at `time` (2026-10-28, UTC) on `on`. */
-const pb = (who: string, time: string, over: Partial<ScoreUpdate> = {}): ScoreUpdate => ({
+const pb = (who: string, time: string, over: Partial<Run> = {}): Run => ({
   id: nextId++,
   game: 'portal2',
   timestamp: `2026-10-28T${time}:00`,
@@ -30,7 +30,6 @@ const pb = (who: string, time: string, over: Partial<ScoreUpdate> = {}): ScoreUp
   rolesKnown: null,
   sarVersion: null,
   dateEstimated: false,
-  pbs: null,
   ...over,
 })
 

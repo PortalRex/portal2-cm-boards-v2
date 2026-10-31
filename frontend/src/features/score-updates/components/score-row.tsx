@@ -22,7 +22,7 @@ import { formatDate, formatDateTime, formatDelta, formatScore, timeAgo } from '@
 import { ageColor } from '@/lib/age-color'
 import { toggleOnRowClick } from '@/lib/rows'
 import type { Run } from '@/types/runs'
-import { streakSummary } from '../utils/group-streaks'
+import { streakSummary } from '@/lib/runs/group-streaks'
 import type { ScoreUpdate } from '../utils/merge-coop-halves'
 
 const TINT_BG: Record<CoopTint, string> = {
