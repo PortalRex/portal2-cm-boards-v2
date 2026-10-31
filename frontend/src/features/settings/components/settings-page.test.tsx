@@ -83,6 +83,34 @@ describe('Settings', () => {
     expect(localStorage.getItem('p2cm.glass')).toBeNull()
   })
 
+  it('puts a preset or a Steam / Imgur picture behind every page, saved in this browser', async () => {
+    await renderWithProviders(<SettingsPage />)
+    const choices = within(screen.getByRole('radiogroup', { name: 'Background' }))
+    expect(choices.getByRole('radio', { name: 'Site default' })).toBeChecked()
+    await userEvent.click(choices.getByRole('radio', { name: 'CRT' }))
+    expect(localStorage.getItem('p2cm.background')).toBe('crt')
+    expect(choices.getByRole('radio', { name: 'CRT' })).toBeChecked()
+
+    const address = screen.getByRole('textbox', { name: 'Background picture address' })
+    await userEvent.type(address, 'https://evil.example/me.png{Enter}')
+    expect(
+      screen.getByText('The picture has to be on Steam or Imgur (an https:// address of the image itself).'),
+    ).toBeInTheDocument()
+    expect(localStorage.getItem('p2cm.background')).toBe('crt')
+
+    await userEvent.clear(address)
+    await userEvent.type(address, 'https://i.imgur.com/AbCd123.png')
+    await userEvent.click(screen.getByRole('button', { name: 'Use picture' }))
+    expect(localStorage.getItem('p2cm.background')).toBe('https://i.imgur.com/AbCd123.png')
+    expect(choices.getByRole('radio', { name: 'Your picture' })).toBeChecked()
+    expect(address).toHaveValue('')
+    expect(screen.queryByText(/has to be on Steam or Imgur \(an/)).toBeNull()
+
+    await userEvent.click(choices.getByRole('radio', { name: 'Site default' }))
+    expect(localStorage.getItem('p2cm.background')).toBeNull()
+    expect(choices.queryByRole('radio', { name: 'Your picture' })).toBeNull()
+  })
+
   it('saves your own name, and goes back to the Steam one', async () => {
     const sent = serveUser()
     await renderWithProviders(<SettingsPage />, { user: 'player' })

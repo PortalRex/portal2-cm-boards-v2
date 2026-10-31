@@ -19,6 +19,7 @@ import { invalidateUser } from '@/lib/invalidate'
 import { queryKeys } from '@/lib/query-keys'
 import { myUserQueryOptions, setMyCountry, setMyCountryFromSteam, setMyDisplay } from '../api/settings'
 import { AutoSubmitSetting } from './auto-submit-setting'
+import { BackgroundSetting } from './background-setting'
 
 const button =
   'inline-flex h-9 cursor-pointer items-center justify-center gap-2.5 rounded-[4px] border border-line-strong bg-control px-4 text-lg whitespace-nowrap text-foreground hover:bg-control-raised disabled:cursor-default disabled:opacity-50'
@@ -87,6 +88,8 @@ export function SettingsPage() {
           <p className={note}>
             Frosted, see-through panels and menus over the page background, in the dark or the light theme.
           </p>
+          <h3 className="mt-[18px] mb-2 text-[17px] font-normal text-text-2">Background</h3>
+          <BackgroundSetting button={button} control={control} note={note} />
           <h3 className="mt-[18px] mb-2 text-[17px] font-normal text-text-2">Co-op PBs</h3>
           <Segmented
             {...switchProps}

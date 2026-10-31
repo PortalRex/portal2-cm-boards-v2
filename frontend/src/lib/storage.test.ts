@@ -13,6 +13,7 @@ describe('storage', () => {
       collapsed: 'p2cm.collapsed',
       follows: 'p2cm.follows',
       glass: 'p2cm.glass',
+      background: 'p2cm.background',
     })
   })
 

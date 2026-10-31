@@ -299,7 +299,7 @@ function RoleTools({ player, act, busy }: ToolProps) {
             const role = (e.target.value || null) as Role | null
             void act(() => setProfileRole(player.profileNumber, role), 'Role saved.')
           }}
-          className="border-0 bg-transparent text-[15px] text-foreground [&_option]:bg-menu"
+          className="border-0 bg-transparent text-[15px] text-foreground"
         >
           <option value="">None</option>
           {Object.entries(ROLE_LABELS).map(([value, label]) => (

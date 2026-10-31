@@ -1,5 +1,6 @@
 import { act, renderHook } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
+import { useBackground } from './use-background'
 import { useCollapsed, useCollapsedGroup } from './use-collapsed'
 import { useCoopPbStyle } from './use-coop-pb-style'
 import { useFollows } from './use-follows'
@@ -47,6 +48,31 @@ describe('useGlass', () => {
     expect(renderHook(() => useTheme()).result.current.theme).toBe('light')
     expect(document.documentElement.dataset.glass).toBe('on')
     expect(document.documentElement.dataset.theme).toBe('light')
+  })
+})
+
+describe('useBackground', () => {
+  it("is the site's own until a preset or a picture is chosen", () => {
+    const { result } = renderHook(() => useBackground())
+    expect(result.current[0]).toBeNull()
+    act(() => result.current[1]('crt'))
+    expect(result.current[0]).toMatchObject({
+      kind: 'preset',
+      preset: { id: 'crt', label: 'CRT' },
+    })
+    expect(localStorage.getItem('p2cm.background')).toBe('crt')
+    act(() => result.current[1]('https://i.imgur.com/AbCd123.png'))
+    expect(result.current[0]).toEqual({ kind: 'image', address: 'https://i.imgur.com/AbCd123.png' })
+    act(() => result.current[1](null))
+    expect(result.current[0]).toBeNull()
+    expect(localStorage.getItem('p2cm.background')).toBeNull()
+  })
+
+  it("treats an unknown preset or another server's picture as the site's own", () => {
+    localStorage.setItem('p2cm.background', 'gone-preset')
+    expect(renderHook(() => useBackground()).result.current[0]).toBeNull()
+    localStorage.setItem('p2cm.background', 'https://evil.example/me.png')
+    expect(renderHook(() => useBackground()).result.current[0]).toBeNull()
   })
 })
 
