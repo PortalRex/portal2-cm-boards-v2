@@ -19,6 +19,23 @@ export const deleteRun = (changelogId: number, reason: Reason) =>
 export const removeRunDemo = (changelogId: number, reason: Reason) =>
   api.delete(`/admin/runs/${changelogId}/demo`, { body: { reason } })
 
+/** What reading a run's demo again did (server ParseReport). */
+interface DemoParseReport {
+  parsed: number
+  failed: number
+  missing_file: number
+}
+
+/**
+ * Reads the run's demo again (admins): SAR version, splits, portals, players. Answers what happened
+ * as a sentence; a demo that couldn't be read is an error.
+ */
+export async function parseRunDemo(changelogId: number): Promise<string> {
+  const r = await api.post<DemoParseReport>(`/admin/runs/${changelogId}/demo/parse`)
+  if (r.parsed > 0 && r.failed === 0) return 'Demo parsed again.'
+  throw new Error(r.missing_file > 0 ? 'The demo file couldn’t be found.' : 'The demo couldn’t be read.')
+}
+
 export const setRunPartner = (changelogId: number, steamId: string, reason: Reason) =>
   api.put(`/admin/runs/${changelogId}/partner`, { body: { steam_id: steamId, reason } })
 

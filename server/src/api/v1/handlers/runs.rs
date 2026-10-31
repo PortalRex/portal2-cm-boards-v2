@@ -253,6 +253,43 @@ async fn admin_demo_parse(
     Ok(HttpResponse::Ok().json(report))
 }
 
+/// **POST** Read one run's demo again now (the admin tier; a co-op run's partner demo too), as
+/// `/admin/demo_parse?runs=` does, but waiting for a batch already reading demos rather than
+/// refusing. Answers what was read; 404 when the run has no demo, 503 without the demo parser.
+///
+/// ## Example endpoint
+/// - `/api/v1/admin/runs/367546/demo/parse`
+///
+/// ## Example response
+/// ```json
+/// { "picked": 1, "parsed": 1, "failed": 0, "missing_file": 0, "portals_set": 1, "segments_set": 1,
+///   "partners_set": 0, "hosts_set": 0, "versions_named": 0, "remaining": 0 }
+/// ```
+#[post("/admin/runs/{id}/demo/parse")]
+async fn admin_run_demo_parse(
+    auth: AdminOrService,
+    pool: web::Data<crate::tools::jobs::JobsPool>,
+    config: web::Data<crate::tools::config::Config>,
+    cache: web::Data<crate::tools::cache::CacheState>,
+    id: web::Path<i64>,
+) -> Result<impl Responder> {
+    use crate::tools::demo_parse;
+    if let AdminOrService::Admin(user) = &auth {
+        if !user.is_role_admin() {
+            return Ok(HttpResponse::Forbidden().body("Only admins can read demos again."));
+        }
+    }
+    if !demo_parse::available(&config) {
+        return Ok(HttpResponse::ServiceUnavailable().body("The demo parser isn't set up on this server."));
+    }
+    // The run's own demo and, for co-op, its partner's.
+    let report = demo_parse::run_batch(&pool.0, &config, &cache, 2, Some(&[id.into_inner()])).await?;
+    if report.picked == 0 {
+        return Ok(HttpResponse::NotFound().body("This run has no demo."));
+    }
+    Ok(HttpResponse::Ok().json(report))
+}
+
 #[derive(serde::Deserialize)]
 pub struct OldBoardsSyncQuery {
     /// Only report what would happen.

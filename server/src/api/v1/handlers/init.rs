@@ -46,6 +46,7 @@ pub fn init(cfg: &mut web::ServiceConfig) {
             .service(countries_stats)
             .service(admin_old_boards_sync)
             .service(admin_demo_parse)
+            .service(admin_run_demo_parse)
             .service(submission_preview)
             .service(submission_create)
             .service(recap_weekly)

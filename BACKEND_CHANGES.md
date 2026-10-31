@@ -554,6 +554,9 @@ the checksum is on the old boards' list of approved builds (`demo-parser/checks/
 checker, mdp, which ends at Oct 2025), else unknown.
 
 `POST /admin/demo_parse?limit=` (staff / service token) reads a batch now; `?runs=1,2,3` reads those runs' demos again.
+`POST /admin/runs/{id}/demo/parse` (the admin tier / service token; the run details' "Parse demo" button) reads one
+run's demo again, with a co-op run's partner demo. It waits for a batch already reading demos instead of refusing, and
+answers what was read; 404 when the run has no demo, 503 when the demo parser isn't set up.
 
 ### Pulling from the old boards (until they're retired)
 

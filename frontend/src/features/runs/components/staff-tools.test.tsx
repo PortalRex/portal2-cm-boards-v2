@@ -63,16 +63,22 @@ describe('who sees the staff tools', () => {
       expect(screen.getByRole('button', { name: 'Ban run' })).toBeInTheDocument()
       expect(screen.getByRole('button', { name: 'Mark pending' })).toBeInTheDocument()
       expect(screen.queryByRole('button', { name: 'Remove demo' })).toBeNull()
+      expect(screen.queryByRole('button', { name: 'Parse demo' })).toBeNull()
       expect(screen.queryByRole('button', { name: 'Delete run' })).toBeNull()
       unmount()
     }
   })
 
-  it('gives admins demo removal (when there is a demo) and deleting', async () => {
-    await renderWithProviders(<RunDetails run={run} map={spMap} />, { user: 'admin' })
+  it('gives admins demo parsing and removal (when there is a demo) and deleting', async () => {
+    const { unmount } = await renderWithProviders(<RunDetails run={run} map={spMap} />, { user: 'admin' })
     await admin()
+    expect(screen.getByRole('button', { name: 'Parse demo' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Remove demo' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Delete run' })).toBeInTheDocument()
+    unmount()
+    await renderWithProviders(<RunDetails run={{ ...run, demoId: null }} map={spMap} />, { user: 'admin' })
+    await admin()
+    expect(screen.queryByRole('button', { name: 'Parse demo' })).toBeNull()
   })
 
   it('offers Verify for a pending run, and only Unban for a banned one', async () => {
@@ -143,6 +149,50 @@ describe('staff actions', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Confirm removal' }))
     expect(await screen.findByText('Demo removed.')).toBeInTheDocument()
     expect(sent).toEqual([{}])
+  })
+})
+
+describe('parsing a demo again', () => {
+  const answer = (report: object | null, status = 200) => {
+    let asked = 0
+    server.use(
+      http.post(`${API}/admin/runs/100/demo/parse`, () => {
+        asked++
+        return report ? HttpResponse.json(report) : new HttpResponse('This run has no demo.', { status })
+      }),
+    )
+    return () => asked
+  }
+
+  it('reads the demo and says so, refreshing the run', async () => {
+    const asked = answer({ picked: 1, parsed: 1, failed: 0, missing_file: 0 })
+    const { queryClient } = await renderWithProviders(<RunDetails run={run} map={spMap} />, { user: 'admin' })
+    queryClient.setQueryData(['map-board', '47759'], [])
+    await admin()
+    await userEvent.click(screen.getByRole('button', { name: 'Parse demo' }))
+    expect(await screen.findByText('Demo parsed again.')).toBeInTheDocument()
+    expect(asked()).toBe(1)
+    expect(queryClient.getQueryState(['map-board', '47759'])?.isInvalidated).toBe(true)
+  })
+
+  it('says when the demo couldn’t be read, its file is missing, or the server refuses', async () => {
+    answer({ picked: 1, parsed: 0, failed: 1, missing_file: 0 })
+    const { unmount } = await renderWithProviders(<RunDetails run={run} map={spMap} />, { user: 'admin' })
+    await admin()
+    await userEvent.click(screen.getByRole('button', { name: 'Parse demo' }))
+    expect(await screen.findByText('The demo couldn’t be read.')).toBeInTheDocument()
+    unmount()
+    answer({ picked: 1, parsed: 0, failed: 0, missing_file: 1 })
+    const second = await renderWithProviders(<RunDetails run={run} map={spMap} />, { user: 'admin' })
+    await admin()
+    await userEvent.click(screen.getByRole('button', { name: 'Parse demo' }))
+    expect(await screen.findByText('The demo file couldn’t be found.')).toBeInTheDocument()
+    second.unmount()
+    answer(null, 404)
+    await renderWithProviders(<RunDetails run={run} map={spMap} />, { user: 'admin' })
+    await admin()
+    await userEvent.click(screen.getByRole('button', { name: 'Parse demo' }))
+    expect(await screen.findByText('This run has no demo.')).toBeInTheDocument()
   })
 })
 

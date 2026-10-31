@@ -215,6 +215,11 @@ pub async fn run_batch(pool: &PgPool, config: &Config, cache: &CacheState, limit
     Ok(report)
 }
 
+/// Whether demos can be read on this server (the parser is set up).
+pub fn available(config: &Config) -> bool {
+    batch_script(config).is_some()
+}
+
 /// parse_batch.mjs, next to the single-demo parser (`DEMO.PARSER`).
 fn batch_script(config: &Config) -> Option<String> {
     let parser = config.demo.parser.as_deref().filter(|p| !p.is_empty())?;

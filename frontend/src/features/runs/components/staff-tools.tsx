@@ -15,6 +15,7 @@ import {
   addStaffNote,
   deleteRun,
   deleteStaffNote,
+  parseRunDemo,
   removeRunDemo,
   setCoopHost,
   setRunBanned,
@@ -41,7 +42,8 @@ const error = 'basis-full text-sm text-banned-text'
 
 /**
  * Staff tools for a run (any staff tier; hidden while viewing the site as a player). Every action
- * goes to the audit log with the optional reason. Removing demos and deleting runs is for admins.
+ * goes to the audit log with the optional reason. Parsing a demo again, removing it and deleting
+ * runs is for admins.
  */
 export function StaffTools({ run, map, game }: { run: StaffRun; map: RunMap; game: string }) {
   const user = useCurrentUser()
@@ -52,6 +54,7 @@ export function StaffTools({ run, map, game }: { run: StaffRun; map: RunMap; gam
   // Deleting a run and removing a demo can't be undone: they ask for a second click.
   const [confirm, setConfirm] = useState<'delete' | 'demo' | null>(null)
   const act = useMutation({
+    // `fn` may answer with its own outcome to show instead of the label.
     mutationFn: ({ fn }: { label: string; fn: () => Promise<unknown> }) => fn(),
     onSuccess: () => {
       setConfirm(null)
@@ -125,6 +128,16 @@ export function StaffTools({ run, map, game }: { run: StaffRun; map: RunMap; gam
         {isRoleAdmin(user) && run.demoId != null && (
           <button
             type="button"
+            className={staffButton}
+            disabled={busy}
+            onClick={() => run2('', () => parseRunDemo(id))}
+          >
+            Parse demo
+          </button>
+        )}
+        {isRoleAdmin(user) && run.demoId != null && (
+          <button
+            type="button"
             className={cn(staffButton, confirm === 'demo' && confirming)}
             disabled={busy}
             onClick={() =>
@@ -171,7 +184,11 @@ export function StaffTools({ run, map, game }: { run: StaffRun; map: RunMap; gam
         </form>
       )}
       <StaffNotes changelogId={id} />
-      {act.isSuccess && <span className="text-sm text-green">{act.variables.label}</span>}
+      {act.isSuccess && (
+        <span className="text-sm text-green">
+          {typeof act.data === 'string' ? act.data : act.variables.label}
+        </span>
+      )}
       {act.error && <span className={error}>{act.error.message}</span>}
     </div>
   )
