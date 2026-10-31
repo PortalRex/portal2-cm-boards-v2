@@ -5,6 +5,7 @@ import { useCollapsed, useCollapsedGroup } from './use-collapsed'
 import { useCoopPbStyle } from './use-coop-pb-style'
 import { useFollows } from './use-follows'
 import { useGlass } from './use-glass'
+import { useRankContrast } from './use-rank-contrast'
 import { useTheme } from './use-theme'
 
 describe('useTheme', () => {
@@ -24,6 +25,28 @@ describe('useTheme', () => {
   it('opens with a theme saved by the legacy site', () => {
     localStorage.setItem('p2cm.theme', 'light')
     expect(renderHook(() => useTheme()).result.current.theme).toBe('light')
+  })
+})
+
+describe('useRankContrast', () => {
+  it('is high contrast by default, and puts low contrast on <html> while chosen', () => {
+    const { result } = renderHook(() => useRankContrast())
+    expect(result.current[0]).toBe('high')
+    expect(document.documentElement.dataset.rankContrast).toBeUndefined()
+    act(() => result.current[1]('low'))
+    expect(result.current[0]).toBe('low')
+    expect(document.documentElement.dataset.rankContrast).toBe('low')
+    expect(localStorage.getItem('p2cm.rankContrast')).toBe('low')
+    act(() => result.current[1]('high'))
+    expect(document.documentElement.dataset.rankContrast).toBeUndefined()
+    expect(localStorage.getItem('p2cm.rankContrast')).toBeNull()
+  })
+
+  it('opens with the saved choice, and treats anything else as high contrast', () => {
+    localStorage.setItem('p2cm.rankContrast', 'low')
+    expect(renderHook(() => useRankContrast()).result.current[0]).toBe('low')
+    localStorage.setItem('p2cm.rankContrast', 'weird')
+    expect(renderHook(() => useRankContrast()).result.current[0]).toBe('high')
   })
 })
 

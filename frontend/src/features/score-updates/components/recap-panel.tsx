@@ -11,6 +11,7 @@ import { TimeButton } from '@/components/runs/time-button'
 import { EmptyState, ErrorState, Loading } from '@/components/status'
 import { useFollows } from '@/hooks/use-follows'
 import { mapPath, useCatalog } from '@/lib/catalog'
+import { rankVars } from '@/lib/ranks'
 import { formatDate, formatDateTime, formatDelta, timeAgo } from '@/lib/format'
 import type { Player, Run } from '@/types/runs'
 import {
@@ -144,7 +145,24 @@ const DAILY_COLS =
 const FOLLOWING_COLS =
   'grid-cols-[minmax(0,1.2fr)_minmax(0,1.4fr)_34px_92px_78px] upto900:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_30px_auto] upto900:[&>:nth-child(5)]:hidden'
 
-const rankCell = 'flex items-center justify-center self-stretch bg-rank-new'
+/**
+ * A row's new rank, coloured as rank tags are (RankTag: the rank's fill under a white number, softly
+ * tinted with low-contrast rank colours, a world record glowing); past 500 in the plain cell.
+ */
+function RecapRank({ rank }: { rank: number | null }) {
+  const tag = rank != null && rank <= 500
+  return (
+    <span
+      className={cn(
+        'num flex items-center justify-center self-stretch',
+        !tag ? 'bg-rank-new' : rank === 1 ? 'wr-glow' : 'rank-fill font-semibold text-white',
+      )}
+      style={tag ? rankVars(rank) : undefined}
+    >
+      <RankNumber rank={rank} inherit={tag} />
+    </span>
+  )
+}
 
 function Players({ players }: { players: Player[] }) {
   return (
@@ -188,9 +206,7 @@ function WeeklyRecap({ query }: { query: PanelQuery<RecapData> }) {
           <li key={`${e.game}-${e.id}`} className={rowClass(RECAP_COLS)}>
             <MapLink run={e} />
             <Players players={e.players} />
-            <span className={cn('num', rankCell)}>
-              <RankNumber rank={e.postRank} />
-            </span>
+            <RecapRank rank={e.postRank} />
             <span className="num text-right upto600:pr-1.5">
               <TimeButton score={e.score} players={e.players} map={e.map} />
             </span>
@@ -245,9 +261,7 @@ function DailyChambers({ query, today }: { query: PanelQuery<DailyData>; today: 
                   <li key={`${e.game}-${e.id}`} className={rowClass(DAILY_COLS)}>
                     <span className="num text-center text-text-muted">{i + 1}</span>
                     <Players players={e.players} />
-                    <span className={cn('num', rankCell)}>
-                      <RankNumber rank={e.postRank} />
-                    </span>
+                    <RecapRank rank={e.postRank} />
                     <span className="num text-right upto600:pr-1.5">
                       <TimeButton score={e.score} players={e.players} map={e.map} />
                     </span>
@@ -294,9 +308,7 @@ function Following() {
               <Avatar src={followed.avatar} name={followed.name} size={22} />
               <PlayerLink player={followed} />
             </span>
-            <span className={cn('num', rankCell)}>
-              <RankNumber rank={e.postRank} />
-            </span>
+            <RecapRank rank={e.postRank} />
             <span className="text-[13px] whitespace-nowrap text-green" title={formatDateTime(e.timestamp)}>
               {timeAgo(e.timestamp)}
             </span>

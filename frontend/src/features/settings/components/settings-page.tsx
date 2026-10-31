@@ -10,6 +10,7 @@ import { Segmented } from '@/components/segmented'
 import { COOP_PB_STYLES, useCoopPbStyle } from '@/hooks/use-coop-pb-style'
 import { useCurrentUser } from '@/hooks/use-current-user'
 import { useGlass } from '@/hooks/use-glass'
+import { useRankContrast, type RankContrast } from '@/hooks/use-rank-contrast'
 import { useReadOnly } from '@/hooks/use-read-only'
 import { useTheme, type Theme } from '@/hooks/use-theme'
 import { useViewAsPlayer } from '@/hooks/use-view-as-player'
@@ -50,6 +51,7 @@ function Outcome({ message, error }: { message?: string | null; error?: Error | 
 export function SettingsPage() {
   const { theme, setTheme } = useTheme()
   const [glass, setGlass] = useGlass()
+  const [rankContrast, setRankContrast] = useRankContrast()
   const [pbStyle, setPbStyle] = useCoopPbStyle()
   const [, setViewAsPlayer] = useViewAsPlayer()
   const user = useCurrentUser()
@@ -90,6 +92,21 @@ export function SettingsPage() {
           </p>
           <h3 className="mt-[18px] mb-2 text-[17px] font-normal text-text-2">Background</h3>
           <BackgroundSetting button={button} control={control} note={note} />
+          <h3 className="mt-[18px] mb-2 text-[17px] font-normal text-text-2">Rank colours</h3>
+          <Segmented<RankContrast>
+            {...switchProps}
+            label="Rank colours"
+            value={rankContrast}
+            onChange={setRankContrast}
+            options={[
+              { value: 'high', label: 'High contrast' },
+              { value: 'low', label: 'Low contrast' },
+            ]}
+          />
+          <p className={note}>
+            How the rank boxes on map boards, Score Updates and profiles are coloured: filled under white
+            numbers, or softly tinted with the number in its colour.
+          </p>
           <h3 className="mt-[18px] mb-2 text-[17px] font-normal text-text-2">Co-op PBs</h3>
           <Segmented
             {...switchProps}

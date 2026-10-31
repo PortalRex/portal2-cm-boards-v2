@@ -185,9 +185,8 @@ function Table({
                     line.label
                   )}
                 </span>
-                {/* The rank colours, 25% more vivid here (as the Global Rank card's). Centred, so a
-                    WR's trophy (wider than a digit) lines up with the places under it. */}
-                <span role="cell" className="num text-center saturate-125">
+                {/* Centred, so a WR's trophy (wider than a digit) lines up with the places under it. */}
+                <span role="cell" className="num text-center">
                   <RankNumber rank={s?.rank} colored />
                 </span>
                 <span role="cell" className="num text-right font-semibold">

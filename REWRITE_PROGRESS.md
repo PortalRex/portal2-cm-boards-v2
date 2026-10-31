@@ -69,6 +69,18 @@
 
 ## Log
 <!-- Newest first. One entry per finished item: date, what was done, commit, tests added. -->
+- 2026-10-31: Review fix (PR #4): rank numbers' 25% more vivid colours are worked out in `rankVars`
+  (`--rank-text`, `--rank-text-dark`: the colour, lifted on dark, through CSS saturate()'s matrix) instead of a
+  `filter: saturate(1.25)` on every `rank-tint` number, which on long lists (Score Updates, histories) made hundreds
+  of filtered layers. The same colours as the filter drew (checked against Chrome). Tests: 1.
+- 2026-10-31: Asked for: Settings → Appearance → Rank colours. High contrast (default) is as before. Low contrast
+  tints every rank tag (map boards and Score Updates: `RankTag`'s new `rank-fill`; the profile's tiles:
+  `rank-tile`) as the profile's tiles were before they took the map tags' colours (621fe52): the rank's colour
+  from the old site's dark scale mixed into the track, the number in it (`--rank-color-soft` from `rankVars`).
+  `hooks/use-rank-contrast.ts`, saved as `p2cm.rankContrast` = "low", applied before first paint by `theme.js`.
+  The Score Updates recap's ranks (weekly, daily, following) are coloured as tags now too (`RecapRank`), and
+  rank numbers written out (score history, run details, ...) are 25% more vivid everywhere, as the Global Rank
+  card and the aggregated tables were (built into `rank-tint`). Not committed yet. Tests: 7.
 - 2026-10-31: Review fix (PR #3): the CRT background's loop could start again after its page had gone, when a
   channel picture finished loading late (`onLoad` → `run()` after cleanup), leaving an animation running until the
   tab closed. `crt.tsx` now marks itself disposed on cleanup and `run` does nothing then. Tests: 1 (fails without

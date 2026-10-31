@@ -25,16 +25,45 @@ describe('rankTextColor', () => {
 
 describe('rankVars', () => {
   it.each([
-    [1, { '--rank-color': '#d980ff', '--rank-color-dark': '#d980ff' }],
-    // The same colour on dark backgrounds, lifted towards white: the map tags' hue, readable.
+    [
+      1,
+      {
+        '--rank-color': '#d980ff',
+        '--rank-color-dark': '#d980ff',
+        '--rank-color-soft': '#d980ff',
+        '--rank-text': 'rgb(232, 121, 255)',
+        '--rank-text-dark': 'rgb(232, 121, 255)',
+      },
+    ],
+    // The same colour on dark backgrounds, lifted towards white: the map tags' hue, readable. The soft
+    // one is rank 8 on the old site's dark scale.
     [
       7.6,
       {
         '--rank-color': 'rgb(30, 0, 246)',
         '--rank-color-dark': 'color-mix(in oklab, rgb(30, 0, 246) 55%, white)',
+        '--rank-color-soft': 'rgb(186, 199, 232)',
+        '--rank-text': 'rgb(31, 0, 255)',
+        '--rank-text-dark': 'rgb(101, 150, 255)',
       },
     ],
   ])('rank %s', (rank, vars) => expect(rankVars(rank)).toEqual(vars))
+
+  it('gives numbers written out the colours 25% more saturated, as CSS saturate(1.25) draws them', () => {
+    // Read from Chrome: a canvas filled with the colour (lifted on dark) under saturate(1.25).
+    expect(rankVars(35)!['--rank-text-dark']).toBe('rgb(170, 173, 117)')
+    expect(rankVars(7.6)!['--rank-text-dark']).toBe('rgb(101, 150, 255)')
+    // Grey has nothing to saturate.
+    expect(rankVars(501)!['--rank-text']).toBe('rgb(136, 136, 136)')
+  })
+
+  it('gives the old dark scale as the soft colour, for low-contrast rank tags', () => {
+    // The old site's stops: violet at 1, light blue at 10, green at 20, orange at 50, red at 500.
+    expect(rankVars(10)!['--rank-color-soft']).toBe('rgb(173, 216, 230)')
+    expect(rankVars(20)!['--rank-color-soft']).toBe('rgb(66, 255, 66)')
+    expect(rankVars(5)!['--rank-color-soft']).toBe('rgb(206, 173, 234)')
+    expect(rankVars(501)!['--rank-color-soft']).toBe('#888888')
+  })
 
   it('is undefined without a rank', () => expect(rankVars(undefined)).toBeUndefined())
 })
@@ -49,6 +78,7 @@ describe('rankTileVars', () => {
     expect(rankTileVars(1)).toEqual({
       '--rank-color': 'var(--trophy)',
       '--rank-color-dark': 'var(--trophy)',
+      '--rank-color-soft': 'var(--trophy)',
     }))
 
   it('is undefined without a rank', () => expect(rankTileVars(null)).toBeUndefined())

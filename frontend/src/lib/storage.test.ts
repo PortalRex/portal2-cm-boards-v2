@@ -14,6 +14,7 @@ describe('storage', () => {
       follows: 'p2cm.follows',
       glass: 'p2cm.glass',
       background: 'p2cm.background',
+      rankContrast: 'p2cm.rankContrast',
     })
   })
 
