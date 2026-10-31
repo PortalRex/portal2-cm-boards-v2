@@ -763,7 +763,8 @@ async fn apply_entry(
         pair(&mut tx, id, map, &e.profile_number, e.score as i32, when).await?;
     }
     if map.is_coop && fresh {
-        rank_coop_run(&mut tx, id, map, &e.profile_number, e.score as i32, when).await?;
+        let old = (e.pre_rank.map(|r| r as i32), e.post_rank.map(|r| r as i32));
+        rank_coop_run(&mut tx, id, map, &e.profile_number, e.score as i32, when, old).await?;
     }
     sqlx::query(
         r#"
@@ -929,8 +930,17 @@ async fn update(
 
 /// Ranks a co-op run as our boards do, instead of taking the old board's ranks: it ranks each
 /// player, so a co-op run takes two places there (a 34th here is a 40th there). `post_rank` is the
-/// run's rank when it was set, `pre_rank` the player's best's just before.
-async fn rank_coop_run(tx: &mut Transaction<'_, Postgres>, id: i64, map: &BoardMap, profile: &str, score: i32, when: Option<NaiveDateTime>) -> Result<(), sqlx::Error> {
+/// run's rank when it was set, `pre_rank` the player's best's just before; `old` the old board's
+/// (pre, post), which win where it knew better (see [kept_rank]).
+async fn rank_coop_run(
+    tx: &mut Transaction<'_, Postgres>,
+    id: i64,
+    map: &BoardMap,
+    profile: &str,
+    score: i32,
+    when: Option<NaiveDateTime>,
+    old: (Option<i32>, Option<i32>),
+) -> Result<(), sqlx::Error> {
     let cat = map.default_cat_id.unwrap_or_default();
     let previous: Option<i32> = sqlx::query_scalar(
         r#"
@@ -952,8 +962,23 @@ async fn rank_coop_run(tx: &mut Transaction<'_, Postgres>, id: i64, map: &BoardM
         Some(p) => Some(submissions::rank_at(&mut **tx, &map.steam_id, cat, profile, p, when).await?),
         None => None,
     };
+    let (pre, post) = (kept_rank(pre, old.0), kept_rank(Some(post), old.1));
     sqlx::query("UPDATE changelog SET post_rank = $2, pre_rank = $3 WHERE id = $1").bind(id).bind(post).bind(pre).execute(&mut **tx).await?;
     Ok(())
+}
+
+/// Our count of a rank, against the old board's: we count each run as it is now, the old board
+/// ranked it as things were then (runs since banned or unbanned, added later with an earlier
+/// date). Where that shows, the old board wins: its world records stay ones and nothing else
+/// becomes one, and no run ranks lower than there (one place per co-op run can't rank lower than
+/// one per player). `db/dbscript/rerank_coop_runs.sql` re-ranked the history the same way.
+fn kept_rank(counted: Option<i32>, old: Option<i32>) -> Option<i32> {
+    match (counted, old) {
+        (counted, None) => counted,
+        (None, old) => old,
+        (Some(_), Some(1)) => Some(1),
+        (Some(counted), Some(old)) => Some(counted.min(old).max(2)),
+    }
 }
 
 /// Pairs a co-op run with its partner's half (same map and time, set within
@@ -1179,7 +1204,7 @@ pub(crate) async fn delete_duplicates(
 
 #[cfg(test)]
 mod tests {
-    use super::{cleared_there, next_pull, note_download, is_waiting, retry_after, unescape_note};
+    use super::{cleared_there, kept_rank, next_pull, note_download, is_waiting, retry_after, unescape_note};
     use std::collections::HashSet;
     use chrono::TimeZone;
     use chrono_tz::America::Chicago;
@@ -1193,6 +1218,20 @@ mod tests {
         // 11 was in this pull's window already; 13 the old board no longer lists.
         let pulled: HashSet<i64> = [11].into();
         assert_eq!(cleared_there(ours, &pending_there, &pulled, |id| id == 13), vec![(12, 3)]);
+    }
+
+    #[test]
+    fn ranks_co_op_runs_by_run_keeping_the_old_boards_world_records() {
+        // Two places per pair there, one here.
+        assert_eq!(kept_rank(Some(34), Some(40)), Some(34));
+        // Never lower than there, never a new world record, and the old board's stay.
+        assert_eq!(kept_rank(Some(45), Some(40)), Some(40));
+        assert_eq!(kept_rank(Some(1), Some(3)), Some(2));
+        assert_eq!(kept_rank(Some(6), Some(1)), Some(1));
+        // Only one of them knows.
+        assert_eq!(kept_rank(Some(5), None), Some(5));
+        assert_eq!(kept_rank(None, Some(7)), Some(7));
+        assert_eq!(kept_rank(None, None), None);
     }
 
     #[test]

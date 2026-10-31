@@ -586,6 +586,14 @@ board per pull) and taken like an entry above. A run without a record in `old_bo
 one) counts as last seen pending, so its verifying applies. Runs the old board no longer lists (deleted there) aren't
 asked about again until the server restarts. The report counts them as `rechecked`.
 
+**Co-op ranks are ours, not the old board's.** The old board ranks each player, so a co-op run takes two places there
+(a 34th here showed as 40th in Score Updates). A co-op run the pull adds or links gets `post_rank` / `pre_rank` from our
+ranking (`submissions::rank_at`, by run or by player as `RANKS.COOP` says) as of when it was set. The old board's
+ranks still win where it knew how things were then: its world records stay world records, nothing else becomes one,
+and no run ranks lower than there. Singleplayer runs keep the old board's ranks. The co-op history the import brought
+in was re-ranked the same way, once, with `db/dbscript/rerank_coop_runs.sql` (a dry run unless `-v apply=1`; about two
+minutes on the Oct 22 dump: 86,464 of 90,468 co-op runs re-ranked, no world record changed).
+
 With `SYNC.OLD_BOARDS_MINUTES` (off unless set; e.g. 15), the schedule also makes a quick pull every so many minutes
 in between the hours. A quick pull does everything above but fetch the backlog of demo files we have a record of and
 no file for (up to 500 per board per pull) and the pending runs the old board has cleared, which only the full pulls
