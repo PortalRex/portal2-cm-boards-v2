@@ -13,14 +13,12 @@ export function ReadOnlyBanner() {
   const { on, blocked } = useReadOnly()
   if (!on) return null
   return (
-    // Above the fixed page background (z-0), below the top bar and its menus (z-20); a mostly solid
-    // base under the tint keeps it readable over the background picture.
-    <aside
-      aria-label="Site notice"
-      className="relative z-10 border-b border-brand/30 bg-[rgb(var(--page-rgb)/0.85)] text-foreground backdrop-blur-sm"
-    >
-      <div className="bg-linear-to-r from-brand/25 via-brand/10 to-brand/25">
-        <div className="mx-auto flex max-w-content flex-wrap items-center justify-center gap-x-4 gap-y-1.5 px-6 py-2 upto700:px-4">
+    // Above the fixed page background (z-0), below the top bar and its menus (z-20). Only as wide as
+    // what it says, centred, the page around it; a mostly solid base under the tint keeps it
+    // readable over the background picture.
+    <aside aria-label="Site notice" className="relative z-10 flex justify-center text-foreground">
+      <div className="w-fit max-w-full rounded-b-md border-x border-b border-brand/30 bg-[rgb(var(--page-rgb)/0.85)] backdrop-blur-sm">
+        <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 rounded-b-md bg-linear-to-r from-brand/25 via-brand/10 to-brand/25 px-6 py-2 upto700:px-4">
           <p className="m-0 flex flex-wrap items-center justify-center gap-x-2.5 gap-y-1 text-center text-base leading-snug">
             <span className="rounded-[4px] bg-brand px-2 py-0.5 text-[13px] font-semibold tracking-[0.08em] text-white uppercase">
               Preview
