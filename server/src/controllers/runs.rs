@@ -1,4 +1,9 @@
-//! Per-run extras: both players' halves of a co-op run, and thumbs up / down reactions.
+//! Per-run extras: both players' halves of a co-op run, thumbs up / down reactions and comments.
+use crate::{
+    controllers::moderation::log_action,
+    tools::auth::{AdminOrService, AuthUser},
+};
+use serde_json::json;
 use sqlx::{FromRow, PgPool};
 
 /// One player's half of a co-op run. `changelog_id` and the run fields are empty when the
@@ -195,4 +200,131 @@ pub async fn reaction_record(pool: &PgPool, cl_id: i64) -> Result<Option<Reactio
     let current = sqlx::query_as::<_, ReactionEntry>(&select("run_reactions", "")).bind(target).fetch_all(pool).await?;
     let history = sqlx::query_as::<_, ReactionEntry>(&select("run_reaction_events", "LIMIT 100")).bind(target).fetch_all(pool).await?;
     Ok(Some(ReactionRecord { current, history }))
+}
+
+/// Longest comment a run takes (as submissions do).
+pub const COMMENT_MAX: usize = 500;
+
+/// A run's comment, whether staff set or cleared it (locked: the player can't change it) and
+/// whether the viewer may change it.
+#[derive(Debug, Serialize)]
+pub struct RunComment {
+    pub note: Option<String>,
+    pub locked: bool,
+    pub editable: bool,
+}
+
+/// Who may change a run's comment: staff, any run's; its player, their own, unless staff set or
+/// cleared it, and not while the boards are read-only.
+pub fn may_edit_comment(staff: bool, own: bool, locked: bool, read_only: bool) -> bool {
+    staff || (own && !locked && !read_only)
+}
+
+/// A comment as stored: trimmed, at most [COMMENT_MAX] characters, none when empty.
+pub fn clean_comment(note: Option<&str>) -> Option<String> {
+    note.map(str::trim).filter(|n| !n.is_empty()).map(|n| n.chars().take(COMMENT_MAX).collect())
+}
+
+/// A run and its comment. A season's copy of a run has its run's comment (it's changed there).
+#[derive(FromRow)]
+struct CommentedRun {
+    id: i64,
+    profile_number: String,
+    note: Option<String>,
+    note_locked: bool,
+}
+
+const COMMENTED_RUN: &str = r#"
+    SELECT id, profile_number, note, note_locked FROM changelog
+    WHERE id = (SELECT COALESCE(mirror_of, id) FROM changelog WHERE id = $1)
+"#;
+
+/// `viewer`: the signed-in player's profile number and whether they're staff.
+pub async fn comment(pool: &PgPool, cl_id: i64, viewer: Option<(&str, bool)>, read_only: bool) -> Result<Option<RunComment>, sqlx::Error> {
+    let run: Option<CommentedRun> = sqlx::query_as(COMMENTED_RUN).bind(cl_id).fetch_optional(pool).await?;
+    Ok(run.map(|run| {
+        let editable = viewer.is_some_and(|(who, staff)| may_edit_comment(staff, who == run.profile_number, run.note_locked, read_only));
+        RunComment { note: run.note, locked: run.note_locked, editable }
+    }))
+}
+
+/// What became of a comment change.
+pub enum CommentChange {
+    Saved(RunComment),
+    NotFound,
+    Refused(&'static str),
+}
+
+/// Sets (or with None clears) a run's comment as `user`. Staff's change locks it from the player and
+/// goes to the audit log (with `reason`); either way the old-board sync leaves it as it is now.
+pub async fn set_comment(
+    pool: &PgPool,
+    cl_id: i64,
+    user: &AuthUser,
+    read_only: bool,
+    note: Option<&str>,
+    reason: Option<&str>,
+) -> Result<CommentChange, sqlx::Error> {
+    let mut tx = pool.begin().await?;
+    let run: Option<CommentedRun> = sqlx::query_as(&format!("{COMMENTED_RUN} FOR UPDATE")).bind(cl_id).fetch_optional(&mut *tx).await?;
+    let Some(run) = run else {
+        return Ok(CommentChange::NotFound);
+    };
+    let staff = user.is_admin();
+    let own = user.profile_number == run.profile_number;
+    if !may_edit_comment(staff, own && !user.banned, run.note_locked, read_only) {
+        return Ok(CommentChange::Refused(if !own || user.banned {
+            "You can only change the comment on your own runs."
+        } else if run.note_locked {
+            "Staff set this comment, so it can't be changed here."
+        } else {
+            "The boards are read-only for now."
+        }));
+    }
+    let note = clean_comment(note);
+    sqlx::query("UPDATE changelog SET note = $2, note_edited = true, note_locked = note_locked OR $3 WHERE id = $1")
+        .bind(run.id)
+        .bind(&note)
+        .bind(staff)
+        .execute(&mut *tx)
+        .await?;
+    if staff {
+        let action = if note.is_some() { "run.set_comment" } else { "run.clear_comment" };
+        log_action(
+            &mut tx,
+            &AdminOrService::Admin(user.clone()),
+            action,
+            "run",
+            &run.id.to_string(),
+            reason,
+            json!({ "changelog_ids": [run.id], "player": run.profile_number, "before": run.note, "note": note }),
+        )
+        .await?;
+    }
+    tx.commit().await?;
+    Ok(CommentChange::Saved(RunComment { note, locked: run.note_locked || staff, editable: true }))
+}
+
+#[cfg(test)]
+mod comment_tests {
+    use super::{clean_comment, may_edit_comment, COMMENT_MAX};
+
+    #[test]
+    fn players_change_their_own_comments_until_staff_lock_them() {
+        // (staff, own run, locked by staff, read-only)
+        assert!(may_edit_comment(false, true, false, false));
+        assert!(!may_edit_comment(false, false, false, false), "someone else's run");
+        assert!(!may_edit_comment(false, true, true, false), "staff set or cleared it");
+        assert!(!may_edit_comment(false, true, false, true), "the boards are read-only");
+        // Staff change any comment, locked or not, read-only or not.
+        assert!(may_edit_comment(true, false, true, true));
+    }
+
+    #[test]
+    fn stores_comments_trimmed_and_capped_none_when_empty() {
+        assert_eq!(clean_comment(Some("  gg  ")).as_deref(), Some("gg"));
+        assert_eq!(clean_comment(Some("   ")), None);
+        assert_eq!(clean_comment(None), None);
+        assert_eq!(clean_comment(Some(&"x".repeat(COMMENT_MAX + 20))).unwrap().chars().count(), COMMENT_MAX);
+    }
 }

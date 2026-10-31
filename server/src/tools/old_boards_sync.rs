@@ -637,6 +637,8 @@ struct OurRun {
     note: Option<String>,
     autorender_id: Option<String>,
     admin_note: Option<String>,
+    /// The comment was changed on the boards: the old board's no longer replaces or fills it.
+    note_edited: bool,
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -748,7 +750,7 @@ async fn apply_entry(
             .await?;
     }
     if run_id.is_some() {
-        let ours: OurRun = sqlx::query_as("SELECT id, banned, verified, youtube_id, note, autorender_id, admin_note FROM changelog WHERE id = $1 FOR UPDATE")
+        let ours: OurRun = sqlx::query_as("SELECT id, banned, verified, youtube_id, note, autorender_id, admin_note, note_edited FROM changelog WHERE id = $1 FOR UPDATE")
             .bind(id)
             .fetch_one(&mut *tx)
             .await?;
@@ -887,7 +889,7 @@ async fn update(
         }
     };
     let youtube_id = take(&ours.youtube_id, &new.youtube_id, last.map(|l| &l.youtube_id));
-    let note = take(&ours.note, &new.note, last.map(|l| &l.note));
+    let note = if ours.note_edited { ours.note.clone() } else { take(&ours.note, &new.note, last.map(|l| &l.note)) };
     let autorender_id = take(&ours.autorender_id, &new.autorender_id, last.map(|l| &l.autorender_id));
 
     let changed = banned != ours.banned

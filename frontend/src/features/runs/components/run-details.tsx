@@ -15,6 +15,7 @@ import { runQueryOptions } from '../api/run'
 import { timerNote } from '../utils/timer-note'
 import { PartnerDemo, PendingProof } from './pending-proof'
 import { ReportRun } from './report-run'
+import { RunComment } from './run-comment'
 import { StaffTools } from './staff-tools'
 
 /**
@@ -147,8 +148,13 @@ export function RunDetails({
 
         <div className="flex min-w-0 flex-col text-lg rd-upto1150:col-span-full">
           <dl className="m-0 grid grid-cols-[auto_1fr] gap-x-[22px] gap-y-1">
-            <dt className="text-text-2 uppercase">Comment:</dt>
-            <dd className="m-0 text-text-2">{view.note || 'No comment'}</dd>
+            <RunComment
+              key={view.changelogId ?? view.id ?? 'none'}
+              changelogId={view.changelogId ?? view.id ?? null}
+              note={view.note}
+              coopId={run.coopId}
+              players={run.players}
+            />
           </dl>
           <dl className="m-0 mt-auto grid grid-cols-[auto_1fr] gap-x-[22px] gap-y-1 pt-6 [&_dd]:m-0 [&_dd]:text-text-2 [&_dt]:text-text-2">
             {run.players && run.players.length > 0 && (

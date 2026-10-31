@@ -47,6 +47,8 @@ pub fn init(cfg: &mut web::ServiceConfig) {
             .service(admin_old_boards_sync)
             .service(admin_demo_parse)
             .service(admin_run_demo_parse)
+            .service(run_comment)
+            .service(run_set_comment)
             .service(submission_preview)
             .service(submission_create)
             .service(recap_weekly)

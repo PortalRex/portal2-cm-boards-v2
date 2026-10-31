@@ -52,6 +52,8 @@ export const handlers: RequestHandler[] = [
   }),
   // Staff: no notes on a run and nobody reacted, unless a test says otherwise.
   http.get(`${API}/admin/runs/:id/notes`, () => HttpResponse.json([])),
+  // Runs show the comment they came with unless a test serves one (and who may change it).
+  http.get(`${API}/runs/:id/comment`, () => new HttpResponse(null, { status: 404 })),
   // No rendered videos unless a test says otherwise.
   http.post(`${AUTORENDER}/api/v1/check-videos-exist`, () => HttpResponse.json({ ids: [] })),
 ]

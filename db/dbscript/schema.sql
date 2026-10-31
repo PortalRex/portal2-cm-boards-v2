@@ -151,7 +151,7 @@ CREATE TABLE changelog (
     post_rank integer,
     pre_rank integer,
     submission integer DEFAULT 0 NOT NULL,
-    note character varying(100),
+    note character varying(500),
     category_id integer DEFAULT 1 NOT NULL,
     score_delta integer,
     verified boolean,
@@ -162,7 +162,11 @@ CREATE TABLE changelog (
     -- [{"name": ..., "ticks": ..., "splits": [{"name": ..., "ticks": ...}]}]
     segments jsonb,
     -- Removed from the map's world-record history by staff (the run itself is unaffected).
-    wr_hidden boolean DEFAULT false NOT NULL
+    wr_hidden boolean DEFAULT false NOT NULL,
+    -- The comment was set or cleared by staff: the player can't change it.
+    note_locked boolean DEFAULT false NOT NULL,
+    -- The comment was changed on the boards: the old-board sync leaves it as it is.
+    note_edited boolean DEFAULT false NOT NULL
 );
 
 -- Trigger to update `updated` when a row is updated.

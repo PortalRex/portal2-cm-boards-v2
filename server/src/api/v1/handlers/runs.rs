@@ -80,6 +80,64 @@ async fn run_react(pool: web::Data<PgPool>, user: SignedIn, id: web::Path<i64>, 
     Ok(HttpResponse::Ok().json(counts))
 }
 
+/// **GET** A run's comment: `{ "note": "…" | null, "locked": bool, "editable": bool }`. `locked`:
+/// staff set or cleared it, so its player can't change it; `editable`: the viewer may change it (staff,
+/// or the run's player while it isn't locked and the boards aren't read-only). A season's copy of a run
+/// answers with its run's comment.
+///
+/// ## Example endpoint
+/// - `/api/v1/runs/367546/comment`
+#[get("/runs/{id}/comment")]
+async fn run_comment(
+    pool: web::Data<PgPool>,
+    config: web::Data<crate::tools::config::Config>,
+    user: MaybeUser,
+    id: web::Path<i64>,
+) -> Result<impl Responder> {
+    let viewer = user.0.as_ref().map(|u| (u.profile_number.as_str(), u.is_admin()));
+    Ok(match runs::comment(pool.get_ref(), id.into_inner(), viewer, config.server.read_only()).await? {
+        Some(comment) => HttpResponse::Ok().json(comment),
+        None => HttpResponse::NotFound().body("No such run."),
+    })
+}
+
+#[derive(Deserialize)]
+pub struct CommentBody {
+    /// The comment (trimmed, at most 500 characters); null or empty clears it.
+    pub note: Option<String>,
+    /// Staff: saved in the audit log with the change.
+    pub reason: Option<String>,
+}
+
+/// **PUT** Set or clear a run's comment (signed in): `{ "note": "…" | null, "reason": "…" }`. A
+/// player changes their own runs' comments while staff haven't set or cleared them (and not while
+/// the boards are read-only); staff change any, which locks it from the player and goes to the audit
+/// log. Answers as `GET /runs/{id}/comment`; 403 with the reason when refused, 404 without the run.
+///
+/// ## Example endpoint
+/// - `/api/v1/runs/367546/comment`
+///
+/// ## Example body
+/// ```json
+/// { "note": "pb after 3 hours" }
+/// ```
+#[put("/runs/{id}/comment")]
+async fn run_set_comment(
+    pool: web::Data<PgPool>,
+    config: web::Data<crate::tools::config::Config>,
+    user: SignedIn,
+    id: web::Path<i64>,
+    body: web::Json<CommentBody>,
+) -> Result<impl Responder> {
+    let reason = body.reason.as_deref().map(str::trim).filter(|r| !r.is_empty());
+    let change = runs::set_comment(pool.get_ref(), id.into_inner(), &user.0, config.server.read_only(), body.note.as_deref(), reason).await?;
+    Ok(match change {
+        runs::CommentChange::Saved(comment) => HttpResponse::Ok().json(comment),
+        runs::CommentChange::NotFound => HttpResponse::NotFound().body("No such run."),
+        runs::CommentChange::Refused(why) => HttpResponse::Forbidden().body(why),
+    })
+}
+
 /// **GET** Staff: who reacted to a run (current reactions) and the latest 100 changes,
 /// including changed and cleared reactions.
 #[get("/admin/runs/{id}/reactions")]

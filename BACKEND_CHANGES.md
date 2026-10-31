@@ -50,6 +50,7 @@ New databases get everything from `db/dbscript/schema.sql`. An existing database
 | `20261112000000_submit_keys.sql` | `users.submit_key_hash` / `submit_key_created`: SAR auto-submit keys, kept only as SHA-256 (unique index). The old boards' keys (`users.auth_hash`, imported) are hashed the same way, so they keep working, and their plaintext copies cleared. |
 | `20261113000000_wr_webhooks.sql` | `games.wr_webhook_url` (each game's Discord webhook for WR announcements), `wr_announcements` (runs the announcer checked, so each is posted at most once) and `wr_announcer_state` (it starts after the newest run when the migration ran, so no old WR is posted). |
 | `20261114000000_old_wrs.sql` | `old_wrs`: world records from before the boards' history (2011–2012, from videos and the old iVerb boards), with the day (and whether the time or only the month is known), the player's name and the source. Shown only in a map's WR history; boards, PBs and points don't see them. Filled by `old_wrs.py`. |
+| `20261115000000_run_comments.sql` | `changelog.note_locked` (staff set or cleared the run's comment: its player can't change it) and `changelog.note_edited` (changed on the boards: the old-board sync leaves the comment as it is, cleared ones too); `changelog.note` widened from 100 to 500 characters, as submissions already took (a longer comment failed the insert). Recreates the `season_changelog_update` trigger around the type change, as `20261022000000_run_stats.sql` left it. |
 
 `import_boards.py` builds a fresh database from the old boards' MySQL dumps and runs the BSP-name step itself (see
 [§10](#10-import-and-maintenance-scripts)).
@@ -156,6 +157,8 @@ All under `/api/v1`. Auth: **public**, **signed in**, **staff** (any tier or ser
 | `GET /runs/{id}/reactions` | public | Thumbs up / down counts. |
 | `GET /runs/reactions/mine?ids=` | public | The signed-in user's reactions on several runs. |
 | `PUT /runs/{id}/reaction` | signed in | Set or clear your reaction (also logged to `run_reaction_events`). |
+| `GET /runs/{id}/comment` | public | The run's comment: `{ note, locked, editable }` (`editable` for the viewer: staff, or the run's player while staff haven't locked it and the boards aren't read-only). A season copy answers with its run's comment. |
+| `PUT /runs/{id}/comment` | signed in | Set or clear a run's comment (`{ note, reason }`, trimmed, at most 500 characters). Players change their own runs' comments (not while read-only); staff change any, which locks it from the player and goes to the audit log as `run.set_comment` / `run.clear_comment`. 403 with the reason when refused. |
 | `POST /runs/{id}/report` | public | Report a run anonymously (reason + details). |
 | `POST /submissions/preview` | signed in | Read a demo (multipart `demo`): map, time, players, matching board maps. Saves nothing. |
 | `POST /submissions` | signed in | Submit a run from a demo; admins may also enter map/time/player/partner by hand. See [§8](#8-run-submissions-and-demos). |

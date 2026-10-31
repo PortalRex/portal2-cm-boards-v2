@@ -44,6 +44,7 @@ export const queryKeys = {
   run: (changelogId: number) => ['run', changelogId] as const,
   runSegments: (changelogId: number) => ['run', changelogId, 'segments'] as const,
   runStaffNotes: (changelogId: number) => ['run', changelogId, 'staff-notes'] as const,
+  runComment: (changelogId: number) => ['run', changelogId, 'comment'] as const,
   coopHalves: (coopId: number) => ['coop-halves', coopId] as const,
   coopRoleOverrides: () => ['coop-role-overrides'] as const,
 
