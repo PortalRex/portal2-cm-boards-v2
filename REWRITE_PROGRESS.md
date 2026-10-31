@@ -69,6 +69,10 @@
 
 ## Log
 <!-- Newest first. One entry per finished item: date, what was done, commit, tests added. -->
+- 2026-10-31: Review fix (PR #4): rank numbers' 25% more vivid colours are worked out in `rankVars`
+  (`--rank-text`, `--rank-text-dark`: the colour, lifted on dark, through CSS saturate()'s matrix) instead of a
+  `filter: saturate(1.25)` on every `rank-tint` number, which on long lists (Score Updates, histories) made hundreds
+  of filtered layers. The same colours as the filter drew (checked against Chrome). Tests: 1.
 - 2026-10-31: Asked for: Settings → Appearance → Rank colours. High contrast (default) is as before. Low contrast
   tints every rank tag (map boards and Score Updates: `RankTag`'s new `rank-fill`; the profile's tiles:
   `rank-tile`) as the profile's tiles were before they took the map tags' colours (621fe52): the rank's colour

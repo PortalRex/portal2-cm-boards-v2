@@ -479,13 +479,13 @@
 }
 
 /* A rank number in its colour (style={rankVars(rank)}): lifted towards white on dark, as it is on
-   light, and 25% more vivid. (Rank tags have their own colours: rank-fill, rank-tile.) */
+   light, and 25% more vivid (worked out in rankVars, not a filter on every number). (Rank tags have
+   their own colours: rank-fill, rank-tile.) */
 @utility rank-tint {
-  color: var(--rank-color-dark, inherit);
+  color: var(--rank-text-dark, var(--rank-color-dark, inherit));
   font-weight: 600;
-  filter: saturate(1.25);
   :root[data-theme='light'] & {
-    color: var(--rank-color, inherit);
+    color: var(--rank-text, var(--rank-color, inherit));
   }
 }
 
