@@ -69,6 +69,27 @@
 
 ## Log
 <!-- Newest first. One entry per finished item: date, what was done, commit, tests added. -->
+- 2026-10-31: Asked for: the profile's Challenge Mode Points show the green / red arrow by each board's points for
+  the last 30 days, as the aggregated tables do (shared `features/profiles/hooks/use-recent-points-changes.ts`, the
+  same two cached requests); every `PointsChange` arrow now says how many in a hover / focus bubble (`Bubble`),
+  not only a `title`. The aggregated tables' place column is centred, so a WR's trophy lines up with the places.
+  The top bar has no glass any more (its own faint gradient shows the page background better). Tests: 4.
+- 2026-10-31: New (asked for, trying it out): a background for every page, Settings → Appearance → Background
+  (`features/settings/components/background-setting.tsx`, `hooks/use-background.ts`, saved as `p2cm.background`: a
+  preset id or a picture address). It replaces each page's own background in `<Page>` (map and profile pictures
+  too), under a light veil. Presets are scenes in `components/layouts/backdrops/` (`BACKGROUND_PRESETS`); for now one,
+  CRT: a surveillance monitor cycling camera feeds (the co-op bots' silhouette, `assets/coop-bots.png` from the
+  upstream frontend, then co-op chamber shots from `assets/chambers`), each drawn as scanlines lifted by the
+  picture's brightness (Rutt-Etra), violet / magenta / cyan with portal blue and orange kept, under an RGB grille,
+  grain and a vignette, with a CAM label (`crt.tsx`, `crt-signal.ts`). It holds still between a glitch cut every
+  10 s and an occasional glitch: anything moving behind glass panels makes them all blur again each frame, so the
+  next channel is drawn offscreen a few rows per frame (forced to raster per row, or the browser defers all of it
+  to the frame that shows it). Measured: worst frame while scrolling 6–8 ms, as with the site's own background.
+  Still with reduced motion and in the Settings swatch. Or a picture on Steam or Imgur, the hosts the server takes for
+  players' pictures (`lib/image-address.ts` mirrors `moderation::AVATAR_HOSTS`; stored as the browser writes the
+  address, so it stays inside CSS `url("…")`). Also fixed: under glass, native dropdown lists were white text on
+  the system's white list (options took the see-through `--control`); every `<option>` / `<optgroup>` now uses the
+  solid `--option`. Checked in the browser. Not committed yet. Tests: 9.
 - 2026-10-31: New (asked for): a liquid glass look, switched on in Settings → Appearance → Liquid glass
   (`hooks/use-glass.ts`, saved as `p2cm.glass` = "1", the new site's own key; `public/theme.js` applies it before
   first paint). It sits on top of the dark or light theme: `html[data-glass]` swaps the surface tokens for
