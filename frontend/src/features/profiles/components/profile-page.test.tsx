@@ -377,6 +377,35 @@ describe('Profile page', () => {
     expect(within(row(/Overall/)).queryByRole('img')).not.toBeInTheDocument()
   })
 
+  it('marks the Challenge Mode Points that changed in the last 30 days, the amount on hover', async () => {
+    const board = (key: string, value: number) => ({
+      board: key,
+      points: { rank: 5, value, next: -10, wr: -100 },
+      time: null,
+    })
+    serveProfile()
+    // A month back: single player lower, co-op higher (lost since), overall the same.
+    server.use(
+      http.get(`${API}/profile/aggregated/:id`, ({ request }) => {
+        const at = new URL(request.url).searchParams.get('at')
+        return HttpResponse.json(
+          at === recentFrom(null)
+            ? [board('sp', 11400), board('coop', 9340), board('overall', 20740)]
+            : [board('sp', 11565), board('coop', 9315), board('overall', 20740)],
+        )
+      }),
+    )
+    await renderProfile()
+    const points = card('Challenge Mode Points')
+    const up = await within(points).findByRole('img', { name: '+165 points in the last 30 days' })
+    // Just the arrow by the points; the amount is in its bubble.
+    expect(within(points).queryByText('+165')).toBeNull()
+    await userEvent.hover(up)
+    expect(screen.getByRole('tooltip')).toHaveTextContent('+165 points in the last 30 days')
+    expect(within(points).getByRole('img', { name: '-25 points in the last 30 days' })).toBeInTheDocument()
+    expect(within(points).getAllByRole('img', { name: /in the last 30 days/ })).toHaveLength(2)
+  })
+
   it('sorts an aggregated table from its headers: best first, reversed, then chapter order', async () => {
     serveProfile({
       aggregated: [

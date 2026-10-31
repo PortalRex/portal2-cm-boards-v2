@@ -66,7 +66,7 @@ export function HistoryTooltip({
   children?: ReactNode
 }) {
   return (
-    <div className="flex min-w-36 flex-col gap-1 rounded-md border border-line bg-menu px-2.5 py-1.5 text-xs shadow-[0_8px_24px_rgb(0_0_0/45%)]">
+    <div className="glass flex min-w-36 flex-col gap-1 rounded-md border border-line bg-menu px-2.5 py-1.5 text-xs shadow-[0_8px_24px_rgb(0_0_0/45%)]">
       <span className="font-medium">{when}</span>
       <div className="flex items-center justify-between gap-4">
         <span className="flex min-w-0 items-center gap-1.5 text-text-2">

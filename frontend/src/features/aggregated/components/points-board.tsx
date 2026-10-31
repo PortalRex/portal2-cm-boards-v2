@@ -52,10 +52,7 @@ export function PointsBoard({
   const places = useMemo(() => sharedPlaces(rows, rankBy), [rows, rankBy])
 
   return (
-    <section
-      aria-label={title}
-      className="min-w-0 overflow-hidden rounded-md bg-[rgb(var(--panel-rgb)/0.97)] pb-5"
-    >
+    <section aria-label={title} className="glass min-w-0 overflow-hidden rounded-md bg-panel-body pb-5">
       <h2 className="mb-[18px] flex h-12 items-center bg-panel-head px-5 text-base font-normal tracking-[0.02em] uppercase">
         {title}
       </h2>

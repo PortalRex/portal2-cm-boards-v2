@@ -140,7 +140,7 @@ export function ProfilePage({
             actions={<FollowButton player={p.player} />}
             after={staffTools?.(p.player)}
           />
-          <PointsCard summary={summary} />
+          <PointsCard summary={summary} profileNumber={p.player.profileNumber} at={at ?? null} />
         </Row>
         <Row className="grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)]">
           <GlobalRankCard

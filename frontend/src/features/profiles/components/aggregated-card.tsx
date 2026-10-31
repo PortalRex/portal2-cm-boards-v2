@@ -12,14 +12,13 @@ import { ApiError } from '@/lib/api-client'
 import { useCatalog } from '@/lib/catalog'
 import { formatDelta, formatPoints, formatScore } from '@/lib/format'
 import { aggregatedQueryOptions } from '../api/profile'
+import { useRecentPointsChanges } from '../hooks/use-recent-points-changes'
 import type { StandingRaw } from '../types'
 import {
   aggregatedLines,
   formatPointsGap,
   nextAggregatedSort,
-  pointsChanges,
   RECENT_DAYS,
-  recentFrom,
   sortAggregated,
   sortsDescending,
   type AggregatedColumn,
@@ -45,11 +44,7 @@ export function AggregatedCard({ profileNumber, at }: { profileNumber: string; a
   const gameName = catalog.games[game]?.label ?? 'Portal 2'
   const data = useQuery(aggregatedQueryOptions(catalog, profileNumber, game, at))
   const missing = data.error instanceof ApiError && data.error.status === 404
-  // The boards as they stood RECENT_DAYS before, for the arrows (no runs by then: none yet).
-  const before = useQuery(aggregatedQueryOptions(catalog, profileNumber, game, recentFrom(at)))
-  const noneBefore = before.error instanceof ApiError && before.error.status === 404
-  const changes =
-    data.data && (before.data || noneBefore) ? pointsChanges(data.data, before.data ?? []) : undefined
+  const changes = useRecentPointsChanges(profileNumber, at)
   return (
     <Card
       icon={BarsIcon}
@@ -94,6 +89,7 @@ function SortHeader({
   column,
   label,
   name = label,
+  center = false,
   sort,
   onSort,
   morePointsFirst,
@@ -102,6 +98,8 @@ function SortHeader({
   label: string
   /** What the button says to screen readers, when the label is a sign. */
   name?: string
+  /** Centred over its column (the places) rather than right-aligned. */
+  center?: boolean
   sort: AggregatedSort | null
   onSort: (sort: AggregatedSort | null) => void
   morePointsFirst: boolean
@@ -112,7 +110,7 @@ function SortHeader({
   return (
     <span
       role="columnheader"
-      className="text-right"
+      className={center ? 'text-center' : 'text-right'}
       aria-sort={on ? (descending ? 'descending' : 'ascending') : 'none'}
     >
       <button
@@ -163,7 +161,7 @@ function Table({
         <span role="columnheader" className={cn(nameCell, 'text-text-2')}>
           {title}
         </span>
-        <SortHeader column="rank" label="#" name="place" {...header} />
+        <SortHeader column="rank" label="#" name="place" center {...header} />
         <SortHeader column="value" label={valueLabel} {...header} />
         <SortHeader column="next" label="Δnext" {...header} />
         <SortHeader column="wr" label="ΔWR" {...header} />
@@ -187,8 +185,9 @@ function Table({
                     line.label
                   )}
                 </span>
-                {/* The rank colours, 25% more vivid here (as the Global Rank card's). */}
-                <span role="cell" className="num text-right saturate-125">
+                {/* The rank colours, 25% more vivid here (as the Global Rank card's). Centred, so a
+                    WR's trophy (wider than a digit) lines up with the places under it. */}
+                <span role="cell" className="num text-center saturate-125">
                   <RankNumber rank={s?.rank} colored />
                 </span>
                 <span role="cell" className="num text-right font-semibold">

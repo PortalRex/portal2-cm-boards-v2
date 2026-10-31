@@ -1,5 +1,6 @@
 import { cn } from 'cn'
 import type { ReactNode } from 'react'
+import { useBackground } from '@/hooks/use-background'
 import { useGame } from '@/hooks/use-game'
 import { gameBranding, useCatalog } from '@/lib/catalog'
 import { boardsBackground, siteBackground } from './backgrounds'
@@ -16,9 +17,14 @@ const TINTS = {
   warm: 'after:bg-linear-to-b after:from-[rgba(20,14,6,0.2)] after:via-[rgb(var(--page-rgb)/0.85)] after:via-75% after:to-page',
 }
 
+// A background chosen in Settings: in full colour under a light veil, fading out at the bottom on
+// iOS (where it's one screen tall, see below).
+const CHOSEN =
+  'overflow-hidden after:bg-[rgb(var(--page-rgb)/0.3)] ios:after:bg-linear-to-b ios:after:from-transparent ios:after:from-60% ios:after:to-page'
+
 /**
  * A page's frame under the top bar: a full-page background image (tinted, optionally blurred) and
- * a centred content column.
+ * a centred content column. A background chosen in Settings replaces the page's own.
  */
 export function Page({
   background,
@@ -35,10 +41,12 @@ export function Page({
 }) {
   const catalog = useCatalog()
   const game = useGame()
-  const image =
+  const [chosen] = useBackground()
+  const own =
     background && SITE_BACKGROUNDS.has(background)
       ? (gameBranding(catalog, game).background ?? background)
       : background
+  const image = chosen ? (chosen.kind === 'image' ? chosen.address : null) : own
   return (
     <>
       {/* The background sits at layer 0 and the page above it at layer 1 (a negative z-index under
@@ -49,13 +57,18 @@ export function Page({
       <div
         aria-hidden
         data-testid="page-background"
+        data-backdrop={chosen?.kind === 'preset' ? chosen.preset.id : undefined}
         className={cn(
           'fixed inset-0 z-0 bg-page bg-cover bg-top after:absolute after:inset-0 after:content-[""] ios:absolute ios:bottom-auto ios:h-lvh',
-          TINTS[tint],
-          blur && 'scale-[1.08] blur-[18px] brightness-[0.85]',
+          chosen
+            ? CHOSEN
+            : cn('glass-backdrop', TINTS[tint], blur && 'scale-[1.08] blur-[18px] brightness-[0.85]'),
         )}
         style={image ? { backgroundImage: `url("${image}")` } : undefined}
-      />
+      >
+        {/* A preset draws itself under the veil. */}
+        {chosen?.kind === 'preset' && <chosen.preset.Scene />}
+      </div>
       <main
         className={cn(
           'relative z-[1] mx-auto px-6 pt-4 pb-20 upto700:px-2.5 upto700:pt-2 upto700:pb-[60px]',

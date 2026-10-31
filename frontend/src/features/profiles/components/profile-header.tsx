@@ -134,7 +134,7 @@ export function ProfileHeader({
   after?: ReactNode
 }) {
   return (
-    <section className="relative grid grid-cols-[auto_minmax(0,1fr)] gap-7 rounded-lg bg-[linear-gradient(var(--panel-head)_0_48px,var(--panel)_48px)] py-5 pr-7 pl-8 upto800:grid-cols-[auto_minmax(0,1fr)_auto] upto800:gap-4 upto800:bg-panel upto800:p-5 upto800:[grid-template-areas:'avatar_identity_identity'_'actions_actions_links']">
+    <section className="glass relative grid grid-cols-[auto_minmax(0,1fr)] gap-7 rounded-lg bg-[linear-gradient(var(--panel-head)_0_48px,var(--panel)_48px)] py-5 pr-7 pl-8 upto800:grid-cols-[auto_minmax(0,1fr)_auto] upto800:gap-4 upto800:bg-panel upto800:p-5 upto800:[grid-template-areas:'avatar_identity_identity'_'actions_actions_links']">
       <Avatar
         src={player.avatar}
         name={player.name}

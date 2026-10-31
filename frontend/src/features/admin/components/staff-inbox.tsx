@@ -133,7 +133,7 @@ export function StaffInbox() {
         <div
           role="dialog"
           aria-label="Staff inbox"
-          className="absolute top-[52px] right-0 z-50 w-[380px] max-w-[calc(100vw-32px)] overflow-hidden rounded-[12px] bg-menu shadow-[0_12px_30px_rgba(0,0,0,0.45)] upto600:fixed upto600:top-[72px] upto600:right-4 upto600:left-4 upto600:w-auto upto600:max-w-none"
+          className="glass-float absolute top-[52px] right-0 z-50 w-[380px] max-w-[calc(100vw-32px)] overflow-hidden rounded-[12px] bg-menu shadow-[0_12px_30px_rgba(0,0,0,0.45)] upto600:fixed upto600:top-[72px] upto600:right-4 upto600:left-4 upto600:w-auto upto600:max-w-none"
         >
           <div className="flex items-center justify-between border-b border-line px-4 py-3 text-[17px]">
             <strong>Staff actions</strong>

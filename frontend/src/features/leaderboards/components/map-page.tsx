@@ -185,7 +185,7 @@ function MapPageContent({
           </div>
         </div>
 
-        <div className="bg-[rgb(var(--panel-rgb)/0.6)] px-[30px] pt-[22px] pb-[30px] upto900:px-2.5 upto900:py-4">
+        <div className="bg-panel-soft px-[30px] pt-[22px] pb-[30px] upto900:px-2.5 upto900:py-4">
           {view === 'board' ? (
             <MapLeaderboard
               map={data}

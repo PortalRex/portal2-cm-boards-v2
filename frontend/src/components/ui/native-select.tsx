@@ -47,7 +47,7 @@ function NativeSelectOption({ className, ...props }: React.ComponentProps<'optio
   return (
     <option
       data-slot="native-select-option"
-      className={cn('bg-control text-foreground', className)}
+      className={cn('bg-option text-foreground', className)}
       {...props}
     />
   )
@@ -57,7 +57,7 @@ function NativeSelectOptGroup({ className, ...props }: React.ComponentProps<'opt
   return (
     <optgroup
       data-slot="native-select-optgroup"
-      className={cn('bg-control text-foreground', className)}
+      className={cn('bg-option text-foreground', className)}
       {...props}
     />
   )

@@ -64,11 +64,7 @@ export function WrHistoryEditor({ map }: { map: MapInfo }) {
             <div
               key={e.id}
               role="row"
-              className={cn(
-                rowBase,
-                i % 2 === 0 ? 'bg-row' : 'bg-[rgb(var(--panel-rgb)/0.9)]',
-                e.wrHidden && 'opacity-60',
-              )}
+              className={cn(rowBase, i % 2 === 0 ? 'bg-row' : 'bg-row-stripe', e.wrHidden && 'opacity-60')}
             >
               <span role="cell" className="num text-text-muted" title={formatDateTime(e.timestamp)}>
                 {formatDate(e.timestamp)}

@@ -69,6 +69,41 @@
 
 ## Log
 <!-- Newest first. One entry per finished item: date, what was done, commit, tests added. -->
+- 2026-10-31: Review fix (PR #3): the CRT background's loop could start again after its page had gone, when a
+  channel picture finished loading late (`onLoad` → `run()` after cleanup), leaving an animation running until the
+  tab closed. `crt.tsx` now marks itself disposed on cleanup and `run` does nothing then. Tests: 1 (fails without
+  the fix).
+- 2026-10-31: Asked for: the profile's Challenge Mode Points show the green / red arrow by each board's points for
+  the last 30 days, as the aggregated tables do (shared `features/profiles/hooks/use-recent-points-changes.ts`, the
+  same two cached requests); every `PointsChange` arrow now says how many in a hover / focus bubble (`Bubble`),
+  not only a `title`. The aggregated tables' place column is centred, so a WR's trophy lines up with the places.
+  The top bar has no glass any more (its own faint gradient shows the page background better). Tests: 4.
+- 2026-10-31: New (asked for, trying it out): a background for every page, Settings → Appearance → Background
+  (`features/settings/components/background-setting.tsx`, `hooks/use-background.ts`, saved as `p2cm.background`: a
+  preset id or a picture address). It replaces each page's own background in `<Page>` (map and profile pictures
+  too), under a light veil. Presets are scenes in `components/layouts/backdrops/` (`BACKGROUND_PRESETS`); for now one,
+  CRT: a surveillance monitor cycling camera feeds (the co-op bots' silhouette, `assets/coop-bots.png` from the
+  upstream frontend, then co-op chamber shots from `assets/chambers`), each drawn as scanlines lifted by the
+  picture's brightness (Rutt-Etra), violet / magenta / cyan with portal blue and orange kept, under an RGB grille,
+  grain and a vignette, with a CAM label (`crt.tsx`, `crt-signal.ts`). It holds still between a glitch cut every
+  10 s and an occasional glitch: anything moving behind glass panels makes them all blur again each frame, so the
+  next channel is drawn offscreen a few rows per frame (forced to raster per row, or the browser defers all of it
+  to the frame that shows it). Measured: worst frame while scrolling 6–8 ms, as with the site's own background.
+  Still with reduced motion and in the Settings swatch. Or a picture on Steam or Imgur, the hosts the server takes for
+  players' pictures (`lib/image-address.ts` mirrors `moderation::AVATAR_HOSTS`; stored as the browser writes the
+  address, so it stays inside CSS `url("…")`). Also fixed: under glass, native dropdown lists were white text on
+  the system's white list (options took the see-through `--control`); every `<option>` / `<optgroup>` now uses the
+  solid `--option`. Checked in the browser. Not committed yet. Tests: 9.
+- 2026-10-31: New (asked for): a liquid glass look, switched on in Settings → Appearance → Liquid glass
+  (`hooks/use-glass.ts`, saved as `p2cm.glass` = "1", the new site's own key; `public/theme.js` applies it before
+  first paint). It sits on top of the dark or light theme: `html[data-glass]` swaps the surface tokens for
+  translucent ones and widens `--radius`, `<Page>`'s background shows through with a blue / orange glow
+  (`glass-backdrop`), and surfaces marked `glass` (in the flow) or `glass-float` (already positioned: menus,
+  popups, dialogs) blur what's behind them under a bright rim. The blur is on `::before`, not the element, so it
+  doesn't become the containing block of fixed children or cut off a menu's blur inside it. The panel colour
+  at fixed opacities (`rgb(var(--panel-rgb)/0.97|0.9|0.6)`) became tokens (`bg-panel-body`, `bg-row-stripe`,
+  `bg-panel-soft`) so glass can swap them; nothing changes with glass off. Checked in the browser on Score Updates,
+  a map, aggregated, a profile, menus, light and phone. Commit (pending). Tests: 4.
 - 2026-10-24: New (asked for, like the old boards' profile box): "Aggregated Times and Points" card on the profile
   (`aggregated-card.tsx`): Points and Times tables with rank, value, Δnext and ΔWR for every single player chapter,
   co-op course and total, each linking to its board on the player; follows the profile's look-back day. Server:

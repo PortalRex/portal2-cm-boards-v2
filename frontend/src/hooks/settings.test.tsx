@@ -1,8 +1,10 @@
 import { act, renderHook } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
+import { useBackground } from './use-background'
 import { useCollapsed, useCollapsedGroup } from './use-collapsed'
 import { useCoopPbStyle } from './use-coop-pb-style'
 import { useFollows } from './use-follows'
+import { useGlass } from './use-glass'
 import { useTheme } from './use-theme'
 
 describe('useTheme', () => {
@@ -22,6 +24,55 @@ describe('useTheme', () => {
   it('opens with a theme saved by the legacy site', () => {
     localStorage.setItem('p2cm.theme', 'light')
     expect(renderHook(() => useTheme()).result.current.theme).toBe('light')
+  })
+})
+
+describe('useGlass', () => {
+  it('is off by default, and puts the glass look on <html> while on', () => {
+    const { result } = renderHook(() => useGlass())
+    expect(result.current[0]).toBe(false)
+    expect(document.documentElement.dataset.glass).toBeUndefined()
+    act(() => result.current[1](true))
+    expect(result.current[0]).toBe(true)
+    expect(document.documentElement.dataset.glass).toBe('on')
+    expect(localStorage.getItem('p2cm.glass')).toBe('1')
+    act(() => result.current[1](false))
+    expect(document.documentElement.dataset.glass).toBeUndefined()
+    expect(localStorage.getItem('p2cm.glass')).toBeNull()
+  })
+
+  it('opens with the saved choice, and leaves the theme alone', () => {
+    localStorage.setItem('p2cm.glass', '1')
+    localStorage.setItem('p2cm.theme', 'light')
+    expect(renderHook(() => useGlass()).result.current[0]).toBe(true)
+    expect(renderHook(() => useTheme()).result.current.theme).toBe('light')
+    expect(document.documentElement.dataset.glass).toBe('on')
+    expect(document.documentElement.dataset.theme).toBe('light')
+  })
+})
+
+describe('useBackground', () => {
+  it("is the site's own until a preset or a picture is chosen", () => {
+    const { result } = renderHook(() => useBackground())
+    expect(result.current[0]).toBeNull()
+    act(() => result.current[1]('crt'))
+    expect(result.current[0]).toMatchObject({
+      kind: 'preset',
+      preset: { id: 'crt', label: 'CRT' },
+    })
+    expect(localStorage.getItem('p2cm.background')).toBe('crt')
+    act(() => result.current[1]('https://i.imgur.com/AbCd123.png'))
+    expect(result.current[0]).toEqual({ kind: 'image', address: 'https://i.imgur.com/AbCd123.png' })
+    act(() => result.current[1](null))
+    expect(result.current[0]).toBeNull()
+    expect(localStorage.getItem('p2cm.background')).toBeNull()
+  })
+
+  it("treats an unknown preset or another server's picture as the site's own", () => {
+    localStorage.setItem('p2cm.background', 'gone-preset')
+    expect(renderHook(() => useBackground()).result.current[0]).toBeNull()
+    localStorage.setItem('p2cm.background', 'https://evil.example/me.png')
+    expect(renderHook(() => useBackground()).result.current[0]).toBeNull()
   })
 })
 

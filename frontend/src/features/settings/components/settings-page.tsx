@@ -9,6 +9,7 @@ import { Panel } from '@/components/panel'
 import { Segmented } from '@/components/segmented'
 import { COOP_PB_STYLES, useCoopPbStyle } from '@/hooks/use-coop-pb-style'
 import { useCurrentUser } from '@/hooks/use-current-user'
+import { useGlass } from '@/hooks/use-glass'
 import { useReadOnly } from '@/hooks/use-read-only'
 import { useTheme, type Theme } from '@/hooks/use-theme'
 import { useViewAsPlayer } from '@/hooks/use-view-as-player'
@@ -18,6 +19,7 @@ import { invalidateUser } from '@/lib/invalidate'
 import { queryKeys } from '@/lib/query-keys'
 import { myUserQueryOptions, setMyCountry, setMyCountryFromSteam, setMyDisplay } from '../api/settings'
 import { AutoSubmitSetting } from './auto-submit-setting'
+import { BackgroundSetting } from './background-setting'
 
 const button =
   'inline-flex h-9 cursor-pointer items-center justify-center gap-2.5 rounded-[4px] border border-line-strong bg-control px-4 text-lg whitespace-nowrap text-foreground hover:bg-control-raised disabled:cursor-default disabled:opacity-50'
@@ -47,6 +49,7 @@ function Outcome({ message, error }: { message?: string | null; error?: Error | 
 /** Settings: appearance for everyone; name, picture and country when signed in; the staff view switch. */
 export function SettingsPage() {
   const { theme, setTheme } = useTheme()
+  const [glass, setGlass] = useGlass()
   const [pbStyle, setPbStyle] = useCoopPbStyle()
   const [, setViewAsPlayer] = useViewAsPlayer()
   const user = useCurrentUser()
@@ -71,6 +74,22 @@ export function SettingsPage() {
               { value: 'light', label: 'Light' },
             ]}
           />
+          <h3 className="mt-[18px] mb-2 text-[17px] font-normal text-text-2">Liquid glass</h3>
+          <Segmented
+            {...switchProps}
+            label="Liquid glass"
+            value={glass ? 'on' : 'off'}
+            onChange={(v) => setGlass(v === 'on')}
+            options={[
+              { value: 'off', label: 'Off' },
+              { value: 'on', label: 'On' },
+            ]}
+          />
+          <p className={note}>
+            Frosted, see-through panels and menus over the page background, in the dark or the light theme.
+          </p>
+          <h3 className="mt-[18px] mb-2 text-[17px] font-normal text-text-2">Background</h3>
+          <BackgroundSetting button={button} control={control} note={note} />
           <h3 className="mt-[18px] mb-2 text-[17px] font-normal text-text-2">Co-op PBs</h3>
           <Segmented
             {...switchProps}

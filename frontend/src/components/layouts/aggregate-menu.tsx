@@ -37,7 +37,7 @@ function BoardGroup({ board }: { board: MenuEntry }) {
         <div
           className={cn(
             menuPanel,
-            'invisible absolute -top-2.5 left-full min-w-[240px] opacity-0 transition-[opacity,visibility] duration-100',
+            'glass-float invisible absolute -top-2.5 left-full min-w-[240px] opacity-0 transition-[opacity,visibility] duration-100',
             'group-hover/board:visible group-hover/board:opacity-100 group-has-[:focus-visible]/board:visible group-has-[:focus-visible]/board:opacity-100',
             'upto1320:hidden',
           )}

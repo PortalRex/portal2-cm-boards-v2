@@ -99,7 +99,7 @@ export function TopBar() {
         <nav
           aria-label="Main"
           className={cn(
-            'upto1320:absolute upto1320:top-[72px] upto1320:right-0 upto1320:left-0 upto1320:bg-menu upto1320:shadow-[0_12px_30px_rgba(0,0,0,0.45)]',
+            'upto1320:absolute upto1320:top-[72px] upto1320:right-0 upto1320:left-0 upto1320:glass-float upto1320:bg-menu upto1320:shadow-[0_12px_30px_rgba(0,0,0,0.45)]',
             !open && 'upto1320:hidden',
           )}
         >

@@ -108,6 +108,8 @@
   --portal-neutral: rgba(160, 162, 166, 0.12);
 
   --menu: #151618;
+  /* A dropdown's list of options: drawn by the system, so always solid (also under glass). */
+  --option: #191a1c;
   --seg-active: #262729;
   --seg-hover: #1f2022;
   --track: #2a2b2d;
@@ -128,6 +130,11 @@
   --page-rgb: 30 31 33;
   --panel-rgb: 20 20 20;
   --row-rgb: 24 25 27;
+  /* The panel colour over the page background: a panel's body, a board's other stripe, a soft box.
+     Named so the glass look can swap them (the light theme's --panel-rgb carries over). */
+  --panel-body: rgb(var(--panel-rgb) / 0.97);
+  --row-stripe: rgb(var(--panel-rgb) / 0.9);
+  --panel-soft: rgb(var(--panel-rgb) / 0.6);
 
   /* shadcn names */
   --background: var(--page);
@@ -199,6 +206,7 @@
   --portal-neutral: rgba(90, 94, 100, 0.12);
 
   --menu: #ffffff;
+  --option: #ffffff;
   --seg-active: #dcdfe4;
   --seg-hover: #eceef1;
   --track: #dfe2e6;
@@ -222,6 +230,108 @@
 
   --destructive: #c62a2f;
   color-scheme: light;
+}
+
+/*
+ * Liquid glass (Settings → Liquid glass; data-glass on <html>, see hooks/use-glass.ts): a look on top
+ * of the dark or light theme. Surfaces turn translucent, the page background shows through more with
+ * a blue / orange glow, and surfaces marked `glass` / `glass-float` blur what's behind them under a
+ * bright rim. Everything else keeps the theme's colours.
+ */
+:root[data-glass] {
+  --panel: rgb(22 24 28 / 0.4);
+  --panel-head: rgb(255 255 255 / 0.06);
+  --panel-body: rgb(22 24 28 / 0.36);
+  --row-stripe: rgb(255 255 255 / 0.015);
+  --panel-soft: rgb(22 24 28 / 0.22);
+  --row: rgb(255 255 255 / 0.04);
+  --row-alt: rgb(255 255 255 / 0.015);
+  --row-sub: rgb(0 0 0 / 0.12);
+  --row-sub-alt: rgb(0 0 0 / 0.18);
+  --control: rgb(255 255 255 / 0.06);
+  --control-raised: rgb(255 255 255 / 0.11);
+  --control-raised-2: rgb(255 255 255 / 0.18);
+  --line: rgb(255 255 255 / 0.13);
+  --line-strong: rgb(255 255 255 / 0.24);
+  --menu: rgb(26 28 33 / 0.62);
+  --seg-active: rgb(255 255 255 / 0.15);
+  --seg-hover: rgb(255 255 255 / 0.08);
+  --track: rgb(255 255 255 / 0.08);
+  --chart-grid: rgb(255 255 255 / 0.08);
+  --rank-cell: rgb(255 255 255 / 0.1);
+  --wr-row: rgb(219 126 255 / 0.16);
+  --rank-prev: rgb(138 217 124 / 0.2);
+  --rank-new: rgb(90 120 255 / 0.24);
+  --pending: rgb(80 140 210 / 0.22);
+  --hl-green: rgb(138 217 124 / 0.16);
+  --hl-green-2: rgb(138 217 124 / 0.12);
+  --hl-teal: rgb(80 200 170 / 0.16);
+  --hl-red: rgb(240 100 110 / 0.22);
+  --banned: rgb(240 100 110 / 0.22);
+  --radius: 10px;
+
+  --glass-blur: blur(22px) saturate(170%);
+  --glass-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.16), inset 0 -1px 0 rgb(255 255 255 / 0.04),
+    0 10px 34px rgb(0 0 0 / 0.32);
+  --glass-rim: linear-gradient(
+    140deg,
+    rgb(255 255 255 / 0.42),
+    rgb(255 255 255 / 0.08) 28%,
+    rgb(255 255 255 / 0.02) 55%,
+    rgb(255 255 255 / 0.18)
+  );
+  --glass-glow:
+    radial-gradient(70vw 60vh at 8% 0%, rgb(40 140 255 / 0.32), transparent 65%),
+    radial-gradient(60vw 55vh at 100% 85%, rgb(255 140 30 / 0.24), transparent 65%);
+  --glass-veil: linear-gradient(to bottom, rgb(var(--page-rgb) / 0.12), rgb(var(--page-rgb) / 0.55));
+}
+
+:root[data-glass][data-theme='light'] {
+  --panel: rgb(255 255 255 / 0.5);
+  --panel-head: rgb(255 255 255 / 0.42);
+  --panel-body: rgb(255 255 255 / 0.48);
+  --row-stripe: rgb(255 255 255 / 0.22);
+  --panel-soft: rgb(255 255 255 / 0.32);
+  --row: rgb(255 255 255 / 0.4);
+  --row-alt: rgb(255 255 255 / 0.22);
+  --row-sub: rgb(0 0 0 / 0.03);
+  --row-sub-alt: rgb(0 0 0 / 0.05);
+  --control: rgb(255 255 255 / 0.55);
+  --control-raised: rgb(0 0 0 / 0.06);
+  --control-raised-2: rgb(0 0 0 / 0.1);
+  --line: rgb(20 30 50 / 0.14);
+  --line-strong: rgb(20 30 50 / 0.26);
+  --menu: rgb(255 255 255 / 0.68);
+  --seg-active: rgb(0 0 0 / 0.09);
+  --seg-hover: rgb(0 0 0 / 0.05);
+  --track: rgb(0 0 0 / 0.07);
+  --chart-grid: rgb(0 0 0 / 0.08);
+  --rank-cell: rgb(0 0 0 / 0.08);
+  --wr-row: rgb(147 51 196 / 0.12);
+  --rank-prev: rgb(43 127 31 / 0.14);
+  --rank-new: rgb(60 95 214 / 0.14);
+  --pending: rgb(42 72 103 / 0.12);
+  --hl-green: rgb(43 127 31 / 0.12);
+  --hl-green-2: rgb(43 127 31 / 0.09);
+  --hl-teal: rgb(30 140 110 / 0.12);
+  --hl-red: rgb(198 42 47 / 0.12);
+  --banned: rgb(198 42 47 / 0.12);
+
+  --glass-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.85), inset 0 0 0 1px rgb(255 255 255 / 0.25),
+    0 10px 30px rgb(30 40 60 / 0.14);
+  --glass-rim: linear-gradient(
+    140deg,
+    rgb(255 255 255 / 0.95),
+    rgb(255 255 255 / 0.3) 30%,
+    rgb(255 255 255 / 0.1) 60%,
+    rgb(255 255 255 / 0.6)
+  );
+  --glass-glow:
+    radial-gradient(70vw 60vh at 8% 0%, rgb(40 140 255 / 0.28), transparent 65%),
+    radial-gradient(60vw 55vh at 100% 85%, rgb(255 140 30 / 0.22), transparent 65%);
+  --glass-veil: linear-gradient(to bottom, rgb(var(--page-rgb) / 0.2), rgb(var(--page-rgb) / 0.6));
 }
 
 /*
@@ -275,6 +385,9 @@
   --color-page: var(--page);
   --color-panel: var(--panel);
   --color-panel-head: var(--panel-head);
+  --color-panel-body: var(--panel-body);
+  --color-panel-soft: var(--panel-soft);
+  --color-row-stripe: var(--row-stripe);
   --color-row: var(--row);
   --color-row-alt: var(--row-alt);
   --color-row-sub: var(--row-sub);
@@ -303,6 +416,7 @@
   --color-portal-orange: var(--portal-orange);
   --color-portal-neutral: var(--portal-neutral);
   --color-menu: var(--menu);
+  --color-option: var(--option);
   --color-seg-active: var(--seg-active);
   --color-seg-hover: var(--seg-hover);
   --color-track: var(--track);
@@ -350,6 +464,13 @@
   a {
     color: inherit;
     text-decoration: none;
+  }
+  /* The system draws a <select>'s list from its options' colours (or the select's, which glass
+     makes see-through: white text on the system's white list). */
+  option,
+  optgroup {
+    background-color: var(--option);
+    color: var(--text);
   }
 }
 
@@ -455,5 +576,126 @@
     box-shadow:
       inset 0 0 0 1px color-mix(in srgb, var(--trophy) 70%, white),
       0 0 16px 3px color-mix(in srgb, var(--trophy) 70%, transparent) !important;
+  }
+}
+
+/*
+ * Liquid glass surfaces, only while data-glass is on. `glass` is for a surface in the page's flow
+ * (it becomes position: relative to hold its layers), `glass-float` for one that's already
+ * positioned (menus, popups, dialogs). The blur sits on ::before rather than on the element, so the
+ * element doesn't become the containing block of its fixed children or cut off the blur of a menu
+ * inside it; ::after draws the bright rim.
+ */
+@utility glass {
+  :root[data-glass] & {
+    position: relative;
+    box-shadow: var(--glass-shadow) !important;
+    &::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      border-radius: inherit;
+      backdrop-filter: var(--glass-blur);
+      pointer-events: none;
+    }
+    &::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      padding: 1px;
+      border-radius: inherit;
+      background: var(--glass-rim);
+      mask:
+        linear-gradient(#000 0 0) content-box exclude,
+        linear-gradient(#000 0 0);
+      pointer-events: none;
+    }
+  }
+}
+
+@utility glass-float {
+  :root[data-glass] & {
+    box-shadow: var(--glass-shadow) !important;
+    &::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      border-radius: inherit;
+      backdrop-filter: var(--glass-blur);
+      pointer-events: none;
+    }
+    &::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      padding: 1px;
+      border-radius: inherit;
+      background: var(--glass-rim);
+      mask:
+        linear-gradient(#000 0 0) content-box exclude,
+        linear-gradient(#000 0 0);
+      pointer-events: none;
+    }
+  }
+}
+
+/* The page background (<Page>) under glass: the picture shows through more, with a blue and an
+   orange glow for the glass to pick up. On iOS it's one screen tall, so it still fades out at the
+   bottom into the page colour. */
+@utility glass-backdrop {
+  :root[data-glass] &::after {
+    background-image: var(--glass-glow), var(--glass-veil) !important;
+  }
+  @supports (-webkit-touch-callout: none) {
+    :root[data-glass] &::after {
+      background-image:
+        linear-gradient(to bottom, transparent 70%, var(--page)), var(--glass-glow), var(--glass-veil) !important;
+    }
+  }
+}
+
+/*
+ * The CRT background's glass (components/layouts/backdrops/crt.tsx; the signal under it is drawn on a
+ * canvas): the screen, a fine RGB aperture grille, grain, and the tube (vignette, glare). All still: anything moving behind glass panels makes them blur it again every frame.
+ */
+@utility crt-screen {
+  background: radial-gradient(ellipse at 50% 45%, #0e0b1f, #040409 78%);
+}
+
+@utility crt-grille {
+  background: repeating-linear-gradient(
+    90deg,
+    rgb(255 40 90 / 0.08) 0 1px,
+    rgb(40 255 140 / 0.05) 1px 2px,
+    rgb(60 130 255 / 0.08) 2px 3px
+  );
+}
+
+@utility crt-grain {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 180px 180px;
+  opacity: 0.07;
+}
+
+@utility crt-tube {
+  /* Glare on the glass, then the vignette towards the screen's edges. */
+  background:
+    radial-gradient(55% 30% at 26% 8%, rgb(255 255 255 / 0.07), transparent 70%),
+    radial-gradient(ellipse 84% 82% at 50% 50%, transparent 62%, rgb(0 0 0 / 0.42) 84%, rgb(0 0 0 / 0.8) 100%);
+}
+
+/* The camera label's recording light. */
+@utility crt-rec {
+  animation: crt-rec 1s steps(1, end) infinite;
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+@keyframes crt-rec {
+  60% {
+    opacity: 0;
   }
 }

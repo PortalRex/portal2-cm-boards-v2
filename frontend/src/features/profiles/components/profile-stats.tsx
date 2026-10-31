@@ -7,12 +7,15 @@ import { bubbleAnchor } from '@/lib/bubble'
 import { mapPath } from '@/lib/catalog'
 import { GlobeIcon, PeakIcon, SparkleIcon, TrophyFilledIcon } from '@/components/icons'
 import { Card } from '@/components/panel'
+import { PointsChange } from '@/components/points-change'
 import { countryName } from '@/lib/data/countries'
 import { roleProgress, roleProgressText, type PointsBoard } from '@/lib/data/roles'
 import { formatDate, formatDateTime, formatPoints, formatScore, ordinalSuffix, timeAgo } from '@/lib/format'
 import { ageColor } from '@/lib/age-color'
 import { rankVars } from '@/lib/ranks'
 import type { MapScore, PointsPeak, ProfilePlayer, ScoreBrief } from '../types'
+import { useRecentPointsChanges } from '../hooks/use-recent-points-changes'
+import { RECENT_DAYS } from '../utils/aggregated'
 import type { ProfileSummary } from '../utils/summary'
 
 type StatSize = 'md' | 'sm'
@@ -126,8 +129,21 @@ function RoleBar({ board, points }: { board: PointsBoard; points: number }) {
   )
 }
 
-/** The points on each of the game's boards; Portal 2's with the progress toward the next role. */
-export function PointsCard({ summary }: { summary: ProfileSummary }) {
+/**
+ * The points on each of the game's boards, with a green or red arrow for the points gained or lost
+ * in the last RECENT_DAYS; Portal 2's with the progress toward the next role.
+ */
+export function PointsCard({
+  summary,
+  profileNumber,
+  at,
+}: {
+  summary: ProfileSummary
+  profileNumber: string
+  /** The profile's day when looking back (null: today). */
+  at: string | null
+}) {
+  const changes = useRecentPointsChanges(profileNumber, at)
   return (
     <Card
       icon={SparkleIcon}
@@ -136,8 +152,23 @@ export function PointsCard({ summary }: { summary: ProfileSummary }) {
       bodyClassName="flex items-center upto800:justify-around"
     >
       <div className={statRow}>
-        {summary.slots.map(({ key, label, roleBoard }) => (
-          <Stat key={key} value={formatPoints(summary.points[key] ?? 0)} label={label}>
+        {summary.slots.map(({ key, serverKey, label, roleBoard }) => (
+          <Stat
+            key={key}
+            value={
+              <>
+                {formatPoints(summary.points[key] ?? 0)}
+                {/* How many in its bubble. */}
+                <PointsChange
+                  change={changes?.get(serverKey)}
+                  days={RECENT_DAYS}
+                  size={14}
+                  className="mr-0 ml-1 self-center"
+                />
+              </>
+            }
+            label={label}
+          >
             {roleBoard && <RoleBar board={roleBoard} points={summary.points[key] || 0} />}
           </Stat>
         ))}

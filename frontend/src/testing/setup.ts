@@ -17,5 +17,6 @@ afterEach(() => {
   localStorage.clear()
   resetUnsavedStorage()
   delete document.documentElement.dataset.theme
+  delete document.documentElement.dataset.glass
 })
 afterAll(() => server.close())
