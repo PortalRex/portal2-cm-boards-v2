@@ -111,7 +111,9 @@
   /* A dropdown's list of options: drawn by the system, so always solid (also under glass). */
   --option: #191a1c;
   --seg-active: #262729;
-  --seg-hover: #1f2022;
+  /* A tint over whatever is behind, so a hover shows the same on a panel's body and its header
+     (a fixed grey matched the header's and only the text changed). */
+  --seg-hover: rgb(255 255 255 / 0.035);
   --track: #2a2b2d;
   --control-raised-2: #3a3b3d;
   --chart-grid: #2a2b2d;
@@ -208,7 +210,7 @@
   --menu: #ffffff;
   --option: #ffffff;
   --seg-active: #dcdfe4;
-  --seg-hover: #eceef1;
+  --seg-hover: rgb(0 0 0 / 0.06);
   --track: #dfe2e6;
   --control-raised-2: #d5d8dd;
   --chart-grid: #e0e3e7;
@@ -443,6 +445,14 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+  }
+  /* Everything clickable shows the hand (Tailwind 4 leaves buttons on the arrow). */
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']),
+  select:not(:disabled),
+  summary,
+  label[for] {
+    cursor: pointer;
   }
   html {
     line-height: normal;

@@ -109,7 +109,9 @@ function GameProfileTabs({
             aria-selected={tab === t.key}
             className={cn(
               'h-[46px] min-w-[124px] flex-none cursor-pointer rounded-t-[10px] border-0 px-7 text-lg font-light text-text-2 uppercase upto900:min-w-0 upto900:px-4 upto900:text-base',
-              tab === t.key ? 'bg-panel-body text-foreground' : 'bg-control-raised',
+              tab === t.key
+                ? 'bg-panel-body text-foreground'
+                : 'bg-control-raised hover:text-foreground hover:brightness-125',
             )}
             onClick={(e) => {
               // On a phone the tabs scroll sideways: keep the picked one in view.
