@@ -4,7 +4,8 @@ import { CommentIcon, DownloadIcon, PlayIcon, VideocamIcon, YouTubeIcon } from '
 import { YouTubeEmbed } from '@/components/youtube-embed'
 import { Bubble } from '@/components/bubble'
 import { bubbleAnchor } from '@/lib/bubble'
-import { runVideo, type VideoRun } from '@/lib/runs/video'
+import { useRunVideo } from '@/hooks/use-run-video'
+import type { VideoRun } from '@/lib/runs/video'
 import { apiUrl } from '@/lib/api-client'
 
 const off = 'opacity-[0.18]'
@@ -15,7 +16,7 @@ const iconLink = 'inline-flex [&_svg]:block'
 
 const youtubeUrl = (id: string) => `https://www.youtube.com/watch?v=${id.split('?')[0]}`
 
-/** ▶ opens the autorender video, or (with a demo) offers to request a render. */
+/** ▶ opens the autorender video, or (with a demo, for admins) offers to request a render. */
 export function AutorenderLink({
   run,
   game = 'portal2',
@@ -27,7 +28,7 @@ export function AutorenderLink({
   rendered?: Map<number, string>
   size?: number
 }) {
-  const video = runVideo(run, game, rendered)
+  const video = useRunVideo(run, game, rendered)
   // The play triangle reads larger than the other icons, so it gets a little less.
   const px = size - shrink - 2
   const icon = { width: px, height: px }
@@ -152,7 +153,7 @@ export function RunVideo({
   rendered?: Map<number, string>
   title?: string
 }) {
-  const video = runVideo(run, game, rendered)
+  const video = useRunVideo(run, game, rendered)
   const src = video.ready ? video.src : null
   // Reset when the video changes (keyed state, so no effect is needed).
   const [failedFor, setFailedFor] = useState<string | null>(null)

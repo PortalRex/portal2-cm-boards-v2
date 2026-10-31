@@ -4,11 +4,11 @@ import { useState, type ReactNode } from 'react'
 import { DownloadIcon, PlayIcon, VideocamIcon, YouTubeIcon } from '@/components/icons'
 import { PlayerLink } from '@/components/player-link'
 import { RunVideo } from '@/components/runs/run-media'
+import { useRunVideo } from '@/hooks/use-run-video'
 import { apiUrl } from '@/lib/api-client'
 import type { FormattedSegment } from '@/lib/autorender'
 import { useCatalog } from '@/lib/catalog'
 import { formatDate, formatDateTime, formatScore, formatSeconds, ordinalSuffix } from '@/lib/format'
-import { runVideo } from '@/lib/runs/video'
 import type { CoopHalf, Player, RunMap } from '@/types/runs'
 import { coopHalvesQueryOptions, segmentsQueryOptions } from '../api/details'
 import { runQueryOptions } from '../api/run'
@@ -112,7 +112,7 @@ export function RunDetails({
     (id): id is number => id != null,
   )
   const segments = useQuery({ ...segmentsQueryOptions(ids, map.title), enabled: ids.length > 0 })
-  const video = runVideo(view, game, rendered)
+  const video = useRunVideo(view, game, rendered)
   const rank = run.postRank ?? run.rank
   // A board or profile row has the rank now; the rank it got when set comes with the run itself.
   const catalog = useCatalog()

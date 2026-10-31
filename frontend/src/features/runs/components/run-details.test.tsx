@@ -55,9 +55,9 @@ describe('RunDetails', () => {
     expect(screen.getByText('Banned')).toBeInTheDocument()
   })
 
-  it('links the demo, YouTube and an autorender request', async () => {
+  it('links the demo, YouTube and (for admins) an autorender request', async () => {
     noSegments()
-    await renderWithProviders(<RunDetails run={spRun} map={map} />)
+    await renderWithProviders(<RunDetails run={spRun} map={map} />, { user: 'admin' })
     expect(screen.getByRole('link', { name: /download demo/i })).toHaveAttribute(
       'href',
       'http://localhost:3000/api/v1/demos/55/file',
@@ -82,9 +82,25 @@ describe('RunDetails', () => {
     expect(screen.queryByText(/request render/i)).not.toBeInTheDocument()
   })
 
+  it('offers a render request to admins only, as autorender takes them from its admins only', async () => {
+    noSegments()
+    for (const options of [
+      {},
+      { user: 'player' as const },
+      { user: 'moderator' as const },
+      { user: 'admin' as const, viewAsPlayer: true },
+    ]) {
+      const { unmount } = await renderWithProviders(<RunDetails run={spRun} map={map} />, options)
+      expect(screen.getByRole('link', { name: /download demo/i })).toBeInTheDocument()
+      expect(screen.queryByText(/request render/i)).not.toBeInTheDocument()
+      unmount()
+      localStorage.clear()
+    }
+  })
+
   it('shows just the buttons the run has', async () => {
     noSegments()
-    await renderWithProviders(<RunDetails run={{ ...spRun, youtubeId: null }} map={map} />)
+    await renderWithProviders(<RunDetails run={{ ...spRun, youtubeId: null }} map={map} />, { user: 'admin' })
     expect(screen.getByRole('link', { name: /download demo/i })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /request render/i })).toBeInTheDocument()
     expect(screen.queryByText(/^youtube/i)).not.toBeInTheDocument()

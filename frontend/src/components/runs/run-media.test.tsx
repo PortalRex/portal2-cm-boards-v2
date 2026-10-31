@@ -8,14 +8,22 @@ import { AutorenderLink, CommentButton, DemoLink, RunVideo, YouTubeLink } from '
 const STORAGE = 'https://portal2.fsn1.your-objectstorage.com'
 
 describe('run media links', () => {
-  it('links a rendered video, offers a render for a run with a demo, and greys out the rest', async () => {
-    const { unmount } = await renderWithProviders(
+  it('links a rendered video, offers admins a render for a run with a demo, and greys out the rest', async () => {
+    const links = (
       <>
         <AutorenderLink run={{ id: 1, autorenderId: 'abcdefghijk' }} />
         <AutorenderLink run={{ id: 2, demoId: 9 }} />
         <AutorenderLink run={{ id: 3 }} />
-      </>,
+      </>
     )
+    // Autorender takes render requests from its admins only: for anyone else, nothing to request.
+    const asPlayer = await renderWithProviders(links, { user: 'player' })
+    expect(screen.getByRole('link', { name: 'Watch autorender' })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Request an autorender' })).toBeNull()
+    expect(screen.getAllByRole('img', { name: 'No autorender' })).toHaveLength(2)
+    asPlayer.unmount()
+
+    const { unmount } = await renderWithProviders(links, { user: 'admin' })
     expect(screen.getByRole('link', { name: 'Watch autorender' })).toHaveAttribute(
       'href',
       `${AUTORENDER}/videos/abcdefghijk`,
@@ -103,7 +111,11 @@ describe('RunVideo', () => {
       'https://www.youtube-nocookie.com/embed/abc123?start=4',
     )
     unmount()
-    const second = await renderWithProviders(<RunVideo run={{ id: 3, demoId: 7 }} />)
+    const asPlayer = await renderWithProviders(<RunVideo run={{ id: 3, demoId: 7 }} />)
+    expect(screen.getByText('No video')).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Request an autorender' })).toBeNull()
+    asPlayer.unmount()
+    const second = await renderWithProviders(<RunVideo run={{ id: 3, demoId: 7 }} />, { user: 'admin' })
     expect(screen.getByRole('link', { name: 'Request an autorender' })).toHaveAttribute(
       'href',
       `${AUTORENDER}/render/portal2/3`,
