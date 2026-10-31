@@ -2,6 +2,7 @@ import { cn } from 'cn'
 import { useState } from 'react'
 import { AppLink } from '@/components/app-link'
 import { RankNumber } from '@/components/rank'
+import { AutorenderLink, CommentButton, DemoLink, YouTubeLink } from '@/components/runs/run-media'
 import { useRenderedSet } from '@/hooks/use-rendered-set'
 import { chaptersFor, mapPath, modeLabel, PORTAL2, useCatalog } from '@/lib/catalog'
 import { formatDate, formatDateTime, formatScore } from '@/lib/format'
@@ -12,7 +13,9 @@ import { SectionTitle } from './score-tables'
 
 /**
  * Compact single-page view in the style of the original board's profile: every Portal 2 map with
- * rank, time and date, single player and co-op side by side.
+ * rank, time and date, single player and co-op side by side. A map's name goes to its board; the
+ * rest of its row opens the run; the icons (comment, autorender, video, demo) work as in the score
+ * tables.
  */
 export function LegacyTab({
   scores,
@@ -42,7 +45,7 @@ export function LegacyTab({
                   <div key={m.id}>
                     <div
                       className={cn(
-                        'grid h-[26px] grid-cols-[38px_minmax(0,1fr)_72px_92px] items-center gap-2.5 text-[15px]',
+                        'grid h-[26px] grid-cols-[38px_minmax(0,1fr)_72px_92px_auto] items-center gap-2.5 text-[15px] upto480:grid-cols-[38px_minmax(0,1fr)_72px_92px]',
                         i % 2 === 1 && 'bg-row',
                         s?.rank === 1 && 'bg-wr-row',
                         s && 'cursor-pointer hover:bg-control-raised',
@@ -73,13 +76,14 @@ export function LegacyTab({
                       >
                         <RankNumber rank={s?.rank} inherit />
                       </span>
-                      {s ? (
-                        <span className="truncate whitespace-nowrap hover:underline">{m.title}</span>
-                      ) : (
-                        <AppLink href={mapPath(m)} className="truncate whitespace-nowrap hover:underline">
-                          {m.title}
-                        </AppLink>
-                      )}
+                      <AppLink
+                        href={mapPath(m)}
+                        className="truncate whitespace-nowrap hover:underline"
+                        // The name goes to the board; the rest of the row opens the run.
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {m.title}
+                      </AppLink>
                       <span className="num text-right">{s?.score != null ? formatScore(s.score) : ''}</span>
                       <span
                         className="num pr-1.5 text-right text-[13px] text-text-muted"
@@ -87,15 +91,24 @@ export function LegacyTab({
                       >
                         {s?.timestamp ? formatDate(s.timestamp) : ''}
                       </span>
+                      {/* Their clicks are their own, not the row's. */}
+                      <span
+                        className="flex items-center gap-2 pr-1.5 upto480:hidden [&_svg]:block"
+                        onClick={(e) => e.stopPropagation()}
+                        onKeyDown={(e) => e.stopPropagation()}
+                      >
+                        {s ? <CommentButton note={s.note} size={18} /> : <span className="w-3.5" />}
+                        {s ? (
+                          <AutorenderLink run={s} game={PORTAL2} rendered={rendered} size={18} />
+                        ) : (
+                          <span className="w-3.5" />
+                        )}
+                        <YouTubeLink id={s?.youtubeId} size={18} />
+                        <DemoLink demoId={s?.demoId} size={18} />
+                      </span>
                     </div>
                     {open && s && (
                       <div className="pt-2 pb-3.5">
-                        <AppLink
-                          href={mapPath(m)}
-                          className="mb-1.5 ml-1 inline-block text-sm text-brand-light"
-                        >
-                          {m.title} board →
-                        </AppLink>
                         {renderRunDetails?.(
                           { ...s, players: s.partner ? [player, s.partner] : [player] },
                           m,

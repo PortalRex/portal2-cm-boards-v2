@@ -123,6 +123,16 @@ describe('Settings', () => {
     expect(choices.queryByRole('radio', { name: 'Your picture' })).toBeNull()
   })
 
+  it('picks the tab profiles open on', async () => {
+    await renderWithProviders(<SettingsPage />)
+    const group = screen.getByRole('radiogroup', { name: 'Profiles open on' })
+    expect(within(group).getByRole('radio', { name: 'Singleplayer' })).toBeChecked()
+    await userEvent.click(within(group).getByRole('radio', { name: 'Cooperative' }))
+    expect(localStorage.getItem('p2cm.profileTab')).toBe('coop')
+    await userEvent.click(within(group).getByRole('radio', { name: 'Singleplayer' }))
+    expect(localStorage.getItem('p2cm.profileTab')).toBeNull()
+  })
+
   it('saves your own name, and goes back to the Steam one', async () => {
     const sent = serveUser()
     await renderWithProviders(<SettingsPage />, { user: 'player' })

@@ -6,6 +6,7 @@ import { Segmented } from '@/components/segmented'
 import { Select } from '@/components/select'
 import { EmptyState, Loading } from '@/components/status'
 import { useGame } from '@/hooks/use-game'
+import { useProfileTab } from '@/hooks/use-profile-tab'
 import { useRenderedSet } from '@/hooks/use-rendered-set'
 import { useSeason } from '@/hooks/use-season'
 import {
@@ -76,7 +77,9 @@ function GameProfileTabs({
 }) {
   const catalog = useCatalog()
   const tabs = profileTabs(catalog.games[game]?.label, game)
-  const [tab, setTab] = useState(tabs[0]!.key)
+  // Portal 2's profiles open on the tab picked in Settings.
+  const [opening] = useProfileTab()
+  const [tab, setTab] = useState(() => (tabs.some((t) => t.key === opening) ? opening : tabs[0]!.key))
   const [sort, setSort] = useState('default')
   const [selectedMap, setSelectedMap] = useState<MapInfo | null>(null)
   // The season picked in the current tab (a ?season= link opens the game's tabs on it).

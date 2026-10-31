@@ -8,6 +8,7 @@ import { Page } from '@/components/layouts/page'
 import { Panel } from '@/components/panel'
 import { Segmented } from '@/components/segmented'
 import { COOP_PB_STYLES, useCoopPbStyle } from '@/hooks/use-coop-pb-style'
+import { PROFILE_TABS, useProfileTab } from '@/hooks/use-profile-tab'
 import { useCurrentUser } from '@/hooks/use-current-user'
 import { useGlass } from '@/hooks/use-glass'
 import { useRankContrast, type RankContrast } from '@/hooks/use-rank-contrast'
@@ -53,6 +54,7 @@ export function SettingsPage() {
   const [glass, setGlass] = useGlass()
   const [rankContrast, setRankContrast] = useRankContrast()
   const [pbStyle, setPbStyle] = useCoopPbStyle()
+  const [profileTab, setProfileTab] = useProfileTab()
   const [, setViewAsPlayer] = useViewAsPlayer()
   const user = useCurrentUser()
   const signedIn = user && !user.sample ? user : null
@@ -107,6 +109,15 @@ export function SettingsPage() {
             How the rank boxes on map boards, Score Updates and profiles are coloured: filled under white
             numbers, or softly tinted with the number in its colour.
           </p>
+          <h3 className="mt-[18px] mb-2 text-[17px] font-normal text-text-2">Profiles open on</h3>
+          <Segmented
+            {...switchProps}
+            label="Profiles open on"
+            value={profileTab}
+            onChange={setProfileTab}
+            options={PROFILE_TABS}
+          />
+          <p className={note}>The tab a Portal 2 profile shows first.</p>
           <h3 className="mt-[18px] mb-2 text-[17px] font-normal text-text-2">Co-op PBs</h3>
           <Segmented
             {...switchProps}

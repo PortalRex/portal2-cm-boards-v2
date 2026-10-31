@@ -212,13 +212,27 @@ describe('Profile page', () => {
     expect(headers().length).toBeGreaterThan(1)
   })
 
+  it('opens on the tab picked in Settings', async () => {
+    serveProfile()
+    localStorage.setItem('p2cm.profileTab', 'legacy')
+    await renderProfile()
+    expect(tab('Legacy')).toHaveAttribute('aria-selected', 'true')
+  })
+
   it('shows the Legacy view and the Info tab', async () => {
     serveProfile()
     await renderProfile()
     await userEvent.click(tab('Legacy'))
-    await userEvent.click(screen.getByRole('button', { name: /Smooth Jazz/ }))
+    const row = screen.getByRole('button', { name: /Smooth Jazz/ })
+    // The map's name goes to its board; the icons are their own, not the row's.
+    expect(within(row).getByRole('link', { name: 'Smooth Jazz' })).toHaveAttribute('href', '/map/sp/47455')
+    expect(within(row).getByRole('link', { name: 'Watch autorender' })).toBeInTheDocument()
+    expect(within(row).getByRole('link', { name: 'Download demo' })).toBeInTheDocument()
+    await userEvent.click(within(row).getByRole('img', { name: 'No video' }))
+    expect(screen.queryByTestId('run-details')).toBeNull()
+    // The rest of the row opens the run.
+    await userEvent.click(row)
     expect(screen.getByTestId('run-details')).toHaveTextContent('Smooth Jazz · portal2 · 311616 · hero')
-    expect(screen.getByRole('link', { name: 'Smooth Jazz board →' })).toHaveAttribute('href', '/map/sp/47455')
 
     await userEvent.click(tab('Info'))
     const info = screen.getByRole('tabpanel')
