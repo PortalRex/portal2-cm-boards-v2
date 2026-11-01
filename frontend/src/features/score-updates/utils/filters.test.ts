@@ -27,7 +27,6 @@ describe('readFilters', () => {
       banned: 'hide',
       rank: '',
       days: '',
-      page: 0,
     })
   })
 
@@ -42,7 +41,6 @@ describe('readFilters', () => {
         banned: 'only',
         rank: '10',
         days: '7',
-        page: '3',
       },
       modes,
     )
@@ -54,27 +52,28 @@ describe('readFilters', () => {
       wr: true,
       banned: 'only',
     })
-    expect(f).toMatchObject({ rank: '10', days: '7', page: 3 })
+    expect(f).toMatchObject({ rank: '10', days: '7' })
   })
 
   it("drops values that aren't allowed, like a board of another game", () => {
     expect(
-      readFilters({ mode: 'story', limit: '9', banned: 'all', rank: '3', days: '2', page: '-4' }, modes),
+      readFilters({ mode: 'story', limit: '9', banned: 'all', rank: '3', days: '2' }, modes),
     ).toMatchObject({
       mode: '',
       limit: '200',
       banned: 'hide',
       rank: '',
       days: '',
-      page: 0,
     })
     expect(readFilters({ wr: 'true' }, modes).wr).toBe(false)
   })
 })
 
 describe('applyFilterChanges', () => {
-  it('writes toggles as 1, leaves out defaults and resets the page', () => {
-    expect(applyFilterChanges({ page: '4', q: 'a' }, { wr: true, limit: '200', banned: 'show' })).toEqual({
+  it("writes toggles as 1, leaves out defaults and drops an old link's page", () => {
+    expect(
+      applyFilterChanges({ page: '4', q: 'a' } as never, { wr: true, limit: '200', banned: 'show' }),
+    ).toEqual({
       q: 'a',
       wr: '1',
       banned: 'show',
@@ -82,13 +81,12 @@ describe('applyFilterChanges', () => {
     expect(applyFilterChanges({ wr: '1' }, { wr: false })).toEqual({})
   })
 
-  it('keeps the page when it is what changes, and other parameters', () => {
-    expect(applyFilterChanges({ game: 'mel', q: 'a' } as never, { page: '2' })).toEqual({
+  it('keeps other parameters', () => {
+    expect(applyFilterChanges({ game: 'mel', q: 'a' } as never, { wr: true })).toEqual({
       game: 'mel',
       q: 'a',
-      page: '2',
+      wr: '1',
     })
-    expect(applyFilterChanges({ page: '2' }, { page: '0' })).toEqual({})
   })
 
   it('clears every filter but keeps the limit', () => {

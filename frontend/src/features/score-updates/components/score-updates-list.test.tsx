@@ -1,9 +1,10 @@
-import { screen, waitFor, within } from '@testing-library/react'
+import { act, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
 import changelog from '@/testing/fixtures/changelog.json'
 import { sampleChangelog } from '@/testing/data/sample'
+import { scrollIntoViewAll } from '@/testing/intersection'
 import { API } from '@/testing/mocks/handlers'
 import { server } from '@/testing/mocks/server'
 import { renderRoute } from '@/testing/test-utils'
@@ -193,15 +194,21 @@ describe('Score Updates', () => {
     expect(await within(items[0]!).findByText('SAR Version:')).toBeInTheDocument()
   })
 
-  it('pages through the runs, 20 at a time', async () => {
+  it('shows 20 more runs each time the end of the list scrolls near, and starts over on new filters', async () => {
     serve(sampleChangelog({ limit: '45' }))
-    const { router } = await renderRoute('/')
+    await renderRoute('/')
     await within(table()).findAllByRole('link', { name: /./ })
     const rows = () => table().querySelectorAll('[data-testid=score-row]')
     expect(rows()).toHaveLength(20)
-    await userEvent.click(screen.getAllByRole('button', { name: '3' })[0]!)
-    await waitFor(() => expect(router.state.location.search).toEqual({ page: '2' }))
-    expect(rows()).toHaveLength(5)
+    expect(screen.queryByRole('navigation', { name: /pagination/i })).toBeNull()
+    act(() => scrollIntoViewAll())
+    await waitFor(() => expect(rows()).toHaveLength(40))
+    act(() => scrollIntoViewAll())
+    await waitFor(() => expect(rows()).toHaveLength(45))
+    // All of them: nothing more to watch for.
+    expect(screen.queryByTestId('score-updates-more')).toBeNull()
+    await userEvent.click(screen.getByRole('radio', { name: 'Singleplayer' }))
+    await waitFor(() => expect(rows().length).toBeLessThanOrEqual(20))
   })
 
   it('says when nothing matches, and when the server is down', async () => {

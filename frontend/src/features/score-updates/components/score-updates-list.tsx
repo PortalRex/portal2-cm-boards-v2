@@ -3,13 +3,13 @@ import { useNavigate } from '@tanstack/react-router'
 import { cn } from 'cn'
 import { useMemo, useState, type ReactNode } from 'react'
 import { HistoryIcon } from '@/components/icons'
-import { Pagination } from '@/components/pagination'
 import { Panel } from '@/components/panel'
 import { PlayerSuggestions } from '@/components/player-suggestions'
 import { SearchBox } from '@/components/search-box'
 import { EmptyState, ErrorState, Loading } from '@/components/status'
 import { useDebounced } from '@/hooks/use-debounced'
 import { useGame } from '@/hooks/use-game'
+import { useLoadMore } from '@/hooks/use-load-more'
 import { useRenderedSet } from '@/hooks/use-rendered-set'
 import { useCatalog } from '@/lib/catalog'
 import { changelogQueryOptions } from '@/lib/runs/changelog'
@@ -28,7 +28,8 @@ import { mergeCoopHalves } from '../utils/merge-coop-halves'
 import { ScoreFilters } from './score-filters'
 import { SCORE_COLS, ScoreRow } from './score-row'
 
-const PAGE_SIZE = 20
+// Rows show this many at a time, as many more each time the list's end scrolls near.
+const STEP = 20
 
 export function ScoreUpdatesList({
   search,
@@ -43,7 +44,8 @@ export function ScoreUpdatesList({
   const modes = catalog.games[game]?.modes ?? []
   const filters = readFilters(search, modes)
   const query = useDebounced(filters.q, 250)
-  const changelog = useQuery(changelogQueryOptions(changelogFilters(filters, game, query), catalog))
+  const asked = changelogFilters(filters, game, query)
+  const changelog = useQuery(changelogQueryOptions(asked, catalog))
 
   const set = (changes: FilterChanges) =>
     void navigate({
@@ -52,21 +54,29 @@ export function ScoreUpdatesList({
       replace: true,
     })
 
-  // A player's session of PBs on one map is one row (pages count rows).
+  // A player's session of PBs on one map is one row (the steps count rows).
   const entries = useMemo(() => groupStreaks(mergeCoopHalves(changelog.data ?? [])), [changelog.data])
-  const pageCount = Math.ceil(entries.length / PAGE_SIZE)
-  const page = filters.page
-  const visible = entries.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
+  // Other filters start again from the top rows (a refetch of the same ones keeps what's shown).
+  const askedKey = JSON.stringify(asked)
+  const [shown, setShown] = useState({ key: askedKey, count: STEP })
+  const count = shown.key === askedKey ? shown.count : STEP
+  if (shown.key !== askedKey) setShown({ key: askedKey, count: STEP })
+  const visible = entries.slice(0, count)
+  const hasMore = visible.length < entries.length
+  const end = useLoadMore({
+    hasMore,
+    count: visible.length,
+    onMore: () => setShown({ key: askedKey, count: count + STEP }),
+  })
   const rendered = useRenderedSet(
     visible.flatMap((e) => [e, ...e.earlier]),
     game,
   )
-  const setPage = (p: number) => set({ page: String(p) })
   const filtered = isFiltered(filters, query)
 
   return (
     <Panel icon={HistoryIcon} title="Score Updates" bodyClassName="p-[26px] pb-[30px] upto900:p-3">
-      <div className="mb-[22px] flex items-center justify-between gap-4 upto900:mb-2.5 upto900:grid upto900:grid-cols-[minmax(0,1fr)] upto900:gap-2.5 upto900:[&>nav]:hidden">
+      <div className="mb-[22px] flex items-center justify-between gap-4 upto900:mb-2.5 upto900:grid upto900:grid-cols-[minmax(0,1fr)] upto900:gap-2.5">
         <PlayerSearchBox
           value={filters.q}
           // Typing again searches names; picking a suggestion shows just that player's runs.
@@ -74,7 +84,6 @@ export function ScoreUpdatesList({
           onPick={(p) => set({ q: p.name, player: p.profileNumber ?? '' })}
           picked={Boolean(filters.player)}
         />
-        <Pagination page={page} pageCount={pageCount} onChange={setPage} />
       </div>
 
       <ScoreFilters filters={filters} query={query} modes={modes} set={set} />
@@ -128,9 +137,10 @@ export function ScoreUpdatesList({
         )}
       </div>
 
-      {pageCount > 1 && (
-        <div className="mt-[22px] flex justify-end upto900:mb-2.5 upto900:justify-center">
-          <Pagination page={page} pageCount={pageCount} onChange={setPage} />
+      {/* Scrolling near here shows the next rows. */}
+      {hasMore && (
+        <div ref={end} className="py-4 text-center text-text-muted" data-testid="score-updates-more">
+          Loading more…
         </div>
       )}
     </Panel>

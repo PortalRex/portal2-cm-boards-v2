@@ -24,7 +24,6 @@ export const scoreUpdatesSearchSchema = z.looseObject({
   player: text,
   limit: text,
   banned: text,
-  page: text,
   wr: text,
   video: text,
   demo: text,
@@ -42,7 +41,6 @@ export const DEFAULTS = {
   player: '',
   limit: '200',
   banned: 'hide',
-  page: '0',
 } as const
 
 export interface ScoreFilters {
@@ -58,7 +56,6 @@ export interface ScoreFilters {
   banned: BannedFilter
   rank: string
   days: string
-  page: number
 }
 
 const oneOf = <T extends string>(value: string | undefined, allowed: readonly T[], fallback: T): T =>
@@ -91,16 +88,16 @@ export function readFilters(search: ScoreUpdatesSearch, modes: string[]): ScoreF
       TIME_OPTIONS.map((o) => o.value),
       '',
     ),
-    page: Math.max(0, Number(search.page) || 0),
   }
 }
 
 export type FilterChanges = Partial<Record<keyof ScoreUpdatesSearch, string | boolean | undefined>>
 
-/** The URL's search after `changes` (any change goes back to page 1 unless it sets the page). */
+/** The URL's search after `changes`. A `page` from before the list scrolled (old links) goes too. */
 export function applyFilterChanges(prev: ScoreUpdatesSearch, changes: FilterChanges): ScoreUpdatesSearch {
   const next: Record<string, unknown> = { ...prev }
-  for (const [k, v] of Object.entries({ page: undefined, ...changes })) {
+  delete next.page
+  for (const [k, v] of Object.entries(changes)) {
     const def = DEFAULTS[k as keyof typeof DEFAULTS]
     if (v == null || v === '' || v === false || v === def) delete next[k]
     else next[k] = v === true ? '1' : v

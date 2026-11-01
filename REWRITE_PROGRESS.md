@@ -69,6 +69,10 @@
 
 ## Log
 <!-- Newest first. One entry per finished item: date, what was done, commit, tests added. -->
+- 2026-11-01: Asked for: Score Updates scrolls instead of paging. The loaded runs (Latest 200 etc.) show 20 rows
+  at a time, 20 more each time the end of the list comes within 600px (`hooks/use-load-more.ts`,
+  IntersectionObserver); new filters start from the top again, a refetch keeps what's shown. `?page=` is gone
+  (old links drop it). Tests use a stand-in observer (`testing/intersection.ts`). Local only for testing. Tests: 1.
 - 2026-11-01: Asked for: Score Updates' map names sit on frosted glass over the chamber picture, fading out just
   past the longer of the name and chapter (`map-glass` utility in index.css), tinted with the new rank box's colour
   (`rankVars` on the cell, low contrast too). Settings → Map name glass: Rank colour (default) or Plain
