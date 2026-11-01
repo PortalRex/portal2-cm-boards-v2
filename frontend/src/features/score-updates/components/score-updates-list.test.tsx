@@ -147,7 +147,8 @@ describe('Score Updates', () => {
     await waitFor(() => expect(screen.queryByTestId('score-updates-more')).toBeNull())
     expect(requests).toHaveLength(2)
     expect(requests[1]!.get('before')).toBe(String(runs[199]!.id))
-  })
+    // Rendering 200-odd rows takes jsdom a few seconds, more under the full suite's load.
+  }, 20_000)
 
   it('searches players after a pause', async () => {
     const requests = serve()

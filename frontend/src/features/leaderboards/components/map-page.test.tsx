@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it, vi } from 'vitest'
@@ -6,6 +6,7 @@ import changelog from '@/testing/fixtures/changelog.json'
 import coopBoard from '@/testing/fixtures/map-coop-board.json'
 import spBoard from '@/testing/fixtures/map-sp-board.json'
 import { users } from '@/testing/data/users'
+import { scrollIntoViewAll } from '@/testing/intersection'
 import { API } from '@/testing/mocks/handlers'
 import { server } from '@/testing/mocks/server'
 import { renderRoute } from '@/testing/test-utils'
@@ -375,6 +376,36 @@ describe('Map page', () => {
     expect(await screen.findByText('2 world records')).toBeInTheDocument()
   })
 
+  it('shows 40 more board rows each time its end scrolls near, and jumps down to your best', async () => {
+    // A board of 100: the fixture's first entry again under other players.
+    const base = spBoard[0]!
+    const big = Array.from({ length: 100 }, (_, i) => ({
+      ...base,
+      rank: i + 1,
+      map_data: {
+        ...base.map_data,
+        cl_id: 800000 + i,
+        profile_number: String(76561190000000000n + BigInt(i)),
+        user_name: `Player ${i}`,
+      },
+    }))
+    serveMap()
+    server.use(http.get(`${API}/map/sp/:id`, () => HttpResponse.json(big)))
+    const mine = big[90]!.map_data
+    await renderRoute('/map/sp/47759', { user: { ...users.player, profile_number: mine.profile_number } })
+    const rows = () => within(board()).getAllByRole('row').length - 1
+    await within(board()).findByRole('link', { name: 'Player 0' })
+    expect(rows()).toBe(40)
+    act(() => scrollIntoViewAll())
+    await waitFor(() => expect(rows()).toBe(80))
+    // Your best is further down: the board shows down to it and opens it.
+    await userEvent.click(screen.getByRole('button', { name: /your best/i }))
+    await waitFor(() => expect(rows()).toBe(100))
+    const opened = board().querySelector('[data-board-entry][data-open]') as HTMLElement
+    expect(within(opened).getAllByRole('link', { name: 'Player 90' }).length).toBeGreaterThan(0)
+    expect(screen.queryByTestId('board-more')).toBeNull()
+  })
+
   it('switches to the chamber history with its own filters', async () => {
     const { changelogAsked } = serveMap({ history: changelog as ChangelogRaw[] })
     await renderRoute('/map/sp/47759')
@@ -388,6 +419,42 @@ describe('Map page', () => {
     await userEvent.click(screen.getByRole('button', { name: /^leaderboard/i }))
     expect(await screen.findByRole('table', { name: 'Leaderboard' })).toBeInTheDocument()
   })
+
+  it('scrolls the chamber history on through older runs, counting them as they come', async () => {
+    const base = (changelog as ChangelogRaw[]).find((r) => r.coop_id == null)!
+    const runs = Array.from({ length: 230 }, (_, i) => ({
+      ...base,
+      id: 700000 - i,
+      user_name: `Runner ${i}`,
+    }))
+    const { changelogAsked } = serveMap()
+    server.use(
+      http.get(`${API}/changelog`, ({ request }) => {
+        const params = new URL(request.url).searchParams
+        changelogAsked.push(params)
+        if (params.get('wr_gain')) return HttpResponse.json([])
+        const before = params.get('before')
+        const from = before ? runs.findIndex((r) => String(r.id) === before) + 1 : 0
+        return HttpResponse.json(runs.slice(from, from + Number(params.get('limit'))))
+      }),
+    )
+    await renderRoute('/map/sp/47759')
+    await userEvent.click(await screen.findByRole('button', { name: /chamber history/i }))
+    const table = await screen.findByRole('table', { name: 'Chamber history' })
+    expect(screen.getByText('200+ runs')).toBeInTheDocument()
+    expect(within(table).getAllByRole('row')).toHaveLength(40 + 1)
+    for (let i = 0; i < 10 && !screen.queryByText('230 runs'); i++) {
+      act(() => scrollIntoViewAll())
+      await waitFor(() => expect(within(table).getAllByRole('row').length).toBeGreaterThan(40))
+    }
+    expect(await screen.findByText('230 runs')).toBeInTheDocument()
+    expect(
+      changelogAsked
+        .filter((p) => !p.get('wr_gain'))
+        .at(-1)
+        ?.get('before'),
+    ).toBe(String(runs[199]!.id))
+  }, 20_000)
 
   it('opens Run Details under a board row', async () => {
     serveMap()

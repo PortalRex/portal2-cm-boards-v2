@@ -1,10 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { BANNED_OPTIONS, RANK_OPTIONS, RUN_LIMITS, RUN_TOGGLES, TIME_OPTIONS } from './run-filters'
+import { BANNED_OPTIONS, RANK_OPTIONS, RUN_TOGGLES, TIME_OPTIONS } from './run-filters'
 
 // The same options, in the same order, as frontend-legacy/src/lib/runFilters.js.
 describe('run filters', () => {
-  it('offers the legacy limits and toggles', () => {
-    expect(RUN_LIMITS).toEqual(['100', '200', '500'])
+  it('offers the legacy toggles', () => {
     expect(RUN_TOGGLES.map(([key]) => key)).toEqual(['wr', 'video', 'demo', 'pending'])
     expect(RUN_TOGGLES.map(([, label]) => label)).toEqual([
       'World records',

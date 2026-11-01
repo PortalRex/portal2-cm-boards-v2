@@ -1,6 +1,5 @@
-// Filter options shared by Score Updates and a map's Chamber History.
-export const RUN_LIMITS = ['100', '200', '500'] as const
-export type RunLimit = (typeof RUN_LIMITS)[number]
+// Filter options shared by Score Updates and a map's Chamber History (both scroll on through older
+// runs, so legacy's "Latest 100 / 200 / 500" limits are gone).
 
 export const RUN_TOGGLES = [
   ['wr', 'World records'],

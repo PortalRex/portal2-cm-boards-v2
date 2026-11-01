@@ -15,6 +15,7 @@ describe('storage', () => {
       glass: 'p2cm.glass',
       background: 'p2cm.background',
       rankContrast: 'p2cm.rankContrast',
+      rankGlass: 'p2cm.rankGlass',
       profileTab: 'p2cm.profileTab',
     })
   })

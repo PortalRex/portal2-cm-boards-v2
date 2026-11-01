@@ -3,13 +3,14 @@ import { useNavigate } from '@tanstack/react-router'
 import { cn } from 'cn'
 import { useMemo, useState, type ReactNode } from 'react'
 import { HistoryIcon } from '@/components/icons'
+import { ListEnd } from '@/components/list-end'
 import { Panel } from '@/components/panel'
 import { PlayerSuggestions } from '@/components/player-suggestions'
 import { SearchBox } from '@/components/search-box'
 import { EmptyState, ErrorState, Loading } from '@/components/status'
 import { useDebounced } from '@/hooks/use-debounced'
 import { useGame } from '@/hooks/use-game'
-import { useLoadMore } from '@/hooks/use-load-more'
+import { endlessPages, useEndlessRows } from '@/hooks/use-endless-rows'
 import { useRenderedSet } from '@/hooks/use-rendered-set'
 import { useCatalog } from '@/lib/catalog'
 import { changelogPagesQueryOptions } from '@/lib/runs/changelog'
@@ -61,20 +62,11 @@ export function ScoreUpdatesList({
   // the next page.
   const entries = changelog.hasNextPage ? all.slice(0, -1) : all
   // Other filters start again from the top rows (a refetch of the same ones keeps what's shown).
-  const askedKey = JSON.stringify(asked)
-  const [shown, setShown] = useState({ key: askedKey, count: STEP })
-  const count = shown.key === askedKey ? shown.count : STEP
-  if (shown.key !== askedKey) setShown({ key: askedKey, count: STEP })
-  const visible = entries.slice(0, count)
-  const hasMore = visible.length < entries.length || changelog.hasNextPage
-  const end = useLoadMore({
-    hasMore: hasMore && !changelog.isFetchingNextPage && !changelog.isFetchNextPageError,
-    progress: `${visible.length}/${changelog.data?.pages.length ?? 0}`,
-    onMore: () => {
-      // The loaded rows first, then the next page of older runs.
-      if (visible.length < entries.length) setShown({ key: askedKey, count: count + STEP })
-      else void changelog.fetchNextPage()
-    },
+  const { visible, hasMore, end } = useEndlessRows({
+    rows: entries,
+    resetKey: JSON.stringify(asked),
+    step: STEP,
+    pages: endlessPages(changelog),
   })
   const rendered = useRenderedSet(
     visible.flatMap((e) => [e, ...e.earlier]),
@@ -147,22 +139,12 @@ export function ScoreUpdatesList({
 
       {/* Scrolling near here shows the next rows. */}
       {hasMore && !changelog.isPending && (
-        <div ref={end} className="py-4 text-center text-text-muted" data-testid="score-updates-more">
-          {changelog.isFetchNextPageError ? (
-            <>
-              Couldn’t load more runs.{' '}
-              <button
-                type="button"
-                className="cursor-pointer border-0 bg-transparent p-0 text-brand-light hover:underline"
-                onClick={() => void changelog.fetchNextPage()}
-              >
-                Try again
-              </button>
-            </>
-          ) : (
-            'Loading more…'
-          )}
-        </div>
+        <ListEnd
+          endRef={end}
+          failed={changelog.isFetchNextPageError}
+          onRetry={() => void changelog.fetchNextPage()}
+          testId="score-updates-more"
+        />
       )}
     </Panel>
   )

@@ -69,6 +69,11 @@
 
 ## Log
 <!-- Newest first. One entry per finished item: date, what was done, commit, tests added. -->
+- 2026-11-01: Asked for: map pages scroll endlessly too. The leaderboard shows 40 rows at a time, more as it
+  scrolls ("Your best" shows the board down to your row); the chamber history fetches older runs 200 at a time like
+  Score Updates ("200+ runs" while more may follow) and its "Latest N" filter is gone (`RUN_LIMITS` removed). Shared
+  `hooks/use-endless-rows.ts` and `components/list-end.tsx`, Score Updates moved onto them. Fixed the storage keys
+  test missing `rankGlass` (from 4d0b619). Tests: 2.
 - 2026-11-01: Score Updates scrolls on past the loaded runs: it fetches 200 at a time and the next 200 when the
   shown rows run out (`changelogPagesQueryOptions` / `getChangelogPage` in lib/runs/changelog.ts, useInfiniteQuery,
   `GET /changelog?before=` with the last row the server sent). The "Latest 100 / 200 / 500" filter is gone from

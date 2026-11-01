@@ -3,7 +3,7 @@ import { cn } from 'cn'
 import { useState, type ReactNode } from 'react'
 import { Avatar } from '@/components/avatar'
 import { TrophyFilledIcon } from '@/components/icons'
-import { Pagination } from '@/components/pagination'
+import { ListEnd } from '@/components/list-end'
 import { PlayerLink } from '@/components/player-link'
 import { RankNumber, RankTag } from '@/components/rank'
 import { AutorenderLink, CommentButton, DemoLink, YouTubeLink } from '@/components/runs/run-media'
@@ -13,6 +13,7 @@ import { EmptyState, ErrorState, Loading } from '@/components/status'
 import { useCoopPbStyle } from '@/hooks/use-coop-pb-style'
 import { useCoopRoleOverrides } from '@/hooks/use-coop-role-overrides'
 import { useCurrentUser } from '@/hooks/use-current-user'
+import { useEndlessRows } from '@/hooks/use-endless-rows'
 import { useRenderedSet } from '@/hooks/use-rendered-set'
 import { isMultiplayerMode, useCatalog, type MapInfo } from '@/lib/catalog'
 import { coopRoles, NOT_PB_NAME, PB_NAME, pbColor, pbNameVars, tintFor } from '@/lib/coop-roles'
@@ -49,13 +50,12 @@ export function MapLeaderboard({
   const mine = (e: RankedRun) =>
     Boolean(me && !me.sample && e.players.some((p) => p.profileNumber === me.profileNumber))
   const [search, setSearch] = useState('')
-  const [page, setPage] = useState(0)
   const coop = isMultiplayerMode(catalog, map.mode)
   const q = search.trim().toLowerCase()
   const all = board.data ?? []
   const rows = all.filter((e) => !q || e.players.some((p) => p.name.toLowerCase().includes(q)))
-  const pageCount = Math.ceil(rows.length / PAGE_SIZE)
-  const visible = rows.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
+  // Rows show PAGE_SIZE at a time, more as the board scrolls; a search starts from the top.
+  const { visible, hasMore, end, showAtLeast } = useEndlessRows({ rows, resetKey: q, step: PAGE_SIZE })
   // Co-op: each half's own video (they're rendered from each player's demo).
   const rendered = useRenderedSet(
     visible.flatMap((e) => e.halves ?? [e]),
@@ -70,12 +70,12 @@ export function MapLeaderboard({
   const rowKey = (e: RankedRun) =>
     e.changelogId ?? `${e.rank}-${e.players.map((p) => p.profileNumber).join('-')}`
 
-  // Jump to a board entry: clear the search, go to its page and open its details.
+  // Jump to a board entry: clear the search, show the board down to it and open its details.
   const showEntry = (entry: RankedRun) => {
     const index = all.indexOf(entry)
     if (index < 0) return
     setSearch('')
-    setPage(Math.floor(index / PAGE_SIZE))
+    showAtLeast(index + 1, '')
     setOpenKey(rowKey(entry))
     setTimeout(
       () =>
@@ -110,15 +110,7 @@ export function MapLeaderboard({
         <YourBest map={map} board={board.data} onShow={showEntry} />
       )}
       <div className="mb-[18px] flex items-center justify-between gap-4 upto900:flex-col upto900:items-stretch">
-        <SearchBox
-          value={search}
-          onChange={(v) => {
-            setSearch(v)
-            setPage(0)
-          }}
-          placeholder="Search players"
-        />
-        <Pagination page={page} pageCount={pageCount} onChange={setPage} />
+        <SearchBox value={search} onChange={setSearch} placeholder="Search players" />
       </div>
       <div className={cols} role="table" aria-label="Leaderboard">
         <div role="row" className={cn(rowBase, headBase)}>
@@ -272,6 +264,7 @@ export function MapLeaderboard({
           <EmptyState>No scores found.</EmptyState>
         )}
       </div>
+      {hasMore && !board.isPending && <ListEnd endRef={end} testId="board-more" />}
     </>
   )
 }

@@ -1,7 +1,7 @@
-import { keepPreviousData, useQuery } from '@tanstack/react-query'
+import { keepPreviousData, useInfiniteQuery } from '@tanstack/react-query'
 import { cn } from 'cn'
-import { useState } from 'react'
-import { Pagination } from '@/components/pagination'
+import { useMemo, useState } from 'react'
+import { ListEnd } from '@/components/list-end'
 import { PlayerLink } from '@/components/player-link'
 import { RankNumber } from '@/components/rank'
 import { TimeButton } from '@/components/runs/time-button'
@@ -9,17 +9,11 @@ import { SearchBox } from '@/components/search-box'
 import { Select } from '@/components/select'
 import { EmptyState, ErrorState, Loading } from '@/components/status'
 import { useDebounced } from '@/hooks/use-debounced'
+import { endlessPages, useEndlessRows } from '@/hooks/use-endless-rows'
 import { useCatalog, type MapInfo } from '@/lib/catalog'
 import { formatDate, formatDateTime, formatScore } from '@/lib/format'
-import {
-  BANNED_OPTIONS,
-  RANK_OPTIONS,
-  RUN_LIMITS,
-  RUN_TOGGLES,
-  TIME_OPTIONS,
-  type BannedFilter,
-} from '@/lib/run-filters'
-import { changelogQueryOptions } from '@/lib/runs/changelog'
+import { BANNED_OPTIONS, RANK_OPTIONS, RUN_TOGGLES, TIME_OPTIONS, type BannedFilter } from '@/lib/run-filters'
+import { changelogPagesQueryOptions } from '@/lib/runs/changelog'
 import type { Run } from '@/types/runs'
 import { headBase, PAGE_SIZE, rowBase } from '../utils/board-styles'
 
@@ -32,42 +26,42 @@ const DEFAULTS = {
   rank: '',
   days: '',
   banned: 'hide' as BannedFilter,
-  limit: '200',
 }
 type Filters = typeof DEFAULTS
 
-/** Every submission on the map, newest first, with the Score Updates filters (kept in the page). */
+/**
+ * Every submission on the map, newest first, with the Score Updates filters (kept in the page). Rows
+ * show PAGE_SIZE at a time, more as it scrolls, and older runs are fetched 200 at a time.
+ */
 export function ChamberHistory({ map }: { map: MapInfo }) {
   const catalog = useCatalog()
   const [f, setF] = useState<Filters>(DEFAULTS)
-  const [page, setPage] = useState(0)
   const query = useDebounced(f.q, 250)
-  const set = (changes: Partial<Filters>) => {
-    setF((old) => ({ ...old, ...changes }))
-    setPage(0)
+  const set = (changes: Partial<Filters>) => setF((old) => ({ ...old, ...changes }))
+  const asked = {
+    mapId: map.id,
+    game: map.game,
+    wr: f.wr,
+    video: f.video,
+    demo: f.demo,
+    pending: f.pending,
+    rank: f.rank,
+    days: f.days,
+    banned: f.banned,
+    limit: 200,
+    search: query || undefined,
   }
-  const history = useQuery({
-    ...changelogQueryOptions(
-      {
-        mapId: map.id,
-        game: map.game,
-        wr: f.wr,
-        video: f.video,
-        demo: f.demo,
-        pending: f.pending,
-        rank: f.rank,
-        days: f.days,
-        banned: f.banned,
-        limit: Number(f.limit),
-        search: query || undefined,
-      },
-      catalog,
-    ),
+  const history = useInfiniteQuery({
+    ...changelogPagesQueryOptions(asked, catalog),
     placeholderData: keepPreviousData,
   })
-  const rows = history.data ?? []
-  const pageCount = Math.ceil(rows.length / PAGE_SIZE)
-  const visible = rows.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
+  const rows = useMemo(() => history.data?.pages.flatMap((p) => p.runs) ?? [], [history.data])
+  const { visible, hasMore, end } = useEndlessRows({
+    rows,
+    resetKey: JSON.stringify(asked),
+    step: PAGE_SIZE,
+    pages: endlessPages(history),
+  })
   const filtered = JSON.stringify(f) !== JSON.stringify(DEFAULTS)
   const selectClass = 'min-w-[132px] upto900:w-full upto900:min-w-0'
 
@@ -119,14 +113,6 @@ export function ChamberHistory({ map }: { map: MapInfo }) {
             size="md"
             className={selectClass}
           />
-          <Select
-            value={f.limit}
-            onChange={(v) => set({ limit: v })}
-            options={RUN_LIMITS.map((l) => ({ value: l, label: `Latest ${l}` }))}
-            label="Number of runs"
-            size="md"
-            className={selectClass}
-          />
           {filtered && (
             <button
               type="button"
@@ -138,10 +124,12 @@ export function ChamberHistory({ map }: { map: MapInfo }) {
           )}
         </div>
         <div className="flex min-h-8 items-center justify-between gap-3">
+          {/* While older runs may follow, the count so far ("200+ runs"). */}
           <span className="text-text-muted">
-            {history.isPending ? '' : `${rows.length} run${rows.length === 1 ? '' : 's'}`}
+            {history.isPending
+              ? ''
+              : `${rows.length}${history.hasNextPage ? '+' : ''} run${rows.length === 1 ? '' : 's'}`}
           </span>
-          {pageCount > 1 && <Pagination page={page} pageCount={pageCount} onChange={setPage} />}
         </div>
       </div>
       {history.isPending ? (
@@ -153,7 +141,16 @@ export function ChamberHistory({ map }: { map: MapInfo }) {
           {filtered ? 'No runs match these filters.' : `No submissions recorded for ${map.title}.`}
         </EmptyState>
       ) : (
-        <HistoryTable rows={visible} stale={history.isPlaceholderData} map={map} />
+        <>
+          <HistoryTable rows={visible} stale={history.isPlaceholderData} map={map} />
+          {hasMore && (
+            <ListEnd
+              endRef={end}
+              failed={history.isFetchNextPageError}
+              onRetry={() => void history.fetchNextPage()}
+            />
+          )}
+        </>
       )}
     </>
   )
