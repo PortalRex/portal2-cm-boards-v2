@@ -19,7 +19,6 @@ describe('readFilters', () => {
       mapId: '',
       q: '',
       player: '',
-      limit: '200',
       wr: false,
       video: false,
       demo: false,
@@ -36,7 +35,6 @@ describe('readFilters', () => {
         mode: 'coop',
         map: '47741',
         q: 'zyp',
-        limit: '500',
         wr: '1',
         banned: 'only',
         rank: '10',
@@ -48,7 +46,6 @@ describe('readFilters', () => {
       mode: 'coop',
       mapId: '47741',
       q: 'zyp',
-      limit: '500',
       wr: true,
       banned: 'only',
     })
@@ -56,11 +53,8 @@ describe('readFilters', () => {
   })
 
   it("drops values that aren't allowed, like a board of another game", () => {
-    expect(
-      readFilters({ mode: 'story', limit: '9', banned: 'all', rank: '3', days: '2' }, modes),
-    ).toMatchObject({
+    expect(readFilters({ mode: 'story', banned: 'all', rank: '3', days: '2' }, modes)).toMatchObject({
       mode: '',
-      limit: '200',
       banned: 'hide',
       rank: '',
       days: '',
@@ -70,9 +64,9 @@ describe('readFilters', () => {
 })
 
 describe('applyFilterChanges', () => {
-  it("writes toggles as 1, leaves out defaults and drops an old link's page", () => {
+  it("writes toggles as 1, leaves out defaults and drops an old link's page and limit", () => {
     expect(
-      applyFilterChanges({ page: '4', q: 'a' } as never, { wr: true, limit: '200', banned: 'show' }),
+      applyFilterChanges({ page: '4', limit: '500', q: 'a' } as never, { wr: true, banned: 'show' }),
     ).toEqual({
       q: 'a',
       wr: '1',
@@ -89,10 +83,8 @@ describe('applyFilterChanges', () => {
     })
   })
 
-  it('clears every filter but keeps the limit', () => {
-    expect(applyFilterChanges({ mode: 'sp', wr: '1', q: 'x', limit: '500', days: '7' }, CLEARED)).toEqual({
-      limit: '500',
-    })
+  it('clears every filter', () => {
+    expect(applyFilterChanges({ mode: 'sp', wr: '1', q: 'x', days: '7' }, CLEARED)).toEqual({})
   })
 })
 
@@ -101,22 +93,18 @@ describe('filter summaries', () => {
     const base = readFilters({}, modes)
     expect(extraFilterCount(base)).toBe(0)
     expect(isFiltered(base, '')).toBe(false)
-    const busy = readFilters({ wr: '1', video: '1', rank: '10', limit: '500', banned: 'show' }, modes)
-    expect(extraFilterCount(busy)).toBe(5)
+    const busy = readFilters({ wr: '1', video: '1', rank: '10', banned: 'show' }, modes)
+    expect(extraFilterCount(busy)).toBe(4)
     expect(isFiltered(busy, '')).toBe(true)
     expect(isFiltered(base, 'zyp')).toBe(true)
-    // The limit alone doesn't count as filtering.
-    expect(isFiltered(readFilters({ limit: '500' }, modes), '')).toBe(false)
   })
 
-  it('asks the server for the filters with the debounced search', () => {
-    expect(
-      changelogFilters(readFilters({ mode: 'sp', wr: '1', limit: '100' }, modes), 'portal2', 'zyp'),
-    ).toEqual({
+  it('asks the server for the filters with the debounced search, 200 runs a page', () => {
+    expect(changelogFilters(readFilters({ mode: 'sp', wr: '1' }, modes), 'portal2', 'zyp')).toEqual({
       game: 'portal2',
       mode: 'sp',
       mapId: undefined,
-      limit: 100,
+      limit: 200,
       wr: true,
       video: false,
       demo: false,

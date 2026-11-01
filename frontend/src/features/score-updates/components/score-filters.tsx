@@ -4,7 +4,7 @@ import { TriangleDown } from '@/components/icons'
 import { Segmented } from '@/components/segmented'
 import { Select } from '@/components/select'
 import { mapsForMode, modeLabel, useCatalog } from '@/lib/catalog'
-import { BANNED_OPTIONS, RANK_OPTIONS, RUN_LIMITS, RUN_TOGGLES, TIME_OPTIONS } from '@/lib/run-filters'
+import { BANNED_OPTIONS, RANK_OPTIONS, RUN_TOGGLES, TIME_OPTIONS } from '@/lib/run-filters'
 import {
   CLEARED,
   extraFilterCount,
@@ -119,14 +119,6 @@ export function ScoreFilters({
           label="Banned runs"
           size="md"
           className={selectClass}
-        />
-        <Select
-          value={filters.limit}
-          onChange={(v) => set({ limit: v })}
-          options={RUN_LIMITS.map((l) => ({ value: l, label: `Latest ${l}` }))}
-          label="Number of runs"
-          size="md"
-          className={cn(selectClass, 'min-w-[124px]')}
         />
       </div>
       {isFiltered(filters, query) && (

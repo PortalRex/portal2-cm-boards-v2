@@ -101,17 +101,52 @@ describe('Score Updates', () => {
 
   it('opens a shared link with its filters', async () => {
     const requests = serve()
-    await renderRoute('/?mode=sp&limit=500&rank=10&days=7&banned=only')
+    await renderRoute('/?mode=sp&rank=10&days=7&banned=only')
     await waitFor(() => expect(requests.length).toBeGreaterThan(0))
     expect(Object.fromEntries(requests.at(-1)!)).toMatchObject({
-      limit: '500',
+      limit: '200',
       coop: 'false',
       max_rank: '10',
       since_days: '7',
       banned: 'true',
     })
     expect(requests.at(-1)!.has('sp')).toBe(false)
-    expect(screen.getByRole('combobox', { name: 'Number of runs' })).toHaveValue('500')
+    // The list goes on as it scrolls: no number of runs to pick.
+    expect(screen.queryByRole('combobox', { name: 'Number of runs' })).toBeNull()
+  })
+
+  it('fetches older runs, after the last one it has, when the loaded ones run out', async () => {
+    // 200 runs, then 30 more after the last of them (each by another player, so none fold together).
+    const base = (changelog as ChangelogRaw[]).find((r) => r.coop_id == null)!
+    const runs = Array.from({ length: 230 }, (_, i) => ({
+      ...base,
+      id: 900000 - i,
+      previous_id: null,
+      profile_number: String(76561190000000000n + BigInt(i)),
+      user_name: `Player ${i}`,
+    }))
+    const requests: URLSearchParams[] = []
+    server.use(
+      http.get(`${API}/changelog`, ({ request }) => {
+        const params = new URL(request.url).searchParams
+        requests.push(params)
+        const before = params.get('before')
+        const from = before ? runs.findIndex((r) => String(r.id) === before) + 1 : 0
+        return HttpResponse.json(runs.slice(from, from + Number(params.get('limit'))))
+      }),
+    )
+    await renderRoute('/')
+    await within(table()).findAllByRole('link', { name: /./ })
+    expect(requests).toHaveLength(1)
+    const rows = () => table().querySelectorAll('[data-testid=score-row]').length
+    // Scroll until the second page has come and everything shows.
+    for (let i = 0; i < 30 && screen.queryByTestId('score-updates-more'); i++) {
+      act(() => scrollIntoViewAll())
+      await waitFor(() => expect(rows() > 0).toBe(true))
+    }
+    await waitFor(() => expect(screen.queryByTestId('score-updates-more')).toBeNull())
+    expect(requests).toHaveLength(2)
+    expect(requests[1]!.get('before')).toBe(String(runs[199]!.id))
   })
 
   it('searches players after a pause', async () => {

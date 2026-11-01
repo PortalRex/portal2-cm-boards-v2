@@ -1057,3 +1057,18 @@ async fn test_db_sp_board_cutoff_keeps_everyone_tied_at_it() {
     assert_eq!(board(2).await, vec![100, 200]);
     cleanup().await;
 }
+
+/// `before` pages through the changelog in its own order: two pages of 200 are one page of 400.
+#[actix_web::test]
+async fn test_db_changelog_before_pages_join_up() {
+    use crate::models::changelog::*;
+    let (_, pool) = get_config().await.unwrap();
+    let page = |limit: u32, before: Option<i64>| ChangelogQueryParams { limit: Some(limit), banned: Some(false), before, ..Default::default() };
+    let ids = |rows: Vec<ChangelogPage>| rows.into_iter().map(|r| r.id).collect::<Vec<_>>();
+    let whole = ids(ChangelogPage::get_changelog_page(&pool, page(400, None)).await.unwrap());
+    let first = ids(ChangelogPage::get_changelog_page(&pool, page(200, None)).await.unwrap());
+    let second = ids(ChangelogPage::get_changelog_page(&pool, page(200, first.last().copied())).await.unwrap());
+    assert_eq!([first, second].concat(), whole);
+    // An unknown run has no page after it.
+    assert!(ChangelogPage::get_changelog_page(&pool, page(10, Some(i64::MAX))).await.unwrap().is_empty());
+}

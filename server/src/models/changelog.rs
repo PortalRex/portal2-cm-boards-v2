@@ -180,6 +180,9 @@ pub struct ChangelogQueryParams {
     pub include_hidden_wr: Option<bool>,
     pub first: Option<i64>,
     pub last: Option<i64>,
+    /// The next page: only runs listed after this one (by id) in the list's order, newest first
+    /// with undated runs last and the id breaking ties. Nothing for an unknown id.
+    pub before: Option<i64>,
     /// Game to show entries for (`games.id`). Defaults to 1 (Portal 2).
     pub game_id: Option<i32>,
     /// Only runs that ranked this high or better when they were set (e.g. 100 = top 100).

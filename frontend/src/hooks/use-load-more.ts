@@ -2,18 +2,18 @@ import { useEffect, useRef, useState } from 'react'
 
 /**
  * Infinite lists: give the returned ref to an element under the list, and `onMore` is called when
- * it comes within `margin` of the viewport while `hasMore`. It's watched again whenever `count`
- * (how many rows show) changes, so a list still too short to reach the bottom keeps growing.
+ * it comes within `margin` of the viewport while `hasMore`. It's watched again whenever `progress`
+ * changes (rows shown, pages loaded), so a list still too short to reach the bottom keeps growing.
  */
 export function useLoadMore({
   hasMore,
   onMore,
-  count,
+  progress,
   margin = '600px',
 }: {
   hasMore: boolean
   onMore: () => void
-  count: number
+  progress: number | string
   margin?: string
 }): (el: Element | null) => void {
   const [el, setEl] = useState<Element | null>(null)
@@ -31,6 +31,6 @@ export function useLoadMore({
     )
     observer.observe(el)
     return () => observer.disconnect()
-  }, [el, hasMore, count, margin])
+  }, [el, hasMore, progress, margin])
   return setEl
 }

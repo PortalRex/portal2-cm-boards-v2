@@ -36,6 +36,9 @@ use sqlx::PgPool;
 ///         - **Optional** - `i64` : Will only return scores with an ID higher than the given amount
 ///    - `last`            
 ///         - **Optional** - `i64` : Will only return scores with an ID lower than the given amount
+///    - `before`
+///         - **Optional** - `i64` : The next page: only scores listed after the score with this ID
+///           (newest first, undated last, ties by ID); give the last ID of the page before.
 ///
 /// ## Example endpoints:
 ///  - **Default**           
@@ -46,6 +49,8 @@ use sqlx::PgPool;
 ///     - `/api/v1/changelog?limit=200&first=157804`
 ///  - **A scroll call**     
 ///     - `/api/v1/changelog?limit-200&last=157604`
+///  - **The next page, in date order**
+///     - `/api/v1/changelog?limit=200&before=365811`
 ///
 /// Makes a call to the underlying [ChangelogPage::get_changelog_page]
 ///

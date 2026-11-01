@@ -3,7 +3,6 @@ import type { ChangelogFilters } from '@/lib/runs/changelog'
 import {
   BANNED_OPTIONS,
   RANK_OPTIONS,
-  RUN_LIMITS,
   RUN_TOGGLES,
   TIME_OPTIONS,
   type BannedFilter,
@@ -22,7 +21,6 @@ export const scoreUpdatesSearchSchema = z.looseObject({
   q: text,
   /** A player picked from the search box's suggestions (Steam id): only their runs. */
   player: text,
-  limit: text,
   banned: text,
   wr: text,
   video: text,
@@ -39,7 +37,6 @@ export const DEFAULTS = {
   map: '',
   q: '',
   player: '',
-  limit: '200',
   banned: 'hide',
 } as const
 
@@ -48,7 +45,6 @@ export interface ScoreFilters {
   mapId: string
   q: string
   player: string
-  limit: string
   wr: boolean
   video: boolean
   demo: boolean
@@ -68,7 +64,6 @@ export function readFilters(search: ScoreUpdatesSearch, modes: string[]): ScoreF
     mapId: search.map ?? '',
     q: search.q ?? '',
     player: search.player ?? '',
-    limit: oneOf(search.limit, RUN_LIMITS, DEFAULTS.limit),
     wr: search.wr === '1',
     video: search.video === '1',
     demo: search.demo === '1',
@@ -93,10 +88,12 @@ export function readFilters(search: ScoreUpdatesSearch, modes: string[]): ScoreF
 
 export type FilterChanges = Partial<Record<keyof ScoreUpdatesSearch, string | boolean | undefined>>
 
-/** The URL's search after `changes`. A `page` from before the list scrolled (old links) goes too. */
+/** The URL's search after `changes`. A `page` or `limit` from before the list scrolled endlessly
+ *  (old links) goes too. */
 export function applyFilterChanges(prev: ScoreUpdatesSearch, changes: FilterChanges): ScoreUpdatesSearch {
   const next: Record<string, unknown> = { ...prev }
   delete next.page
+  delete next.limit
   for (const [k, v] of Object.entries(changes)) {
     const def = DEFAULTS[k as keyof typeof DEFAULTS]
     if (v == null || v === '' || v === false || v === def) delete next[k]
@@ -105,12 +102,15 @@ export function applyFilterChanges(prev: ScoreUpdatesSearch, changes: FilterChan
   return next as ScoreUpdatesSearch
 }
 
+// Runs fetched at a time; the list fetches the next ones as it scrolls.
+const PAGE_RUNS = 200
+
 /** What the server is asked for (the search box is debounced separately). */
 export const changelogFilters = (f: ScoreFilters, game: string, query: string): ChangelogFilters => ({
   game,
   mode: f.mode || undefined,
   mapId: f.mapId || undefined,
-  limit: Number(f.limit),
+  limit: PAGE_RUNS,
   wr: f.wr,
   video: f.video,
   demo: f.demo,
@@ -128,8 +128,7 @@ export const extraFilterCount = (f: ScoreFilters) =>
   RUN_TOGGLES.filter(([k]) => f[k as RunToggle]).length +
   Number(Boolean(f.rank)) +
   Number(Boolean(f.days)) +
-  Number(f.banned !== DEFAULTS.banned) +
-  Number(f.limit !== DEFAULTS.limit)
+  Number(f.banned !== DEFAULTS.banned)
 
 /** Whether anything narrows the feed (shows "Clear filters"). */
 export const isFiltered = (f: ScoreFilters, query: string) =>

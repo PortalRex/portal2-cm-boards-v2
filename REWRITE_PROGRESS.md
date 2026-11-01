@@ -69,6 +69,11 @@
 
 ## Log
 <!-- Newest first. One entry per finished item: date, what was done, commit, tests added. -->
+- 2026-11-01: Score Updates scrolls on past the loaded runs: it fetches 200 at a time and the next 200 when the
+  shown rows run out (`changelogPagesQueryOptions` / `getChangelogPage` in lib/runs/changelog.ts, useInfiniteQuery,
+  `GET /changelog?before=` with the last row the server sent). The "Latest 100 / 200 / 500" filter is gone from
+  Score Updates (old links drop `limit`); the last row waits while a next page may hold its co-op partner or earlier
+  PBs; a failed page offers Try again. Tests: 1 frontend, 1 server (db).
 - 2026-11-01: Asked for: rank tags (Score Updates, map boards, the weekly recap) are no longer boxes but the
   number in its rank's colour with a soft glow (`rank-fill`): high contrast the rank's deep colour lifted to read
   on dark and a little more vivid, low contrast its old-site dark-scale colour at the same lightness but less than

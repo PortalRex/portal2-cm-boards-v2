@@ -210,6 +210,10 @@ All under `/api/v1`. Auth: **public**, **signed in**, **staff** (any tier or ser
 - **`GET /changelog`** gains `game_id`, `verified` (`false` = only pending), `include_hidden_wr`, `max_rank` (runs that ranked that high or better when set, e.g. 100) and `since_days` (runs from the last N days), and returns per row:
   co-op blue/orange players (host first), whether the colours are known, reaction counts, `wr_hidden`, `portals`.
   With `wr_gain=true` it now leaves out runs removed from WR history, banned runs, runs by banned players and pending runs.
+- **`GET /changelog`** gains `before` (a run id): the next page, the runs listed after that run in the list's own
+  order (newest first, undated runs last), for Score Updates' endless list. Rows sharing a timestamp are now ordered by
+  id (descending), so pages never overlap or skip; an unknown id gives an empty list. `first` / `last` (by id) are
+  unchanged.
 - **`POST /sp/post_score`** (the backend's insert): when `verified` isn't given, a run without a demo that would rank in
   the top 200 is stored as **pending**. Frozen profiles are refused (409).
 - **`PUT /changelog/demo`** (backend attaching a demo): verifies the run if it was pending.

@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useInfiniteQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { cn } from 'cn'
 import { useMemo, useState, type ReactNode } from 'react'
@@ -12,7 +12,7 @@ import { useGame } from '@/hooks/use-game'
 import { useLoadMore } from '@/hooks/use-load-more'
 import { useRenderedSet } from '@/hooks/use-rendered-set'
 import { useCatalog } from '@/lib/catalog'
-import { changelogQueryOptions } from '@/lib/runs/changelog'
+import { changelogPagesQueryOptions } from '@/lib/runs/changelog'
 import type { UserHit } from '@/lib/users/search'
 import type { Run } from '@/types/runs'
 import {
@@ -45,7 +45,7 @@ export function ScoreUpdatesList({
   const filters = readFilters(search, modes)
   const query = useDebounced(filters.q, 250)
   const asked = changelogFilters(filters, game, query)
-  const changelog = useQuery(changelogQueryOptions(asked, catalog))
+  const changelog = useInfiniteQuery(changelogPagesQueryOptions(asked, catalog))
 
   const set = (changes: FilterChanges) =>
     void navigate({
@@ -55,18 +55,26 @@ export function ScoreUpdatesList({
     })
 
   // A player's session of PBs on one map is one row (the steps count rows).
-  const entries = useMemo(() => groupStreaks(mergeCoopHalves(changelog.data ?? [])), [changelog.data])
+  const loaded = useMemo(() => changelog.data?.pages.flatMap((p) => p.runs) ?? [], [changelog.data])
+  const all = useMemo(() => groupStreaks(mergeCoopHalves(loaded)), [loaded])
+  // While older runs may follow, the last row waits: its co-op partner or earlier PBs may be on
+  // the next page.
+  const entries = changelog.hasNextPage ? all.slice(0, -1) : all
   // Other filters start again from the top rows (a refetch of the same ones keeps what's shown).
   const askedKey = JSON.stringify(asked)
   const [shown, setShown] = useState({ key: askedKey, count: STEP })
   const count = shown.key === askedKey ? shown.count : STEP
   if (shown.key !== askedKey) setShown({ key: askedKey, count: STEP })
   const visible = entries.slice(0, count)
-  const hasMore = visible.length < entries.length
+  const hasMore = visible.length < entries.length || changelog.hasNextPage
   const end = useLoadMore({
-    hasMore,
-    count: visible.length,
-    onMore: () => setShown({ key: askedKey, count: count + STEP }),
+    hasMore: hasMore && !changelog.isFetchingNextPage && !changelog.isFetchNextPageError,
+    progress: `${visible.length}/${changelog.data?.pages.length ?? 0}`,
+    onMore: () => {
+      // The loaded rows first, then the next page of older runs.
+      if (visible.length < entries.length) setShown({ key: askedKey, count: count + STEP })
+      else void changelog.fetchNextPage()
+    },
   })
   const rendered = useRenderedSet(
     visible.flatMap((e) => [e, ...e.earlier]),
@@ -138,9 +146,22 @@ export function ScoreUpdatesList({
       </div>
 
       {/* Scrolling near here shows the next rows. */}
-      {hasMore && (
+      {hasMore && !changelog.isPending && (
         <div ref={end} className="py-4 text-center text-text-muted" data-testid="score-updates-more">
-          Loading more…
+          {changelog.isFetchNextPageError ? (
+            <>
+              Couldn’t load more runs.{' '}
+              <button
+                type="button"
+                className="cursor-pointer border-0 bg-transparent p-0 text-brand-light hover:underline"
+                onClick={() => void changelog.fetchNextPage()}
+              >
+                Try again
+              </button>
+            </>
+          ) : (
+            'Loading more…'
+          )}
         </div>
       )}
     </Panel>

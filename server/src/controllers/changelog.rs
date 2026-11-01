@@ -351,6 +351,8 @@ pub async fn build_filtered_changelog(pool: &PgPool, params: ChangelogQueryParam
         Int(&'static str, i64, &'static str),
         Text(&'static str, String),
         Texts(&'static str, Vec<String>),
+        /// Runs listed after the one with this date and id (ORDER BY below).
+        After(Option<NaiveDateTime>, i64),
     }
     let mut filters: Vec<Filter> = vec![Filter::Int("chapter.game_id = ", params.game_id.unwrap_or(1) as i64, "")];
     if let Some(coop) = params.coop {
@@ -423,6 +425,14 @@ pub async fn build_filtered_changelog(pool: &PgPool, params: ChangelogQueryParam
     } else if let Some(last) = params.last {
         filters.push(Filter::Int("cl.id < ", last, ""));
     }
+    if let Some(before) = params.before {
+        let cursor = sqlx::query_scalar::<_, Option<NaiveDateTime>>("SELECT timestamp FROM changelog WHERE id = $1").bind(before).fetch_optional(pool).await?;
+        filters.push(match cursor {
+            Some(timestamp) => Filter::After(timestamp, before),
+            // An unknown run: there's no page after it.
+            None => Filter::Raw("1 = 0".into()),
+        });
+    }
     if let Some(additional_filters) = additional_filters {
         filters.extend(additional_filters.drain(..).map(Filter::Raw));
     }
@@ -441,10 +451,19 @@ pub async fn build_filtered_changelog(pool: &PgPool, params: ChangelogQueryParam
             Filter::Texts(sql, values) => {
                 query.push(sql).push_bind(values).push(")");
             }
+            // Older, or as old with a lower id; undated runs come after every dated one.
+            Filter::After(Some(timestamp), id) => {
+                query.push("(cl.timestamp IS NULL OR cl.timestamp < ").push_bind(timestamp);
+                query.push(" OR (cl.timestamp = ").push_bind(timestamp).push(" AND cl.id < ").push_bind(id).push("))");
+            }
+            Filter::After(None, id) => {
+                query.push("(cl.timestamp IS NULL AND cl.id < ").push_bind(id).push(")");
+            }
         }
         query.push("\n");
     }
-    query.push(" ORDER BY cl.timestamp DESC NULLS LAST");
+    // The id breaks ties, so pages (`before`) never overlap or skip runs set at the same moment.
+    query.push(" ORDER BY cl.timestamp DESC NULLS LAST, cl.id DESC");
     // Capped: the site never needs more than a profile's full history, and an uncapped limit
     // could pull the whole table.
     query.push(" LIMIT ").push_bind(params.limit.map(|l| l.clamp(1, 5000)).unwrap_or(500) as i64);
@@ -468,6 +487,7 @@ impl Default for ChangelogQueryParams {
             yt: None,
             first: None,
             last: None,
+            before: None,
             game_id: None,
             max_rank: None,
             since_days: None,
