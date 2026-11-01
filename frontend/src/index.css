@@ -458,6 +458,10 @@
     line-height: normal;
     /* What shows past the page's edges (iPhone bars, overscroll): the page colour, not white or grey. */
     background-color: var(--page);
+    /* The scrollbar's room is kept on a page too short to scroll (a profile's Info tab on a tall
+       screen), so the page doesn't widen when it goes: the background and the CRT's screen kept
+       moving and starting over when switching to such a page. */
+    scrollbar-gutter: stable;
   }
   html,
   body,
