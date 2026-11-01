@@ -69,6 +69,12 @@
 
 ## Log
 <!-- Newest first. One entry per finished item: date, what was done, commit, tests added. -->
+- 2026-11-01: Asked for: Score Updates' map names sit on frosted glass over the chamber picture, fading out just
+  past the longer of the name and chapter (`map-glass` utility in index.css), tinted with the new rank box's colour
+  (`rankVars` on the cell, low contrast too). Settings → Map name glass: Rank colour (default) or Plain
+  (`hooks/use-rank-glass.ts`, `p2cm.rankGlass` = "plain", applied before first paint by `theme.js`). Settings is
+  split into Appearance and Account tabs (`?tab=account`; signing in comes back to it). Local only for testing.
+  Tests: 4.
 - 2026-10-31: Review fix (PR #4): rank numbers' 25% more vivid colours are worked out in `rankVars`
   (`--rank-text`, `--rank-text-dark`: the colour, lifted on dark, through CSS saturate()'s matrix) instead of a
   `filter: saturate(1.25)` on every `rank-tint` number, which on long lists (Score Updates, histories) made hundreds

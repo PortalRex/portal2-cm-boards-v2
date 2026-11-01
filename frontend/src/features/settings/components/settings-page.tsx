@@ -12,6 +12,7 @@ import { PROFILE_TABS, useProfileTab } from '@/hooks/use-profile-tab'
 import { useCurrentUser } from '@/hooks/use-current-user'
 import { useGlass } from '@/hooks/use-glass'
 import { useRankContrast, type RankContrast } from '@/hooks/use-rank-contrast'
+import { useRankGlass, type RankGlass } from '@/hooks/use-rank-glass'
 import { useReadOnly } from '@/hooks/use-read-only'
 import { useTheme, type Theme } from '@/hooks/use-theme'
 import { useViewAsPlayer } from '@/hooks/use-view-as-player'
@@ -20,6 +21,7 @@ import { COUNTRY_LIST } from '@/lib/data/countries'
 import { invalidateUser } from '@/lib/invalidate'
 import { queryKeys } from '@/lib/query-keys'
 import { myUserQueryOptions, setMyCountry, setMyCountryFromSteam, setMyDisplay } from '../api/settings'
+import type { SettingsTab } from '../utils/tabs'
 import { AutoSubmitSetting } from './auto-submit-setting'
 import { BackgroundSetting } from './background-setting'
 
@@ -48,13 +50,133 @@ function Outcome({ message, error }: { message?: string | null; error?: Error | 
   return null
 }
 
-/** Settings: appearance for everyone; name, picture and country when signed in; the staff view switch. */
-export function SettingsPage() {
+/**
+ * Settings in two tabs: Appearance (how the site looks, saved in this browser) for everyone, and
+ * Account: name, picture and country when signed in, the staff view switch, signing in and out.
+ * The tab comes from the address (?tab=account) when the route passes it, else it's kept here.
+ */
+export function SettingsPage({ tab, onTab }: { tab?: SettingsTab; onTab?: (tab: SettingsTab) => void }) {
+  const [ownTab, setOwnTab] = useState<SettingsTab>('appearance')
+  const shown = tab ?? ownTab
+  return (
+    <Page background={siteBackground} tint="mono" narrow>
+      <Panel
+        icon={MoreIcon}
+        title="Settings"
+        actions={
+          <Segmented<SettingsTab>
+            label="Settings"
+            size="md"
+            value={shown}
+            onChange={onTab ?? setOwnTab}
+            options={[
+              { value: 'appearance', label: 'Appearance' },
+              { value: 'account', label: 'Account' },
+            ]}
+            itemClassName="min-w-[120px]"
+          />
+        }
+        bodyClassName="flex flex-col gap-7 upto700:px-4"
+      >
+        {shown === 'account' ? <AccountSettings /> : <AppearanceSettings />}
+      </Panel>
+    </Page>
+  )
+}
+
+/** How the site looks, saved in this browser. */
+function AppearanceSettings() {
   const { theme, setTheme } = useTheme()
   const [glass, setGlass] = useGlass()
   const [rankContrast, setRankContrast] = useRankContrast()
+  const [rankGlass, setRankGlass] = useRankGlass()
   const [pbStyle, setPbStyle] = useCoopPbStyle()
   const [profileTab, setProfileTab] = useProfileTab()
+  return (
+    <Section title="Appearance">
+      <Segmented<Theme>
+        {...switchProps}
+        label="Theme"
+        value={theme}
+        onChange={setTheme}
+        options={[
+          { value: 'dark', label: 'Dark' },
+          { value: 'light', label: 'Light' },
+        ]}
+      />
+      <h3 className="mt-[18px] mb-2 text-[17px] font-normal text-text-2">Liquid glass</h3>
+      <Segmented
+        {...switchProps}
+        label="Liquid glass"
+        value={glass ? 'on' : 'off'}
+        onChange={(v) => setGlass(v === 'on')}
+        options={[
+          { value: 'off', label: 'Off' },
+          { value: 'on', label: 'On' },
+        ]}
+      />
+      <p className={note}>
+        Frosted, see-through panels and menus over the page background, in the dark or the light theme.
+      </p>
+      <h3 className="mt-[18px] mb-2 text-[17px] font-normal text-text-2">Background</h3>
+      <BackgroundSetting button={button} control={control} note={note} />
+      <h3 className="mt-[18px] mb-2 text-[17px] font-normal text-text-2">Rank colours</h3>
+      <Segmented<RankContrast>
+        {...switchProps}
+        label="Rank colours"
+        value={rankContrast}
+        onChange={setRankContrast}
+        options={[
+          { value: 'high', label: 'High contrast' },
+          { value: 'low', label: 'Low contrast' },
+        ]}
+      />
+      <p className={note}>
+        How the rank boxes on map boards, Score Updates and profiles are coloured: filled under white numbers,
+        or softly tinted with the number in its colour.
+      </p>
+      <h3 className="mt-[18px] mb-2 text-[17px] font-normal text-text-2">Map name glass</h3>
+      <Segmented<RankGlass>
+        {...switchProps}
+        label="Map name glass"
+        value={rankGlass}
+        onChange={setRankGlass}
+        options={[
+          { value: 'rank', label: 'Rank colour' },
+          { value: 'plain', label: 'Plain' },
+        ]}
+      />
+      <p className={note}>
+        The frosted glass behind a map's name on Score Updates: tinted with the colour of the run's new rank,
+        or left plain.
+      </p>
+      <h3 className="mt-[18px] mb-2 text-[17px] font-normal text-text-2">Profiles open on</h3>
+      <Segmented
+        {...switchProps}
+        label="Profiles open on"
+        value={profileTab}
+        onChange={setProfileTab}
+        options={PROFILE_TABS}
+      />
+      <p className={note}>The tab a Portal 2 profile shows first.</p>
+      <h3 className="mt-[18px] mb-2 text-[17px] font-normal text-text-2">Co-op PBs</h3>
+      <Segmented
+        {...switchProps}
+        label="Co-op PBs"
+        value={pbStyle}
+        onChange={setPbStyle}
+        options={COOP_PB_STYLES}
+      />
+      <p className={note}>
+        How a co-op run in Score Updates and on map boards marks which player set a personal best: a trophy by
+        their name, or their name in their portal colour.
+      </p>
+    </Section>
+  )
+}
+
+/** Name, picture and country when signed in, the staff view switch, and signing in and out. */
+function AccountSettings() {
   const [, setViewAsPlayer] = useViewAsPlayer()
   const user = useCurrentUser()
   const signedIn = user && !user.sample ? user : null
@@ -65,115 +187,48 @@ export function SettingsPage() {
   const staffRole = signedIn ? (signedIn.staffRole ?? signedIn.role) : null
 
   return (
-    <Page background={siteBackground} tint="mono" narrow>
-      <Panel icon={MoreIcon} title="Settings" bodyClassName="flex flex-col gap-7 upto700:px-4">
-        <Section title="Appearance">
-          <Segmented<Theme>
-            {...switchProps}
-            label="Theme"
-            value={theme}
-            onChange={setTheme}
-            options={[
-              { value: 'dark', label: 'Dark' },
-              { value: 'light', label: 'Light' },
-            ]}
-          />
-          <h3 className="mt-[18px] mb-2 text-[17px] font-normal text-text-2">Liquid glass</h3>
-          <Segmented
-            {...switchProps}
-            label="Liquid glass"
-            value={glass ? 'on' : 'off'}
-            onChange={(v) => setGlass(v === 'on')}
-            options={[
-              { value: 'off', label: 'Off' },
-              { value: 'on', label: 'On' },
-            ]}
-          />
-          <p className={note}>
-            Frosted, see-through panels and menus over the page background, in the dark or the light theme.
-          </p>
-          <h3 className="mt-[18px] mb-2 text-[17px] font-normal text-text-2">Background</h3>
-          <BackgroundSetting button={button} control={control} note={note} />
-          <h3 className="mt-[18px] mb-2 text-[17px] font-normal text-text-2">Rank colours</h3>
-          <Segmented<RankContrast>
-            {...switchProps}
-            label="Rank colours"
-            value={rankContrast}
-            onChange={setRankContrast}
-            options={[
-              { value: 'high', label: 'High contrast' },
-              { value: 'low', label: 'Low contrast' },
-            ]}
-          />
-          <p className={note}>
-            How the rank boxes on map boards, Score Updates and profiles are coloured: filled under white
-            numbers, or softly tinted with the number in its colour.
-          </p>
-          <h3 className="mt-[18px] mb-2 text-[17px] font-normal text-text-2">Profiles open on</h3>
-          <Segmented
-            {...switchProps}
-            label="Profiles open on"
-            value={profileTab}
-            onChange={setProfileTab}
-            options={PROFILE_TABS}
-          />
-          <p className={note}>The tab a Portal 2 profile shows first.</p>
-          <h3 className="mt-[18px] mb-2 text-[17px] font-normal text-text-2">Co-op PBs</h3>
-          <Segmented
-            {...switchProps}
-            label="Co-op PBs"
-            value={pbStyle}
-            onChange={setPbStyle}
-            options={COOP_PB_STYLES}
-          />
-          <p className={note}>
-            How a co-op run in Score Updates and on map boards marks which player set a personal best: a
-            trophy by their name, or their name in their portal colour.
+    <>
+      {editable && <DisplaySetting user={editable} />}
+      {editable && <CountrySetting user={editable} />}
+      {signedIn && blocked && (
+        <Section title="Your profile">
+          <p className="m-0 max-w-[640px] text-base text-text-2">
+            Your name, picture, country and SAR auto-submit key can be changed once the boards open for
+            changes.
           </p>
         </Section>
+      )}
+      {editable && (
+        <AutoSubmitSetting
+          button={button}
+          note={note}
+          section={(title, children) => <Section title={title}>{children}</Section>}
+        />
+      )}
 
-        {editable && <DisplaySetting user={editable} />}
-        {editable && <CountrySetting user={editable} />}
-        {signedIn && blocked && (
-          <Section title="Your profile">
-            <p className="m-0 max-w-[640px] text-base text-text-2">
-              Your name, picture, country and SAR auto-submit key can be changed once the boards open for
-              changes.
-            </p>
-          </Section>
-        )}
-        {editable && (
-          <AutoSubmitSetting
-            button={button}
-            note={note}
-            section={(title, children) => <Section title={title}>{children}</Section>}
+      {signedIn && staffRole && (
+        <Section title="Staff">
+          <Segmented
+            {...switchProps}
+            label="View the site"
+            value={signedIn.staffRole ? 'player' : 'staff'}
+            onChange={(v) => setViewAsPlayer(v === 'player')}
+            options={[
+              { value: 'staff', label: `As ${ROLE_LABELS[staffRole].toLowerCase()}` },
+              { value: 'player', label: 'As a player' },
+            ]}
           />
-        )}
-
-        {signedIn && staffRole && (
-          <Section title="Staff">
-            <Segmented
-              {...switchProps}
-              label="View the site"
-              value={signedIn.staffRole ? 'player' : 'staff'}
-              onChange={(v) => setViewAsPlayer(v === 'player')}
-              options={[
-                { value: 'staff', label: `As ${ROLE_LABELS[staffRole].toLowerCase()}` },
-                { value: 'player', label: 'As a player' },
-              ]}
-            />
-            <p className={note}>
-              See the site as a regular player would: staff tools, links and menus are hidden until you switch
-              back (saved in this browser).
-            </p>
-          </Section>
-        )}
-
-        <Section title="Account">
-          {signedIn ? <SignedIn user={signedIn} staffRole={staffRole} /> : <SignedOut />}
+          <p className={note}>
+            See the site as a regular player would: staff tools, links and menus are hidden until you switch
+            back (saved in this browser).
+          </p>
         </Section>
-      </Panel>
-    </Page>
+      )}
+
+      <Section title="Account">
+        {signedIn ? <SignedIn user={signedIn} staffRole={staffRole} /> : <SignedOut />}
+      </Section>
+    </>
   )
 }
 
@@ -204,7 +259,7 @@ function SignedOut() {
   return (
     <div className="flex flex-wrap items-center gap-3">
       <span className="text-text-muted">Not signed in.</span>
-      <a className={button} href={steamLoginUrl('/more/settings')}>
+      <a className={button} href={steamLoginUrl('/more/settings?tab=account')}>
         Sign in through Steam
       </a>
     </div>

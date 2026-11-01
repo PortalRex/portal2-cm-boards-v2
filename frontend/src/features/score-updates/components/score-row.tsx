@@ -20,6 +20,7 @@ import {
 } from '@/lib/coop-roles'
 import { formatDate, formatDateTime, formatDelta, formatScore, timeAgo } from '@/lib/format'
 import { ageColor } from '@/lib/age-color'
+import { rankVars } from '@/lib/ranks'
 import { toggleOnRowClick } from '@/lib/rows'
 import type { Run } from '@/types/runs'
 import { streakSummary } from '@/lib/runs/group-streaks'
@@ -76,27 +77,37 @@ export function ScoreRow({
 
         {/* Only the name links to the map; the rest of the row opens the run. */}
         <div
-          className="relative flex flex-col justify-center self-stretch overflow-hidden px-5 [background:linear-gradient(90deg,rgb(var(--row-rgb)/0.55),var(--row)_95%),var(--map-image,none)_center/cover_no-repeat] upto900:px-0 upto900:py-0.5 upto900:[background:none] upto900:[grid-area:map]"
-          style={
-            entry.map.image ? ({ '--map-image': `url("${entry.map.image}")` } as CSSProperties) : undefined
-          }
+          className="relative flex self-stretch overflow-hidden [background:linear-gradient(90deg,rgb(var(--row-rgb)/0.55),var(--row)_95%),var(--map-image,none)_center/cover_no-repeat] upto900:py-0.5 upto900:[background:none] upto900:[grid-area:map]"
+          style={{
+            ...rankVars(entry.postRank),
+            ...(entry.map.image && ({ '--map-image': `url("${entry.map.image}")` } as CSSProperties)),
+          }}
         >
-          <AppLink
-            href={mapPath(entry.map)}
-            className="max-w-full self-start truncate text-lg leading-[1.1] hover:underline upto900:text-[15px]"
+          {/* The name on frosted glass over the picture, in the new rank's colour (phones show no picture). */}
+          <div
+            data-tint={entry.postRank != null || undefined}
+            className={cn(
+              'flex max-w-full min-w-0 flex-col justify-center pl-5 upto900:pl-0',
+              entry.map.image && 'map-glass upto900:pr-0! upto900:before:hidden',
+            )}
           >
-            {entry.map.title}
-          </AppLink>
-          <span className="text-[13px] whitespace-nowrap text-text-2 uppercase upto900:hidden">
-            {entry.map.chapter}
-          </span>
-          <span
-            className="hidden text-xs text-text-muted upto900:block"
-            title={formatDateTime(entry.timestamp)}
-            style={{ color: ageColor(entry.timestamp) }}
-          >
-            {timeAgo(entry.timestamp)}
-          </span>
+            <AppLink
+              href={mapPath(entry.map)}
+              className="max-w-full self-start truncate text-lg leading-[1.1] hover:underline upto900:text-[15px]"
+            >
+              {entry.map.title}
+            </AppLink>
+            <span className="text-[13px] whitespace-nowrap text-text-2 uppercase upto900:hidden">
+              {entry.map.chapter}
+            </span>
+            <span
+              className="hidden text-xs text-text-muted upto900:block"
+              title={formatDateTime(entry.timestamp)}
+              style={{ color: ageColor(entry.timestamp) }}
+            >
+              {timeAgo(entry.timestamp)}
+            </span>
+          </div>
         </div>
 
         <div

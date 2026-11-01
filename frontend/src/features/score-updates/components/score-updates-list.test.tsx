@@ -43,6 +43,19 @@ describe('Score Updates', () => {
     ).toEqual(['Previous', 'New', 'Map', 'Player(s)', 'Time', 'ΔTime', 'ΔPoints', 'Date'])
   })
 
+  it("puts the map's name on glass in the new rank's colour, plain for a run without a rank", async () => {
+    const [first, second] = changelog as ChangelogRaw[]
+    serve([first!, { ...second!, post_rank: null }])
+    await renderRoute('/')
+    const glass = (map: string) =>
+      within(table()).getByRole('link', { name: map }).closest('.map-glass') as HTMLElement
+    await rowFor(first!.map_name)
+    expect(glass(first!.map_name)).toHaveAttribute('data-tint')
+    // The cell carries the rank's colours for the glass (rankVars).
+    expect(glass(first!.map_name).parentElement!.style.getPropertyValue('--rank-color')).not.toBe('')
+    expect(glass(second!.map_name)).not.toHaveAttribute('data-tint')
+  })
+
   it('shows pending and banned runs with their status', async () => {
     serve()
     await renderRoute('/?banned=show')

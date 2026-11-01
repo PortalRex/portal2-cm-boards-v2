@@ -6,6 +6,7 @@ import { useCoopPbStyle } from './use-coop-pb-style'
 import { useFollows } from './use-follows'
 import { useGlass } from './use-glass'
 import { useRankContrast } from './use-rank-contrast'
+import { useRankGlass } from './use-rank-glass'
 import { useTheme } from './use-theme'
 
 describe('useTheme', () => {
@@ -47,6 +48,21 @@ describe('useRankContrast', () => {
     expect(renderHook(() => useRankContrast()).result.current[0]).toBe('low')
     localStorage.setItem('p2cm.rankContrast', 'weird')
     expect(renderHook(() => useRankContrast()).result.current[0]).toBe('high')
+  })
+})
+
+describe('useRankGlass', () => {
+  it('tints with the rank colour by default, and puts plain on <html> while chosen', () => {
+    const { result } = renderHook(() => useRankGlass())
+    expect(result.current[0]).toBe('rank')
+    expect(document.documentElement.dataset.rankGlass).toBeUndefined()
+    act(() => result.current[1]('plain'))
+    expect(result.current[0]).toBe('plain')
+    expect(document.documentElement.dataset.rankGlass).toBe('plain')
+    expect(localStorage.getItem('p2cm.rankGlass')).toBe('plain')
+    act(() => result.current[1]('rank'))
+    expect(document.documentElement.dataset.rankGlass).toBeUndefined()
+    expect(localStorage.getItem('p2cm.rankGlass')).toBeNull()
   })
 })
 

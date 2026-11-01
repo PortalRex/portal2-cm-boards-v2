@@ -45,11 +45,15 @@ function serveUser(over: Partial<MyUser> = {}) {
 }
 
 describe('Settings', () => {
-  it('shows visitors the appearance switches and a sign-in link', async () => {
+  it('opens on the appearance switches, with signing in on the Account tab', async () => {
     await renderWithProviders(<SettingsPage />)
     expect(screen.getByRole('heading', { name: 'Appearance' })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Sign in through Steam' })).toBeNull()
+    await userEvent.click(screen.getByRole('radio', { name: 'Account' }))
+    expect(screen.queryByRole('heading', { name: 'Appearance' })).toBeNull()
+    // Signing in comes back to this tab.
     expect(screen.getByRole('link', { name: 'Sign in through Steam' }).getAttribute('href')).toContain(
-      'return=%2Fmore%2Fsettings',
+      'return=%2Fmore%2Fsettings%3Ftab%3Daccount',
     )
     expect(screen.getByText('Not signed in.')).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'Country' })).toBeNull()
@@ -95,6 +99,18 @@ describe('Settings', () => {
     expect(localStorage.getItem('p2cm.rankContrast')).toBeNull()
   })
 
+  it('tints the glass behind map names with the rank colour, or leaves it plain, saved in this browser', async () => {
+    await renderWithProviders(<SettingsPage />)
+    const glass = within(screen.getByRole('radiogroup', { name: 'Map name glass' }))
+    expect(glass.getByRole('radio', { name: 'Rank colour' })).toBeChecked()
+    await userEvent.click(glass.getByRole('radio', { name: 'Plain' }))
+    expect(document.documentElement.dataset.rankGlass).toBe('plain')
+    expect(localStorage.getItem('p2cm.rankGlass')).toBe('plain')
+    await userEvent.click(glass.getByRole('radio', { name: 'Rank colour' }))
+    expect(document.documentElement.dataset.rankGlass).toBeUndefined()
+    expect(localStorage.getItem('p2cm.rankGlass')).toBeNull()
+  })
+
   it('puts a preset or a Steam / Imgur picture behind every page, saved in this browser', async () => {
     await renderWithProviders(<SettingsPage />)
     const choices = within(screen.getByRole('radiogroup', { name: 'Background' }))
@@ -135,7 +151,7 @@ describe('Settings', () => {
 
   it('saves your own name, and goes back to the Steam one', async () => {
     const sent = serveUser()
-    await renderWithProviders(<SettingsPage />, { user: 'player' })
+    await renderWithProviders(<SettingsPage tab="account" />, { user: 'player' })
     const name = await screen.findByRole('textbox', { name: 'Name' })
     expect(name).toHaveValue('Player')
     expect(screen.getByRole('button', { name: 'Save name' })).toBeDisabled()
@@ -156,7 +172,7 @@ describe('Settings', () => {
 
   it('sets the picture from an address or from Steam', async () => {
     const sent = serveUser()
-    await renderWithProviders(<SettingsPage />, { user: 'player' })
+    await renderWithProviders(<SettingsPage tab="account" />, { user: 'player' })
     await userEvent.type(
       await screen.findByRole('textbox', { name: 'Picture address' }),
       'https://i.imgur.com/AbCd123.png',
@@ -176,7 +192,7 @@ describe('Settings', () => {
     serveUser()
     const refusal = 'The picture has to be on Steam or Imgur (an https:// address of the image itself).'
     server.use(http.put(`${API}/user/display`, () => new HttpResponse(refusal, { status: 400 })))
-    await renderWithProviders(<SettingsPage />, { user: 'player' })
+    await renderWithProviders(<SettingsPage tab="account" />, { user: 'player' })
     const address = await screen.findByRole('textbox', { name: 'Picture address' })
     expect(address).toHaveAttribute('placeholder', 'Steam or Imgur image address (https://…)')
     await userEvent.type(address, 'https://evil.example/pixel.png')
@@ -188,7 +204,7 @@ describe('Settings', () => {
 
   it('locks what staff have set', async () => {
     serveUser({ board_name: 'Renamed', name_locked: true, avatar_locked: true })
-    await renderWithProviders(<SettingsPage />, { user: 'player' })
+    await renderWithProviders(<SettingsPage tab="account" />, { user: 'player' })
     expect(await screen.findByRole('textbox', { name: 'Name' })).toBeDisabled()
     expect(screen.getByRole('textbox', { name: 'Picture address' })).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Use my Steam picture' })).toBeDisabled()
@@ -199,7 +215,7 @@ describe('Settings', () => {
 
   it('says which one is locked when only one is', async () => {
     serveUser({ avatar_locked: true })
-    await renderWithProviders(<SettingsPage />, { user: 'player' })
+    await renderWithProviders(<SettingsPage tab="account" />, { user: 'player' })
     expect(
       await screen.findByText("Your picture was set by staff, so it can't be changed here."),
     ).toBeInTheDocument()
@@ -213,7 +229,7 @@ describe('Settings', () => {
         HttpResponse.json({ error: 'Your Steam profile shows no country.' }, { status: 404 }),
       ),
     )
-    await renderWithProviders(<SettingsPage />, { user: 'player' })
+    await renderWithProviders(<SettingsPage tab="account" />, { user: 'player' })
     const select = await screen.findByRole('combobox', { name: 'Country' })
     await waitFor(() => expect(select).toHaveValue('226'))
     await userEvent.selectOptions(select, '')
@@ -227,7 +243,7 @@ describe('Settings', () => {
 
   it('lets staff view the site as a player and back', async () => {
     serveUser()
-    await renderWithProviders(<SettingsPage />, { user: 'moderator' })
+    await renderWithProviders(<SettingsPage tab="account" />, { user: 'moderator' })
     expect(screen.getByText(/Signed in through Steam as/)).toHaveTextContent(
       'Signed in through Steam as Moderator (Moderator).',
     )
@@ -241,7 +257,7 @@ describe('Settings', () => {
 
   it('has no staff switch for players', async () => {
     serveUser()
-    await renderWithProviders(<SettingsPage />, { user: 'player' })
+    await renderWithProviders(<SettingsPage tab="account" />, { user: 'player' })
     await screen.findByRole('heading', { name: 'Country' })
     expect(screen.queryByRole('heading', { name: 'Staff' })).toBeNull()
   })
@@ -255,7 +271,7 @@ describe('Settings', () => {
         return new HttpResponse(null, { status: 200 })
       }),
     )
-    await renderWithProviders(<SettingsPage />, { user: 'player' })
+    await renderWithProviders(<SettingsPage tab="account" />, { user: 'player' })
     await userEvent.click(screen.getByRole('button', { name: 'Sign out' }))
     expect(await screen.findByText('Not signed in.')).toBeInTheDocument()
     expect(signedOut).toBe(true)
@@ -287,7 +303,7 @@ describe('SAR auto-submit key', () => {
   it('makes a key and shows it once, as SAR’s autosubmit.key', async () => {
     serveUser()
     const calls = serveKey({ has_key: false, created: null })
-    await renderWithProviders(<SettingsPage />, { user: 'player' })
+    await renderWithProviders(<SettingsPage tab="account" />, { user: 'player' })
     expect(await screen.findByText("You don't have a key yet.")).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Make a key' }))
     const file = await screen.findByLabelText('autosubmit.key')
@@ -302,7 +318,7 @@ ${key}
   it('asks before replacing a key, and removes it', async () => {
     serveUser()
     const calls = serveKey({ has_key: true, created: '2026-10-20T12:00:00' })
-    await renderWithProviders(<SettingsPage />, { user: 'player' })
+    await renderWithProviders(<SettingsPage tab="account" />, { user: 'player' })
     expect(await screen.findByText(/You have a key \(made /)).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Make a new key' }))
     expect(screen.getByText(/Your current key stops working/)).toBeInTheDocument()
