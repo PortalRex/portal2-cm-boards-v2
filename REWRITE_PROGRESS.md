@@ -69,6 +69,11 @@
 
 ## Log
 <!-- Newest first. One entry per finished item: date, what was done, commit, tests added. -->
+- 2026-11-01: Asked for: rank tags (Score Updates, map boards, the weekly recap) are no longer boxes but the
+  number in its rank's colour with a soft glow (`rank-fill`): high contrast the rank's deep colour lifted to read
+  on dark and a little more vivid, low contrast its old-site dark-scale colour at the same lightness but less than
+  half as vivid (CSS relative oklch colours). Numbers 15% bigger; Score Updates dims the previous rank. World
+  records keep their glowing box; profile rank tiles keep theirs. Tests: 1 updated.
 - 2026-11-01: Asked for: Score Updates scrolls instead of paging. The loaded runs (Latest 200 etc.) show 20 rows
   at a time, 20 more each time the end of the list comes within 600px (`hooks/use-load-more.ts`,
   IntersectionObserver); new filters start from the top again, a refetch keeps what's shown. `?page=` is gone

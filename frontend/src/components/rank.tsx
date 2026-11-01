@@ -41,9 +41,9 @@ export function RankNumber({
 }
 
 /**
- * A rank as a tag: ranks 2–500 in the rank's deeper colour (the light-theme scale), toned down
- * with grey so white numbers read on it (softly tinted with low-contrast rank colours: see
- * rank-fill); a world record glows. Other ranks are a plain number.
+ * A rank as a tag: ranks 2–500 as the number in the rank's colour with a soft glow (muted with
+ * low-contrast rank colours: see rank-fill); a world record glows in its box. Other ranks are a
+ * plain number.
  * `className` sizes it (RANK_TAG by default).
  */
 export function RankTag({
@@ -58,8 +58,8 @@ export function RankTag({
     <span
       className={cn(
         className,
-        'font-semibold text-white',
-        rank === 1 ? 'wr-glow wr-glow-raised' : 'rank-fill',
+        'font-semibold',
+        rank === 1 ? 'wr-glow wr-glow-raised text-white' : 'rank-fill',
       )}
       style={rankVars(rank)}
     >
@@ -68,11 +68,22 @@ export function RankTag({
   )
 }
 
-/** One side of a RankChange: the rank's tag in a grey box. */
-function RankCell({ rank, testId }: { rank: number | null; testId: string }) {
+/** One side of a RankChange: the rank's tag in a grey box, the earlier one dimmer so the new one leads. */
+function RankCell({
+  rank,
+  testId,
+  earlier = false,
+}: {
+  rank: number | null
+  testId: string
+  earlier?: boolean
+}) {
   return (
     <span
-      className="flex items-center justify-center bg-rank-cell font-semibold text-rank-cell-text"
+      className={cn(
+        'flex items-center justify-center bg-rank-cell font-semibold text-rank-cell-text',
+        earlier && 'opacity-75',
+      )}
       data-testid={testId}
     >
       <RankTag rank={rank} />
@@ -84,7 +95,7 @@ function RankCell({ rank, testId }: { rank: number | null; testId: string }) {
 export function RankChange({ pre, post }: { pre: number | null; post: number | null }) {
   return (
     <div className="num relative grid h-full min-h-[46px] grid-cols-2 items-stretch bg-rank-cell text-lg">
-      <RankCell rank={pre} testId="rank-before" />
+      <RankCell rank={pre} testId="rank-before" earlier />
       <RankCell rank={post} testId="rank-after" />
       <TriangleRight
         size={12}

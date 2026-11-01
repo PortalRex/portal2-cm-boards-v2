@@ -51,7 +51,9 @@ describe('RecapPanel', () => {
     expect((await panel.findByRole('img', { name: 'World record (rank 1)' })).parentElement).toHaveClass(
       'wr-glow',
     )
-    expect(panel.getByText('437')).toHaveClass('rank-fill', 'text-white')
+    // The number in its rank's colour (rank-fill), not white on a box.
+    expect(panel.getByText('437')).toHaveClass('rank-fill')
+    expect(panel.getByText('437')).not.toHaveClass('text-white')
     // Past 500 there's no tag colour: the plain cell.
     expect(panel.getByText('600')).toHaveClass('bg-rank-new')
     expect(panel.getByText('600')).not.toHaveClass('rank-fill')

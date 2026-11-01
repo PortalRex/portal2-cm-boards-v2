@@ -503,19 +503,30 @@
   }
 }
 
-/* A rank tag's fill (RankTag: map boards, Score Updates): the rank's deeper colour toned down with
-   grey under a white number. With low-contrast rank colours (Settings, data-rank-contrast on <html>)
-   as the profile's tiles were before they took these colours: tinted with the rank's colour from the
-   old site's dark scale (--rank-color-soft, see rankVars), the number in it. */
+/* A rank tag (RankTag: map boards, Score Updates; the weekly recap): no box, just the number in its
+   rank's colour with a soft glow, readable on glass too. High contrast: the rank's deep colour (as
+   the boxes were), lifted to read on dark and a little more vivid. Low contrast (Settings,
+   data-rank-contrast on <html>): its colour on the old site's dark scale (--rank-color-soft, see
+   rankVars) at the same lightness, less than half as vivid, under a fainter glow. */
 @utility rank-fill {
-  background: color-mix(in oklab, var(--rank-color) 80%, #6b6b6b);
+  --rank-fill-color: oklch(from var(--rank-color) max(l, 0.74) calc(c* 1.2) h);
+  color: var(--rank-fill-color);
+  font-size: 1.15em;
+  text-shadow:
+    0 0 10px color-mix(in srgb, var(--rank-fill-color) 70%, transparent),
+    0 1px 2px rgb(0 0 0 / 0.6);
   :root[data-rank-contrast='low'] & {
-    background: color-mix(in srgb, var(--rank-color-soft) 32%, var(--track));
-    color: var(--rank-color-soft);
+    --rank-fill-color: oklch(from var(--rank-color-soft) 0.76 calc(c* 0.45) h);
+    text-shadow:
+      0 0 8px color-mix(in srgb, var(--rank-fill-color) 40%, transparent),
+      0 1px 2px rgb(0 0 0 / 0.5);
+  }
+  :root[data-theme='light'] & {
+    --rank-fill-color: var(--rank-color);
+    text-shadow: 0 0 8px color-mix(in srgb, var(--rank-fill-color) 30%, transparent);
   }
   :root[data-rank-contrast='low'][data-theme='light'] & {
-    background: color-mix(in srgb, var(--rank-color) 20%, var(--track));
-    color: var(--rank-color);
+    --rank-fill-color: color-mix(in oklab, var(--rank-color) 65%, #7a7a7a);
   }
 }
 

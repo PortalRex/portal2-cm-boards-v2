@@ -178,7 +178,7 @@ function RecapRank({ rank }: { rank: number | null }) {
     <span
       className={cn(
         'num flex items-center justify-center self-stretch',
-        !tag ? 'bg-rank-new' : rank === 1 ? 'wr-glow' : 'rank-fill font-semibold text-white',
+        !tag ? 'bg-rank-new' : rank === 1 ? 'wr-glow' : 'rank-fill font-semibold',
       )}
       style={tag ? rankVars(rank) : undefined}
     >
