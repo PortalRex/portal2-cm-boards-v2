@@ -78,7 +78,8 @@ export function LegacyTab({
                       </span>
                       <AppLink
                         href={mapPath(m)}
-                        className="truncate whitespace-nowrap hover:underline"
+                        // Only as wide as the name: the rest of its cell opens the run too.
+                        className="w-fit max-w-full truncate whitespace-nowrap hover:underline"
                         // The name goes to the board; the rest of the row opens the run.
                         onClick={(e) => e.stopPropagation()}
                       >

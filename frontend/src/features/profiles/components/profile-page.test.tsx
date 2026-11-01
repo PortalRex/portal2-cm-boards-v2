@@ -225,6 +225,8 @@ describe('Profile page', () => {
     const row = screen.getByRole('button', { name: /Smooth Jazz/ })
     // The map's name goes to its board; the icons are their own, not the row's.
     expect(within(row).getByRole('link', { name: 'Smooth Jazz' })).toHaveAttribute('href', '/map/sp/47455')
+    // Only as wide as the name, so clicking beside it opens the run (jsdom has no layout to measure).
+    expect(within(row).getByRole('link', { name: 'Smooth Jazz' })).toHaveClass('w-fit')
     expect(within(row).getByRole('link', { name: 'Watch autorender' })).toBeInTheDocument()
     expect(within(row).getByRole('link', { name: 'Download demo' })).toBeInTheDocument()
     await userEvent.click(within(row).getByRole('img', { name: 'No video' }))
