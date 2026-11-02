@@ -172,6 +172,16 @@ describe('RunDetails', () => {
     )
   })
 
+  it("opens a co-op run on the half of the POV it's given", async () => {
+    noSegments()
+    server.use(http.get(`${API}/coop/7/halves`, () => HttpResponse.json(coopHalves)))
+    const [first, second] = coopHalves
+    const run: DetailsRun = { ...spRun, id: first!.changelog_id!, coopId: 7 }
+    await renderWithProviders(<RunDetails run={run} map={map} pov={second!.profile_number} />)
+    const tabs = await screen.findAllByRole('tab')
+    expect(tabs[1]).toHaveAttribute('aria-selected', 'true')
+  })
+
   it('shows the demo of a partner the run wasn’t a personal best for, and offers them to add theirs', async () => {
     noSegments()
     const [first, second] = coopHalves

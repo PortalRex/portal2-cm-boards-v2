@@ -49,34 +49,47 @@ const outlineButton =
 
 /**
  * Expanded view of one run: video, mtrigger segments, and run info / links. Co-op runs get a
- * switch between the two players' halves (each has its own demo, video and comment).
+ * switch between the two players' halves (each has its own demo, video and comment), opening on
+ * `pov`'s half when given (the side of a board row that was clicked).
  */
 export function RunDetails({
   run,
   map,
   game = 'portal2',
   rendered,
+  pov = null,
   children,
 }: {
   run: DetailsRun
   map: RunMap
   game?: string
   rendered?: Map<number, string>
+  /** Co-op: the profile number of the player whose half to open on. */
+  pov?: string | null
   /** Further sections under the info (report, staff tools). */
   children?: ReactNode
 }) {
   const halves = useQuery({ ...coopHalvesQueryOptions(run.coopId ?? -1), enabled: run.coopId != null })
   const [picked, setPicked] = useState<number | null>(null)
+  // Another side clicked on the open row: back to that player's half.
+  const [pickedFor, setPickedFor] = useState(pov)
+  if (pickedFor !== pov) {
+    setPickedFor(pov)
+    setPicked(null)
+  }
   const own = run.changelogId ?? run.id ?? null
   const list = halves.data?.length === 2 ? halves.data : null
+  const povIndex = pov ? (list?.findIndex((h) => h.player?.profileNumber === pov) ?? -1) : -1
   const index =
     picked ??
-    (list
-      ? Math.max(
-          0,
-          list.findIndex((h) => h.changelogId === own),
-        )
-      : 0)
+    (povIndex >= 0
+      ? povIndex
+      : list
+        ? Math.max(
+            0,
+            list.findIndex((h) => h.changelogId === own),
+          )
+        : 0)
   const half = list?.[index]
   // What the media and comment show: the selected player's own entry, or for a partner the run
   // wasn't a personal best for, just their demo (the run's segments still apply).

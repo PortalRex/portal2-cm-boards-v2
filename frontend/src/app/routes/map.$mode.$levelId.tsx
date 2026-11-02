@@ -30,8 +30,8 @@ function MapRoute() {
       mode={mode}
       levelId={levelId}
       at={at ?? null}
-      renderRunDetails={(run, map, rendered) => (
-        <RunDetails run={run} map={map} game={map.game} rendered={rendered} />
+      renderRunDetails={(run, map, rendered, pov) => (
+        <RunDetails run={run} map={map} game={map.game} rendered={rendered} pov={pov} />
       )}
     />
   )

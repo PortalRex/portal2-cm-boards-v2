@@ -30,7 +30,13 @@ import { RankPoints } from './rank-points'
 // The rank tag's look, small enough for the board's narrow rank column.
 const BOARD_TAG = cn(RANK_TAG_BASE, 'h-6 w-9 text-sm upto900:w-7')
 
-export type RenderRunDetails = (run: RankedRun, map: MapInfo, rendered: Map<number, string>) => ReactNode
+/** `pov`: on a co-op run, the player whose side of the row was clicked (their profile number). */
+export type RenderRunDetails = (
+  run: RankedRun,
+  map: MapInfo,
+  rendered: Map<number, string>,
+  pov: string | null,
+) => ReactNode
 
 export function MapLeaderboard({
   map,
@@ -61,7 +67,7 @@ export function MapLeaderboard({
     visible.flatMap((e) => e.halves ?? [e]),
     map.game,
   )
-  const [openKey, setOpenKey] = useState<string | number | null>(null)
+  const [opened, setOpened] = useState<{ key: string | number; pov: string | null } | null>(null)
   const overrides = useCoopRoleOverrides()
   // Co-op: each player whose PB the run is gets marked as on Score Updates (trophy, or glowing
   // name with the others faded). A player repeats on slower runs when they carried partners to PBs.
@@ -76,7 +82,7 @@ export function MapLeaderboard({
     if (index < 0) return
     setSearch('')
     showAtLeast(index + 1, '')
-    setOpenKey(rowKey(entry))
+    setOpened({ key: rowKey(entry), pov: null })
     setTimeout(
       () =>
         document
@@ -133,7 +139,7 @@ export function MapLeaderboard({
         ) : visible.length ? (
           visible.map((e) => {
             const key = rowKey(e)
-            const open = openKey === key
+            const open = opened?.key === key
             const { players, rolesKnown } = coopRoles(e, overrides)
             // Unpaired co-op runs have no partner on record; the cell keeps the columns lined up.
             const cells = coop && players.length < 2 ? [...players, null] : players
@@ -147,7 +153,13 @@ export function MapLeaderboard({
                 <div
                   role="row"
                   aria-expanded={open}
-                  onClick={toggleOnRowClick(() => setOpenKey(open ? null : key))}
+                  onClick={(ev) => {
+                    // Co-op: a click on a player's side opens (or switches to) their POV.
+                    const pov = (ev.target as Element).closest<HTMLElement>('[data-pov]')?.dataset.pov ?? null
+                    toggleOnRowClick(() =>
+                      setOpened(open && (!pov || pov === opened?.pov) ? null : { key, pov }),
+                    )(ev)
+                  }}
                   className={cn(
                     rowBase,
                     'cursor-pointer hover:brightness-[1.15]',
@@ -183,6 +195,7 @@ export function MapLeaderboard({
                       <span
                         key={j}
                         role="cell"
+                        data-pov={(coop && p.profileNumber) || undefined}
                         title={
                           [
                             pb && `${p.name} set a PB`,
@@ -256,7 +269,7 @@ export function MapLeaderboard({
                     </span>
                   )}
                 </div>
-                {open && renderRunDetails?.(e, map, rendered)}
+                {open && renderRunDetails?.(e, map, rendered, opened.pov)}
               </div>
             )
           })
