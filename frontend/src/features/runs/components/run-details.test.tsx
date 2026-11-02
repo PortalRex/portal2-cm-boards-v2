@@ -173,6 +173,25 @@ describe('RunDetails', () => {
     )
   })
 
+  it("opens a co-op run on the half of the POV it's given, if that one has a video", async () => {
+    noSegments()
+    const [first, second] = coopHalves
+    const run: DetailsRun = { ...spRun, id: first!.changelog_id!, coopId: 7 }
+    server.use(
+      http.get(`${API}/coop/7/halves`, () => HttpResponse.json([first, { ...second, youtube_id: 'xyz' }])),
+    )
+    const { unmount } = await renderWithProviders(
+      <RunDetails run={run} map={map} pov={second!.profile_number} />,
+    )
+    expect((await screen.findAllByRole('tab'))[1]).toHaveAttribute('aria-selected', 'true')
+    unmount()
+
+    // Without one (the run wasn't their PB), the partner's half with the autorender instead.
+    server.use(http.get(`${API}/coop/7/halves`, () => HttpResponse.json(coopHalves)))
+    await renderWithProviders(<RunDetails run={run} map={map} pov={second!.profile_number} />)
+    expect((await screen.findAllByRole('tab'))[0]).toHaveAttribute('aria-selected', 'true')
+  })
+
   it('shows the demo of a partner the run wasn’t a personal best for, and offers them to add theirs', async () => {
     noSegments()
     const [first, second] = coopHalves

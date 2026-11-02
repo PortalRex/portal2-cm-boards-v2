@@ -87,6 +87,42 @@ describe('Map page', () => {
     expect(within(record!).getAllByRole('cell')).toHaveLength(5)
   })
 
+  it('opens a co-op run on the POV of the player whose side was clicked', async () => {
+    serveMap()
+    const top = coopBoard[0]!.map_data
+    const half = (n: 1 | 2) => ({
+      profile_number: top[`profile_number${n}`],
+      user_name: top[`user_name${n}`],
+      avatar: null,
+      is_host: n === 1,
+      changelog_id: top[`cl_id${n}`],
+      score: top.score,
+      timestamp: top.timestamp,
+      note: null,
+      youtube_id: null,
+      autorender_id: null,
+      demo_id: n === 1 ? 50 : 51,
+      has_segments: false,
+      portals: null,
+      sar_version: null,
+    })
+    server.use(http.get(`${API}/coop/${top.coop_id}/halves`, () => HttpResponse.json([half(1), half(2)])))
+    await renderRoute('/map/coop/47741')
+    await within(board()).findAllByRole('link', { name: top.user_name2! })
+    const record = () => within(board()).getAllByRole('row')[1]!
+    const [, blue, orange] = within(record()).getAllByRole('cell')
+    const selected = async (name: string) =>
+      expect(await screen.findByRole('tab', { name, selected: true })).toBeInTheDocument()
+
+    await userEvent.click(orange!)
+    await selected(top.user_name2!)
+    // The other side of the open row switches to that player; their side again closes it.
+    await userEvent.click(blue!)
+    await selected(top.user_name1!)
+    await userEvent.click(blue!)
+    expect(record()).toHaveAttribute('aria-expanded', 'false')
+  })
+
   it("switches the co-op world record's video between the players' POVs", async () => {
     serveMap()
     await renderRoute('/map/coop/47741')
