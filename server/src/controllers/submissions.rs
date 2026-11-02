@@ -135,8 +135,8 @@ fn coop_proven(halves: &[bool], partner_demo: bool) -> bool {
 }
 
 /// The co-op proof rule for a run (see [settle_coop_proof]): its players' halves and whether it
-/// has a demo from each player, or None when the rule doesn't apply (it's off, or the run is from
-/// before `RANKS.COOP_PROOF_SINCE`).
+/// has a demo from each player, or None when the rule doesn't apply: it's off, the run is from
+/// before `RANKS.COOP_PROOF_SINCE`, or staff verified (or unverified) it by hand, which stands.
 pub async fn coop_proof_state(tx: &mut sqlx::Transaction<'_, sqlx::Postgres>, coop_id: i64) -> Result<Option<(Vec<i64>, bool)>, sqlx::Error> {
     let Some(since) = crate::tools::config::coop_proof_since() else {
         return Ok(None);
@@ -158,6 +158,22 @@ pub async fn coop_proof_state(tx: &mut sqlx::Transaction<'_, sqlx::Postgres>, co
     if real.is_empty() || !real.iter().all(|h| h.3) {
         return Ok(None);
     }
+    let ids: Vec<i64> = real.iter().map(|h| h.0).collect();
+    let staff_decided: bool = sqlx::query_scalar(
+        r#"
+            SELECT EXISTS (
+                SELECT 1 FROM admin_actions AS a
+                WHERE a.action IN ('run.verify', 'run.unverify') AND NOT a.via_service
+                  AND EXISTS (SELECT 1 FROM jsonb_array_elements_text(a.details->'changelog_ids') AS e WHERE e::bigint = ANY($1))
+            )
+        "#,
+    )
+    .bind(&ids)
+    .fetch_one(&mut **tx)
+    .await?;
+    if staff_decided {
+        return Ok(None);
+    }
     let partner_demo: bool = sqlx::query_scalar(
         "SELECT partner_demo_id IS NOT NULL AND p_id1 <> $2 AND COALESCE(p_id2, $2) <> $2 FROM coop_bundled WHERE id = $1",
     )
@@ -167,7 +183,7 @@ pub async fn coop_proof_state(tx: &mut sqlx::Transaction<'_, sqlx::Postgres>, co
     .await?
     .unwrap_or(false);
     let proven = coop_proven(&real.iter().map(|h| h.2).collect::<Vec<_>>(), partner_demo);
-    Ok(Some((real.iter().map(|h| h.0).collect(), proven)))
+    Ok(Some((ids, proven)))
 }
 
 /// Applies the co-op proof rule to a run's halves after a demo or partner change: every co-op run

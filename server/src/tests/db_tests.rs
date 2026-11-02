@@ -1127,5 +1127,18 @@ async fn test_db_coop_runs_at_any_rank_wait_for_both_demos() {
         assert_eq!(settle_coop_proof(&mut tx, coop_id).await.unwrap(), Some(expect));
         assert_eq!(verified(&mut tx, &halves).await, expect);
     }
+    // Staff deciding by hand stands: a run they verified with a demo missing stays verified.
+    sqlx::query("UPDATE changelog SET demo_id = NULL WHERE id = $1").bind(halves[1]).execute(&mut *tx).await.unwrap();
+    assert_eq!(settle_coop_proof(&mut tx, coop_id).await.unwrap(), Some(false));
+    sqlx::query("UPDATE changelog SET verified = true WHERE id = ANY($1)").bind(&halves).execute(&mut *tx).await.unwrap();
+    sqlx::query("INSERT INTO admin_actions (admin_profile, via_service, action, target_type, target_id, details) VALUES ($1, false, 'run.verify', 'run', $2, $3::jsonb)")
+        .bind(&players[0])
+        .bind(halves[0].to_string())
+        .bind(serde_json::json!({ "changelog_ids": halves }).to_string())
+        .execute(&mut *tx)
+        .await
+        .unwrap();
+    assert_eq!(settle_coop_proof(&mut tx, coop_id).await.unwrap(), None);
+    assert!(verified(&mut tx, &halves).await);
     tx.rollback().await.unwrap();
 }
