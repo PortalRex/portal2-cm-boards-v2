@@ -301,6 +301,10 @@ async fn coop_add(
     cache: web::Data<CacheState>,
 ) -> Result<impl Responder> {
     let id = CoopBundled::insert_coop_bundled(pool.get_ref(), params.0).await?;
+    // A new co-op run (from RANKS.COOP_PROOF_SINCE) waits for both players' demos.
+    let mut tx = pool.begin().await?;
+    crate::controllers::submissions::settle_coop_proof(&mut tx, id).await?;
+    tx.commit().await?;
     cache.update_current_state(COOP_PREVIEWS, false).await;
     crate::tools::points_cache::invalidate_points().await;
     Ok(web::Json(id))

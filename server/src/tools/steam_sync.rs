@@ -394,11 +394,12 @@ async fn sync_map(
             submission: 0,
             verified: Some(!pending),
         };
+        // A new co-op run (from RANKS.COOP_PROOF_SINCE) also waits for both players' demos, at any rank.
         match submissions::insert_run(pool, run).await? {
-            Ok(_) => {
+            Ok(done) => {
                 added += 1;
                 recorded.insert(profile.clone());
-                if pending {
+                if pending || done.waiting_for_partner {
                     report.runs_pending += 1;
                 }
             }
