@@ -114,7 +114,7 @@ services:
       - SERVICE_FQDN_WEB_80
     volumes:
       # The demo viewer's game files (/game/v1/...), copied in by hand: see "Demo viewer game files" in
-      # README.md. Empty: the viewer asks visitors for their own game folder.
+      # frontend/README.md. Empty: the viewer's 3D view has nothing to draw.
       - game-assets:/usr/share/nginx/game:ro
     depends_on:
       server:

@@ -29,10 +29,9 @@ const viewerIndex = (): Plugin => ({
 // The dev server passes /api to the Rust web server (DEV_API_PROXY), so the site can use the
 // same-origin /api/v1 base as production and work from other devices without CORS changes.
 const apiProxy = process.env.DEV_API_PROXY ?? 'http://localhost:8080'
-// The demo viewer's 3D view reads the game from /__game/ where a server hands out a local install
-// (the viewer's own dev server does): set DEV_GAME_PROXY to it, and the replays on this machine need
-// no game folder picked. Browsers won't open folders under Program Files, Steam's default library.
-// It also hands out the hosted game files at /game/ as nginx serves them in production.
+// The demo viewer's 3D view reads the game's files from /game/ (served by nginx in production), or
+// where there are none, a local install from /__game/: set DEV_GAME_PROXY to a server that hands
+// out both (the viewer's own dev server does).
 const gameProxy = process.env.DEV_GAME_PROXY
 
 export default defineConfig(({ mode }) => {
