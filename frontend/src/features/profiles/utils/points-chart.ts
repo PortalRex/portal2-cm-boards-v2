@@ -134,6 +134,33 @@ export function fitRows(rows: ChartRow[], fit: (key: PointsBoardKey, value: numb
   })
 }
 
+const DAY_MS = 24 * 3600 * 1000
+const YEAR_MS = 365 * DAY_MS
+// How far (a share of the top line's height now) a line may be from where it stands now once it
+// has settled.
+const SETTLED = 0.05
+
+/**
+ * Where the chart opens: from the last big move, when every one of the `keys` lines came to stay
+ * within 5% (of the top line's height) of where it stands now, so the early climb and old drops
+ * don't flatten what came since; but a year back at least. Null (the whole history) when that
+ * leaves out little. `rows` are as drawn ([scaleRows]), so the lines' heights compare.
+ */
+export function openingView(rows: ChartRow[], keys: PointsBoardKey[]): [number, number] | null {
+  const samples = rows.filter((d) => !d.peakOf)
+  if (samples.length < 2) return null
+  const first = rows[0]!.t
+  const last = rows[rows.length - 1]!.t
+  const latest = samples[samples.length - 1]!
+  const room = SETTLED * Math.max(0, ...keys.map((k) => latest[k] ?? 0))
+  const moved = (d: ChartRow) =>
+    keys.some((k) => d[k] != null && latest[k] != null && Math.abs(d[k] - latest[k]) > room)
+  const lastMove = samples.findLastIndex(moved)
+  const settled = samples[lastMove + 1]?.t ?? last
+  const from = Math.min(settled, last - YEAR_MS)
+  return from - first < (last - first) * 0.1 ? null : [from, last]
+}
+
 /** What's in view, plus the samples either side so the lines run to the edges. */
 export function rowsInView(all: ChartRow[], from: number, to: number): ChartRow[] {
   const first = Math.max(0, all.findIndex((d) => d.t >= from) - 1)
