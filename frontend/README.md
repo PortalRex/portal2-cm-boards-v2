@@ -38,5 +38,28 @@ node tools/build-boards.mjs <path to this repo>   # writes frontend/public/viewe
 For local testing, `DEV_GAME_PROXY` (e.g. `http://localhost:5174`, the viewer's own dev server, which hands out
 the local Portal 2 install at `/__game/`) lets the replays' 3D view run without picking the game folder.
 
-Without it, none of this shows and `/viewer/` is a 404. nginx gives `/viewer/` its own security headers
+### Game files
+
+The 3D view reads the game's files (maps, models, materials, particles, the in-world screens' videos) from `/game/v1/`:
+the campaign and Challenge Mode maps and what they use, textures cut to 512 px, each file stored gzipped
+under its content hash (~1.3 GB). Build the folder from the viewer's checkout with a Portal 2 install:
+
+```bash
+node --experimental-strip-types tools/assetplan.ts   # build/assetplan.json: what the maps use
+node --experimental-strip-types tools/build-assets.ts   # writes build/gameassets/v1
+```
+
+nginx serves it from the `web` service's `game-assets` volume (`/usr/share/nginx/game`, read-only there; see
+`docker-compose.coolify.yaml`). Copy the `v1` folder in once, and again after a rebuild, through a throwaway
+container (on the Coolify server, `docker volume ls` lists the volume as `<id>_game-assets`):
+
+```bash
+tar -C build/gameassets -cf v1.tar v1   # on the build machine; scp v1.tar to the server
+docker run --rm -i -v <id>_game-assets:/game alpine tar -C /game -xf - < v1.tar
+```
+
+Without the files, `/game/` is a 404 and the viewer asks visitors for their own game
+folder. Locally, `DEV_GAME_PROXY` passes `/game/` to the viewer's dev server, which serves its build folder.
+
+Without the viewer, none of this shows and `/viewer/` is a 404. nginx gives `/viewer/` its own security headers
 (`viewer-security-headers.conf`: it may be framed by the site only).

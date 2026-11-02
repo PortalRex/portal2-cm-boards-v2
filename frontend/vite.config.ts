@@ -32,6 +32,7 @@ const apiProxy = process.env.DEV_API_PROXY ?? 'http://localhost:8080'
 // The demo viewer's 3D view reads the game from /__game/ where a server hands out a local install
 // (the viewer's own dev server does): set DEV_GAME_PROXY to it, and the replays on this machine need
 // no game folder picked. Browsers won't open folders under Program Files, Steam's default library.
+// It also hands out the hosted game files at /game/ as nginx serves them in production.
 const gameProxy = process.env.DEV_GAME_PROXY
 
 export default defineConfig(({ mode }) => {
@@ -62,7 +63,12 @@ export default defineConfig(({ mode }) => {
         // xfwd passes the browser's host along (X-Forwarded-Host): Steam sign-in compares it with
         // SERVER.PUBLIC_URL.
         '/api': { target: apiProxy, changeOrigin: true, xfwd: true },
-        ...(gameProxy ? { '/__game': { target: gameProxy, changeOrigin: true } } : {}),
+        ...(gameProxy
+          ? {
+              '/__game': { target: gameProxy, changeOrigin: true },
+              '/game/': { target: gameProxy, changeOrigin: true },
+            }
+          : {}),
       },
     },
   }

@@ -112,6 +112,10 @@ services:
     environment:
       # Coolify: the site is this service, on port 80 (set its domain in the resource's settings).
       - SERVICE_FQDN_WEB_80
+    volumes:
+      # The demo viewer's game files (/game/v1/...), copied in by hand: see "Demo viewer game files" in
+      # README.md. Empty: the viewer asks visitors for their own game folder.
+      - game-assets:/usr/share/nginx/game:ro
     depends_on:
       server:
         condition: service_healthy
@@ -127,3 +131,4 @@ volumes:
   server-points:
   server-cache:
   backups:
+  game-assets:
