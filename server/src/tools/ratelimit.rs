@@ -41,6 +41,9 @@ fn last_forwarded(list: &str) -> Option<&str> {
     list.rsplit(',').map(str::trim).find(|ip| !ip.is_empty())
 }
 
+/// The bucket your own country, name and picture changes share.
+pub const PROFILE_SETTINGS: &str = "profile-settings";
+
 /// Counts a request against `bucket` for this client; Err(429) once over `max` per `window`.
 pub fn check(req: &HttpRequest, config: &Config, bucket: &'static str, max: u32, window: Duration) -> Result<(), HttpResponse> {
     let key = (bucket, client_ip(req, config));

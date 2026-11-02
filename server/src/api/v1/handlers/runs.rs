@@ -3,11 +3,14 @@ use crate::{
     controllers::runs,
     tools::{
         auth::{AdminOrService, MaybeUser, SignedIn},
+        config::Config,
         error::Result,
+        ratelimit,
     },
 };
-use actix_web::{delete, get, post, put, web, HttpResponse, Responder};
+use actix_web::{delete, get, post, put, web, HttpRequest, HttpResponse, Responder};
 use sqlx::PgPool;
+use std::time::Duration;
 
 /// **GET** Both players' halves of a co-op run (blue / host first when known): each player's
 /// own changelog entry with its demo, video, comment and whether it has mtrigger segments.
@@ -64,8 +67,12 @@ pub struct ReactionBody {
 }
 
 /// **PUT** React to a run (signed in): `{"reaction": "up" | "down" | null}`. Returns the new counts.
+/// At most 30 a minute per address.
 #[put("/runs/{id}/reaction")]
-async fn run_react(pool: web::Data<PgPool>, user: SignedIn, id: web::Path<i64>, body: web::Json<ReactionBody>) -> Result<impl Responder> {
+async fn run_react(req: HttpRequest, config: web::Data<Config>, pool: web::Data<PgPool>, user: SignedIn, id: web::Path<i64>, body: web::Json<ReactionBody>) -> Result<impl Responder> {
+    if let Err(limited) = ratelimit::check(&req, &config, "reaction", 30, Duration::from_secs(60)) {
+        return Ok(limited);
+    }
     let reaction = match body.reaction.as_deref() {
         Some("up") => Some(1),
         Some("down") => Some(-1),
@@ -123,12 +130,19 @@ pub struct CommentBody {
 /// ```
 #[put("/runs/{id}/comment")]
 async fn run_set_comment(
+    req: HttpRequest,
     pool: web::Data<PgPool>,
-    config: web::Data<crate::tools::config::Config>,
+    config: web::Data<Config>,
     user: SignedIn,
     id: web::Path<i64>,
     body: web::Json<CommentBody>,
 ) -> Result<impl Responder> {
+    // Players editing their own comments; staff moderating many runs aren't held to it.
+    if !user.0.is_admin() {
+        if let Err(limited) = ratelimit::check(&req, &config, "comment", 10, Duration::from_secs(60)) {
+            return Ok(limited);
+        }
+    }
     let reason = body.reason.as_deref().map(str::trim).filter(|r| !r.is_empty());
     let change = runs::set_comment(pool.get_ref(), id.into_inner(), &user.0, config.server.read_only(), body.note.as_deref(), reason).await?;
     Ok(match change {

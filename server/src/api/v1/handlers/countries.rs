@@ -7,9 +7,10 @@ use crate::{
         config::Config,
         error::Result,
         points_cache::{invalidate_points, PointsCache, Scope},
+        ratelimit,
     },
 };
-use actix_web::{get, post, put, web, HttpResponse, Responder};
+use actix_web::{get, post, put, web, HttpRequest, HttpResponse, Responder};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use sqlx::PgPool;
@@ -39,9 +40,13 @@ async fn set_country(pool: &PgPool, profile_number: &str, country_id: Option<i32
     Ok(None)
 }
 
-/// **PUT** Set your own country (`{ "country_id": 226 }`, or null to clear it).
+/// **PUT** Set your own country (`{ "country_id": 226 }`, or null to clear it). With your name and
+/// picture, at most 10 changes a minute per address (each one rebuilds the points boards).
 #[put("/user/country")]
-async fn my_country(user: SignedIn, pool: web::Data<PgPool>, body: web::Json<CountryBody>) -> Result<impl Responder> {
+async fn my_country(req: HttpRequest, config: web::Data<Config>, user: SignedIn, pool: web::Data<PgPool>, body: web::Json<CountryBody>) -> Result<impl Responder> {
+    if let Err(limited) = ratelimit::check(&req, &config, ratelimit::PROFILE_SETTINGS, 10, std::time::Duration::from_secs(60)) {
+        return Ok(limited);
+    }
     if let Some(refused) = set_country(pool.get_ref(), &user.0.profile_number, body.country_id).await? {
         return Ok(refused);
     }
@@ -66,7 +71,10 @@ struct SteamPlayer {
 /// **POST** Set your country from your Steam profile (its public location). Answers
 /// `{ "country_id" }`, or 404 when the Steam profile shows no country.
 #[post("/user/country/steam")]
-async fn my_country_from_steam(user: SignedIn, pool: web::Data<PgPool>, config: web::Data<Config>) -> Result<impl Responder> {
+async fn my_country_from_steam(req: HttpRequest, user: SignedIn, pool: web::Data<PgPool>, config: web::Data<Config>) -> Result<impl Responder> {
+    if let Err(limited) = ratelimit::check(&req, &config, ratelimit::PROFILE_SETTINGS, 10, std::time::Duration::from_secs(60)) {
+        return Ok(limited);
+    }
     let key = config.steam.api_key.as_str();
     if key.is_empty() || key == "unused" {
         return Ok(HttpResponse::ServiceUnavailable().body("Steam isn't set up on this server."));

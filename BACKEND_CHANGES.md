@@ -292,7 +292,8 @@ All under `/api/v1`. Auth: **public**, **signed in**, **staff** (any tier or ser
   dependency went live unreviewed. Update them with `cargo update`, test, and commit the lockfile.
 - **Rate limits** (`server/src/tools/ratelimit.rs`), per client address: Steam sign-in 20/min, demo uploads (preview,
   submit, add demo) 10/min, run reports 10/hour, player search 60/min, points history/peak 60/min, demo downloads
-  120/min. Over the limit answers 429 with `Retry-After`.
+  120/min, reactions 30/min, comment edits 10/min (players; staff aren't held to it), your own country, name and
+  picture 10/min together (each change rebuilds the points boards). Over the limit answers 429 with `Retry-After`.
 - **Errors**: clients get a short generic message (`Not found.`, `Something went wrong on the server.`); the real
   error is logged. Before, raw database errors (table and column names) were returned.
 - **`GET /chapters`** binds its `chapter_name` filter as a parameter (it was pasted into the SQL).

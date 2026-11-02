@@ -9,9 +9,10 @@ use crate::{
         points_cache::invalidate_points,
         config::Config,
         error::Result,
+        ratelimit,
     },
 };
-use actix_web::{delete, get, put, web, HttpResponse, Responder};
+use actix_web::{delete, get, put, web, HttpRequest, HttpResponse, Responder};
 use sqlx::PgPool;
 
 #[derive(Deserialize, Default)]
@@ -324,9 +325,13 @@ async fn avatar_change(body: &DisplayBody, config: &Config, profile_number: &str
 }
 
 /// **PUT** Set your own name and/or picture (`{ "name": "…" | null, "avatar": "default" | "steam" |
-/// "https://…" }`; null name = your Steam name). Refused for what staff have set.
+/// "https://…" }`; null name = your Steam name). Refused for what staff have set. With your country,
+/// at most 10 changes a minute per address (each one rebuilds the points boards).
 #[put("/user/display")]
-async fn my_display(user: SignedIn, pool: web::Data<PgPool>, config: web::Data<Config>, body: web::Json<DisplayBody>) -> Result<impl Responder> {
+async fn my_display(req: HttpRequest, user: SignedIn, pool: web::Data<PgPool>, config: web::Data<Config>, body: web::Json<DisplayBody>) -> Result<impl Responder> {
+    if let Err(limited) = ratelimit::check(&req, &config, ratelimit::PROFILE_SETTINGS, 10, std::time::Duration::from_secs(60)) {
+        return Ok(limited);
+    }
     let profile_number = &user.0.profile_number;
     let avatar = avatar_change(&body, &config, profile_number).await;
     let name = body.name.as_ref().map(|n| n.as_deref());
