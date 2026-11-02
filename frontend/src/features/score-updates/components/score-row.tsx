@@ -208,7 +208,8 @@ export function ScoreRow({
             !entry.verified && (
               <StatusIcon
                 label="Pending"
-                title="Pending verification"
+                // A co-op run waits for both players' demos (the details name who's missing).
+                title={coop ? 'Pending: a co-op run needs both players’ demos' : 'Pending verification'}
                 className="bg-pending text-pending-text"
               >
                 <PendingIcon className="size-4" />

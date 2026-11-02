@@ -12,6 +12,7 @@ import { formatDate, formatDateTime, formatScore, formatSeconds, ordinalSuffix }
 import type { CoopHalf, Player, RunMap } from '@/types/runs'
 import { coopHalvesQueryOptions, segmentsQueryOptions } from '../api/details'
 import { runQueryOptions } from '../api/run'
+import { waitingForDemos } from '../utils/missing-demos'
 import { timerNote } from '../utils/timer-note'
 import { PartnerDemo, PendingProof } from './pending-proof'
 import { ReportRun } from './report-run'
@@ -226,7 +227,13 @@ export function RunDetails({
               </>
             )}
             <dt>Status:</dt>
-            <dd>{run.banned ? 'Banned' : run.verified === false ? 'Pending' : 'Verified'}</dd>
+            <dd>
+              {run.banned
+                ? 'Banned'
+                : run.verified === false
+                  ? ((list && waitingForDemos(list)) ?? 'Pending')
+                  : 'Verified'}
+            </dd>
           </dl>
           <TimerNote score={run.score} segments={segments.data ?? null} />
           {own != null && <PendingProof run={{ ...run, changelogId: own }} halves={list} />}

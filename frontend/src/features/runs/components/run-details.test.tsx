@@ -154,6 +154,15 @@ describe('RunDetails', () => {
     expect(await screen.findByText(/No mtrigger data for this run/)).toBeInTheDocument()
   })
 
+  it('says whose demo a pending co-op run is waiting for', async () => {
+    noSegments()
+    server.use(http.get(`${API}/coop/7/halves`, () => HttpResponse.json(coopHalves)))
+    const [first, second] = coopHalves
+    const run: DetailsRun = { ...spRun, id: first!.changelog_id!, coopId: 7, verified: false }
+    await renderWithProviders(<RunDetails run={run} map={map} />)
+    expect(await screen.findByText(`Pending: waiting for ${second!.user_name}’s demo`)).toBeInTheDocument()
+  })
+
   it("switches between a co-op run's halves, each with its own comment and demo", async () => {
     noSegments()
     server.use(http.get(`${API}/coop/7/halves`, () => HttpResponse.json(coopHalves)))
