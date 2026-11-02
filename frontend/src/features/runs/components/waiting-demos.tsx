@@ -14,13 +14,15 @@ import { DemoButton } from './pending-proof'
  * The signed-in player's pending runs that need their demo, each with its upload. A top-200 co-op
  * run needs both players' demos even when only one improved, and SAR only sends the demo of a run
  * that was your own personal best, so this is where a partner finds out. Shown on your own profile
- * (`profileNumber`) and in Submit Run (no `profileNumber`); not while the boards are read-only.
+ * (`profileNumber`) and in Submit Run (no `profileNumber`); not while the boards are read-only,
+ * staff included, since nobody is asked for demos until they open. Only runs that are still their
+ * player's PB come back.
  */
 export function WaitingDemos({ profileNumber, className }: { profileNumber?: string; className?: string }) {
   const user = useCurrentUser()
-  const { blocked } = useReadOnly()
+  const readOnly = useReadOnly().on
   const show = Boolean(
-    user && !user.sample && !blocked && (!profileNumber || profileNumber === user.profileNumber),
+    user && !user.sample && !readOnly && (!profileNumber || profileNumber === user.profileNumber),
   )
   const waiting = useQuery({ ...waitingDemosQueryOptions(), enabled: show })
   const runs = waiting.data ?? []

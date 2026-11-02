@@ -416,23 +416,32 @@ pub struct WaitingDemo {
 
 /// A player's pending runs that need their demo, newest first: their own without a demo, and
 /// co-op runs they're the partner in without a run of their own, until their demo is the run's
-/// partner demo (every co-op run needs both players' demos).
-pub async fn waiting_for_demo(pool: &PgPool, profile_number: &str) -> Result<Vec<WaitingDemo>, sqlx::Error> {
+/// partner demo (every co-op run needs both players' demos). Only runs that are still their
+/// player's PB on the map: an older time someone has since beaten needs no demo.
+pub async fn waiting_for_demo<'e>(db: impl sqlx::PgExecutor<'e>, profile_number: &str) -> Result<Vec<WaitingDemo>, sqlx::Error> {
     sqlx::query_as::<_, WaitingDemo>(
         r#"
             WITH own AS (
-                SELECT cl.id, cl.map_id, cl.score, cl.timestamp, cl.coop_id FROM changelog AS cl
+                SELECT cl.id, cl.profile_number, cl.map_id, cl.category_id, cl.score, cl.timestamp, cl.coop_id FROM changelog AS cl
                 WHERE cl.profile_number = $1 AND cl.verified = false AND NOT cl.banned
                   AND cl.demo_id IS NULL AND cl.mirror_of IS NULL
             ),
             as_partner AS (
-                SELECT r.id, r.map_id, r.score, r.timestamp, cb.id AS coop_id FROM coop_bundled AS cb
+                SELECT r.id, r.profile_number, r.map_id, r.category_id, r.score, r.timestamp, cb.id AS coop_id FROM coop_bundled AS cb
                 JOIN changelog AS r ON r.id IN (cb.cl_id1, cb.cl_id2) AND r.profile_number NOT IN ($1, $2)
                 WHERE (cb.p_id1 = $1 OR cb.p_id2 = $1) AND cb.partner_demo_id IS NULL
                   AND NOT EXISTS (SELECT 1 FROM changelog AS o WHERE o.id IN (cb.cl_id1, cb.cl_id2) AND o.profile_number = $1)
                   AND r.verified = false AND NOT r.banned AND r.mirror_of IS NULL
             ),
-            runs AS (SELECT * FROM own UNION ALL SELECT * FROM as_partner)
+            runs AS (
+                SELECT * FROM (SELECT * FROM own UNION ALL SELECT * FROM as_partner) AS w
+                WHERE NOT EXISTS (
+                    SELECT 1 FROM changelog AS b
+                    WHERE b.profile_number = w.profile_number AND b.map_id = w.map_id AND b.category_id = w.category_id
+                      AND b.id <> w.id AND NOT b.banned AND b.mirror_of IS NULL
+                      AND (b.score < w.score OR (b.score = w.score AND b.verified))
+                )
+            )
             SELECT runs.id AS changelog_id, runs.map_id, m.name AS map_name, c.is_multiplayer AS is_coop,
                 runs.score, runs.timestamp, p.profile_number AS partner,
                 COALESCE(p.board_name, p.steam_name) AS partner_name
@@ -447,7 +456,7 @@ pub async fn waiting_for_demo(pool: &PgPool, profile_number: &str) -> Result<Vec
     )
     .bind(profile_number)
     .bind(FILLER)
-    .fetch_all(pool)
+    .fetch_all(db)
     .await
 }
 

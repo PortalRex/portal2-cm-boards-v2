@@ -48,7 +48,7 @@ describe('WaitingDemos', () => {
     expect(uploads).toEqual([900])
   })
 
-  it("isn't shown on someone else's profile, signed out, or while the boards are read-only", async () => {
+  it("isn't shown on someone else's profile, signed out, or while the boards are read-only, even to staff", async () => {
     serve([waiting])
     const { unmount } = await renderWithProviders(<WaitingDemos profileNumber="76561190000000000" />, {
       user: 'player',
@@ -61,7 +61,12 @@ describe('WaitingDemos', () => {
     signedOut.unmount()
 
     serve([waiting], { readOnly: true })
-    await renderWithProviders(<WaitingDemos />, { user: 'player' })
+    const readOnly = await renderWithProviders(<WaitingDemos />, { user: 'player' })
+    await waitFor(() => expect(screen.queryByRole('heading')).not.toBeInTheDocument())
+    readOnly.unmount()
+
+    // Staff can still make changes while read-only, but nobody is asked for demos until it ends.
+    await renderWithProviders(<WaitingDemos />, { user: 'admin' })
     await waitFor(() => expect(screen.queryByRole('heading')).not.toBeInTheDocument())
   })
 

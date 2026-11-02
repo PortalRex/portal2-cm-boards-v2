@@ -19,7 +19,7 @@ export interface WaitingDemo {
 /**
  * Your pending runs that need your demo, newest first: your own without one, and co-op runs that
  * weren't a personal best for you but were your partner's (every co-op run needs both players'
- * demos).
+ * demos). Only runs that are still their player's PB.
  */
 export const waitingDemosQueryOptions = () =>
   queryOptions({

@@ -1145,3 +1145,58 @@ async fn test_db_top_coop_runs_wait_for_both_demos() {
     assert!(verified(&mut tx, &halves).await);
     tx.rollback().await.unwrap();
 }
+
+#[actix_web::test]
+async fn test_db_waiting_for_demo_lists_current_pbs_only() {
+    use crate::controllers::submissions::waiting_for_demo;
+    let (_, pool) = get_config().await.unwrap();
+    // Rolled back: a player with two pending runs on a map without demos, and a co-op run on
+    // another map they're the partner in without a run of their own.
+    let mut tx = pool.begin().await.unwrap();
+    let players: Vec<String> = sqlx::query_scalar("SELECT profile_number FROM users WHERE NOT banned AND profile_number <> 'N/A' ORDER BY profile_number LIMIT 2")
+        .fetch_all(&mut *tx)
+        .await
+        .unwrap();
+    let (me, partner) = (&players[0], &players[1]);
+    async fn run(tx: &mut sqlx::Transaction<'_, sqlx::Postgres>, player: &str, map: &str, score: i32, verified: bool) -> i64 {
+        sqlx::query_scalar(
+            "INSERT INTO changelog (timestamp, profile_number, score, map_id, category_id, verified, submission)              VALUES (now() AT TIME ZONE 'utc', $1, $2, $3, (SELECT default_cat_id FROM maps WHERE steam_id = $3), $4, 0) RETURNING id",
+        )
+        .bind(player)
+        .bind(score)
+        .bind(map)
+        .bind(verified)
+        .fetch_one(&mut **tx)
+        .await
+        .unwrap()
+    }
+    async fn waiting(tx: &mut sqlx::Transaction<'_, sqlx::Postgres>, player: &str) -> Vec<i64> {
+        let mut ids: Vec<i64> = waiting_for_demo(&mut **tx, player).await.unwrap().into_iter().map(|w| w.changelog_id).collect();
+        ids.sort();
+        ids
+    }
+    // Two below anything real, so they're this player's PBs on the map.
+    let slower = run(&mut tx, me, "47458", 1, false).await;
+    let faster = run(&mut tx, me, "47458", 0, false).await;
+    assert!(waiting(&mut tx, me).await.contains(&faster));
+    assert!(!waiting(&mut tx, me).await.contains(&slower), "an older time they've since beaten needs no demo");
+    // An equal time already verified makes it no PB either.
+    let verified = run(&mut tx, me, "47458", 0, true).await;
+    assert!(!waiting(&mut tx, me).await.contains(&faster));
+    sqlx::query("UPDATE changelog SET banned = true WHERE id = $1").bind(verified).execute(&mut *tx).await.unwrap();
+    assert!(waiting(&mut tx, me).await.contains(&faster), "a banned time doesn't count");
+
+    // The partner's co-op PB waits for this player's demo, until the partner beats it.
+    let coop = run(&mut tx, partner, "47741", 1, false).await;
+    sqlx::query("INSERT INTO coop_bundled (p_id1, p_id2, cl_id1, cl_id2) VALUES ($1, $2, $3, NULL)")
+        .bind(partner)
+        .bind(me)
+        .bind(coop)
+        .execute(&mut *tx)
+        .await
+        .unwrap();
+    assert!(waiting(&mut tx, me).await.contains(&coop));
+    run(&mut tx, partner, "47741", 0, true).await;
+    assert!(!waiting(&mut tx, me).await.contains(&coop));
+    tx.rollback().await.unwrap();
+}
