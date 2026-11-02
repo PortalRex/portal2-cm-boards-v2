@@ -11,7 +11,8 @@
 use crate::{
     controllers::{
         moderation::{self, Refused},
-        submissions::{self, BoardMap, DemoInfo, NewRun},
+        autosubmit,
+        submissions::{self, BoardMap, DemoInfo, NewRun, Recorded},
     },
     models::users::Users,
     tools::{
@@ -349,6 +350,8 @@ pub(crate) struct Submitted {
     pub score: i32,
     pub partner: Option<String>,
     pub demo_file: Option<String>,
+    /// The demo went on a run already on the boards (see [record_submission]).
+    pub attached: bool,
 }
 
 impl Submitted {
@@ -362,13 +365,17 @@ impl Submitted {
             "partner": self.partner,
             "boards": self.recorded.boards,
             "waiting_for_partner": self.recorded.waiting_for_partner,
+            "attached": self.attached,
         })
     }
 }
 
 /// Records a submitted run: creates the co-op partner's account if needed, keeps the demo, records
-/// the run (refused when it isn't an improvement) and refreshes the caches it shows in. `Err` holds
-/// the answer for a refused run.
+/// the run (refused when it isn't an improvement) and refreshes the caches it shows in. The demo
+/// goes on a run already on the boards instead when one is waiting for it: the player's own (the
+/// Steam sync's, or one recorded from their co-op partner's demo), or, for a co-op demo that isn't
+/// the player's best, their partner's run (see [partner_view]). `Err` holds the answer for a
+/// refused run.
 pub(crate) async fn record_submission(pool: &PgPool, config: &Config, cache: &CacheState, s: Submission<'_>) -> Result<std::result::Result<Submitted, HttpResponse>> {
     if let Some((pid, _)) = &s.partner {
         if Users::get_user(pool, pid.clone()).await?.is_none() {
@@ -393,12 +400,20 @@ pub(crate) async fn record_submission(pool: &PgPool, config: &Config, cache: &Ca
         None => None,
     };
 
+    // The time may be on the boards already, waiting for this demo.
+    if let Some(name) = &demo_file {
+        if let Some(done) = own_waiting_run(pool, &s, name).await? {
+            refresh_after_submission(pool, config, cache, &done.recorded.map).await;
+            return Ok(Ok(done));
+        }
+    }
+
     let run = NewRun {
         map: &s.map,
         profile_number: &s.profile_number,
         score: s.score,
-        youtube_id: s.youtube_id,
-        note: s.note,
+        youtube_id: s.youtube_id.clone(),
+        note: s.note.clone(),
         partner: s.partner.as_ref().map(|(p, _)| p.as_str()),
         demo_file: demo_file.clone(),
         demo_partner_name: s.partner.as_ref().and_then(|(_, n)| n.clone()),
@@ -409,6 +424,13 @@ pub(crate) async fn record_submission(pool: &PgPool, config: &Config, cache: &Ca
     let recorded = match submissions::insert_run(pool, run).await? {
         Ok(r) => r,
         Err(refused) => {
+            // Not the player's best: a co-op demo may still be their view of their partner's run.
+            if let (true, Some(name)) = (s.map.is_coop, &demo_file) {
+                if let Some(done) = partner_view(pool, &s, name).await? {
+                    refresh_after_submission(pool, config, cache, &done.recorded.map).await;
+                    return Ok(Ok(done));
+                }
+            }
             if let (Some(name), Some(dir)) = (&demo_file, config.demo.storage.as_deref()) {
                 let _ = tokio::fs::remove_file(Path::new(dir).join(name)).await;
             }
@@ -419,12 +441,119 @@ pub(crate) async fn record_submission(pool: &PgPool, config: &Config, cache: &Ca
         }
     };
 
-    cache.update_current_state(if s.map.is_coop { COOP_PREVIEWS } else { SP_PREVIEWS }, false).await;
-    if cache.default_cat_ids.contains_key(&recorded.map.steam_id) {
-        cache.reload_rank(pool, &recorded.map.steam_id, config, s.map.is_coop).await;
+    refresh_after_submission(pool, config, cache, &recorded.map).await;
+    Ok(Ok(Submitted { recorded, profile_number: s.profile_number, score: s.score, partner: s.partner.map(|p| p.0), demo_file, attached: false }))
+}
+
+/// Refreshes what a new or newly proven run shows in.
+async fn refresh_after_submission(pool: &PgPool, config: &Config, cache: &CacheState, map: &BoardMap) {
+    cache.update_current_state(if map.is_coop { COOP_PREVIEWS } else { SP_PREVIEWS }, false).await;
+    if cache.default_cat_ids.contains_key(&map.steam_id) {
+        cache.reload_rank(pool, &map.steam_id, config, map.is_coop).await;
     }
     invalidate_points().await;
-    Ok(Ok(Submitted { recorded, profile_number: s.profile_number, score: s.score, partner: s.partner.map(|p| p.0), demo_file }))
+}
+
+/// The submission's time already on the boards without a demo (the Steam sync's, or recorded from
+/// the co-op partner's demo): the demo (`file`, saved) goes on it. A co-op run whose partner
+/// wasn't known is paired with the demo's.
+async fn own_waiting_run(pool: &PgPool, s: &Submission<'_>, file: &str) -> Result<Option<Submitted>> {
+    let Some(id) = autosubmit::run_waiting_for_demo(pool, &s.map, &s.profile_number, s.score).await? else {
+        return Ok(None);
+    };
+    let Some(mut run) = submissions::proof_target(pool, id).await? else {
+        return Ok(None);
+    };
+    if let Some((partner, _)) = s.partner.as_ref().filter(|_| run.is_coop) {
+        let known = [&run.p_id1, &run.p_id2].into_iter().flatten().any(|p| *p != run.profile_number && p != moderation::FILLER);
+        if !known {
+            let mut tx = pool.begin().await?;
+            if moderation::pair_partner(&mut tx, id, partner).await?.is_ok() {
+                tx.commit().await?;
+                run = submissions::proof_target(pool, id).await?.unwrap_or(run);
+            }
+        }
+    }
+    let partner_name = s.partner.as_ref().and_then(|(_, n)| n.as_deref());
+    let verified = submissions::attach_proof(pool, &run, file, partner_name, s.portals).await?;
+    Ok(Some(Submitted {
+        recorded: Recorded { changelog_id: id, map: s.map.clone(), boards: vec![s.map.name.clone()], waiting_for_partner: !verified },
+        profile_number: s.profile_number.clone(),
+        score: s.score,
+        partner: s.partner.as_ref().map(|p| p.0.clone()),
+        demo_file: Some(file.to_string()),
+        attached: true,
+    }))
+}
+
+/// A co-op demo (`file`, saved) of a run that wasn't the player's best, but was their partner's:
+/// every co-op run needs both players' demos, so it's the run's partner demo. It goes on the
+/// partner's run when that's recorded and waiting for it; when it isn't yet (the partner's own
+/// demo hasn't come in), the partner's run is recorded from it, pending their demo, which then
+/// goes on it ([own_waiting_run]). None when it's neither player's best.
+async fn partner_view(pool: &PgPool, s: &Submission<'_>, file: &str) -> Result<Option<Submitted>> {
+    let Some((partner, partner_name)) = &s.partner else {
+        return Ok(None);
+    };
+    // The partner's run of this, still without this player's view.
+    let candidates: Vec<(i64, i64)> = sqlx::query_as(
+        r#"
+            SELECT cl.id, cl.coop_id FROM changelog AS cl
+            WHERE cl.profile_number = $1 AND cl.map_id = $2 AND abs(cl.score - $3) <= 1
+              AND cl.coop_id IS NOT NULL AND NOT cl.banned AND cl.mirror_of IS NULL
+            ORDER BY cl.timestamp DESC NULLS LAST
+            LIMIT 5
+        "#,
+    )
+    .bind(partner)
+    .bind(&s.map.steam_id)
+    .bind(s.score)
+    .fetch_all(pool)
+    .await?;
+    let mut waiting = None;
+    for (id, coop_id) in candidates {
+        if submissions::partner_demo_slot(pool, coop_id, &s.profile_number).await? == Some(false) {
+            waiting = Some(id);
+            break;
+        }
+    }
+    let waiting = match waiting {
+        Some(id) => id,
+        None => {
+            // Recorded for the partner, pending their own demo (refused unless it's their best).
+            let run = NewRun {
+                map: &s.map,
+                profile_number: partner,
+                score: s.score,
+                youtube_id: None,
+                note: None,
+                partner: Some(&s.profile_number),
+                demo_file: None,
+                demo_partner_name: None,
+                portals: None,
+                submission: s.submission,
+                verified: Some(false),
+            };
+            match submissions::insert_run(pool, run).await? {
+                Ok(recorded) => recorded.changelog_id,
+                Err(_) => return Ok(None),
+            }
+        }
+    };
+    let Some(run) = submissions::proof_target(pool, waiting).await? else {
+        return Ok(None);
+    };
+    let Some(verified) = submissions::attach_partner_demo(pool, &run, file, partner_name.as_deref()).await? else {
+        return Ok(None);
+    };
+    Ok(Some(Submitted {
+        recorded: Recorded { changelog_id: waiting, map: s.map.clone(), boards: vec![s.map.name.clone()], waiting_for_partner: !verified },
+        profile_number: s.profile_number.clone(),
+        score: s.score,
+        partner: Some(partner.clone()),
+        demo_file: Some(file.to_string()),
+        attached: true,
+    }))
 }
 
 /// **POST** Add the demo for a pending run (form field `demo`). The demo must be of the run's

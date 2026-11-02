@@ -14,13 +14,12 @@
 //! other endpoints only read, so SAR still sees a working key). A submitted demo is checked like Submit Run's: of
 //! the map named, with the time named, and with the key's owner in it.
 use crate::{
-    api::v1::handlers::submissions::{bad, parse_upload, read_form_with, record_submission, save_demo, DemoField, Form, Submission},
+    api::v1::handlers::submissions::{bad, parse_upload, read_form_with, record_submission, DemoField, Form, Submission},
     controllers::{autosubmit, submissions},
     tools::{
-        cache::{CacheState, COOP_PREVIEWS, SP_PREVIEWS},
+        cache::CacheState,
         config::Config,
         error::Result,
-        points_cache::invalidate_points,
         ratelimit,
         upload_slots::UPLOADS,
     },
@@ -245,9 +244,10 @@ async fn download_maps(req: HttpRequest, pool: web::Data<PgPool>, config: web::D
 /// `demoFile`; SAR also sends a co-op partner's name as `comment`, which isn't needed: the partner
 /// comes from the demo). Checked like Submit Run: the demo must be of that map, with that time (to
 /// within 0.01, the game's rounding; the demo's own time is recorded) and have the key's owner in
-/// it. Recorded as an auto-submission (`submission` 2); when the Steam sync already picked up the
-/// same time, the demo goes on that run instead. Answers Submit Run's JSON (or `{ "changelog_id",
-/// "attached": true }`), or 400 with the reason.
+/// it. Recorded as an auto-submission (`submission` 2), as Submit Run records it: when the time is
+/// on the boards already waiting for its demo (the Steam sync's), the demo goes on that run, and a
+/// co-op demo that wasn't the owner's best but was their partner's is the run's partner demo.
+/// Answers Submit Run's JSON (`attached`: it went on a run already there), or 400 with the reason.
 ///
 /// Example: `POST /api-v2/auto-submit` (multipart: `auth_hash`, `mapId=47458`, `score=1233`, `demoFile`=file)
 #[post("/auto-submit")]
@@ -301,24 +301,6 @@ async fn auto_submit(req: HttpRequest, pool: web::Data<PgPool>, config: web::Dat
         .then(|| info.players.iter().find(|p| p.steam_id != owner.profile_number))
         .flatten()
         .map(|p| (p.steam_id.clone(), Some(p.name.clone())));
-
-    // The Steam sync may have recorded this time already, without a demo: the demo goes on it.
-    if let Some(id) = autosubmit::run_waiting_for_demo(&pool, &map, &owner.profile_number, demo_score).await? {
-        if let Some(run) = submissions::proof_target(&pool, id).await? {
-            let name = format!("{}_{}_{}_{}.dem", map.steam_id, demo_score, owner.profile_number, &crate::tools::auth::random_token()[..10]);
-            if let Err(e) = save_demo(&config, bytes, &name).await {
-                return Ok(bad(e));
-            }
-            let partner_name = partner.as_ref().and_then(|(_, n)| n.as_deref());
-            submissions::attach_proof(&pool, &run, &name, partner_name, info.portal_score).await?;
-            cache.update_current_state(if map.is_coop { COOP_PREVIEWS } else { SP_PREVIEWS }, false).await;
-            if cache.default_cat_ids.contains_key(&map.steam_id) {
-                cache.reload_rank(&pool, &map.steam_id, &config, map.is_coop).await;
-            }
-            invalidate_points().await;
-            return Ok(HttpResponse::Ok().json(json!({ "changelog_id": id, "attached": true })));
-        }
-    }
 
     let submission = Submission {
         map,

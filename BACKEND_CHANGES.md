@@ -330,9 +330,15 @@ All under `/api/v1`. Auth: **public**, **signed in**, **staff** (any tier or ser
   partner's demo on their half and answers `{ "verified": bool }`, and `POST /submissions` returns
   `waiting_for_partner`. Runs from before the cutoff keep the old rule. Staff can still verify by hand.
 - **Partner demos** (both players' views of every co-op run): when only one player of a co-op run improved, the other
-  has no changelog entry in it (their slot is the map's placeholder), so Submit Run refuses their demo as not a
-  personal best. They add it with `POST /runs/{id}/demo` instead, also once the run is verified: same checks (map,
-  exact time), they must be in it, and it can't be the same file as the other player's demo. It's kept as the run's
+  has no changelog entry in it (their slot is the map's placeholder). They add their demo with `POST /runs/{id}/demo`,
+  also once the run is verified: same checks (map, exact time), they must be in it, and it can't be the same file as
+  the other player's demo. Submit Run (and SAR's auto-submit) take it too: a co-op demo that isn't the uploader's
+  best goes on their partner's run of it (same map, time within 0.01) when that's waiting for their view, and when
+  the partner's run isn't recorded yet (their demo hasn't come in), it's recorded from this one, pending their own
+  demo; it's refused only when it's neither player's best. Both answer Submit Run's JSON with `attached: true`.
+- **Demos for runs already on the boards**: Submit Run and SAR's auto-submit put a demo on the player's own run of
+  that time when it's waiting for one (the Steam sync's, or one recorded from the co-op partner's demo) instead of
+  refusing it as not an improvement, and a co-op run whose partner wasn't known is paired with the demo's. It's kept as the run's
   partner demo (`coop_bundled.partner_demo_id`; its `demos.cl_id` is the run's own entry) and shows as that player's
   `demo_id` in `GET /coop/{id}/halves` and in the co-op map board's `demo_id1` / `demo_id2`. Under the co-op proof
   rule it counts as that player's demo, so such runs can be verified without staff. Removing the run's demos (or the
