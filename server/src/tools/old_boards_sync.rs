@@ -17,6 +17,9 @@
 //! - anything else is added as the old board has it (date, ranks, status, comment, video, demo).
 //!   Co-op halves are paired the way the import paired them: same map and time, set within
 //!   three hours; else with the map's placeholder partner.
+//! - a co-op run from `RANKS.COOP_PROOF_SINCE` on also needs a demo from each player here
+//!   ([submissions::settle_coop_proof]), whatever the old board says: it stays pending until it
+//!   has them, then takes the old board's status.
 //!
 //! A full pull also catches runs still pending here that the old board has cleared since: a demo
 //! added to an old run (or a video, or staff verifying it) doesn't change its date, so the pull's
@@ -786,6 +789,9 @@ async fn apply_entry(
     .bind(&new.autorender_id)
     .execute(&mut *tx)
     .await?;
+    if map.is_coop {
+        hold_to_coop_proof(&mut tx, id).await?;
+    }
     tx.commit().await?;
 
     // The demo, when the old board has one and we don't.
@@ -793,7 +799,15 @@ async fn apply_entry(
         let has: bool = sqlx::query_scalar("SELECT demo_id IS NOT NULL FROM changelog WHERE id = $1").bind(id).fetch_one(pool).await?;
         if !has {
             match attach_demo(pool, config, client, url, game_id, e.id, id).await {
-                Ok(()) => report.demos_added += 1,
+                Ok(()) => {
+                    report.demos_added += 1;
+                    // The demo may be the co-op run's last missing one.
+                    if map.is_coop {
+                        let mut tx = pool.begin().await?;
+                        hold_to_coop_proof(&mut tx, id).await?;
+                        tx.commit().await?;
+                    }
+                }
                 Err(err) if err == WAITING => report.demos_waiting += 1,
                 Err(err) => {
                     report.demos_failed += 1;
@@ -802,6 +816,35 @@ async fn apply_entry(
             }
         }
     }
+    Ok(())
+}
+
+/// Holds a co-op run from `RANKS.COOP_PROOF_SINCE` on to the rule that it needs a demo from each
+/// player here, whatever the old board says (it takes one, or none): until it has them, both
+/// halves are pending; once it has, each takes the old board's status (as last seen there), and a
+/// half the old board doesn't have is verified.
+async fn hold_to_coop_proof(tx: &mut Transaction<'_, Postgres>, id: i64) -> Result<(), sqlx::Error> {
+    let coop_id: Option<i64> = sqlx::query_scalar("SELECT coop_id FROM changelog WHERE id = $1").bind(id).fetch_optional(&mut **tx).await?.flatten();
+    let Some(coop_id) = coop_id else {
+        return Ok(());
+    };
+    let Some((halves, proven)) = submissions::coop_proof_state(tx, coop_id).await? else {
+        return Ok(());
+    };
+    sqlx::query(
+        r#"
+            UPDATE changelog AS cl SET verified = $2 AND NOT COALESCE((
+                SELECT o.pending FROM legacy_changelog_ids AS l
+                JOIN old_board_runs AS o ON o.game_id = l.game_id AND o.legacy_id = l.legacy_id
+                WHERE l.changelog_id = cl.id LIMIT 1
+            ), false)
+            WHERE cl.id = ANY($1)
+        "#,
+    )
+    .bind(&halves)
+    .bind(proven)
+    .execute(&mut **tx)
+    .await?;
     Ok(())
 }
 

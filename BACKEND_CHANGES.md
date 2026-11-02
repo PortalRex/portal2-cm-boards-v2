@@ -322,7 +322,7 @@ All under `/api/v1`. Auth: **public**, **signed in**, **staff** (any tier or ser
 - **Pending proof**: `POST /runs/{id}/demo` checks the demo's map, exact time and that the run's player is in it, then
   attaches it and verifies the run (both co-op halves).
 - **Co-op proof from both players** (from `RANKS.COOP_PROOF_SINCE`; off while unset): every co-op run, at any rank
-  and however it came in (Submit Run, SAR, the Steam sync), stays pending for both players until each has added their
+  and however it came in (Submit Run, SAR, the Steam sync, the old-board pull, whatever the old board says), stays pending for both players until each has added their
   own demo, then both halves are verified together. Even when only one player improved, the other's demo is needed.
   Single-player runs keep the top-200 rule.
   A run whose partner isn't known stays pending (staff can set the partner or verify it). The partner adds their demo
