@@ -394,6 +394,60 @@ pub async fn attach_partner_demo(pool: &PgPool, run: &ProofTarget, demo_file: &s
     Ok(Some(verified))
 }
 
+/// A pending run waiting for a player's demo ([waiting_for_demo]).
+#[derive(Debug, Serialize, FromRow)]
+pub struct WaitingDemo {
+    /// The run to add the demo to (`POST /runs/{id}/demo`): the player's own, or for a co-op
+    /// partner without a run of their own in it, the run's.
+    pub changelog_id: i64,
+    pub map_id: String,
+    pub map_name: String,
+    pub is_coop: bool,
+    pub score: i32,
+    /// When it was set, to find the demo by.
+    pub timestamp: Option<chrono::NaiveDateTime>,
+    /// The co-op partner, when known.
+    pub partner: Option<String>,
+    pub partner_name: Option<String>,
+}
+
+/// A player's pending runs that need their demo, newest first: their own without a demo, and
+/// co-op runs they're the partner in without a run of their own, until their demo is the run's
+/// partner demo (every co-op run needs both players' demos).
+pub async fn waiting_for_demo(pool: &PgPool, profile_number: &str) -> Result<Vec<WaitingDemo>, sqlx::Error> {
+    sqlx::query_as::<_, WaitingDemo>(
+        r#"
+            WITH own AS (
+                SELECT cl.id, cl.map_id, cl.score, cl.timestamp, cl.coop_id FROM changelog AS cl
+                WHERE cl.profile_number = $1 AND cl.verified = false AND NOT cl.banned
+                  AND cl.demo_id IS NULL AND cl.mirror_of IS NULL
+            ),
+            as_partner AS (
+                SELECT r.id, r.map_id, r.score, r.timestamp, cb.id AS coop_id FROM coop_bundled AS cb
+                JOIN changelog AS r ON r.id IN (cb.cl_id1, cb.cl_id2) AND r.profile_number NOT IN ($1, $2)
+                WHERE (cb.p_id1 = $1 OR cb.p_id2 = $1) AND cb.partner_demo_id IS NULL
+                  AND NOT EXISTS (SELECT 1 FROM changelog AS o WHERE o.id IN (cb.cl_id1, cb.cl_id2) AND o.profile_number = $1)
+                  AND r.verified = false AND NOT r.banned AND r.mirror_of IS NULL
+            ),
+            runs AS (SELECT * FROM own UNION ALL SELECT * FROM as_partner)
+            SELECT runs.id AS changelog_id, runs.map_id, m.name AS map_name, c.is_multiplayer AS is_coop,
+                runs.score, runs.timestamp, p.profile_number AS partner,
+                COALESCE(p.board_name, p.steam_name) AS partner_name
+            FROM runs
+            JOIN maps AS m ON m.steam_id = runs.map_id JOIN chapters AS c ON c.id = m.chapter_id
+            LEFT JOIN coop_bundled AS cb ON cb.id = runs.coop_id
+            LEFT JOIN users AS p ON p.profile_number = CASE WHEN cb.p_id1 = $1 THEN cb.p_id2 ELSE cb.p_id1 END
+                AND p.profile_number <> $2
+            ORDER BY runs.timestamp DESC NULLS LAST
+            LIMIT 50
+        "#,
+    )
+    .bind(profile_number)
+    .bind(FILLER)
+    .fetch_all(pool)
+    .await
+}
+
 /// Where a submitted run was recorded.
 #[derive(Debug, Serialize)]
 pub struct Recorded {

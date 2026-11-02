@@ -93,7 +93,14 @@ export function PartnerDemo({ run, halves }: { run: PendingRun; halves?: CoopHal
   )
 }
 
-function DemoButton({ upload, label }: { upload: UseMutationResult<boolean, Error, File>; label: string }) {
+/** A button that picks a demo file and uploads it with `upload`. */
+export function DemoButton({
+  upload,
+  label,
+}: {
+  upload: UseMutationResult<boolean, Error, File>
+  label: string
+}) {
   return (
     <label
       className={cn(

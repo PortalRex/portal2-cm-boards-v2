@@ -706,6 +706,22 @@ async fn same_as_run_demo(pool: &PgPool, config: &Config, run: &submissions::Pro
     Ok(tokio::fs::read(&path).await.is_ok_and(|existing| existing == bytes))
 }
 
+/// **GET** The signed-in player's pending runs that need their demo, newest first (at most 50):
+/// their own without one, and co-op runs they're the partner in, without a run of their own,
+/// still missing their view (every co-op run needs both players' demos). Each is added with
+/// `POST /runs/{changelog_id}/demo`.
+///
+/// Example: `GET /api/v1/user/waiting-demos`
+/// ```json
+/// [{ "changelog_id": 367920, "map_id": "47825", "map_name": "Buttons", "is_coop": true, "score": 2455,
+///    "timestamp": "2026-11-02T14:32:12", "partner": "76561197970140234", "partner_name": "Runner" }]
+/// ```
+#[get("/user/waiting-demos")]
+async fn waiting_demos(user: SignedIn, pool: web::Data<PgPool>) -> Result<impl Responder> {
+    let runs = submissions::waiting_for_demo(pool.get_ref(), &user.0.profile_number).await?;
+    Ok(HttpResponse::Ok().insert_header(("Cache-Control", "no-store")).json(runs))
+}
+
 /// **GET** Download a demo by its id (as runs list it in `demo_id`).
 #[get("/demos/{demo_id}/file")]
 async fn demo_download(req: HttpRequest, pool: web::Data<PgPool>, config: web::Data<Config>, demo_id: web::Path<i64>) -> Result<impl Responder> {

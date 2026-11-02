@@ -163,6 +163,7 @@ All under `/api/v1`. Auth: **public**, **signed in**, **staff** (any tier or ser
 | `POST /submissions/preview` | signed in | Read a demo (multipart `demo`): map, time, players, matching board maps. Saves nothing. |
 | `POST /submissions` | signed in | Submit a run from a demo; admins may also enter map/time/player/partner by hand. See [§8](#8-run-submissions-and-demos). |
 | `GET /demos/{id}/file` | public | Download a run's demo (as an attachment, cached a day). Looked up in `DEMO.STORAGE`, then `DEMO.ARCHIVE`. See [§8](#8-run-submissions-and-demos). |
+| `GET /user/waiting-demos` | signed in | Your pending runs that need your demo, newest first (at most 50): your own without one, and co-op runs you're the partner in (no run of your own) still missing your view. Each: `changelog_id` (add it with `POST /runs/{id}/demo`), `map_id`, `map_name`, `is_coop`, `score`, `timestamp`, `partner`, `partner_name`. |
 | `POST /runs/{id}/demo` | signed in | Add the demo for a pending run (its player, co-op partner or staff); checked against the run, then verified. |
 
 ### Staff

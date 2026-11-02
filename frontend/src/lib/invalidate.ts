@@ -28,6 +28,8 @@ const RUN_WIDE = [
   ['stats'],
   ['countries'],
   ['compare'],
+  // Your runs waiting for your demo (a demo added or a run verified takes one off).
+  ['auth', 'waiting-demos'],
 ] as const
 
 export async function invalidateRun(

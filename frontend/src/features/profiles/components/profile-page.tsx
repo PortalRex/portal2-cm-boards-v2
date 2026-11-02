@@ -62,6 +62,8 @@ export interface ProfileSlots {
   renderRunDetails?: RenderRunDetails
   /** Staff tools for the player (features/admin), at the end of the header's buttons. */
   staffTools?: (player: ProfilePlayer) => ReactNode
+  /** Above the cards: notices for the player viewing their own profile. */
+  notice?: (player: ProfilePlayer) => ReactNode
 }
 
 /** A player's profile page; each player gets a fresh page (the route keys it by player). */
@@ -70,6 +72,7 @@ export function ProfilePage({
   at: atParam,
   renderRunDetails,
   staffTools,
+  notice,
 }: { profileId: string; at?: string } & ProfileSlots) {
   const catalog = useCatalog()
   const navigate = useNavigate()
@@ -133,6 +136,7 @@ export function ProfilePage({
           />
         )}
         <CollapseAll />
+        {notice?.(p.player)}
         <Row className="grid-cols-[minmax(0,2.55fr)_minmax(0,1fr)]">
           <ProfileHeader
             player={p.player}

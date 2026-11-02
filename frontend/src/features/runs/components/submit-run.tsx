@@ -16,6 +16,7 @@ import {
   type DemoPreview,
   type SubmitResult,
 } from '../api/submissions'
+import { WaitingDemos } from './waiting-demos'
 
 const field =
   'rounded-[4px] border border-line bg-control px-2.5 py-2 text-[17px] text-foreground focus:border-brand-light focus:outline-none'
@@ -131,6 +132,7 @@ export function SubmitRun({ onClose }: { onClose: () => void }) {
               <Done done={send.data} catalog={catalog} onAnother={reset} onClose={onClose} />
             ) : (
               <form onSubmit={submit} className="flex flex-col gap-3.5 p-4">
+                <WaitingDemos />
                 <DemoDrop file={file} onFile={chooseFile} busy={sending} />
                 {reading && <p className={muted}>Reading demo…</p>}
                 {preview && (

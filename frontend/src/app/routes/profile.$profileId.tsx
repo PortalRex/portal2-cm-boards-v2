@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { ProfileStaffTools } from '@/features/admin/components/profile-staff-tools'
 import { ProfilePage } from '@/features/profiles/components/profile-page'
 import { RunDetails } from '@/features/runs/components/run-details'
+import { WaitingDemos } from '@/features/runs/components/waiting-demos'
 
 const text = z.string().optional().catch(undefined)
 
@@ -24,6 +25,7 @@ function ProfileRoute() {
         <RunDetails run={run} map={map} game={game} rendered={rendered} />
       )}
       staffTools={(player) => <ProfileStaffTools player={player} />}
+      notice={(player) => <WaitingDemos profileNumber={player.profileNumber} className="mb-5" />}
     />
   )
 }

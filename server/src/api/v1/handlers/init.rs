@@ -51,6 +51,7 @@ pub fn init(cfg: &mut web::ServiceConfig) {
             .service(run_set_comment)
             .service(submission_preview)
             .service(submission_create)
+            .service(waiting_demos)
             .service(recap_weekly)
             .service(daily_chambers)
             .service(catalog_get)

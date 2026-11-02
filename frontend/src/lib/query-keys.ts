@@ -39,6 +39,8 @@ export const queryKeys = {
   user: (profileNumber: string) => ['user', profileNumber] as const,
   /** Whether you have a SAR auto-submit key (Settings). */
   submitKey: () => ['auth', 'submit-key'] as const,
+  /** Your pending runs that need your demo. */
+  waitingDemos: () => ['auth', 'waiting-demos'] as const,
 
   // A run (changelog entry) and what hangs off it.
   run: (changelogId: number) => ['run', changelogId] as const,

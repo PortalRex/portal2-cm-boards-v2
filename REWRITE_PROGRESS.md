@@ -69,6 +69,11 @@
 
 ## Log
 <!-- Newest first. One entry per finished item: date, what was done, commit, tests added. -->
+- 2026-11-02: Release prep: every co-op run needs both players' demos (`RANKS.COOP_PROOF_SINCE`). A pending co-op
+  run's status names whose demo it's waiting for ("Pending: waiting for Luke's demo"), and Score Updates' pending icon
+  says a co-op run needs both. "Runs waiting for your demo" (`WaitingDemos`, from `GET /user/waiting-demos`) lists
+  the signed-in player's pending runs that need their demo, with when each was set and an upload button, on their own
+  profile (the profile's `notice` slot, filled by the route) and in Submit Run; hidden while read-only.
 - 2026-11-01: Asked for: map pages scroll endlessly too. The leaderboard shows 40 rows at a time, more as it
   scrolls ("Your best" shows the board down to your row); the chamber history fetches older runs 200 at a time like
   Score Updates ("200+ runs" while more may follow) and its "Latest N" filter is gone (`RUN_LIMITS` removed). Shared
