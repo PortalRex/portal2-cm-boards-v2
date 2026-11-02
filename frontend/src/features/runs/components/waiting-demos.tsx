@@ -11,8 +11,8 @@ import { waitingDemosQueryOptions, type WaitingDemo } from '../api/waiting-demos
 import { DemoButton } from './pending-proof'
 
 /**
- * The signed-in player's pending runs that need their demo, each with its upload. A co-op run
- * needs both players' demos even when only one improved, and SAR only sends the demo of a run
+ * The signed-in player's pending runs that need their demo, each with its upload. A top-200 co-op
+ * run needs both players' demos even when only one improved, and SAR only sends the demo of a run
  * that was your own personal best, so this is where a partner finds out. Shown on your own profile
  * (`profileNumber`) and in Submit Run (no `profileNumber`); not while the boards are read-only.
  */
@@ -34,9 +34,10 @@ export function WaitingDemos({ profileNumber, className }: { profileNumber?: str
         {runs.length === 1 ? 'A run is' : `${runs.length} runs are`} waiting for your demo
       </h2>
       <p className="mt-1 mb-2.5 text-sm">
-        Co-op runs need both players’ demos, even when only one of you got a personal best, and SAR only sends
-        yours when it was your best. Look in your Portal 2 demos folder for the demo saved when the run was
-        set. <code>sar_challenge_autostop 2</code> puts the time in each challenge mode demo’s name.
+        Co-op runs in the top 200 need both players’ demos, even when only one of you got a personal best, and
+        SAR only sends yours when it was your best. Look in your Portal 2 demos folder for the demo saved when
+        the run was set. <code>sar_challenge_autostop 2</code> puts the time in each challenge mode demo’s
+        name.
       </p>
       <ul className="m-0 flex list-none flex-col gap-2 p-0">
         {runs.map((r) => (

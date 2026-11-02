@@ -394,7 +394,7 @@ async fn sync_map(
             submission: 0,
             verified: Some(!pending),
         };
-        // A new co-op run (from RANKS.COOP_PROOF_SINCE) also waits for both players' demos, at any rank.
+        // A new co-op run in the top 200 (from RANKS.COOP_PROOF_SINCE) waits for both players' demos.
         match submissions::insert_run(pool, run).await? {
             Ok(done) => {
                 added += 1;

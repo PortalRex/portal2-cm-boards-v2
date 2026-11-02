@@ -136,15 +136,17 @@ fn coop_proven(halves: &[bool], partner_demo: bool) -> bool {
 
 /// The co-op proof rule for a run (see [settle_coop_proof]): its players' halves and whether it
 /// has a demo from each player, or None when the rule doesn't apply: it's off, the run is from
-/// before `RANKS.COOP_PROOF_SINCE`, or staff verified (or unverified) it by hand, which stands.
+/// before `RANKS.COOP_PROOF_SINCE`, it ranks outside the top [PROOF_RANK] (no proof needed there),
+/// or staff verified (or unverified) it by hand, which stands.
 pub async fn coop_proof_state(tx: &mut sqlx::Transaction<'_, sqlx::Postgres>, coop_id: i64) -> Result<Option<(Vec<i64>, bool)>, sqlx::Error> {
     let Some(since) = crate::tools::config::coop_proof_since() else {
         return Ok(None);
     };
-    // (id, is the placeholder, has a demo, submitted since the cutoff)
-    let halves: Vec<(i64, bool, bool, bool)> = sqlx::query_as(
+    // (id, is the placeholder, has a demo, submitted since the cutoff, rank when submitted)
+    let halves: Vec<(i64, bool, bool, bool, Option<i32>)> = sqlx::query_as(
         r#"
-            SELECT cl.id, cl.profile_number = $2, cl.demo_id IS NOT NULL, COALESCE(cl.timestamp >= $3::timestamp, false)
+            SELECT cl.id, cl.profile_number = $2, cl.demo_id IS NOT NULL, COALESCE(cl.timestamp >= $3::timestamp, false),
+                cl.post_rank
             FROM coop_bundled AS cb JOIN changelog AS cl ON cl.id IN (cb.cl_id1, cb.cl_id2)
             WHERE cb.id = $1
         "#,
@@ -155,7 +157,8 @@ pub async fn coop_proof_state(tx: &mut sqlx::Transaction<'_, sqlx::Postgres>, co
     .fetch_all(&mut **tx)
     .await?;
     let real: Vec<_> = halves.iter().filter(|h| !h.1).collect();
-    if real.is_empty() || !real.iter().all(|h| h.3) {
+    let needs_proof = real.iter().any(|h| h.4.is_some_and(|r| r <= PROOF_RANK));
+    if real.is_empty() || !real.iter().all(|h| h.3) || !needs_proof {
         return Ok(None);
     }
     let ids: Vec<i64> = real.iter().map(|h| h.0).collect();
@@ -186,11 +189,11 @@ pub async fn coop_proof_state(tx: &mut sqlx::Transaction<'_, sqlx::Postgres>, co
     Ok(Some((ids, proven)))
 }
 
-/// Applies the co-op proof rule to a run's halves after a demo or partner change: every co-op run
-/// from `RANKS.COOP_PROOF_SINCE` on, at any rank, needs a demo from each player (see
-/// [coop_proven]), and until it has them (and the partner is known) both halves stay pending.
-/// Returns whether the run is now verified, or None when the rule doesn't apply (it's off, or an
-/// older run), leaving its halves as they were.
+/// Applies the co-op proof rule to a run's halves after a demo or partner change: a co-op run from
+/// `RANKS.COOP_PROOF_SINCE` on that ranks in the top [PROOF_RANK] needs a demo from each player,
+/// even when only one of them improved (see [coop_proven]), and until it has them (and the partner
+/// is known) both halves stay pending. Returns whether the run is now verified, or None when the
+/// rule doesn't apply (see [coop_proof_state]), leaving its halves as they were.
 pub async fn settle_coop_proof(tx: &mut sqlx::Transaction<'_, sqlx::Postgres>, coop_id: i64) -> Result<Option<bool>, sqlx::Error> {
     let Some((ids, verified)) = coop_proof_state(tx, coop_id).await? else {
         return Ok(None);

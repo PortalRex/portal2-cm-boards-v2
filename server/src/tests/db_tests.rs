@@ -1074,15 +1074,15 @@ async fn test_db_changelog_before_pages_join_up() {
 }
 
 #[actix_web::test]
-async fn test_db_coop_runs_at_any_rank_wait_for_both_demos() {
+async fn test_db_top_coop_runs_wait_for_both_demos() {
     use crate::controllers::submissions::settle_coop_proof;
     let (config, pool) = get_config().await.unwrap();
     config.ranks.apply();
     if crate::tools::config::coop_proof_since().is_none() {
         panic!("set RANKS.COOP_PROOF_SINCE to run this test");
     }
-    // Everything in one transaction that's rolled back: a slow co-op run (far outside the top 200)
-    // set now by two players, without demos.
+    // Everything in one transaction that's rolled back: a co-op run set now by two players, without
+    // demos, first ranked outside the top 200 (no proof needed), then 50th.
     let mut tx = pool.begin().await.unwrap();
     let players: Vec<String> = sqlx::query_scalar("SELECT profile_number FROM users WHERE NOT banned AND profile_number <> 'N/A' ORDER BY profile_number LIMIT 2")
         .fetch_all(&mut *tx)
@@ -1112,9 +1112,12 @@ async fn test_db_coop_runs_at_any_rank_wait_for_both_demos() {
     async fn verified(tx: &mut sqlx::Transaction<'_, sqlx::Postgres>, halves: &[i64]) -> bool {
         sqlx::query_scalar("SELECT bool_and(verified) FROM changelog WHERE id = ANY($1)").bind(halves).fetch_one(&mut **tx).await.unwrap()
     }
+    assert_eq!(settle_coop_proof(&mut tx, coop_id).await.unwrap(), None);
+    assert!(verified(&mut tx, &halves).await);
+    sqlx::query("UPDATE changelog SET post_rank = 50 WHERE id = ANY($1)").bind(&halves).execute(&mut *tx).await.unwrap();
     assert_eq!(settle_coop_proof(&mut tx, coop_id).await.unwrap(), Some(false));
     assert!(!verified(&mut tx, &halves).await);
-    // One player's demo isn't enough, even far outside the top 200.
+    // One player's demo isn't enough.
     for (i, id) in halves.iter().enumerate() {
         let demo: i64 = sqlx::query_scalar("INSERT INTO demos (file_id, cl_id) VALUES ($1, $2) RETURNING id")
             .bind(format!("test_{i}.dem"))
