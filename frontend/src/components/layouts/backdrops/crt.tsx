@@ -17,63 +17,133 @@ const FEEDS: Feed[] = [
   })),
 ]
 
+/** Milliseconds the pages' monitor is kept with no page showing it (another background picked). */
+const KEEP = 10_000
+
+/** A canvas with the signal on it, moved onto whichever page shows it. */
+interface Monitor {
+  canvas: HTMLCanvasElement
+  /** The channel on screen, and who to tell when it changes (the shown page's label). */
+  channel: number
+  onChannel: (channel: number) => void
+  /** Sizes the canvas to the screen; it's drawn again only if that changed. */
+  fit(): void
+  play(): void
+  pause(): void
+}
+
+function createMonitor(still: boolean): Monitor | null {
+  const canvas = document.createElement('canvas')
+  canvas.setAttribute('aria-hidden', 'true')
+  canvas.className = 'absolute inset-0 size-full'
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return null
+  // The signal's clock runs from the monitor's start, page to page.
+  const start = performance.now()
+  let sized = false
+  let playing = false
+  let timer = 0
+  let raf = 0
+  // Steps the signal now, then again when it asks (on a screen refresh, so not while the tab is
+  // hidden). Not while paused: a picture that loads with no page showing must not start the loop.
+  const run = () => {
+    if (!playing) return
+    window.clearTimeout(timer)
+    cancelAnimationFrame(raf)
+    const wait = signal.step((performance.now() - start) / 1000)
+    if (wait !== Infinity) timer = window.setTimeout(() => (raf = requestAnimationFrame(run)), wait * 1000)
+  }
+  const monitor: Monitor = {
+    canvas,
+    channel: 0,
+    onChannel: () => {},
+    fit() {
+      const ratio = Math.min(window.devicePixelRatio || 1, 1.25)
+      const { width, height } = canvas.getBoundingClientRect()
+      const w = Math.max(1, Math.round(width * ratio))
+      const h = Math.max(1, Math.round(height * ratio))
+      // Setting the size clears the canvas, even to the same size.
+      if (!sized || w !== canvas.width || h !== canvas.height) {
+        canvas.width = w
+        canvas.height = h
+        signal.resize(w, h, ratio)
+        sized = true
+      }
+      run()
+    },
+    play() {
+      playing = true
+      run()
+    },
+    pause() {
+      playing = false
+      window.clearTimeout(timer)
+      cancelAnimationFrame(raf)
+    },
+  }
+  const signal = crtSignal(ctx, FEEDS, {
+    still,
+    onChannel: (channel) => {
+      monitor.channel = channel
+      monitor.onChannel(channel)
+    },
+    onLoad: run,
+  })
+  return monitor
+}
+
+// The pages' monitor: one for the visit, so another page carries on where the last one was (the
+// same channel, as far into it) instead of starting over.
+let shared: Monitor | null = null
+let release = 0
+
 /**
  * An old CRT surveillance monitor cycling camera feeds (see crt-signal.ts), under its glass: a fine
  * RGB grille, grain and a vignette with glare (the crt-* utilities in index.css). The signal is
  * on a canvas the size of the screen (at most 1.25 pixels per pixel) that only changes when the
  * channel does or it glitches, in a visible tab; it stays on the first channel for people who ask
- * for less motion, and in a `preview`.
+ * for less motion, and in a `preview`. Every page shows the same monitor, moved onto it.
  */
 export function Crt({ preview = false }: { preview?: boolean }) {
-  const ref = useRef<HTMLCanvasElement>(null)
-  const [channel, setChannel] = useState(0)
+  const ref = useRef<HTMLDivElement>(null)
+  const [channel, setChannel] = useState(() => (preview ? 0 : (shared?.channel ?? 0)))
 
   useEffect(() => {
-    const canvas = ref.current
-    // No ResizeObserver: not a real browser (tests); nothing to draw on.
-    if (!canvas || typeof ResizeObserver === 'undefined') return
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-    // A preview (the Settings swatch) is a still too.
+    const screen = ref.current
+    // No ResizeObserver: not a real browser (tests).
+    if (!screen || typeof ResizeObserver === 'undefined') return
+    // A preview (the Settings swatch) is a still of its own.
     const still = preview || (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false)
-    const start = performance.now()
-    let timer = 0
-    let raf = 0
-    // Set on cleanup: a picture that loads after the page has gone must not start the loop again.
-    let disposed = false
-    // Steps the signal now, then again when it asks (on a screen refresh, so not while the tab is
-    // hidden).
-    const run = () => {
-      if (disposed) return
-      window.clearTimeout(timer)
-      cancelAnimationFrame(raf)
-      const wait = signal.step((performance.now() - start) / 1000)
-      if (wait !== Infinity) timer = window.setTimeout(() => (raf = requestAnimationFrame(run)), wait * 1000)
+    let monitor: Monitor | null
+    if (preview) monitor = createMonitor(true)
+    else {
+      window.clearTimeout(release)
+      monitor = shared ??= createMonitor(still)
     }
-    const signal = crtSignal(ctx, FEEDS, { still, onChannel: setChannel, onLoad: run })
-
-    const fit = () => {
-      const ratio = Math.min(window.devicePixelRatio || 1, 1.25)
-      const { width, height } = canvas.getBoundingClientRect()
-      canvas.width = Math.max(1, Math.round(width * ratio))
-      canvas.height = Math.max(1, Math.round(height * ratio))
-      signal.resize(canvas.width, canvas.height, ratio)
-      run()
-    }
-    const observer = new ResizeObserver(fit)
-    observer.observe(canvas)
-    fit()
+    // Nothing to draw on.
+    if (!monitor) return
+    screen.prepend(monitor.canvas)
+    monitor.onChannel = setChannel
+    const observer = new ResizeObserver(() => monitor.fit())
+    observer.observe(monitor.canvas)
+    monitor.play()
+    monitor.fit()
     return () => {
-      disposed = true
-      window.clearTimeout(timer)
-      cancelAnimationFrame(raf)
       observer.disconnect()
+      // The next page may have taken it already.
+      if (monitor.canvas.parentNode !== screen) return
+      monitor.pause()
+      monitor.onChannel = () => {}
+      monitor.canvas.remove()
+      if (monitor === shared)
+        release = window.setTimeout(() => {
+          if (shared && !shared.canvas.isConnected) shared = null
+        }, KEEP)
     }
   }, [preview])
 
   return (
-    <div className="crt-screen absolute inset-0 overflow-hidden">
-      <canvas ref={ref} aria-hidden className="absolute inset-0 size-full" />
+    <div ref={ref} className="crt-screen absolute inset-0 overflow-hidden">
       <div className="crt-grille absolute inset-0" />
       <div className="crt-grain absolute inset-0" />
       <div className="crt-tube absolute inset-0" />
