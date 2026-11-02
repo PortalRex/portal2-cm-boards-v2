@@ -69,7 +69,7 @@ New environment variables for the server (dotted names, as in `server/.env.examp
 | `SERVER.BEHIND_PROXY` | Production | `true` when a reverse proxy is in front: client addresses (rate limits, anonymous report de-duplication) are read from `X-Forwarded-For`. Off by default, since that header can't be trusted without a proxy. Bind `SERVER.HOST` to `127.0.0.1` behind the proxy so clients can't reach the server directly. |
 | `SYNC.STEAM` / `SYNC.MINUTES` / `SYNC.RANK_LIMIT` | No | Pull new Portal 2 times from Steam's leaderboards: off unless `SYNC.STEAM=true`; every 10 minutes; times in each map's top 500 on Steam. See [§13](#13-steam-sync). |
 | `RANKS.COOP` | No | How co-op runs are ranked: `run` (default) gives each run one rank, so the next team down is rank 2; `player` gives each player a rank, so a run fills two (1, 1, 3) as the old boards did. See [§6](#6-changed-behaviour-of-existing-endpoints). |
-| `RANKS.COOP_PROOF_SINCE` | At launch | UTC time (`2026-11-01 00:00:00`) from which new co-op runs in the top 200 need a demo from each player; set it to when the site goes fully online. Unset = off (one demo verifies both halves). See [§8](#8-run-submissions-and-demos). |
+| `RANKS.COOP_PROOF_SINCE` | At launch | UTC time (`2026-11-01 00:00:00`) from which every new co-op run, at any rank, needs a demo from each player; set it to when the site goes fully online. Unset = off (one demo verifies both halves). See [§8](#8-run-submissions-and-demos). |
 | `DEMO.ARCHIVE` | For old demos | Folders holding the old boards' demo files (several separated by `;`, searched recursively). Needed for downloading imported runs' demos. |
 
 `STEAM.API_KEY` (existing) is now also used to fill in names and avatars at sign-in, to create accounts for new co-op
@@ -321,8 +321,10 @@ All under `/api/v1`. Auth: **public**, **signed in**, **staff** (any tier or ser
   - The response lists every board it counted on.
 - **Pending proof**: `POST /runs/{id}/demo` checks the demo's map, exact time and that the run's player is in it, then
   attaches it and verifies the run (both co-op halves).
-- **Co-op proof from both players** (from `RANKS.COOP_PROOF_SINCE`; off while unset): a co-op run that ranks in the
-  top 200 stays pending for both players until each has added their own demo, then both halves are verified together.
+- **Co-op proof from both players** (from `RANKS.COOP_PROOF_SINCE`; off while unset): every co-op run, at any rank
+  and however it came in (Submit Run, SAR, the Steam sync), stays pending for both players until each has added their
+  own demo, then both halves are verified together. Even when only one player improved, the other's demo is needed.
+  Single-player runs keep the top-200 rule.
   A run whose partner isn't known stays pending (staff can set the partner or verify it). The partner adds their demo
   by submitting it (it pairs with the run) or with **Add demo** on their own half; `POST /runs/{id}/demo` puts a
   partner's demo on their half and answers `{ "verified": bool }`, and `POST /submissions` returns

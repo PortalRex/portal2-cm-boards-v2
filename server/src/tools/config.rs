@@ -119,8 +119,8 @@ impl DemoConfig {
 /// as the old boards ranked them.
 ///
 /// `RANKS.COOP_PROOF_SINCE` (UTC, e.g. `2026-11-01 00:00:00`, set to when the site goes fully
-/// online): co-op runs from then on that rank in the top 200 stay pending for both players until
-/// each has added a demo. Unset, the rule is off and one demo verifies both halves.
+/// online): every co-op run from then on, at any rank, stays pending for both players until each
+/// has added a demo. Unset, the rule is off and one demo verifies both halves.
 #[derive(Deserialize, Debug, Clone, Default)]
 pub struct RanksConfig {
     pub coop: Option<String>,

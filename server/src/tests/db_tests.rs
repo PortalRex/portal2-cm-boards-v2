@@ -1072,3 +1072,60 @@ async fn test_db_changelog_before_pages_join_up() {
     // An unknown run has no page after it.
     assert!(ChangelogPage::get_changelog_page(&pool, page(10, Some(i64::MAX))).await.unwrap().is_empty());
 }
+
+#[actix_web::test]
+async fn test_db_coop_runs_at_any_rank_wait_for_both_demos() {
+    use crate::controllers::submissions::settle_coop_proof;
+    let (config, pool) = get_config().await.unwrap();
+    config.ranks.apply();
+    if crate::tools::config::coop_proof_since().is_none() {
+        panic!("set RANKS.COOP_PROOF_SINCE to run this test");
+    }
+    // Everything in one transaction that's rolled back: a slow co-op run (far outside the top 200)
+    // set now by two players, without demos.
+    let mut tx = pool.begin().await.unwrap();
+    let players: Vec<String> = sqlx::query_scalar("SELECT profile_number FROM users WHERE NOT banned AND profile_number <> 'N/A' ORDER BY profile_number LIMIT 2")
+        .fetch_all(&mut *tx)
+        .await
+        .unwrap();
+    let mut halves = Vec::new();
+    for p in &players {
+        let id: i64 = sqlx::query_scalar(
+            "INSERT INTO changelog (timestamp, profile_number, score, map_id, category_id, post_rank, verified, submission) \
+             VALUES (now() AT TIME ZONE 'utc', $1, 999999, '47741', (SELECT default_cat_id FROM maps WHERE steam_id = '47741'), 400, true, 0) RETURNING id",
+        )
+        .bind(p)
+        .fetch_one(&mut *tx)
+        .await
+        .unwrap();
+        halves.push(id);
+    }
+    let coop_id: i64 = sqlx::query_scalar("INSERT INTO coop_bundled (p_id1, p_id2, cl_id1, cl_id2) VALUES ($1, $2, $3, $4) RETURNING id")
+        .bind(&players[0])
+        .bind(&players[1])
+        .bind(halves[0])
+        .bind(halves[1])
+        .fetch_one(&mut *tx)
+        .await
+        .unwrap();
+    sqlx::query("UPDATE changelog SET coop_id = $1 WHERE id = ANY($2)").bind(coop_id).bind(&halves).execute(&mut *tx).await.unwrap();
+    async fn verified(tx: &mut sqlx::Transaction<'_, sqlx::Postgres>, halves: &[i64]) -> bool {
+        sqlx::query_scalar("SELECT bool_and(verified) FROM changelog WHERE id = ANY($1)").bind(halves).fetch_one(&mut **tx).await.unwrap()
+    }
+    assert_eq!(settle_coop_proof(&mut tx, coop_id).await.unwrap(), Some(false));
+    assert!(!verified(&mut tx, &halves).await);
+    // One player's demo isn't enough, even far outside the top 200.
+    for (i, id) in halves.iter().enumerate() {
+        let demo: i64 = sqlx::query_scalar("INSERT INTO demos (file_id, cl_id) VALUES ($1, $2) RETURNING id")
+            .bind(format!("test_{i}.dem"))
+            .bind(id)
+            .fetch_one(&mut *tx)
+            .await
+            .unwrap();
+        sqlx::query("UPDATE changelog SET demo_id = $2 WHERE id = $1").bind(id).bind(demo).execute(&mut *tx).await.unwrap();
+        let expect = i == halves.len() - 1;
+        assert_eq!(settle_coop_proof(&mut tx, coop_id).await.unwrap(), Some(expect));
+        assert_eq!(verified(&mut tx, &halves).await, expect);
+    }
+    tx.rollback().await.unwrap();
+}

@@ -134,20 +134,17 @@ fn coop_proven(halves: &[bool], partner_demo: bool) -> bool {
     }
 }
 
-/// Applies the co-op proof rule to a run's halves after a demo or partner change: co-op runs from
-/// `RANKS.COOP_PROOF_SINCE` on that rank in the top [PROOF_RANK] need a demo from each player
-/// (see [coop_proven]), and until they have them (and the partner is known) both stay pending.
-/// Returns whether the run is now verified, or None when the rule doesn't apply (it's off, an
-/// older run, or one outside the top [PROOF_RANK]), leaving its halves as they were.
-pub async fn settle_coop_proof(tx: &mut sqlx::Transaction<'_, sqlx::Postgres>, coop_id: i64) -> Result<Option<bool>, sqlx::Error> {
+/// The co-op proof rule for a run (see [settle_coop_proof]): its players' halves and whether it
+/// has a demo from each player, or None when the rule doesn't apply (it's off, or the run is from
+/// before `RANKS.COOP_PROOF_SINCE`).
+pub async fn coop_proof_state(tx: &mut sqlx::Transaction<'_, sqlx::Postgres>, coop_id: i64) -> Result<Option<(Vec<i64>, bool)>, sqlx::Error> {
     let Some(since) = crate::tools::config::coop_proof_since() else {
         return Ok(None);
     };
-    // (id, is the placeholder, has a demo, rank when submitted, submitted since the cutoff)
-    let halves: Vec<(i64, bool, bool, Option<i32>, bool)> = sqlx::query_as(
+    // (id, is the placeholder, has a demo, submitted since the cutoff)
+    let halves: Vec<(i64, bool, bool, bool)> = sqlx::query_as(
         r#"
-            SELECT cl.id, cl.profile_number = $2, cl.demo_id IS NOT NULL, cl.post_rank,
-                COALESCE(cl.timestamp >= $3::timestamp, false)
+            SELECT cl.id, cl.profile_number = $2, cl.demo_id IS NOT NULL, COALESCE(cl.timestamp >= $3::timestamp, false)
             FROM coop_bundled AS cb JOIN changelog AS cl ON cl.id IN (cb.cl_id1, cb.cl_id2)
             WHERE cb.id = $1
         "#,
@@ -158,9 +155,7 @@ pub async fn settle_coop_proof(tx: &mut sqlx::Transaction<'_, sqlx::Postgres>, c
     .fetch_all(&mut **tx)
     .await?;
     let real: Vec<_> = halves.iter().filter(|h| !h.1).collect();
-    let is_new = !real.is_empty() && real.iter().all(|h| h.4);
-    let needs_proof = real.iter().any(|h| h.3.is_some_and(|r| r <= PROOF_RANK));
-    if !is_new || !needs_proof {
+    if real.is_empty() || !real.iter().all(|h| h.3) {
         return Ok(None);
     }
     let partner_demo: bool = sqlx::query_scalar(
@@ -171,8 +166,19 @@ pub async fn settle_coop_proof(tx: &mut sqlx::Transaction<'_, sqlx::Postgres>, c
     .fetch_optional(&mut **tx)
     .await?
     .unwrap_or(false);
-    let verified = coop_proven(&real.iter().map(|h| h.2).collect::<Vec<_>>(), partner_demo);
-    let ids: Vec<i64> = real.iter().map(|h| h.0).collect();
+    let proven = coop_proven(&real.iter().map(|h| h.2).collect::<Vec<_>>(), partner_demo);
+    Ok(Some((real.iter().map(|h| h.0).collect(), proven)))
+}
+
+/// Applies the co-op proof rule to a run's halves after a demo or partner change: every co-op run
+/// from `RANKS.COOP_PROOF_SINCE` on, at any rank, needs a demo from each player (see
+/// [coop_proven]), and until it has them (and the partner is known) both halves stay pending.
+/// Returns whether the run is now verified, or None when the rule doesn't apply (it's off, or an
+/// older run), leaving its halves as they were.
+pub async fn settle_coop_proof(tx: &mut sqlx::Transaction<'_, sqlx::Postgres>, coop_id: i64) -> Result<Option<bool>, sqlx::Error> {
+    let Some((ids, verified)) = coop_proof_state(tx, coop_id).await? else {
+        return Ok(None);
+    };
     sqlx::query("UPDATE changelog SET verified = $2 WHERE id = ANY($1)").bind(&ids).bind(verified).execute(&mut **tx).await?;
     Ok(Some(verified))
 }
@@ -292,8 +298,8 @@ pub async fn proof_target(pool: &PgPool, cl_id: i64) -> Result<Option<ProofTarge
 }
 
 /// Attaches a demo to a pending run and verifies it (both halves of a co-op run). A new co-op run
-/// in the top [PROOF_RANK] is only verified once both players have added a demo (see
-/// [settle_coop_proof]); returns whether the run is verified now.
+/// is only verified once both players have added a demo (see [settle_coop_proof]); returns
+/// whether the run is verified now.
 pub async fn attach_proof(pool: &PgPool, run: &ProofTarget, demo_file: &str, partner_name: Option<&str>, portals: Option<i32>) -> Result<bool, sqlx::Error> {
     let mut tx = pool.begin().await?;
     let demo_id: i64 = sqlx::query_scalar("INSERT INTO demos (file_id, partner_name, parsed_successfully, cl_id) VALUES ($1, $2, true, $3) RETURNING id")
