@@ -3,7 +3,13 @@ import type { RankedRun } from '@/types/runs'
 import { demosOf, raceReplay, swarmReplay, topReplay, wrReplay } from './replay'
 
 // (a co-op run's halves: just their demos matter here)
-const half = (demoId: number | null) => ({ changelogId: null, youtubeId: null, autorenderId: null, demoId, note: null })
+const half = (demoId: number | null) => ({
+  changelogId: null,
+  youtubeId: null,
+  autorenderId: null,
+  demoId,
+  note: null,
+})
 const run = (rank: number, demoId: number | null, demoIds?: [number | null, number | null]): RankedRun => ({
   changelogId: rank,
   rank,
