@@ -79,7 +79,13 @@ export function RunDetails({
   }
   const own = run.changelogId ?? run.id ?? null
   const list = halves.data?.length === 2 ? halves.data : null
-  const povIndex = pov ? (list?.findIndex((h) => h.player?.profileNumber === pov) ?? -1) : -1
+  // The clicked player's half, unless it has no video and the other one does (a partner the run
+  // wasn't a PB for has no autorender).
+  const hasVideo = (h: CoopHalf) =>
+    Boolean(h.autorenderId || h.youtubeId || (h.changelogId != null && rendered?.has(h.changelogId)))
+  const clicked = pov ? (list?.findIndex((h) => h.player?.profileNumber === pov) ?? -1) : -1
+  const withVideo = list?.findIndex(hasVideo) ?? -1
+  const povIndex = clicked >= 0 && !hasVideo(list![clicked]!) && withVideo >= 0 ? withVideo : clicked
   const index =
     picked ??
     (povIndex >= 0
