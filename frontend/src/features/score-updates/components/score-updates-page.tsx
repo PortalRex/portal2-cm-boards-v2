@@ -1,6 +1,7 @@
 import { siteBackground } from '@/components/layouts/backgrounds'
 import { Page } from '@/components/layouts/page'
 import { useGame } from '@/hooks/use-game'
+import { useSeason } from '@/hooks/use-season'
 import type { ScoreUpdatesSearch } from '../utils/filters'
 import { ActivityPanel } from './activity-panel'
 import { RecapPanel } from './recap-panel'
@@ -18,8 +19,10 @@ export function ScoreUpdatesPage({
   search: ScoreUpdatesSearch
   renderRunDetails?: RenderScoreDetails
 }) {
-  // The game picked under the logo (a season's runs are its game's runs).
-  const game = useGame()
+  // The game picked under the logo, or the season of it picked in the list (?season=): the panels
+  // follow the list.
+  const base = useGame()
+  const game = useSeason(base) ?? base
   return (
     <Page background={siteBackground} tint="mono">
       <div className="mb-[30px] grid grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] gap-[30px] upto1000:grid-cols-1">

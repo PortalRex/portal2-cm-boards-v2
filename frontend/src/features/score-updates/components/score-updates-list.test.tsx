@@ -296,6 +296,30 @@ describe('Score Updates', () => {
     expect(within(row).queryByText('SAR Version:')).toBeNull()
   })
 
+  it('picks a season and lists its runs, on its copies of the picked board and chamber', async () => {
+    const requests = serve()
+    const recaps: URLSearchParams[] = []
+    server.use(
+      http.get(`${API}/recap/weekly`, ({ request }) => {
+        recaps.push(new URL(request.url).searchParams)
+        return HttpResponse.json({ start: '2026-10-26', end: '2026-11-02', runs: [] })
+      }),
+    )
+    const { router } = await renderRoute('/?mode=sp&map=47458')
+    await userEvent.selectOptions(
+      await screen.findByRole('combobox', { name: 'Season' }),
+      'portal-2-season-1',
+    )
+    // The address keeps the game's filters; the request asks for the season's copies.
+    await waitFor(() =>
+      expect(router.state.location.search).toEqual({ mode: 'sp', map: '47458', season: 'portal-2-season-1' }),
+    )
+    await waitFor(() => expect(requests.at(-1)?.get('game_id')).toBe('4'))
+    expect(requests.at(-1)?.get('chamber')).toBe('s4-47458')
+    // The weekly recap follows the season too.
+    await waitFor(() => expect(recaps.at(-1)?.get('game_id')).toBe('4'))
+  })
+
   it('opens a co-op run on the POV of the player whose side was clicked', async () => {
     serve()
     const run = (changelog as ChangelogRaw[]).find((r) => r.coop_id === 68238)!

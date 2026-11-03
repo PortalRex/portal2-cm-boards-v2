@@ -7,11 +7,13 @@ import { ListEnd } from '@/components/list-end'
 import { Panel } from '@/components/panel'
 import { PlayerSuggestions } from '@/components/player-suggestions'
 import { SearchBox } from '@/components/search-box'
+import { SeasonSelect } from '@/components/season-select'
 import { EmptyState, ErrorState, Loading } from '@/components/status'
 import { useDebounced } from '@/hooks/use-debounced'
 import { useGame } from '@/hooks/use-game'
 import { endlessPages, useEndlessRows } from '@/hooks/use-endless-rows'
 import { useRenderedSet } from '@/hooks/use-rendered-set'
+import { useSeason } from '@/hooks/use-season'
 import { useCatalog } from '@/lib/catalog'
 import { changelogPagesQueryOptions } from '@/lib/runs/changelog'
 import type { UserHit } from '@/lib/users/search'
@@ -25,6 +27,7 @@ import {
 } from '../utils/filters'
 import { groupStreaks } from '@/lib/runs/group-streaks'
 import { mergeCoopHalves } from '../utils/merge-coop-halves'
+import { seasonFilters } from '../utils/season-filters'
 import { ScoreFilters } from './score-filters'
 import { SCORE_COLS, ScoreRow, type RenderScoreDetails } from './score-row'
 
@@ -40,11 +43,15 @@ export function ScoreUpdatesList({
 }) {
   const catalog = useCatalog()
   const game = useGame()
+  // A picked season (?season=) lists its own runs. The filters stay the game's (as the address
+  // keeps them) and ask for the season's copies of its boards and maps.
+  const season = useSeason(game)
+  const shown = season ?? game
   const navigate = useNavigate()
   const modes = catalog.games[game]?.modes ?? []
   const filters = readFilters(search, modes)
   const query = useDebounced(filters.q, 250)
-  const asked = changelogFilters(filters, game, query)
+  const asked = changelogFilters(seasonFilters(catalog, game, season, filters), shown, query)
   const changelog = useInfiniteQuery(changelogPagesQueryOptions(asked, catalog))
 
   const set = (changes: FilterChanges) =>
@@ -69,13 +76,14 @@ export function ScoreUpdatesList({
   })
   const rendered = useRenderedSet(
     visible.flatMap((e) => [e, ...e.earlier]),
-    game,
+    shown,
   )
   const filtered = isFiltered(filters, query)
 
   return (
     <Panel icon={HistoryIcon} title="Score Updates" bodyClassName="p-[26px] pb-[30px] upto900:p-3">
       <div className="mb-[22px] flex items-center justify-between gap-4 upto900:mb-2.5 upto900:grid upto900:grid-cols-[minmax(0,1fr)] upto900:gap-2.5">
+        <SeasonSelect base={game} season={season} size="md" className="shrink-0" />
         <PlayerSearchBox
           value={filters.q}
           // Typing again searches names; picking a suggestion shows just that player's runs.

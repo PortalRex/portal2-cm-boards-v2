@@ -69,6 +69,10 @@
 
 ## Log
 <!-- Newest first. One entry per finished item: date, what was done, commit, tests added. -->
+- 2026-11-02: Asked for: Score Updates for seasons. The list's header has the season picker the other pages
+  use (`SeasonSelect`, `?season=`): a picked season lists its own runs (its ranks and points), and the weekly recap
+  and activity graph follow it. The address keeps the game's board and chamber filters, and the request asks for the
+  season's copies of them (`seasonFilters`), so they stay picked when switching.
 - 2026-11-02: Release prep: every co-op run needs both players' demos (`RANKS.COOP_PROOF_SINCE`). A pending co-op
   run's status names whose demo it's waiting for ("Pending: waiting for Luke's demo"), and Score Updates' pending icon
   says a co-op run needs both. "Runs waiting for your demo" (`WaitingDemos`, from `GET /user/waiting-demos`) lists
