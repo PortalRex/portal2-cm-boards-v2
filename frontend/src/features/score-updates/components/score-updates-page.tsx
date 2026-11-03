@@ -1,11 +1,10 @@
-import type { ReactNode } from 'react'
 import { siteBackground } from '@/components/layouts/backgrounds'
 import { Page } from '@/components/layouts/page'
 import { useGame } from '@/hooks/use-game'
-import type { Run } from '@/types/runs'
 import type { ScoreUpdatesSearch } from '../utils/filters'
 import { ActivityPanel } from './activity-panel'
 import { RecapPanel } from './recap-panel'
+import type { RenderScoreDetails } from './score-row'
 import { ScoreUpdatesList } from './score-updates-list'
 
 /**
@@ -17,7 +16,7 @@ export function ScoreUpdatesPage({
   renderRunDetails,
 }: {
   search: ScoreUpdatesSearch
-  renderRunDetails?: (run: Run, rendered: Map<number, string>) => ReactNode
+  renderRunDetails?: RenderScoreDetails
 }) {
   // The game picked under the logo (a season's runs are its game's runs).
   const game = useGame()

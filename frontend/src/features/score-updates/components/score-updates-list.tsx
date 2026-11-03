@@ -1,7 +1,7 @@
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { cn } from 'cn'
-import { useMemo, useState, type ReactNode } from 'react'
+import { useMemo, useState } from 'react'
 import { HistoryIcon } from '@/components/icons'
 import { ListEnd } from '@/components/list-end'
 import { Panel } from '@/components/panel'
@@ -15,7 +15,6 @@ import { useRenderedSet } from '@/hooks/use-rendered-set'
 import { useCatalog } from '@/lib/catalog'
 import { changelogPagesQueryOptions } from '@/lib/runs/changelog'
 import type { UserHit } from '@/lib/users/search'
-import type { Run } from '@/types/runs'
 import {
   applyFilterChanges,
   changelogFilters,
@@ -27,7 +26,7 @@ import {
 import { groupStreaks } from '@/lib/runs/group-streaks'
 import { mergeCoopHalves } from '../utils/merge-coop-halves'
 import { ScoreFilters } from './score-filters'
-import { SCORE_COLS, ScoreRow } from './score-row'
+import { SCORE_COLS, ScoreRow, type RenderScoreDetails } from './score-row'
 
 // Rows show this many at a time, as many more each time the list's end scrolls near.
 const STEP = 20
@@ -37,7 +36,7 @@ export function ScoreUpdatesList({
   renderRunDetails,
 }: {
   search: ScoreUpdatesSearch
-  renderRunDetails?: (run: Run, rendered: Map<number, string>) => ReactNode
+  renderRunDetails?: RenderScoreDetails
 }) {
   const catalog = useCatalog()
   const game = useGame()

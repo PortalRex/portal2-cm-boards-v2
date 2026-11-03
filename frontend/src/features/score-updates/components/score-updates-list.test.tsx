@@ -295,4 +295,50 @@ describe('Score Updates', () => {
     await userEvent.click(within(row).getByRole('button', { name: 'Hide details' }))
     expect(within(row).queryByText('SAR Version:')).toBeNull()
   })
+
+  it('opens a co-op run on the POV of the player whose side was clicked', async () => {
+    serve()
+    const run = (changelog as ChangelogRaw[]).find((r) => r.coop_id === 68238)!
+    const half = (n: 1 | 2) => ({
+      profile_number: n === 1 ? run.blue_profile_number : run.orange_profile_number,
+      user_name: n === 1 ? run.blue_name : run.orange_name,
+      avatar: null,
+      is_host: n === 1,
+      changelog_id: run.id + n - 1,
+      score: run.score,
+      timestamp: run.timestamp,
+      note: null,
+      youtube_id: null,
+      autorender_id: null,
+      demo_id: 50 + n,
+      has_segments: false,
+      portals: null,
+      sar_version: null,
+    })
+    server.use(
+      http.get(`${API}/coop/${run.coop_id}/halves`, () => HttpResponse.json([half(1), half(2)])),
+      http.get(`${API}/changelog/:id/segments`, () => HttpResponse.json([])),
+    )
+    await renderRoute('/')
+    const row = (await within(table()).findByRole('link', { name: run.orange_name! })).closest(
+      '[data-testid=score-row]',
+    ) as HTMLElement
+    // The two sides, found before the details (with the same names) open.
+    const [blue, orange] = [run.blue_name!, run.orange_name!].map((name) =>
+      within(row).getByRole('link', { name }).closest('[data-pov]')!,
+    )
+    const selected = async (name: string) =>
+      expect(await within(row).findByRole('tab', { name, selected: true })).toBeInTheDocument()
+
+    await userEvent.click(orange!)
+    await selected(run.orange_name!)
+    // The other side of the open row switches to that player; their side again closes it.
+    await userEvent.click(blue!)
+    await selected(run.blue_name!)
+    await userEvent.click(blue!)
+    expect(within(row).getByRole('button', { name: 'Show details' })).toHaveAttribute(
+      'aria-expanded',
+      'false',
+    )
+  })
 })

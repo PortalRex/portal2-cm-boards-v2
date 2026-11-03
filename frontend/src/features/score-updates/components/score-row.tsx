@@ -32,6 +32,9 @@ const TINT_BG: Record<CoopTint, string> = {
   neutral: 'bg-[linear-gradient(90deg,transparent_46px,var(--portal-neutral)_46px,transparent_70%)]',
 }
 
+/** Run Details under a row. `pov`: on a co-op run, the player whose side was clicked (their profile number). */
+export type RenderScoreDetails = (run: Run, rendered: Map<number, string>, pov: string | null) => ReactNode
+
 /** The row grid: legacy --su-cols on wide screens, two lines with grid areas on phones. */
 export const SCORE_COLS =
   'grid grid-cols-(--su-cols) items-center upto900:grid-cols-[40px_minmax(0,1fr)_auto_28px] upto900:gap-x-2 upto900:[grid-template-areas:"rank_map_time_toggle""rank_players_players_toggle"]'
@@ -48,9 +51,10 @@ export function ScoreRow({
 }: {
   entry: ScoreUpdate & { earlier?: ScoreUpdate[] }
   rendered: Map<number, string>
-  renderRunDetails?: (run: Run, rendered: Map<number, string>) => ReactNode
+  renderRunDetails?: RenderScoreDetails
 }) {
-  const [open, setOpen] = useState(false)
+  const [opened, setOpened] = useState<{ pov: string | null } | null>(null)
+  const open = opened != null
   const earlier = entry.earlier ?? []
   const { preRank, scoreDelta, pointsDelta } = earlier.length ? streakSummary({ ...entry, earlier }) : entry
   const { players, rolesKnown } = coopRoles(entry, useCoopRoleOverrides())
@@ -63,7 +67,11 @@ export function ScoreRow({
     <div className="group/row mt-0.5 bg-row" data-testid="score-row" data-open={open || undefined}>
       <div
         className={cn(SCORE_COLS, 'min-h-[46px] cursor-pointer upto900:min-h-10 upto900:pb-1')}
-        onClick={toggleOnRowClick(() => setOpen((o) => !o))}
+        onClick={(ev) => {
+          // Co-op: a click on a player's side opens (or switches to) their POV.
+          const pov = (ev.target as Element).closest<HTMLElement>('[data-pov]')?.dataset.pov ?? null
+          toggleOnRowClick(() => setOpened(open && (!pov || pov === opened.pov) ? null : { pov }))(ev)
+        }}
       >
         <div
           className={cn(
@@ -137,6 +145,7 @@ export function ScoreRow({
                 key={i}
                 title={title || undefined}
                 data-tint={coop ? tint : undefined}
+                data-pov={(coop && p.profileNumber) || undefined}
                 className={cn(
                   'flex min-h-[46px] min-w-0 flex-1 items-center gap-4',
                   coop && TINT_BG[tint],
@@ -219,7 +228,7 @@ export function ScoreRow({
         </div>
         <button
           type="button"
-          onClick={() => setOpen((o) => !o)}
+          onClick={() => setOpened(open ? null : { pov: null })}
           aria-expanded={open}
           aria-label={open ? 'Hide details' : 'Show details'}
           className="inline-flex size-8 cursor-pointer items-center justify-center justify-self-center border-0 bg-transparent transition-transform group-data-[open]/row:rotate-180 upto900:[grid-area:toggle]"
@@ -231,7 +240,7 @@ export function ScoreRow({
       {open && earlier.length > 0 && (
         <EarlierPbs runs={earlier} rendered={rendered} renderRunDetails={renderRunDetails} />
       )}
-      {open && renderRunDetails?.(entry, rendered)}
+      {open && renderRunDetails?.(entry, rendered, opened.pov)}
     </div>
   )
 }
@@ -244,7 +253,7 @@ function EarlierPbs({
 }: {
   runs: ScoreUpdate[]
   rendered: Map<number, string>
-  renderRunDetails?: (run: Run, rendered: Map<number, string>) => ReactNode
+  renderRunDetails?: RenderScoreDetails
 }) {
   return (
     <div className="px-5 pt-1 pb-2 upto900:px-2">
@@ -272,7 +281,7 @@ function EarlierPb({
 }: {
   run: ScoreUpdate
   rendered: Map<number, string>
-  renderRunDetails?: (run: Run, rendered: Map<number, string>) => ReactNode
+  renderRunDetails?: RenderScoreDetails
 }) {
   const [open, setOpen] = useState(false)
   return (
@@ -305,7 +314,7 @@ function EarlierPb({
           <TriangleDown size={12} />
         </button>
       </div>
-      {open && renderRunDetails?.(run, rendered)}
+      {open && renderRunDetails?.(run, rendered, null)}
     </li>
   )
 }
