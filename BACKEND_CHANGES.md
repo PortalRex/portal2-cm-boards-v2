@@ -363,7 +363,7 @@ carrying `auth_hash`, the player's submit key (Settings → SAR auto-submit; SAR
 | Path | Answers |
 |---|---|
 | `validate-user` | `{ "userId" }` for a working key. |
-| `current-pb` (`mapId`) | The player's verified, unbanned best there, score as a string (`{}` without one): a time still waiting for its demo doesn't stop SAR submitting it. |
+| `current-pb` (`mapId`) | The player's verified, unbanned best there, score as a string (`{}` without one): a time still waiting for its demo doesn't stop SAR submitting it. While a season's copy of the map is linked to it, the slower of their bests on the two boards, and `{}` when they have no time on one of them, so SAR submits a run that's only a PB for the season (it's recorded there). |
 | `top-scores` (`mapId`, `before`, `after`, each ≤ 10) | The board around the player (or its top when they aren't on it), `userData` / `scoreData` with strings, for SAR's in-game list. |
 | `download-maps` (optional `game`: `mel` / `portal2`) | `{ "maps": [{ "level_name", "id" }] }`; without `game`, `mel.` hosts get Mel's maps (SAR has Portal 2's built in). |
 | `auto-submit` (`mapId`, `score`, `demoFile`) | Records the run as `submission` 2 (the old boards' auto-submit marker), checked like Submit Run: the demo of that map, with that time (±0.01; the demo's own time is recorded), with the key's owner in it. When the Steam sync already recorded the same time without a demo, the demo goes on that run instead of a second entry. |

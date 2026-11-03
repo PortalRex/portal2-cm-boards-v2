@@ -1200,3 +1200,69 @@ async fn test_db_waiting_for_demo_lists_current_pbs_only() {
     assert!(!waiting(&mut tx, me).await.contains(&coop));
     tx.rollback().await.unwrap();
 }
+
+#[actix_web::test]
+async fn test_db_sar_current_pb_counts_season_boards() {
+    use crate::controllers::{autosubmit::current_pb, submissions::map_by_id};
+    let (_, pool) = get_config().await.unwrap();
+    let map = map_by_id(&pool, "47458").await.unwrap().unwrap();
+    // Rolled back: a season running now with its copy of Portal Gun linked, and a player with no
+    // time on Portal Gun or any copy of it.
+    let mut tx = pool.begin().await.unwrap();
+    let player: String = sqlx::query_scalar(
+        "SELECT u.profile_number FROM users AS u WHERE NOT u.banned AND u.profile_number <> 'N/A' AND NOT EXISTS (              SELECT 1 FROM changelog AS cl JOIN maps AS m ON m.steam_id = cl.map_id              WHERE cl.profile_number = u.profile_number AND '47458' IN (m.steam_id, m.source_map))          ORDER BY u.profile_number LIMIT 1",
+    )
+    .fetch_one(&mut *tx)
+    .await
+    .unwrap();
+    let season: i32 = sqlx::query_scalar(
+        "INSERT INTO games (game_name, slug, kind, base_game_id, starts_at, ends_at)          VALUES ('Test season', 'test-season-pb', 'season', 1, (now() AT TIME ZONE 'utc') - interval '1 day', (now() AT TIME ZONE 'utc') + interval '1 day') RETURNING id",
+    )
+    .fetch_one(&mut *tx)
+    .await
+    .unwrap();
+    let chapter: i32 = sqlx::query_scalar("INSERT INTO chapters (game_id) VALUES ($1) RETURNING id").bind(season).fetch_one(&mut *tx).await.unwrap();
+    sqlx::query("INSERT INTO maps (steam_id, name, chapter_id, source_map) VALUES ('test-s-47458', 'Portal Gun', $1, '47458')")
+        .bind(chapter)
+        .execute(&mut *tx)
+        .await
+        .unwrap();
+    let cat: i32 = sqlx::query_scalar("INSERT INTO categories (name, map_id) VALUES ('any%', 'test-s-47458') RETURNING id").fetch_one(&mut *tx).await.unwrap();
+    sqlx::query("UPDATE maps SET default_cat_id = $1 WHERE steam_id = 'test-s-47458'").bind(cat).execute(&mut *tx).await.unwrap();
+    sqlx::query("INSERT INTO map_links (map_a, map_b, created_at) VALUES ('47458', 'test-s-47458', (now() AT TIME ZONE 'utc') - interval '1 day')")
+        .execute(&mut *tx)
+        .await
+        .unwrap();
+    async fn run(tx: &mut sqlx::Transaction<'_, sqlx::Postgres>, player: &str, map: &str, score: i32, days_ago: i32) {
+        sqlx::query(
+            "INSERT INTO changelog (timestamp, profile_number, score, map_id, category_id, verified, submission)              VALUES ((now() AT TIME ZONE 'utc') - make_interval(days => $5), $1, $2, $3, (SELECT default_cat_id FROM maps WHERE steam_id = $3), $4, 0)",
+        )
+        .bind(player)
+        .bind(score)
+        .bind(map)
+        .bind(true)
+        .bind(days_ago)
+        .execute(&mut **tx)
+        .await
+        .unwrap();
+    }
+    async fn pb(tx: &mut sqlx::Transaction<'_, sqlx::Postgres>, map: &crate::controllers::submissions::BoardMap, player: &str) -> Option<i32> {
+        current_pb(&mut **tx, map, player).await.unwrap().map(|pb| pb.score)
+    }
+
+    assert_eq!(pb(&mut tx, &map, &player).await, None);
+    // A PB from before the season: none for the season yet, so SAR submits any time.
+    run(&mut tx, &player, "47458", 2300, 10).await;
+    assert_eq!(pb(&mut tx, &map, &player).await, None);
+    // A slower season PB: SAR submits anything faster than it.
+    run(&mut tx, &player, "test-s-47458", 2700, 0).await;
+    assert_eq!(pb(&mut tx, &map, &player).await, Some(2700));
+    // A new PB on the main board is copied to the season's, so it's the PB on both.
+    run(&mut tx, &player, "47458", 2250, 0).await;
+    assert_eq!(pb(&mut tx, &map, &player).await, Some(2250));
+    // Once the season is over, only the main board counts.
+    sqlx::query("UPDATE changelog SET banned = true WHERE profile_number = $1 AND score = 2250").bind(&player).execute(&mut *tx).await.unwrap();
+    sqlx::query("UPDATE games SET ends_at = (now() AT TIME ZONE 'utc') - interval '1 hour' WHERE id = $1").bind(season).execute(&mut *tx).await.unwrap();
+    assert_eq!(pb(&mut tx, &map, &player).await, Some(2300));
+    tx.rollback().await.unwrap();
+}

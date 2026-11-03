@@ -112,7 +112,10 @@ pub async fn submit_map(pool: &PgPool, map_id: &str) -> Result<Option<(BoardMap,
 }
 
 /// The player's current PB on a map, as SAR compares against it: verified, not banned, in the
-/// map's main category (a time waiting for its demo doesn't count, as on the old boards).
+/// map's main category (a time waiting for its demo doesn't count, as on the old boards). With
+/// boards linked to the map now (a season's copy of it), the slowest of their PBs across them, and
+/// none when one of those boards has no time of theirs yet: SAR only submits a run faster than
+/// this, and the run is recorded on each board where it's a PB.
 #[derive(Debug, FromRow)]
 pub struct CurrentPb {
     pub id: i64,
@@ -120,18 +123,31 @@ pub struct CurrentPb {
     pub timestamp: Option<chrono::NaiveDateTime>,
 }
 
-pub async fn current_pb(pool: &PgPool, map: &BoardMap, profile_number: &str) -> Result<Option<CurrentPb>, sqlx::Error> {
+pub async fn current_pb<'e>(db: impl sqlx::PgExecutor<'e>, map: &BoardMap, profile_number: &str) -> Result<Option<CurrentPb>, sqlx::Error> {
     sqlx::query_as::<_, CurrentPb>(
         r#"
-            SELECT id, score, timestamp FROM changelog
-            WHERE profile_number = $1 AND map_id = $2 AND category_id = $3 AND verified AND NOT banned
-            ORDER BY score ASC, timestamp ASC LIMIT 1
+            WITH boards AS (
+                SELECT $2::varchar AS steam_id, $3::int AS cat_id
+                UNION ALL
+                SELECT steam_id, default_cat_id FROM linked_maps($2, (now() AT TIME ZONE 'utc')::timestamp)
+            ),
+            bests AS (
+                SELECT pb.id, pb.score, pb.timestamp FROM boards AS b
+                LEFT JOIN LATERAL (
+                    SELECT id, score, timestamp FROM changelog
+                    WHERE profile_number = $1 AND map_id = b.steam_id AND category_id = b.cat_id AND verified AND NOT banned
+                    ORDER BY score ASC, timestamp ASC LIMIT 1
+                ) AS pb ON true
+            )
+            SELECT id, score, timestamp FROM bests
+            WHERE NOT EXISTS (SELECT 1 FROM bests WHERE id IS NULL)
+            ORDER BY score DESC LIMIT 1
         "#,
     )
     .bind(profile_number)
     .bind(&map.steam_id)
     .bind(map.default_cat_id)
-    .fetch_optional(pool)
+    .fetch_optional(db)
     .await
 }
 

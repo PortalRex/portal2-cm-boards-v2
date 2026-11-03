@@ -139,7 +139,9 @@ async fn validate_user(req: HttpRequest, pool: web::Data<PgPool>, config: web::D
 }
 
 /// **POST** The key owner's current PB on a map (form: `auth_hash`, `mapId`): verified and not
-/// banned, so a time still waiting for its demo doesn't stop SAR submitting the demo. Answers
+/// banned, so a time still waiting for its demo doesn't stop SAR submitting the demo. While other
+/// boards are linked to the map (a season's copy), the slowest of its PBs across them, or none
+/// when one has no time of theirs: SAR then submits a run that's a PB on any of them. Answers
 /// `{ "id", "score", "map_id", "profile_number", "time_gained" }` with the score as a string (SAR
 /// reads it so), or `{}` without one.
 ///
@@ -156,7 +158,7 @@ async fn current_pb(req: HttpRequest, pool: web::Data<PgPool>, config: web::Data
     let Some((map, _)) = form_map(&pool, &form).await? else {
         return Ok(bad("No valid Map Id Provided"));
     };
-    Ok(HttpResponse::Ok().json(match autosubmit::current_pb(&pool, &map, &owner.profile_number).await? {
+    Ok(HttpResponse::Ok().json(match autosubmit::current_pb(pool.get_ref(), &map, &owner.profile_number).await? {
         Some(pb) => json!({
             "id": pb.id.to_string(),
             "score": pb.score.to_string(),
