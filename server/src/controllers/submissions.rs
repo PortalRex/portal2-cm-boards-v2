@@ -30,7 +30,8 @@ pub struct DemoInfo {
     pub map_name: Option<String>,
     pub game_directory: Option<String>,
     pub client_name: Option<String>,
-    /// Board time in centiseconds, from the end-of-run scoreboard (None: no finished run).
+    /// Board time in centiseconds, from the end-of-run scoreboard, or SAR's time for a co-op run
+    /// the game didn't write to the leaderboard (`timeSource`; None: no finished run).
     pub time_score: Option<i32>,
     pub portal_score: Option<i32>,
     #[serde(default)]

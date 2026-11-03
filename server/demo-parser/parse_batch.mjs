@@ -1,10 +1,12 @@
 // Reads many demos in parallel (run by the server's demo parsing job, tools/demo_parse.rs) and
 // prints one JSON line per demo:
 //
-//   { "id", "ok", "error", "mapName", "timeScore", "portalScore", "players": [{ "steamId", "name" }],
+//   { "id", "ok", "error", "mapName", "timeScore", "portalScore", "timeSource", "players": [{ "steamId", "name" }],
 //     "hostSteamId", "sarVersion", "sarChecksum", "sarApproved", "segments", "checks" }
 //
-// - timeScore / portalScore: the end-of-run challenge mode scoreboard (null without a finished run).
+// - timeScore / portalScore: the end-of-run challenge mode scoreboard (null without a finished run),
+//   or SAR's time for a co-op run the game didn't write to the leaderboard (timeSource "sar", no
+//   portal count; see cm_time.mjs).
 // - players: the userinfo string table, plus (co-op maps) a scan of the whole demo for player
 //   records, which also finds a partner who joined after recording started (as parse_demo.mjs).
 // - hostSteamId: who hosted (and so played blue): the recording player when the demo's server is
@@ -25,8 +27,9 @@ import { cpus } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Worker, isMainThread, parentPort, workerData } from "node:worker_threads";
-import { Messages, NetMessages, ScoreboardTempUpdate, SourceDemo, SourceDemoParser } from "@nekz/sdp";
+import { Messages, SourceDemo, SourceDemoParser } from "@nekz/sdp";
 import { isSarMessage, readSarMessages, SarDataType } from "@nekz/sdp/utils";
+import { finishedRun } from "./cm_time.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const STEAM_BASE = 76561197960265728n;
@@ -96,7 +99,7 @@ function parse(path, lists) {
   } catch {
     // Best effort: the scoreboard may already have been read.
   }
-  const scores = demo.findPacket((m) => m instanceof NetMessages.SvcUserMessage && m.userMessage instanceof ScoreboardTempUpdate)?.userMessage;
+  const run = finishedRun(demo);
 
   const players = new Map();
   try {
@@ -158,8 +161,7 @@ function parse(path, lists) {
   return {
     ok: true,
     mapName: demo.mapName ?? null,
-    timeScore: scores?.timeScore ?? null,
-    portalScore: scores?.portalScore ?? null,
+    ...run,
     players: list,
     hostSteamId,
     sarVersion,

@@ -307,6 +307,17 @@ All under `/api/v1`. Auth: **public**, **signed in**, **staff** (any tier or ser
   scoreboard (time in centiseconds, portal count), and the players. Players come from the userinfo string table plus a scan
   of the whole file, which also finds a co-op partner who joined after recording started. The server runs it with a 30 s
   timeout.
+- **A co-op run without a scoreboard message gets SAR's time** (`server/demo-parser/cm_time.mjs`, shared by
+  `parse_demo.mjs` and `parse_batch.mjs`). The game skips writing the leaderboard when it has lost its matchmaking session
+  (the map keeps running), so neither player's demo gets the scoreboard message and Steam doesn't get the time either
+  (board changelog 359637/359638). The host's SAR still sends the game's challenge mode timer to the partner as a
+  `cm-flags` chat message at the flags, and both demos record it. The parser takes that time when the message comes from
+  the host (entity 1; the server tags chat with its sender), has the run's end flag, the game ended the run
+  (`leaderboard_open 1`), and the run isn't faster than the demo's server ticks from the start (or from the demo's first
+  tick) by more than 20. Such demos parse as `timeSource: "sar"` with no portal count; others say `"scoreboard"`. On 3000
+  archive demos, SAR's time matched the scoreboard in all 865 co-op demos that have both. SP demos have no fallback (SAR
+  sends nothing there; the SP demos without a scoreboard are pre-2023 ones cut short at the flags). Tests: `npm test` in
+  `server/demo-parser`.
 - Uploads are handled four at a time (`tools/upload_slots.rs`): every upload endpoint (`POST /submissions/preview`,
   `POST /submissions`, `POST /runs/{id}/demo`, `POST /api-v2/auto-submit`) takes a slot before reading the demo and keeps it
   until it answers, so at most four demos sit in memory and four parsers run at once. An upload waits up to 15 s for a slot,

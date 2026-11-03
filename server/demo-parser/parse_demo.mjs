@@ -1,16 +1,20 @@
 // Reads a submitted Portal 2 / Portal Stories: Mel demo and prints its metadata as JSON:
 //
-//   { "mapName", "gameDirectory", "clientName", "timeScore", "portalScore", "players": [{ "steamId", "name" }] }
+//   { "mapName", "gameDirectory", "clientName", "timeScore", "portalScore", "timeSource",
+//     "players": [{ "steamId", "name" }] }
 //
 // timeScore / portalScore come from the challenge mode scoreboard message the game sends at
 // the end of a run (timeScore is the board time in centiseconds); they're null when the demo
-// doesn't contain a finished run. players are read from the userinfo string table, plus a scan
-// of the whole demo for player records, which also finds a co-op partner who joined after
-// recording started. Uses @nekz/sdp, as board.portal2.sr's demo validator did.
+// doesn't contain a finished run. A co-op run the game didn't write to the leaderboard has no
+// scoreboard message, and gets SAR's time instead (no portal count): timeSource says which
+// ("scoreboard", "sar" or null; see cm_time.mjs). players are read from the userinfo string
+// table, plus a scan of the whole demo for player records, which also finds a co-op partner who
+// joined after recording started. Uses @nekz/sdp, as board.portal2.sr's demo validator did.
 //
 // Usage: node parse_demo.mjs <demo path>
 import { readFileSync } from "node:fs";
-import { NetMessages, ScoreboardTempUpdate, SourceDemo, SourceDemoParser } from "@nekz/sdp";
+import { SourceDemo, SourceDemoParser } from "@nekz/sdp";
+import { finishedRun } from "./cm_time.mjs";
 
 const STEAM_BASE = 76561197960265728n;
 
@@ -69,8 +73,7 @@ try {
     // Best effort: the scoreboard may already have been read.
   }
 
-  const scoreboard = demo.findPacket((m) => m instanceof NetMessages.SvcUserMessage && m.userMessage instanceof ScoreboardTempUpdate);
-  const scores = scoreboard?.userMessage;
+  const run = finishedRun(demo);
 
   const players = new Map();
   try {
@@ -90,8 +93,7 @@ try {
       mapName: demo.mapName ?? null,
       gameDirectory: demo.gameDirectory ?? null,
       clientName: demo.clientName ?? null,
-      timeScore: scores?.timeScore ?? null,
-      portalScore: scores?.portalScore ?? null,
+      ...run,
       players: [...players.values()],
     }),
   );
