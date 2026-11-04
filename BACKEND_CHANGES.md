@@ -51,6 +51,7 @@ New databases get everything from `db/dbscript/schema.sql`. An existing database
 | `20261113000000_wr_webhooks.sql` | `games.wr_webhook_url` (each game's Discord webhook for WR announcements), `wr_announcements` (runs the announcer checked, so each is posted at most once) and `wr_announcer_state` (it starts after the newest run when the migration ran, so no old WR is posted). |
 | `20261114000000_old_wrs.sql` | `old_wrs`: world records from before the boards' history (2011–2012, from videos and the old iVerb boards), with the day (and whether the time or only the month is known), the player's name and the source. Shown only in a map's WR history; boards, PBs and points don't see them. Filled by `old_wrs.py`. |
 | `20261115000000_run_comments.sql` | `changelog.note_locked` (staff set or cleared the run's comment: its player can't change it) and `changelog.note_edited` (changed on the boards: the old-board sync leaves the comment as it is, cleared ones too); `changelog.note` widened from 100 to 500 characters, as submissions already took (a longer comment failed the insert). Recreates the `season_changelog_update` trigger around the type change, as `20261022000000_run_stats.sql` left it. |
+| `20261116000000_held_demos.sql` | `held_demos`: demos refused at submission for a reason that may be the parser's or the game's, kept for staff (player, map, how it came, the time SAR sent, the refusal, the file and its SHA-256, what the parser read, Submit Run's comment and video, and staff's answer). See [§8](#8-run-submissions-and-demos). |
 
 `import_boards.py` builds a fresh database from the old boards' MySQL dumps and runs the BSP-name step itself (see
 [§10](#10-import-and-maintenance-scripts)).
@@ -183,6 +184,12 @@ All under `/api/v1`. Auth: **public**, **signed in**, **staff** (any tier or ser
 | `GET /admin/reports?status=&before=` | staff | Run reports (`open` by default) with the reported run. |
 | `GET /admin/reports/count` | staff | Open report count. |
 | `PUT /admin/reports/{id}` | staff | Resolve, dismiss or reopen a report (optionally every report on the run). |
+| `GET /admin/held-demos?status=&before=` | staff | Held demos (`pending` by default; `accepted`, `dismissed`, `all`), with what the parser read. |
+| `GET /admin/held-demos/count` | staff | `{ pending }`: held demos waiting. |
+| `GET /admin/held-demos/{id}/file` | staff | Download a waiting held demo. |
+| `POST /admin/held-demos/{id}/recheck` | staff | Have the parser read it again (after a parser fix); answers `{ parsed }`. |
+| `POST /admin/held-demos/{id}/accept` | staff | Record its run as the submission would have been (`{ note }`); answers as Submit Run. |
+| `POST /admin/held-demos/{id}/dismiss` | staff | Dismiss it (`{ note }`); its file is deleted. |
 | `PUT /admin/users/{id}/banned` | mod | Ban / unban a profile (hides all runs, ends sessions; staff must lose their role first). |
 | `PUT /admin/users/{id}/display` | mod | Set the shown name and/or picture (`default`, `steam` or an https address); locked against sign-in and the player's own changes. |
 | `PUT /admin/users/{id}/role` | admin | Set a staff tier. |
@@ -318,6 +325,22 @@ All under `/api/v1`. Auth: **public**, **signed in**, **staff** (any tier or ser
   archive demos, SAR's time matched the scoreboard in all 865 co-op demos that have both. SP demos have no fallback (SAR
   sends nothing there; the SP demos without a scoreboard are pre-2023 ones cut short at the flags). Tests: `npm test` in
   `server/demo-parser`.
+- **Held demos** (`controllers/held_demos.rs`, `held_demos`): a refusal that may be the parser's or the game's fault
+  rather than the player's no longer deletes the demo. Submit Run keeps a player's own demo that the parser couldn't
+  read (a file with a demo header) or that has no finished run (the player in it, a board map); SAR's auto-submit
+  keeps one it couldn't read, or the key owner's own demo of the map without a finished run or with another time than
+  the one SAR sent. The player is told "The demo has been kept for the moderators to look at." (SAR's auto-submit
+  ignores the answer's text; the player sees SAR's usual error toast). Not kept: files that aren't demos, demos of
+  other maps or without the player, runs that aren't an improvement, and admins' manual entries. Each player may have
+  10 waiting and the board 500; beyond that, or when the same file from the player is already waiting, nothing new is
+  kept. Files go to `DEMO.STORAGE/held`. Every held demo is logged as `demo.held` (as from no one, like a run report,
+  so it reaches the staff inbox; `GET /admin/inbox` adds `held_demos`, the waiting count). Staff (every tier) download
+  it, re-check it, **accept** it, which reads it again and records its run through Submit Run's path (`submission` 1 or
+  2 as it came, the demo's own time, else SAR's; the same improvement and co-op rules) and is logged as
+  `held_demo.accept` on the run, or **dismiss** it (`held_demo.dismiss`). Either deletes the held file. A demo without
+  a known map or time can't be accepted as it is: staff download it and enter the run by hand in Submit Run. A held
+  demo is locked while it's being accepted or dismissed, so two staff can't record it twice. `POST /runs/{id}/demo`
+  (adding a demo to a pending run) doesn't hold demos.
 - Uploads are handled four at a time (`tools/upload_slots.rs`): every upload endpoint (`POST /submissions/preview`,
   `POST /submissions`, `POST /runs/{id}/demo`, `POST /api-v2/auto-submit`) takes a slot before reading the demo and keeps it
   until it answers, so at most four demos sit in memory and four parsers run at once. An upload waits up to 15 s for a slot,

@@ -35,6 +35,8 @@ pub mod submit_key;
 pub mod catalog;
 /// Anonymous run reports.
 pub mod reports;
+/// Refused demos kept for staff.
+pub mod held_demos;
 /// Endpoints for usefull statistics
 pub mod stats;
 /// User-related endpoints.

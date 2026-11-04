@@ -26,9 +26,10 @@ export function ActionBadge({ action, className }: { action: string; className?:
   )
 }
 
-/** Who did it: a player's report, one of the board's services, or the staff member. */
+/** Who did it: a player's report or held demo, one of the board's services, or the staff member. */
 export function ActedBy({ entry }: { entry: AuditEntry }) {
   if (entry.action === 'report.new') return <i className="text-text-muted">Player report</i>
+  if (entry.action === 'demo.held') return <i className="text-text-muted">Player upload</i>
   if (entry.via_service || !entry.admin_profile) return <i className="text-text-muted">Board service</i>
   return (
     <Link to="/profile/$profileId" params={{ profileId: entry.admin_profile }}>

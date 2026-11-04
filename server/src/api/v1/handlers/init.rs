@@ -1,7 +1,7 @@
 use actix_web::web;
 
 use crate::api::v1::handlers::{
-    admin::*, auth::*, changelog::*, chapters::*, countries::*, coop::*, game_boards::*, link_preview::*, maps::*, moderation::*, points::*, runs::*, sp::*, stats::*, submissions::*, submit_key::*, catalog::*, reports::*,
+    admin::*, auth::*, changelog::*, chapters::*, countries::*, coop::*, game_boards::*, link_preview::*, maps::*, moderation::*, points::*, runs::*, sp::*, stats::*, submissions::*, submit_key::*, catalog::*, reports::*, held_demos::*,
     users::*,
 };
 
@@ -67,6 +67,12 @@ pub fn init(cfg: &mut web::ServiceConfig) {
             .service(admin_reports_count)
             .service(admin_reports)
             .service(admin_report_update)
+            .service(admin_held_demos_count)
+            .service(admin_held_demos)
+            .service(admin_held_demo_file)
+            .service(admin_held_demo_recheck)
+            .service(admin_held_demo_accept)
+            .service(admin_held_demo_dismiss)
             .service(admin_game_create)
             .service(admin_game_update)
             .service(admin_game_delete)

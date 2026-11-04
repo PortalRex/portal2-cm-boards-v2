@@ -100,6 +100,8 @@ pub mod site_stats;
 pub mod wr_stats;
 /// Anonymous run reports
 pub mod reports;
+/// Refused demos kept for staff
+pub mod held_demos;
 /// Staff-only notes on runs
 pub mod staff_notes;
 /// Controllers for users

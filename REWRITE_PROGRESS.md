@@ -69,6 +69,15 @@
 
 ## Log
 <!-- Newest first. One entry per finished item: date, what was done, commit, tests added. -->
+- 2026-11-03: Asked for: keep refused demos for moderator review instead of deleting them. Staff panel section
+  `?section=held` ("Demos", with the waiting count, every staff tier; `components/held-demos.tsx`,
+  `api/held-demos.ts`): waiting / accepted / dismissed / all, each demo with how it came (SAR or Submit Run), map,
+  player, the time SAR sent, the refusal, what the parser reads (map file, time or "no finished run", SAR's timer,
+  players, a time that isn't SAR's), the player's comment and video; Download, Re-check, Dismiss and Accept (with the
+  time it records; disabled with the reason when the map or time isn't known), a note for the audit log, and how a
+  reviewed one ended with its run. The audit log and the staff inbox show `demo.held` (by "Player upload"),
+  `held_demo.accept` and `held_demo.dismiss`; the inbox links held demos to the section and counts the waiting ones.
+  Tests: 4 (held demos), 1 (inbox), admin sections updated.
 - 2026-11-02: Asked for: Score Updates for seasons. The list's header has the season picker the other pages
   use (`SeasonSelect`, `?season=`): a picked season lists its own runs (its ranks and points), and the weekly recap
   and activity graph follow it. The address keeps the game's board and chamber filters, and the request asks for the

@@ -89,7 +89,8 @@ async fn admin_audit(_auth: AdminOrService, pool: web::Data<PgPool>, query: web:
 }
 
 /// **GET** The staff inbox (the avatar's inbox in the top bar): the latest audit-log entries,
-/// `unread` (new since the viewer last opened it, not counting their own) and `seen_id`.
+/// `unread` (new since the viewer last opened it, not counting their own), `seen_id`, and how many
+/// run reports are open (`open_reports`) and held demos wait (`held_demos`).
 #[get("/admin/inbox")]
 async fn admin_inbox(auth: AdminOrService, pool: web::Data<PgPool>) -> Result<impl Responder> {
     let viewer = match &auth {

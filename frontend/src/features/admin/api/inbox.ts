@@ -12,6 +12,8 @@ export interface StaffInboxData {
   /** The entry the viewer has read their inbox up to. */
   seen_id: number | null
   open_reports: number
+  /** Held demos waiting for staff. */
+  held_demos: number
 }
 
 export const getInbox = (signal?: AbortSignal) => api.get<StaffInboxData>('/admin/inbox', { signal })

@@ -14,8 +14,12 @@
 //! other endpoints only read, so SAR still sees a working key). A submitted demo is checked like Submit Run's: of
 //! the map named, with the time named, and with the key's owner in it.
 use crate::{
-    api::v1::handlers::submissions::{bad, parse_upload, read_form_with, record_submission, DemoField, Form, Submission},
-    controllers::{autosubmit, submissions},
+    api::v1::handlers::submissions::{bad, is_demo_file, parse_upload, read_form_with, record_submission, refuse_and_hold, DemoField, Form, Submission},
+    controllers::{
+        autosubmit,
+        held_demos::{NewHeld, Source},
+        submissions,
+    },
     tools::{
         cache::CacheState,
         config::Config,
@@ -282,20 +286,41 @@ async fn auto_submit(req: HttpRequest, pool: web::Data<PgPool>, config: web::Dat
         return Ok(HttpResponse::Forbidden().body(crate::tools::private_site::READ_ONLY_MESSAGE));
     }
 
+    // A refusal that may be the parser's or the game's fault keeps the demo for staff (see
+    // refuse_and_hold).
+    let held = NewHeld {
+        profile_number: &owner.profile_number,
+        map_id: Some(&map.steam_id),
+        source: Source::AutoSubmit,
+        claimed_score: Some(score),
+        reason: "",
+        bytes,
+        parsed: None,
+        note: None,
+        youtube_id: None,
+    };
     let info = match parse_upload(&config, bytes).await {
         Ok(i) => i,
+        Err(e) if is_demo_file(bytes) => return Ok(refuse_and_hold(&pool, &config, NewHeld { reason: &e, ..held }).await),
         Err(e) => return Ok(bad(e)),
     };
     let same_map = matches!((info.map_name.as_deref(), bsp.as_deref()), (Some(a), Some(b)) if a.eq_ignore_ascii_case(b));
     if !same_map {
         return Ok(bad(format!("This demo is of {}, not {}.", info.map_name.as_deref().unwrap_or("another map"), map.name)));
     }
+    let in_demo = info.players.iter().any(|p| p.steam_id == owner.profile_number);
     let demo_score = match info.time_score {
         Some(t) if (t - score).abs() <= 1 => t,
-        Some(t) => return Ok(bad(format!("The demo's time is {}, not {}.", submissions::format_time(t), submissions::format_time(score)))),
-        None => return Ok(bad("This demo doesn't contain a finished challenge mode run.")),
+        other => {
+            let reason = match other {
+                Some(t) => format!("The demo's time is {}, not {}.", submissions::format_time(t), submissions::format_time(score)),
+                None => "This demo doesn't contain a finished challenge mode run.".to_string(),
+            };
+            // Kept when it's the owner's own demo: the game or the parser may have the time wrong.
+            return Ok(if in_demo { refuse_and_hold(&pool, &config, NewHeld { reason: &reason, parsed: Some(&info), ..held }).await } else { bad(reason) });
+        }
     };
-    if !info.players.iter().any(|p| p.steam_id == owner.profile_number) {
+    if !in_demo {
         return Ok(bad("This demo doesn't have you in it."));
     }
     let partner = map

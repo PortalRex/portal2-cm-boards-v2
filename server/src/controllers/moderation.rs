@@ -56,7 +56,7 @@ pub struct AuditQuery {
     pub target_type: Option<String>,
     pub target_id: Option<String>,
     pub action: Option<String>,
-    /// "runs" (run and co-op actions) or "profiles".
+    /// "runs" (run, co-op and held-demo actions), "profiles" or "catalog".
     pub kind: Option<String>,
     /// Search: names (staff, player, co-op partner, profile), map names, the reason and catalog
     /// details contain it (ignoring case), or it's exactly a run id, Steam id or target id.
@@ -149,7 +149,11 @@ pub async fn list_actions(pool: &PgPool, q: &AuditQuery) -> Result<Vec<AdminActi
                         WHEN a.target_type = 'run' AND a.target_id ~ '^[0-9]+$' THEN a.target_id::bigint
                         WHEN a.target_type = 'coop' AND a.target_id ~ '^[0-9]+$' THEN (SELECT cl_id1 FROM coop_bundled WHERE id = a.target_id::bigint)
                     END AS run_id,
-                    a.details -> 'runs' -> 0 AS deleted
+                    -- A deleted run's saved copy; for a held demo, the player, map and time it has.
+                    CASE
+                        WHEN a.target_type = 'held_demo' THEN a.details || jsonb_build_object('score', a.details -> 'claimed_score')
+                        ELSE a.details -> 'runs' -> 0
+                    END AS deleted
                 FROM admin_actions AS a
                 WHERE ($1::bigint IS NULL OR a.id < $1)
                   AND ($2::text IS NULL OR a.admin_profile = $2)
@@ -157,7 +161,7 @@ pub async fn list_actions(pool: &PgPool, q: &AuditQuery) -> Result<Vec<AdminActi
                   AND ($4::text IS NULL OR a.target_id = $4)
                   AND ($5::text IS NULL OR a.action = $5)
                   AND ($7::text IS NULL
-                       OR ($7 = 'runs' AND a.target_type IN ('run', 'coop'))
+                       OR ($7 = 'runs' AND a.target_type IN ('run', 'coop', 'held_demo'))
                        OR ($7 = 'profiles' AND a.target_type = 'profile')
                        OR ($7 = 'catalog' AND a.target_type IN ('game', 'chapter', 'map', 'category')))
             ),
@@ -882,7 +886,7 @@ pub async fn set_role(pool: &PgPool, actor: &AdminOrService, profile_number: &st
 
 /// The staff inbox: the latest audit-log entries, how many are new to `viewer` (entries after
 /// the last one they saw, not counting their own; the service token gets no count) and how many
-/// run reports are open.
+/// run reports are open and how many held demos wait.
 pub async fn inbox(pool: &PgPool, viewer: Option<&str>, limit: i64) -> Result<Value, sqlx::Error> {
     let items = list_actions(pool, &AuditQuery { limit: Some(limit), ..Default::default() }).await?;
     let (seen_id, unread) = match viewer {
@@ -898,7 +902,8 @@ pub async fn inbox(pool: &PgPool, viewer: Option<&str>, limit: i64) -> Result<Va
         None => (None, 0),
     };
     let open_reports = crate::controllers::reports::open_count(pool).await?;
-    Ok(json!({ "seen_id": seen_id, "unread": unread, "items": items, "open_reports": open_reports }))
+    let held_demos = crate::controllers::held_demos::pending_count(pool).await?;
+    Ok(json!({ "seen_id": seen_id, "unread": unread, "items": items, "open_reports": open_reports, "held_demos": held_demos }))
 }
 
 /// The newest audit-log entry, and the entry `viewer` has read their inbox up to.

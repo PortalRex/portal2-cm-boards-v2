@@ -12,6 +12,7 @@ use crate::{
     controllers::{
         moderation::{self, Refused},
         autosubmit,
+        held_demos::{self, NewHeld, Source},
         submissions::{self, BoardMap, DemoInfo, NewRun, Recorded},
     },
     models::users::Users,
@@ -136,15 +137,38 @@ pub(crate) async fn save_demo(config: &Config, bytes: &[u8], name: &str) -> std:
     Ok(path)
 }
 
+/// Whether `bytes` start like a Source engine demo (its header).
+pub(crate) fn is_demo_file(bytes: &[u8]) -> bool {
+    bytes.len() >= 1072 && &bytes[..8] == b"HL2DEMO\0"
+}
+
 /// Parses an uploaded demo via a temporary file.
 pub(crate) async fn parse_upload(config: &Config, bytes: &[u8]) -> std::result::Result<DemoInfo, String> {
-    if bytes.len() < 1072 || &bytes[..8] != b"HL2DEMO\0" {
+    if !is_demo_file(bytes) {
         return Err("That file isn't a Source engine demo (.dem).".into());
     }
     let path = save_demo(config, bytes, &format!("upload_{}.dem.tmp", crate::tools::auth::random_token())).await?;
     let info = submissions::parse_demo(&config.demo, &path).await;
     let _ = tokio::fs::remove_file(&path).await;
     info
+}
+
+/// What a player is told when their refused demo was kept for staff.
+const HELD: &str = "The demo has been kept for the moderators to look at.";
+
+/// Refuses an upload, keeping the demo for staff when it can be (see [held_demos]): the refusal
+/// then says so. Used for refusals that may be the parser's or the game's fault rather than the
+/// player's: a demo that couldn't be read, without a finished run, or with another time than SAR's.
+pub(crate) async fn refuse_and_hold(pool: &PgPool, config: &Config, held: NewHeld<'_>) -> HttpResponse {
+    let reason = held.reason.to_string();
+    match held_demos::hold(pool, &config.demo, held).await {
+        Ok(true) => bad(format!("{reason} {HELD}")),
+        Ok(false) => bad(reason),
+        Err(e) => {
+            log::error!("holding a refused demo: {e}");
+            bad(reason)
+        }
+    }
 }
 
 /// The board map a demo is for (Mel's shared Story/Advanced maps use `mel_mode`).
@@ -244,10 +268,34 @@ async fn submission_create(
         return Ok(HttpResponse::Forbidden().body("Only admins can enter the map, time or players by hand."));
     }
 
+    // A refused demo of the player's own is kept for staff (see [refuse_and_hold]), with the
+    // comment and video they gave.
+    let note = form.get("comment").map(|c| c.chars().take(500).collect::<String>());
+    let youtube = form.get("youtube").and_then(submissions::youtube_id);
+    // Only a player's own submission: admins entering a run by hand already have the demo.
+    let hold = form.demo.as_deref().filter(|_| overrides.is_empty()).map(|bytes| NewHeld {
+        profile_number: &user.profile_number,
+        map_id: None,
+        source: Source::Submit,
+        claimed_score: None,
+        reason: "",
+        bytes,
+        parsed: None,
+        note: note.as_deref(),
+        youtube_id: youtube.as_deref(),
+    });
+
     // The demo, when there is one.
     let info = match form.demo.as_deref() {
         Some(bytes) => match parse_upload(&config, bytes).await {
             Ok(i) => Some(i),
+            // A demo the parser couldn't read (the parser may be what's wrong).
+            Err(e) if is_demo_file(bytes) => {
+                return Ok(match hold {
+                    Some(held) => refuse_and_hold(pool.get_ref(), &config, NewHeld { reason: &e, ..held }).await,
+                    None => bad(e),
+                })
+            }
             Err(e) => return Ok(bad(e)),
         },
         None if is_admin => None,
@@ -272,7 +320,16 @@ async fn submission_create(
             None => return Ok(bad("Enter the time as 1:23.45 or 23.45.")),
         },
         (None, Some(cs)) if cs > 0 => cs,
-        _ => return Ok(bad("This demo doesn't contain a finished challenge mode run.")),
+        _ => {
+            let reason = "This demo doesn't contain a finished challenge mode run.";
+            // The player's own demo of a board map: the game or the parser may have missed the
+            // run's end (as when a co-op game loses its session and writes no scoreboard).
+            let own = info.as_ref().filter(|i| i.players.iter().any(|p| p.steam_id == user.profile_number));
+            return Ok(match (hold, own) {
+                (Some(held), Some(i)) => refuse_and_hold(pool.get_ref(), &config, NewHeld { reason, map_id: Some(&map.steam_id), parsed: Some(i), ..held }).await,
+                _ => bad(reason),
+            });
+        }
     };
 
     // Player: the admin's choice, else the signed-in player, who must be in the demo.
@@ -297,14 +354,9 @@ async fn submission_create(
     } else {
         None
     };
-    let note = form.get("comment").map(|c| c.chars().take(500).collect::<String>());
-    let youtube = match form.get("youtube") {
-        Some(y) => match submissions::youtube_id(y) {
-            Some(id) => Some(id),
-            None => return Ok(bad("That doesn't look like a YouTube link.")),
-        },
-        None => None,
-    };
+    if form.get("youtube").is_some() && youtube.is_none() {
+        return Ok(bad("That doesn't look like a YouTube link."));
+    }
     let submission = Submission {
         map,
         profile_number,

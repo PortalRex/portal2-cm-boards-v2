@@ -1266,3 +1266,87 @@ async fn test_db_sar_current_pb_counts_season_boards() {
     assert_eq!(pb(&mut tx, &map, &player).await, Some(2300));
     tx.rollback().await.unwrap();
 }
+
+#[actix_web::test]
+async fn test_db_held_demos_kept_once_up_to_a_limit_and_reviewed() {
+    use crate::controllers::{
+        held_demos::{self, NewHeld, Source, MAX_PENDING_PER_PLAYER},
+        moderation::{list_actions, AuditQuery, Refused},
+    };
+    use crate::tools::{auth::AdminOrService, config::DemoConfig};
+    let (_, pool) = get_config().await.unwrap();
+    // Not in a transaction (holding a demo writes its file), so it cleans up after itself.
+    let dir = std::env::temp_dir().join(format!("held-demos-test-{}", std::process::id()));
+    let config = DemoConfig { storage: Some(dir.to_string_lossy().into_owned()), ..Default::default() };
+    let player: String = sqlx::query_scalar(
+        "SELECT profile_number FROM users AS u WHERE NOT banned AND profile_number <> 'N/A'
+           AND NOT EXISTS (SELECT 1 FROM held_demos AS h WHERE h.profile_number = u.profile_number) ORDER BY profile_number LIMIT 1",
+    )
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    fn held<'a>(player: &'a str, bytes: &'a [u8]) -> NewHeld<'a> {
+        NewHeld {
+            profile_number: player,
+            map_id: Some("52777"),
+            source: Source::AutoSubmit,
+            claimed_score: Some(650),
+            reason: "This demo doesn't contain a finished challenge mode run.",
+            bytes,
+            parsed: None,
+            note: None,
+            youtube_id: None,
+        }
+    }
+    let ids = |pool: PgPool, player: String| async move {
+        sqlx::query_as::<_, (i64, String)>("SELECT id, file_name FROM held_demos WHERE profile_number = $1 AND status = 'pending' ORDER BY id")
+            .bind(player)
+            .fetch_all(&pool)
+            .await
+            .unwrap()
+    };
+
+    assert!(held_demos::hold(&pool, &config, held(&player, b"demo 0")).await.unwrap());
+    assert!(held_demos::hold(&pool, &config, held(&player, b"demo 0")).await.unwrap(), "the same file again counts as kept");
+    let kept = ids(pool.clone(), player.clone()).await;
+    assert_eq!(kept.len(), 1, "the same file is kept once");
+    assert!(dir.join("held").join(&kept[0].1).exists());
+    for i in 1..MAX_PENDING_PER_PLAYER {
+        assert!(held_demos::hold(&pool, &config, held(&player, format!("demo {i}").as_bytes())).await.unwrap());
+    }
+    assert!(!held_demos::hold(&pool, &config, held(&player, b"one too many")).await.unwrap(), "a player can't have more waiting");
+    let kept = ids(pool.clone(), player.clone()).await;
+    assert_eq!(kept.len() as i64, MAX_PENDING_PER_PLAYER);
+    let first = kept[0].0;
+
+    // Staff see it, and it's in the staff log with its player and map.
+    let listed = held_demos::list(&pool, Some("pending"), 200, None).await.unwrap();
+    let row = listed.iter().find(|r| r.id == first).expect("listed");
+    assert_eq!((row.map_name.as_deref(), row.claimed_score, row.source.as_str()), (Some("Turret Warehouse"), Some(650), "autosubmit"));
+    let logged = list_actions(&pool, &AuditQuery { kind: Some("runs".into()), target_type: Some("held_demo".into()), target_id: Some(first.to_string()), ..Default::default() })
+        .await
+        .unwrap();
+    assert_eq!(logged.len(), 1);
+    assert_eq!((logged[0].action.as_str(), logged[0].player.as_deref(), logged[0].map_id.as_deref(), logged[0].score), ("demo.held", Some(player.as_str()), Some("52777"), Some(650)));
+
+    // One review at a time: a second one is refused while the first holds it.
+    let mut tx = pool.begin().await.unwrap();
+    let pending = held_demos::lock_pending(&mut tx, first).await.unwrap().expect("locked");
+    let mut other = pool.begin().await.unwrap();
+    assert!(matches!(held_demos::lock_pending(&mut other, first).await.unwrap(), Err(Refused::Invalid(_))));
+    other.rollback().await.unwrap();
+    held_demos::review(&mut tx, &AdminOrService::Service, &pending, None, Some("  not a run  ")).await.unwrap();
+    tx.commit().await.unwrap();
+    held_demos::remove_file(&config, &pending).await;
+    let (status, note): (String, Option<String>) = sqlx::query_as("SELECT status, review_note FROM held_demos WHERE id = $1").bind(first).fetch_one(&pool).await.unwrap();
+    assert_eq!((status.as_str(), note.as_deref()), ("dismissed", Some("not a run")));
+    assert!(!dir.join("held").join(&kept[0].1).exists(), "a dismissed demo's file is deleted");
+    let mut tx = pool.begin().await.unwrap();
+    assert!(matches!(held_demos::lock_pending(&mut tx, first).await.unwrap(), Err(Refused::Invalid(_))), "already reviewed");
+    tx.rollback().await.unwrap();
+
+    let all: Vec<String> = sqlx::query_scalar("SELECT id::text FROM held_demos WHERE profile_number = $1").bind(&player).fetch_all(&pool).await.unwrap();
+    sqlx::query("DELETE FROM admin_actions WHERE target_type = 'held_demo' AND target_id = ANY($1)").bind(&all).execute(&pool).await.unwrap();
+    sqlx::query("DELETE FROM held_demos WHERE profile_number = $1").bind(&player).execute(&pool).await.unwrap();
+    let _ = std::fs::remove_dir_all(&dir);
+}

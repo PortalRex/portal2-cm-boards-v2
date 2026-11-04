@@ -34,6 +34,9 @@ pub struct DemoInfo {
     /// the game didn't write to the leaderboard (`timeSource`; None: no finished run).
     pub time_score: Option<i32>,
     pub portal_score: Option<i32>,
+    /// Where the time came from: "scoreboard" or "sar".
+    #[serde(default)]
+    pub time_source: Option<String>,
     #[serde(default)]
     pub players: Vec<DemoPlayer>,
 }

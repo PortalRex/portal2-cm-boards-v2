@@ -37,6 +37,9 @@ const TABS: { value: AuditKind; label: string; actions: string[] }[] = [
       'report.resolved',
       'report.dismissed',
       'report.open',
+      'demo.held',
+      'held_demo.accept',
+      'held_demo.dismiss',
     ],
   },
   {
@@ -298,8 +301,13 @@ function RunEntry({ entry, striped }: { entry: AuditEntry; striped: boolean }) {
   const map = entry.map_id
     ? getMap(catalog, entry.map_id, entry.game_id === 2 ? 'mel' : 'portal2')
     : undefined
+  // A held demo has no run (yet): it isn't a deleted one.
+  const held = entry.target_type === 'held_demo'
+  const gone = !entry.run_exists && !held
   const title =
-    map?.title || entry.map_name || (entry.map_id ? `Map ${entry.map_id}` : `Run #${entry.target_id}`)
+    map?.title ||
+    entry.map_name ||
+    (entry.map_id ? `Map ${entry.map_id}` : held ? 'Unknown map' : `Run #${entry.target_id}`)
   const ellipsis = 'truncate'
   return (
     <div>
@@ -309,16 +317,17 @@ function RunEntry({ entry, striped }: { entry: AuditEntry; striped: boolean }) {
           <RestoreButton entry={entry} />
         </span>
         <span className="flex min-w-0 flex-col upto1100:flex-row upto1100:flex-wrap upto1100:items-baseline upto1100:gap-x-2 upto1100:[grid-area:map]">
-          {map && entry.run_exists ? (
+          {map && !gone ? (
             <AppLink href={mapPath(map)} className={ellipsis}>
               {title}
             </AppLink>
           ) : (
-            <span className={cn(ellipsis, !entry.run_exists && 'text-text-muted line-through')}>{title}</span>
+            <span className={cn(ellipsis, gone && 'text-text-muted line-through')}>{title}</span>
           )}
           <small className="text-[13px] text-text-muted">
             {map?.chapter ?? ''}
-            {!entry.run_exists && ' · run deleted'}
+            {gone && ' · run deleted'}
+            {held && ' · held demo'}
           </small>
         </span>
         <span className="truncate upto1100:whitespace-normal upto1100:[grid-area:players]">

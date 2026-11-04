@@ -37,14 +37,16 @@ export const handlers: RequestHandler[] = [
   http.get(`${API}/user/submit-key`, () => HttpResponse.json({ has_key: false, created: null })),
   // No staff unless a test says otherwise.
   http.get(`${API}/staff`, () => HttpResponse.json([])),
-  // Staff panel: an empty log and no open reports unless a test says otherwise.
+  // Staff panel: an empty log, no open reports and no held demos unless a test says otherwise.
   http.get(`${API}/admin/audit`, () => HttpResponse.json([])),
   http.get(`${API}/admin/reports/count`, () => HttpResponse.json({ open: 0 })),
   http.get(`${API}/admin/reports`, () => HttpResponse.json([])),
+  http.get(`${API}/admin/held-demos/count`, () => HttpResponse.json({ pending: 0 })),
+  http.get(`${API}/admin/held-demos`, () => HttpResponse.json([])),
   http.get(`${API}/admin/jobs`, () => HttpResponse.json([])),
   // The staff inbox: empty, and its live wait never answers unless a test says otherwise.
   http.get(`${API}/admin/inbox`, () =>
-    HttpResponse.json({ items: [], unread: 0, seen_id: null, open_reports: 0 }),
+    HttpResponse.json({ items: [], unread: 0, seen_id: null, open_reports: 0, held_demos: 0 }),
   ),
   http.get(`${API}/admin/inbox/wait`, async () => {
     await delay('infinite')

@@ -56,6 +56,7 @@ const inbox = (over: Partial<StaffInboxData> = {}): StaffInboxData => ({
   unread: 3,
   seen_id: 8,
   open_reports: 2,
+  held_demos: 0,
   ...over,
 })
 
@@ -102,6 +103,41 @@ describe('the staff inbox', () => {
     const items = panel.getAllByRole('listitem')
     // New since entry 8, except the moderator's own entry 10.
     expect(items.map((li) => li.hasAttribute('data-new'))).toEqual([true, true, false, true])
+  })
+
+  it('links held demos, and their entries, to the held demos', async () => {
+    const held = entry({
+      id: 13,
+      action: 'demo.held',
+      target_type: 'held_demo',
+      target_id: '4',
+      reason: 'This demo doesn’t contain a finished challenge mode run.',
+      admin_profile: null,
+      admin_name: null,
+      run_id: null,
+      run_exists: false,
+      map_id: null,
+      map_name: null,
+      score: 650,
+    })
+    server.use(
+      http.get(`${API}/admin/inbox`, () =>
+        HttpResponse.json(inbox({ items: [held], unread: 0, open_reports: 0, held_demos: 1 })),
+      ),
+    )
+    await renderWithProviders(<StaffInbox />, { user: 'verifier' })
+    await userEvent.click(await screen.findByRole('button', { name: 'Staff inbox' }))
+    const panel = within(screen.getByRole('dialog', { name: 'Staff inbox' }))
+    expect(panel.getByRole('link', { name: /1\s*held demo to review/ })).toHaveAttribute(
+      'href',
+      '/admin?section=held',
+    )
+    const link = panel.getAllByRole('link').at(-1)!
+    expect(link).toHaveAttribute('href', '/admin?section=held')
+    expect(link).toHaveTextContent('Held demo Unknown map')
+    expect(link).toHaveTextContent('Runner · 6.50')
+    expect(link).toHaveTextContent('“This demo doesn’t contain a finished challenge mode run.”')
+    expect(link).toHaveTextContent('Player upload ·')
   })
 
   it('closes on Escape and on a click outside', async () => {

@@ -14,6 +14,7 @@ import { inboxQueryOptions, markInboxSeen, type StaffInboxData } from '../api/in
 import { useStaffInbox } from '../hooks/use-staff-inbox'
 
 const REPORTS = '/admin?section=reports'
+const HELD = '/admin?section=held'
 
 const DOTS: Record<ActionTone, string> = {
   info: 'bg-[#4f8cc9]',
@@ -24,26 +25,33 @@ const DOTS: Record<ActionTone, string> = {
 
 const count = (n: number) => (n > 99 ? '99+' : String(n))
 const reportsWord = (n: number) => `open report${n === 1 ? '' : 's'}`
+const heldWord = (n: number) => `held demo${n === 1 ? '' : 's'}`
 
-/** What an entry is about, and where it links: the run's map (a new report: the reports list), the profile, or the log. */
+/**
+ * What an entry is about, and where it links: the run's map (a new report: the reports list; a
+ * held demo: the held demos), the profile, or the log.
+ */
 function describe(catalog: Catalog, e: AuditEntry) {
-  if (e.run_id || e.map_id) {
+  const held = e.target_type === 'held_demo'
+  if (e.run_id || e.map_id || held) {
     const map = e.map_id ? getMap(catalog, e.map_id, e.game_id === 2 ? 'mel' : 'portal2') : undefined
     const players = [e.player_name || e.player, e.partner_name].filter(Boolean).join(' & ')
     const score = e.score != null ? formatScore(e.score) : null
     return {
-      title: map?.title || e.map_name || `Run #${e.target_id}`,
+      title: map?.title || e.map_name || (held ? 'Unknown map' : `Run #${e.target_id}`),
       sub: [players, score].filter(Boolean).join(' · '),
-      note: e.action === 'report.new' ? e.reason : null,
+      note: e.action === 'report.new' || e.action === 'demo.held' ? e.reason : null,
       // The run itself (its time, demo and the staff tools) while it exists, else its map.
       to:
         e.action === 'report.new'
           ? REPORTS
-          : e.run_exists && e.run_id != null
-            ? `/run/${e.run_id}`
-            : map
-              ? mapPath(map)
-              : '/admin',
+          : held
+            ? HELD
+            : e.run_exists && e.run_id != null
+              ? `/run/${e.run_id}`
+              : map
+                ? mapPath(map)
+                : '/admin',
     }
   }
   if (e.target_type === 'profile')
@@ -103,6 +111,7 @@ export function StaffInbox() {
 
   const unread = data?.unread ?? 0
   const openReports = data?.open_reports ?? 0
+  const heldDemos = data?.held_demos ?? 0
   const items = data?.items ?? []
   const reportsBadge =
     'min-w-4 rounded-lg bg-[#e0a63a] px-1 text-center text-[11px] leading-4 font-bold text-[#241a05]'
@@ -150,6 +159,15 @@ export function StaffInbox() {
               {reportsWord(openReports)} to review
             </AppLink>
           )}
+          {heldDemos > 0 && (
+            <AppLink
+              href={HELD}
+              className="flex items-center border-b border-line px-4 py-2.5 text-[15px] hover:bg-control-raised"
+            >
+              <span className={cn(reportsBadge, 'mr-2 inline-block h-4')}>{heldDemos}</span>
+              {heldWord(heldDemos)} to review
+            </AppLink>
+          )}
           {!items.length ? (
             <p className="m-0 p-4 text-text-muted">Nothing yet.</p>
           ) : (
@@ -188,9 +206,11 @@ export function StaffInbox() {
                         >
                           {e.action === 'report.new'
                             ? 'Player report'
-                            : e.via_service
-                              ? 'Board service'
-                              : e.admin_name}{' '}
+                            : e.action === 'demo.held'
+                              ? 'Player upload'
+                              : e.via_service
+                                ? 'Board service'
+                                : e.admin_name}{' '}
                           · {timeAgo(e.created_at)}
                         </span>
                       </span>

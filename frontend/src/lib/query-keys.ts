@@ -64,6 +64,8 @@ export const queryKeys = {
     inbox: () => ['admin', 'inbox'] as const,
     reports: (status: string) => ['admin', 'reports', status] as const,
     reportCount: () => ['admin', 'reports', 'count'] as const,
+    heldDemos: (status: string) => ['admin', 'held-demos', status] as const,
+    heldDemoCount: () => ['admin', 'held-demos', 'count'] as const,
     gameWebhook: (gameId: number) => ['admin', 'games', gameId, 'webhook'] as const,
   },
 }

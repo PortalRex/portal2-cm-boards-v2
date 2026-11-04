@@ -54,7 +54,10 @@ const page = (section: Parameters<typeof AdminPage>[0]['section'] = 'log') => (
 )
 
 beforeEach(() => {
-  server.use(http.get(`${API}/admin/reports/count`, () => HttpResponse.json({ open: 3 })))
+  server.use(
+    http.get(`${API}/admin/reports/count`, () => HttpResponse.json({ open: 3 })),
+    http.get(`${API}/admin/held-demos/count`, () => HttpResponse.json({ pending: 2 })),
+  )
 })
 
 describe('who sees the staff panel', () => {
@@ -71,23 +74,19 @@ describe('who sees the staff panel', () => {
     }
   })
 
-  it('gives every staff tier the changelog and reports (with the open count), admins also games and jobs', async () => {
+  it('gives every staff tier the changelog, reports and held demos (with their counts), admins also games and jobs', async () => {
     serveAudit([])
     const { unmount } = await renderWithProviders(page(), { user: 'verifier' })
     const sections = screen.getByRole('radiogroup', { name: 'Section' })
-    expect(
-      within(sections)
-        .getAllByRole('radio')
-        .map((r) => r.textContent),
-    ).toEqual(['Changelog', 'Reports'])
-    expect(await within(sections).findByText('3')).toBeInTheDocument()
-    unmount()
-    await renderWithProviders(page(), { user: 'admin' })
-    expect(
+    const labels = () =>
       within(screen.getByRole('radiogroup', { name: 'Section' }))
         .getAllByRole('radio')
-        .map((r) => r.textContent),
-    ).toEqual(['Changelog', 'Reports', 'Games', 'Jobs'])
+        .map((r) => r.textContent)
+    await waitFor(() => expect(labels()).toEqual(['Changelog', 'Reports3', 'Demos2']))
+    expect(within(sections).getByRole('radio', { name: /Demos/ })).toBeInTheDocument()
+    unmount()
+    await renderWithProviders(page(), { user: 'admin' })
+    await waitFor(() => expect(labels()).toEqual(['Changelog', 'Reports3', 'Demos2', 'Games', 'Jobs']))
   })
 
   it('shows the changelog when asked for an admin-only section without being an admin', async () => {
