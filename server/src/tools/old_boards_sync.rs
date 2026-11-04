@@ -563,9 +563,10 @@ async fn recheck_pending(
 }
 
 /// Deletes our copies of this board's demos (older versions of the sync saved one per run) that
-/// the old board still has under the same name, since it serves them now. A copy is kept when the
-/// old board has lost the demo or names another file for the run (then ours is a demo submitted
-/// here). Only files directly in the demo storage are touched, never the archive folders.
+/// the old board still has under the same name and at the same size, since it serves them now. A
+/// copy is kept when the old board has lost the demo, names another file for the run (then ours is
+/// a demo submitted here) or has it at another size. Only files directly in the demo storage are
+/// touched, never the archive folders.
 async fn release_demo_files(pool: &PgPool, config: &Config, url: &str, game_id: i32, dry_run: bool, report: &mut BoardReport) -> Result<(), sqlx::Error> {
     let Some(dir) = config.demo.storage.as_deref().filter(|d| !d.is_empty()).map(Path::new) else {
         return Ok(());
@@ -593,9 +594,15 @@ async fn release_demo_files(pool: &PgPool, config: &Config, url: &str, game_id: 
     .bind(game_id)
     .fetch_all(pool)
     .await?;
+    let mut failed_in_a_row = 0;
     for (file, legacy_id) in rows.into_iter().filter(|(file, _)| stored.contains(file)).take(MAX_RELEASES) {
-        match demo_name(url, legacy_id).await {
-            Ok(name) if name == file => {
+        let Ok(size) = tokio::fs::metadata(dir.join(&file)).await.map(|m| m.len()) else {
+            continue;
+        };
+        let same = has_same_demo(url, legacy_id, &file, size).await;
+        failed_in_a_row = if same.is_err() { failed_in_a_row + 1 } else { 0 };
+        match same {
+            Ok(true) => {
                 if !dry_run {
                     if let Err(e) = tokio::fs::remove_file(dir.join(&file)).await {
                         log::warn!("old-board sync: deleting our copy of {file}: {e}");
@@ -604,12 +611,15 @@ async fn release_demo_files(pool: &PgPool, config: &Config, url: &str, game_id: 
                 }
                 report.demo_files_released += 1;
             }
-            Ok(_) => report.demo_files_kept += 1,
-            Err(err) if err == GONE => report.demo_files_kept += 1,
+            Ok(false) => report.demo_files_kept += 1,
             Err(err) => {
-                // The old board isn't answering: the rest wait for the next pull.
-                report.errors.push(format!("checking demo copies against the old board: {err}"));
-                break;
+                // Kept for now. Three in a row: the old board isn't answering, so the rest wait
+                // for the next pull.
+                report.note(format!("demo copy {file}: {err}"));
+                if failed_in_a_row == 3 {
+                    report.errors.push(format!("checking demo copies against the old board: {err}"));
+                    break;
+                }
             }
         }
     }
@@ -1165,10 +1175,18 @@ pub async fn fetch_demo(url: &str, legacy_id: i64) -> Result<(String, actix_web:
 
 /// The name of the old board's demo file for a run, from where its download link points.
 pub async fn demo_name(url: &str, legacy_id: i64) -> Result<String, String> {
-    let res = probe_client().get(format!("{url}/getDemo?id={legacy_id}")).send().await.map_err(|e| e.to_string())?;
+    demo_link(url, legacy_id).await.map(|(name, _)| name)
+}
+
+/// Where the old board's download link for a run's demo points: the file's name and address
+/// (none when it sends the demo without a redirect).
+async fn demo_link(url: &str, legacy_id: i64) -> Result<(String, Option<reqwest::Url>), String> {
+    let request = format!("{url}/getDemo?id={legacy_id}");
+    let res = probe_client().get(&request).send().await.map_err(|e| e.to_string())?;
     if res.status().is_redirection() {
         let link = res.headers().get(reqwest::header::LOCATION).and_then(|l| l.to_str().ok()).unwrap_or("");
-        return file_name(link).ok_or_else(|| format!("the old board links {legacy_id}'s demo as {link:?}"));
+        let name = file_name(link).ok_or_else(|| format!("the old board links {legacy_id}'s demo as {link:?}"))?;
+        return Ok((name, reqwest::Url::parse(&request).and_then(|base| base.join(link)).ok()));
     }
     if !res.status().is_success() {
         return Err(format!("HTTP {}", res.status()));
@@ -1179,9 +1197,26 @@ pub async fn demo_name(url: &str, legacy_id: i64) -> Result<String, String> {
     }
     // Served without a redirect: no name to go by.
     if body.starts_with(b"HL2DEMO\0") {
-        return Ok(format!("{legacy_id}.dem"));
+        return Ok((format!("{legacy_id}.dem"), None));
     }
     Err("the old board didn't send a demo".into())
+}
+
+/// Whether the old board still has our copy of a run's demo: its download link points to `file`,
+/// and that file is `size` bytes, as ours is. Errors only when the old board doesn't answer.
+async fn has_same_demo(url: &str, legacy_id: i64, file: &str, size: u64) -> Result<bool, String> {
+    let (name, link) = match demo_link(url, legacy_id).await {
+        Ok(found) => found,
+        Err(err) if err == GONE => return Ok(false),
+        Err(err) => return Err(err),
+    };
+    let Some(link) = link.filter(|_| name == file) else {
+        return Ok(false);
+    };
+    let res = probe_client().head(link).send().await.map_err(|e| e.to_string())?;
+    // From the header: a HEAD response has no body for reqwest to measure.
+    let theirs = res.headers().get(reqwest::header::CONTENT_LENGTH).and_then(|v| v.to_str().ok()).and_then(|v| v.parse::<u64>().ok());
+    Ok(res.status().is_success() && theirs == Some(size))
 }
 
 /// What the old board answers for a demo whose file it has lost.
@@ -1313,7 +1348,7 @@ pub(crate) async fn delete_duplicates(
 
 #[cfg(test)]
 mod tests {
-    use super::{cleared_there, demo_name, fetch_demo, file_name, kept_rank, next_pull, note_download, is_waiting, retry_after, unescape_note, GONE};
+    use super::{cleared_there, demo_name, fetch_demo, file_name, has_same_demo, kept_rank, next_pull, note_download, is_waiting, retry_after, unescape_note, GONE};
     use std::collections::HashSet;
     use chrono::TimeZone;
     use chrono_tz::America::Chicago;
@@ -1399,7 +1434,7 @@ mod tests {
                         }
                     }),
                 )
-                .route("/demos/Portal_1234_76561198000000001_1.dem", web::get().to(move || {
+                .route("/demos/Portal_1234_76561198000000001_1.dem", web::route().to(move || {
                     let demo = demo.clone();
                     async move { HttpResponse::Ok().body(demo) }
                 }))
@@ -1421,5 +1456,17 @@ mod tests {
         assert_eq!((name.as_str(), &bytes[..]), ("Portal_1234_76561198000000001_1.dem", &demo[..]));
         assert_eq!(demo_name(&url, 2).await, Err(GONE.to_string()), "a lost demo");
         assert_eq!(fetch_demo(&url, 2).await.err().as_deref(), Some(GONE));
+    }
+
+    #[actix_web::test]
+    async fn deletes_a_copy_only_when_the_old_board_has_the_same_file() {
+        let demo: Vec<u8> = b"HL2DEMO ".iter().copied().chain(std::iter::repeat_n(7u8, 2000)).collect();
+        let url = fake_board(demo.clone()).await;
+        let (file, size) = ("Portal_1234_76561198000000001_1.dem", demo.len() as u64);
+        assert_eq!(has_same_demo(&url, 1, file, size).await, Ok(true));
+        assert_eq!(has_same_demo(&url, 1, file, size + 1).await, Ok(false), "another size");
+        assert_eq!(has_same_demo(&url, 1, "123_1234_76561198000000001_ab.dem", size).await, Ok(false), "another file");
+        assert_eq!(has_same_demo(&url, 2, file, size).await, Ok(false), "lost there");
+        assert!(has_same_demo("http://127.0.0.1:9", 1, file, size).await.is_err(), "not answering");
     }
 }

@@ -635,8 +635,10 @@ from a day before the newest run we have from it if that's older. Per entry:
 - Earlier versions of the sync downloaded each demo into `DEMO.STORAGE`, and full pulls fetched every demo we had a
   record of and no file for (with no `DEMO.ARCHIVE`, that's the whole archive, 500 a pull). A full pull now deletes
   those copies instead (up to 5,000 per board per pull): each file in `DEMO.STORAGE` that is the demo of a run from that
-  board goes once the board's `getDemo` still points to the same file name. A copy is kept when the board has lost the
-  demo, or names another file for the run (then ours is a demo submitted here). `DEMO.ARCHIVE` folders are never
+  board goes once the board's `getDemo` still points to the same file name and the board gives that file the same size
+  as ours (a `HEAD` request; nothing is downloaded). A copy is kept when the board has lost the demo, names another file
+  for the run (then ours is a demo submitted here) or has it at another size. Three failed checks in a row (the board
+  not answering) end the pass until the next pull. `DEMO.ARCHIVE` folders are never
   touched. The report counts `demo_files_released` and `demo_files_kept`.
 
 A full pull also catches **runs still pending here that the old board has cleared since**. A demo added to an old run
