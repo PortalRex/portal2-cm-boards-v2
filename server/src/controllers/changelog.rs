@@ -171,8 +171,9 @@ impl ChangelogPage {
     }
 
     /// Runs set between `start` and `end` (UTC), optionally on one map: verified, unbanned runs
-    /// by unbanned players, keeping each player's fastest run per map (a co-op run once, for
-    /// both players). Fastest first.
+    /// by unbanned players, keeping each player's fastest run per map in singleplayer and each
+    /// team's in co-op (a co-op run once, for both halves; a player with two partners keeps a
+    /// run with each). Fastest first.
     pub async fn best_runs_between(pool: &PgPool, game_id: i32, start: NaiveDateTime, end: NaiveDateTime, map_id: Option<&str>) -> Result<Vec<ChangelogPage>, sqlx::Error> {
         let params = ChangelogQueryParams { limit: Some(5000), game_id: Some(game_id), chamber: map_id.map(str::to_string), ..Default::default() };
         let mut filters = vec![
@@ -188,20 +189,7 @@ impl ChangelogPage {
         let mut runs = query.build_query_as::<ChangelogPage>().fetch_all(pool).await?;
         runs.sort_by(|a, b| a.score.cmp(&b.score).then(a.timestamp.cmp(&b.timestamp)));
         let mut seen = std::collections::HashSet::new();
-        runs.retain(|r| {
-            let players: Vec<&str> = [Some(r.profile_number.as_str()), r.blue_profile_number.as_deref(), r.orange_profile_number.as_deref()]
-                .into_iter()
-                .flatten()
-                .filter(|p| *p != "N/A")
-                .collect();
-            if players.iter().any(|p| seen.contains(&(r.map_id.clone(), p.to_string()))) {
-                return false;
-            }
-            for p in players {
-                seen.insert((r.map_id.clone(), p.to_string()));
-            }
-            true
-        });
+        runs.retain(|r| seen.insert((r.map_id.clone(), team(&r.profile_number, r.blue_profile_number.as_deref(), r.orange_profile_number.as_deref()))));
         Ok(runs)
     }
 
@@ -218,6 +206,15 @@ impl ChangelogPage {
         runs.truncate(count);
         Ok(runs)
     }
+}
+
+/// Who set a run: the player alone in singleplayer, both players (sorted, so either half of the
+/// run gives the same team) in co-op. 'N/A' partners are left out.
+fn team(player: &str, blue: Option<&str>, orange: Option<&str>) -> Vec<String> {
+    let mut players: Vec<String> = [Some(player), blue, orange].into_iter().flatten().filter(|p| *p != "N/A").map(str::to_string).collect();
+    players.sort();
+    players.dedup();
+    players
 }
 
 /// A day's daily chamber for one board (singleplayer, co-op, Mel Story, Mel Advanced).
@@ -523,5 +520,21 @@ impl ChangelogInsert {
             verified: Some(false),
             ..Default::default()
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::team;
+
+    #[test]
+    fn a_coop_team_is_both_players_whichever_half_and_sp_is_the_player() {
+        let blue_half = team("a", Some("a"), Some("b"));
+        assert_eq!(blue_half, vec!["a", "b"]);
+        assert_eq!(team("b", Some("a"), Some("b")), blue_half);
+        // The same player with another partner is another team.
+        assert_ne!(team("a", Some("a"), Some("c")), blue_half);
+        assert_eq!(team("a", None, None), vec!["a"]);
+        assert_eq!(team("a", Some("a"), Some("N/A")), vec!["a"]);
     }
 }
