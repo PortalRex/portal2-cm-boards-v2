@@ -300,18 +300,19 @@ describe('SAR auto-submit key', () => {
     return calls
   }
 
-  it('makes a key and shows it once, as SAR’s autosubmit.key', async () => {
+  it('makes a key and shows it once, as SAR’s beta key file (beside the boards’ own)', async () => {
     serveUser()
     const calls = serveKey({ has_key: false, created: null })
     await renderWithProviders(<SettingsPage tab="account" />, { user: 'player' })
     expect(await screen.findByText("You don't have a key yet.")).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Make a key' }))
-    const file = await screen.findByLabelText('autosubmit.key')
+    const file = await screen.findByLabelText('autosubmit_beta.key')
     expect(file.textContent).toBe(`${window.location.host}
 ${key}
 `)
     expect(screen.getByText(/it isn.t shown again/)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Download autosubmit.key' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Download autosubmit_beta.key' })).toBeInTheDocument()
+    expect(screen.getByText(/SAR.s beta build submits your runs to both/)).toBeInTheDocument()
     expect(calls).toEqual(['make'])
   })
 

@@ -69,6 +69,10 @@
 
 ## Log
 <!-- Newest first. One entry per finished item: date, what was done, commit, tests added. -->
+- 2026-11-03: Asked for: SAR auto-submit to the beta beside the old boards. Settings → SAR auto-submit gives the
+  key as `autosubmit_beta.key` away from board.portal2.sr (`keyFileName`), so it doesn't replace the player's
+  `autosubmit.key` for the old boards: SAR's beta build (branch `new-boards`) reads both and submits to both. On
+  board.portal2.sr it's `autosubmit.key` as before. Tests: 1 (file name), Settings key test updated.
 - 2026-11-03: Asked for: keep refused demos for moderator review instead of deleting them. Staff panel section
   `?section=held` ("Demos", with the waiting count, every staff tier; `components/held-demos.tsx`,
   `api/held-demos.ts`): waiting / accepted / dismissed / all, each demo with how it came (SAR or Submit Run), map,

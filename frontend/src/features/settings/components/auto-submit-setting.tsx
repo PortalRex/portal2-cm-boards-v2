@@ -3,13 +3,13 @@ import { useState, type ReactNode } from 'react'
 import { formatDate } from '@/lib/format'
 import { queryKeys } from '@/lib/query-keys'
 import { removeSubmitKey, resetSubmitKey, submitKeyQueryOptions } from '../api/settings'
-import { keyFile, OFFICIAL_HOST } from '../utils/key-file'
+import { keyFile, keyFileName, OFFICIAL_HOST } from '../utils/key-file'
 
-function download(text: string) {
+function download(text: string, name: string) {
   const url = URL.createObjectURL(new Blob([text], { type: 'text/plain' }))
   const a = document.createElement('a')
   a.href = url
-  a.download = 'autosubmit.key'
+  a.download = name
   a.click()
   URL.revokeObjectURL(url)
 }
@@ -55,6 +55,7 @@ export function AutoSubmitSetting({
   const busy = reset.isPending || remove.isPending
   const host = window.location.host
   const file = made ? keyFile(made, host) : null
+  const fileName = keyFileName(host)
   const error = reset.error ?? remove.error
 
   return section(
@@ -62,7 +63,7 @@ export function AutoSubmitSetting({
     <>
       <p className="mt-0 mb-3 max-w-[640px] text-base text-text-2">
         SAR can submit your challenge mode personal bests here by itself, with the demo, as you finish them.
-        It needs your key in its <code>autosubmit.key</code> file.
+        It needs your key in its <code>{fileName}</code> file.
       </p>
       {file ? (
         <div className="mb-3 max-w-[640px]">
@@ -70,7 +71,7 @@ export function AutoSubmitSetting({
             Your new key. Copy it now: it isn&apos;t shown again.
           </p>
           <pre
-            aria-label="autosubmit.key"
+            aria-label={fileName}
             className="m-0 rounded-[4px] border border-line-strong bg-control px-3 py-2 text-[15px] break-all whitespace-pre-wrap text-foreground"
           >
             {file}
@@ -88,15 +89,20 @@ export function AutoSubmitSetting({
             >
               {copied ? 'Copied' : 'Copy'}
             </button>
-            <button type="button" className={button} onClick={() => download(file)}>
-              Download autosubmit.key
+            <button type="button" className={button} onClick={() => download(file, fileName)}>
+              Download {fileName}
             </button>
           </div>
           <p className={note}>
-            Save it as <code>autosubmit.key</code> in your game folder (<code>Portal 2/portal2</code>), then
-            run <code>sar_challenge_autosubmit_reload_api_key</code> in the console or restart the game.
-            {host !== OFFICIAL_HOST &&
-              ` SAR only submits to ${OFFICIAL_HOST}, so until the boards are there this only works with a test build of SAR.`}
+            Save it as <code>{fileName}</code> in your game folder (<code>Portal 2/portal2</code>), then run{' '}
+            <code>sar_challenge_autosubmit_reload_api_key</code> in the console or restart the game.
+            {host !== OFFICIAL_HOST && (
+              <>
+                {' '}
+                Keep your <code>autosubmit.key</code> for {OFFICIAL_HOST} as it is: SAR&apos;s beta build
+                submits your runs to both. Other SAR builds only submit to {OFFICIAL_HOST}.
+              </>
+            )}
           </p>
         </div>
       ) : (
