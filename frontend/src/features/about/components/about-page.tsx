@@ -11,12 +11,13 @@ import { staffQueryOptions } from '../api/staff'
 const DISCORD = 'https://discord.gg/hRwE4Zr'
 const EXAMPLES = [1, 2, 5, 10, 25, 50, 100, 150, 200]
 
-// The board's developers (the server knows staff tiers, not who builds the site): admins among
-// them are listed as "Developers and admins".
+// The board's developers (the server knows staff tiers, not who builds the site): staff among them
+// are listed as "Developers", whatever their tier.
 const DEVELOPERS = new Set([
   '76561198045074889', // Jonese1234
   '76561198295368421', // Rex
   '76561198040982247', // Daniel
+  '76561198254956991', // Hero
 ])
 
 const grid = 'grid grid-cols-2 gap-[18px] upto800:grid-cols-1'
@@ -191,15 +192,13 @@ function Team() {
   const staff = useQuery(staffQueryOptions())
   if (staff.isPending) return <span className="text-text-muted">Loading…</span>
   if (staff.isError) return <span className="text-text-muted">Couldn’t load the team.</span>
-  const list = staff.data
+  const developers = staff.data.filter((s) => DEVELOPERS.has(s.profile_number))
+  const others = staff.data.filter((s) => !DEVELOPERS.has(s.profile_number))
   const groups = [
-    {
-      role: 'Developers and admins',
-      members: list.filter((s) => s.role === 'admin' && DEVELOPERS.has(s.profile_number)),
-    },
-    { role: 'Admins', members: list.filter((s) => s.role === 'admin' && !DEVELOPERS.has(s.profile_number)) },
-    { role: 'Moderators', members: list.filter((s) => s.role === 'moderator') },
-    { role: 'Verifiers', members: list.filter((s) => s.role === 'verifier') },
+    { role: 'Developers', members: developers },
+    { role: 'Admins', members: others.filter((s) => s.role === 'admin') },
+    { role: 'Moderators', members: others.filter((s) => s.role === 'moderator') },
+    { role: 'Verifiers', members: others.filter((s) => s.role === 'verifier') },
   ].filter((g) => g.members.length)
   return groups.map((g) => (
     <div key={g.role} className="mb-2 flex flex-col text-text-2">

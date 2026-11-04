@@ -33,7 +33,7 @@ describe('About', () => {
     ])
   })
 
-  it('lists the staff from the server by tier, each name linking to the profile', async () => {
+  it('lists the developers, then the rest of the staff by tier, each name linking to the profile', async () => {
     const member = (profile_number: string, user_name: string, role: string) => ({
       profile_number,
       user_name,
@@ -44,6 +44,7 @@ describe('About', () => {
       http.get(`${API}/staff`, () =>
         HttpResponse.json([
           member('76561198045074889', 'Jonese1234', 'admin'),
+          member('76561198254956991', 'hero', 'moderator'),
           member('76561198000000004', 'New Admin', 'admin'),
           member('76561198000000003', 'Mod', 'moderator'),
           member('76561198000000002', 'Verifier One', 'verifier'),
@@ -52,11 +53,11 @@ describe('About', () => {
       ),
     )
     await renderWithProviders(<AboutPage />)
-    const team = await screen.findByText('Developers and admins')
+    const team = await screen.findByText('Developers')
     const card = team.closest('article')!
     const groups = [...card.querySelectorAll('div')].map((g) => g.textContent)
     expect(groups).toEqual([
-      'Developers and adminsJonese1234',
+      'DevelopersJonese1234, hero',
       'AdminsNew Admin',
       'ModeratorsMod',
       'VerifiersVerifier One, Verifier Two',
