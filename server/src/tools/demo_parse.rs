@@ -2,9 +2,10 @@
 //! the scoreboard time and portal count, the players, who hosted a co-op run, the SAR version and
 //! build checksum, SAR's split times and its record of pauses and timescale cheats.
 //!
-//! A demo is read once (`demos.parsed_at`): new submissions, demos pulled from the old boards and
-//! demos whose file was restored are picked up as they come, and the existing archive is worked
-//! through in batches. From what's read, a run gets:
+//! A demo is read once (`demos.parsed_at`): new submissions and demos pulled from the old boards
+//! are picked up as they come, and the existing archive is worked through in batches. A demo the
+//! old board keeps (the sync doesn't copy them) is downloaded into a temporary folder for the
+//! batch and deleted after. From what's read, a run gets:
 //! - its portal count and split times, when the demo's scoreboard time is the run's time (so a
 //!   demo filed under the wrong run can't attach its numbers);
 //! - for co-op, the partner the demo shows, when the run was paired with the placeholder partner,
@@ -15,7 +16,7 @@
 //! On by default when the parser is set up (`DEMO.PARSER`); `DEMO.AUTO_PARSE=false` turns it off.
 use crate::{
     controllers::moderation::{self, FILLER},
-    tools::{cache::CacheState, config::Config, demo_files, points_cache, steam_sync},
+    tools::{cache::CacheState, config::Config, demo_files, old_boards_sync, points_cache, steam_sync},
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -26,6 +27,8 @@ use std::{collections::HashSet, path::Path, time::Duration};
 const BATCH: i64 = 500;
 /// Wait between batches once everything is read.
 const IDLE: Duration = Duration::from_secs(10 * 60);
+/// At most this many demos downloaded from the old boards per batch.
+const MAX_FETCHES: usize = 100;
 
 /// What one batch did.
 #[derive(Debug, Default, Serialize, Clone)]
@@ -34,6 +37,10 @@ pub struct ParseReport {
     pub parsed: usize,
     pub failed: usize,
     pub missing_file: usize,
+    /// Demos read from the old boards.
+    pub fetched: usize,
+    /// Downloads from the old boards that failed (those demos are tried again later).
+    pub fetch_failed: usize,
     pub portals_set: u64,
     pub segments_set: u64,
     pub partners_set: usize,
@@ -99,8 +106,9 @@ pub fn start(pool: PgPool, config: Config, cache: CacheState) {
                         "demo parsing: {} read ({} failed, {} files missing), {} portal counts, {} split times, {} partners, {} hosts, {} versions named; {} to go",
                         r.parsed, r.failed, r.missing_file, r.portals_set, r.segments_set, r.partners_set, r.hosts_set, r.versions_named, r.remaining
                     );
-                    if r.parsed == 0 && r.missing_file == 0 {
-                        // Nothing could be read this time (the parser failing?): don't spin.
+                    if (r.parsed == 0 && r.missing_file == 0) || r.fetch_failed > 0 {
+                        // Nothing could be read this time (the parser failing?), or the old
+                        // board isn't answering: don't spin.
                         tokio::time::sleep(IDLE).await;
                     }
                 }
@@ -117,8 +125,8 @@ pub fn start(pool: PgPool, config: Config, cache: CacheState) {
 /// What a batch did, in one line (admin page).
 pub fn summary(r: &ParseReport) -> String {
     format!(
-        "{} demos read ({} failed, {} files missing), {} partners and {} hosts filled in; {} waiting",
-        r.parsed, r.failed, r.missing_file, r.partners_set, r.hosts_set, r.remaining
+        "{} demos read ({} from the old boards, {} failed, {} files missing), {} partners and {} hosts filled in; {} waiting",
+        r.parsed, r.fetched, r.failed, r.missing_file, r.partners_set, r.hosts_set, r.remaining
     )
 }
 
@@ -161,9 +169,30 @@ pub async fn run_batch(pool: &PgPool, config: &Config, cache: &CacheState, limit
     }
 
     // The files; a demo whose file can't be found is marked so it isn't tried every batch.
+    let fetch_dir = std::env::temp_dir().join(format!("p2boards-old-demos-{}", &crate::tools::auth::random_token()[..12]));
     let mut list = String::new();
     for r in &rows {
-        match demo_files::locate(&config.demo, &r.file_id, Some(r.cl_id)).await {
+        let path = match demo_files::locate(&config.demo, &r.file_id, Some(r.cl_id)).await {
+            Some(path) => Some(path),
+            None => match old_boards_sync::demo_source(pool, config, r.demo_id).await? {
+                // Left for a later batch.
+                Some(_) if report.fetched >= MAX_FETCHES || report.fetch_failed > 0 => continue,
+                Some((url, legacy_id)) => match fetch_from_old_board(&url, legacy_id, &fetch_dir, r.demo_id).await {
+                    Ok(path) => {
+                        report.fetched += 1;
+                        Some(path)
+                    }
+                    Err(e) if e == old_boards_sync::GONE => None,
+                    Err(e) => {
+                        log::warn!("demo parsing: demo {} from the old board: {e}", r.demo_id);
+                        report.fetch_failed += 1;
+                        continue;
+                    }
+                },
+                None => None,
+            },
+        };
+        match path {
             Some(path) => list.push_str(&format!("{}\t{}\n", r.demo_id, path.display())),
             None => {
                 sqlx::query("UPDATE demos SET parsed_at = now() AT TIME ZONE 'utc', parse_error = 'file not found' WHERE id = $1")
@@ -175,6 +204,7 @@ pub async fn run_batch(pool: &PgPool, config: &Config, cache: &CacheState, limit
         }
     }
     let results = if list.is_empty() { Vec::new() } else { parse(config, &script, &list, rows.len()).await };
+    let _ = tokio::fs::remove_dir_all(&fetch_dir).await;
 
     let mut touched: HashSet<(String, bool)> = HashSet::new();
     for res in results {
@@ -213,6 +243,15 @@ pub async fn run_batch(pool: &PgPool, config: &Config, cache: &CacheState, limit
     }
     report.remaining = sqlx::query_scalar("SELECT COUNT(*) FROM demos WHERE parsed_at IS NULL").fetch_one(pool).await?;
     Ok(report)
+}
+
+/// Downloads a demo the old board keeps into `dir`, for one batch; returns its path.
+async fn fetch_from_old_board(url: &str, legacy_id: i64, dir: &Path, demo_id: i64) -> Result<std::path::PathBuf, String> {
+    let (_, bytes) = old_boards_sync::fetch_demo(url, legacy_id).await?;
+    tokio::fs::create_dir_all(dir).await.map_err(|e| e.to_string())?;
+    let path = dir.join(format!("{demo_id}.dem"));
+    tokio::fs::write(&path, &bytes).await.map_err(|e| e.to_string())?;
+    Ok(path)
 }
 
 /// Whether demos can be read on this server (the parser is set up).

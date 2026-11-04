@@ -163,7 +163,7 @@ All under `/api/v1`. Auth: **public**, **signed in**, **staff** (any tier or ser
 | `POST /runs/{id}/report` | public | Report a run anonymously (reason + details). |
 | `POST /submissions/preview` | signed in | Read a demo (multipart `demo`): map, time, players, matching board maps. Saves nothing. |
 | `POST /submissions` | signed in | Submit a run from a demo; admins may also enter map/time/player/partner by hand. See [§8](#8-run-submissions-and-demos). |
-| `GET /demos/{id}/file` | public | Download a run's demo (as an attachment, cached a day). Looked up in `DEMO.STORAGE`, then `DEMO.ARCHIVE`. See [§8](#8-run-submissions-and-demos). |
+| `GET /demos/{id}/file` | public | Download a run's demo (as an attachment, cached a day). Looked up in `DEMO.STORAGE`, then `DEMO.ARCHIVE`, then passed through from the old board for a run pulled from one. See [§8](#8-run-submissions-and-demos). |
 | `GET /user/waiting-demos` | signed in | Your pending runs that need your demo, newest first (at most 50): your own without one, and co-op runs you're the partner in (no run of your own) still missing your view. Only runs that are still their player's PB on the map (no faster unbanned run, nor an equal verified one): an older time since beaten needs no demo. Each: `changelog_id` (add it with `POST /runs/{id}/demo`), `map_id`, `map_name`, `is_coop`, `score`, `timestamp`, `partner`, `partner_name`. |
 | `POST /runs/{id}/demo` | signed in | Add the demo for a pending run (its player, co-op partner or staff); checked against the run, then verified. |
 
@@ -385,7 +385,9 @@ All under `/api/v1`. Auth: **public**, **signed in**, **staff** (any tier or ser
   files). The old boards named those files `Map_score_steamid_N.dem` with their own id as N: for Portal 2 that's the
   changelog id, so `{prefix}_{changelog id}.dem` is tried; for Mel the id isn't kept, so the file is found by
   `Map_score_steamid` when only one file has it. Against the local archive this finds 182,135 of 182,364 demos (57
-  Portal 2 and 172 Mel files are missing or ambiguous).
+  Portal 2 and 172 Mel files are missing or ambiguous). A demo of a run pulled from an old board (`legacy_changelog_ids`)
+  with no file in either is fetched from that board's `getDemo` and passed through, without being kept; 404 when the
+  old board has lost it too, 502 when it doesn't answer.
 
 ### SAR auto-submit (`/api-v2`)
 
@@ -587,9 +589,10 @@ address.
 `server/src/tools/demo_parse.rs` reads every demo the boards have with `server/demo-parser/parse_batch.mjs` (many at
 once, in parallel) and stores what's in it on `demos` (migration `20261030000000_demo_parse.sql`): the scoreboard time
 and portal count, the players, who hosted a co-op run, the SAR version and build checksum, SAR's split times, and its
-record of pauses and timescale cheats. Each demo is read once (`parsed_at`): new submissions, demos pulled from the
-old boards and restored demo files are picked up as they come, and the archive is worked through in batches, newest
-first. On by default when `DEMO.PARSER` is set; `DEMO.AUTO_PARSE=false` turns it off. The parser uses
+record of pauses and timescale cheats. Each demo is read once (`parsed_at`): new submissions and demos pulled from the
+old boards are picked up as they come, and the archive is worked through in batches, newest first. A demo the old board
+keeps is downloaded into a temporary folder for its batch and deleted after (up to 100 a batch; when the old board
+doesn't answer, the rest of the batch waits, unmarked, and the job pauses ten minutes). On by default when `DEMO.PARSER` is set; `DEMO.AUTO_PARSE=false` turns it off. The parser uses
 `DEMO.PARSE_WORKERS` threads (4 by default) and runs at idle priority on Windows, so it only takes spare CPU.
 
 From what's read, when the demo's scoreboard time is the run's own time:
@@ -625,9 +628,16 @@ from a day before the newest run we have from it if that's older. Per entry:
   linked to it and takes the old board's date, ranks and status.
 - **Anything else is added** as the old board has it: its date, ranks, status, comment, video and demo. Co-op halves
   are paired as the import paired them (same map and time, set within three hours), else with the map's placeholder.
-- Demos are downloaded through the board's `getDemo` into `DEMO.STORAGE`, keeping the archive's file name.
-  A download that fails is tried again after a wait that doubles each time (half an hour, an hour, two, ... up to a
-  day), so a broken demo isn't asked for every pull. The report counts those as `demos_waiting`.
+- Demos stay on the old board: the run gets a demo record with the archive's file name, read from where the board's
+  `getDemo` points (without downloading it). The demo parser and downloads fetch the file from the board when they need
+  it. A demo the board can't name is asked for again after a wait that doubles each time (half an hour, an hour, two,
+  ... up to a day), so a broken demo isn't asked for every pull. The report counts those as `demos_waiting`.
+- Earlier versions of the sync downloaded each demo into `DEMO.STORAGE`, and full pulls fetched every demo we had a
+  record of and no file for (with no `DEMO.ARCHIVE`, that's the whole archive, 500 a pull). A full pull now deletes
+  those copies instead (up to 5,000 per board per pull): each file in `DEMO.STORAGE` that is the demo of a run from that
+  board goes once the board's `getDemo` still points to the same file name. A copy is kept when the board has lost the
+  demo, or names another file for the run (then ours is a demo submitted here). `DEMO.ARCHIVE` folders are never
+  touched. The report counts `demo_files_released` and `demo_files_kept`.
 
 A full pull also catches **runs still pending here that the old board has cleared since**. A demo added to an old run
 there (or a video, or staff verifying it) doesn't change the run's date, so the window above never shows it again and
@@ -646,10 +656,9 @@ in was re-ranked the same way, once, with `db/dbscript/rerank_coop_runs.sql` (a 
 minutes on the Oct 22 dump: 86,464 of 90,468 co-op runs re-ranked, no world record changed).
 
 With `SYNC.OLD_BOARDS_MINUTES` (off unless set; e.g. 15), the schedule also makes a quick pull every so many minutes
-in between the hours. A quick pull does everything above but fetch the backlog of demo files we have a record of and
-no file for (up to 500 per board per pull) and the pending runs the old board has cleared, which only the full pulls
-at `SYNC.OLD_BOARDS_HOURS` and the staff endpoint do. One quick pull costs the old board one changelog request per board (about a second for board.portal2.sr)
-plus the demos of runs that are new to us.
+in between the hours. A quick pull does everything above but delete old copies of demo files and read the pending
+runs the old board has cleared, which only the full pulls at `SYNC.OLD_BOARDS_HOURS` and the staff endpoint do. One quick pull costs the old board one changelog request per board (about a second for board.portal2.sr)
+plus a `getDemo` redirect (no download) for each run that is new to us.
 - Status changes and hides are written to the audit log as the service (`run.ban`, `run.unban`, `run.verify`,
   `run.unverify`) with the reason.
 

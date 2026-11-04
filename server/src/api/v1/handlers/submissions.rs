@@ -21,6 +21,7 @@ use crate::{
         cache::{CacheState, COOP_PREVIEWS, SP_PREVIEWS},
         config::Config,
         error::Result,
+        old_boards_sync,
         points_cache::invalidate_points,
         ratelimit,
         upload_slots::UPLOADS,
@@ -774,23 +775,25 @@ async fn waiting_demos(user: SignedIn, pool: web::Data<PgPool>) -> Result<impl R
     Ok(HttpResponse::Ok().insert_header(("Cache-Control", "no-store")).json(runs))
 }
 
-/// **GET** Download a demo by its id (as runs list it in `demo_id`).
+/// **GET** Download a demo by its id (as runs list it in `demo_id`). A demo of a run pulled from
+/// an old board is passed through from it when its file isn't here.
 #[get("/demos/{demo_id}/file")]
 async fn demo_download(req: HttpRequest, pool: web::Data<PgPool>, config: web::Data<Config>, demo_id: web::Path<i64>) -> Result<impl Responder> {
     if let Err(limited) = ratelimit::check(&req, &config, "download", 120, Duration::from_secs(60)) {
         return Ok(limited);
     }
+    let demo_id = demo_id.into_inner();
     let row: Option<(String, Option<i64>)> = sqlx::query_as(
         "SELECT d.file_id, (SELECT MIN(cl.id)::bigint FROM changelog AS cl WHERE cl.demo_id = d.id) FROM demos AS d WHERE d.id = $1",
     )
-    .bind(demo_id.into_inner())
+    .bind(demo_id)
     .fetch_optional(pool.get_ref())
     .await?;
     let Some((file, changelog_id)) = row else {
         return Ok(HttpResponse::NotFound().body("No such demo."));
     };
     let Some(path) = crate::tools::demo_files::locate(&config.demo, &file, changelog_id).await else {
-        return Ok(HttpResponse::NotFound().body("This demo's file isn't available."));
+        return old_board_download(pool.get_ref(), &config, demo_id, &file).await;
     };
     // Streamed from disk (not read into memory), with ranges, ETag and Last-Modified so a
     // browser that already has it gets a 304.
@@ -801,18 +804,44 @@ async fn demo_download(req: HttpRequest, pool: web::Data<PgPool>, config: web::D
             return Ok(HttpResponse::NotFound().body("This demo's file isn't available."));
         }
     };
-    let disposition = header::ContentDisposition {
-        disposition: header::DispositionType::Attachment,
-        parameters: vec![header::DispositionParam::Filename(file.replace('"', ""))],
-    };
     let mut res = named
         .set_content_type(mime::APPLICATION_OCTET_STREAM)
-        .set_content_disposition(disposition)
+        .set_content_disposition(attachment(&file))
         .use_etag(true)
         .use_last_modified(true)
         .into_response(&req);
-    res.headers_mut().insert(header::CACHE_CONTROL, header::HeaderValue::from_static("public, max-age=86400"));
+    res.headers_mut().insert(header::CACHE_CONTROL, header::HeaderValue::from_static(DEMO_CACHE));
     Ok(res)
+}
+
+const DEMO_CACHE: &str = "public, max-age=86400";
+
+/// A download saved as `file`.
+fn attachment(file: &str) -> header::ContentDisposition {
+    header::ContentDisposition {
+        disposition: header::DispositionType::Attachment,
+        parameters: vec![header::DispositionParam::Filename(file.replace('"', ""))],
+    }
+}
+
+/// A demo the old board keeps, passed through from it.
+async fn old_board_download(pool: &PgPool, config: &Config, demo_id: i64, file: &str) -> Result<HttpResponse> {
+    let missing = || HttpResponse::NotFound().body("This demo's file isn't available.");
+    let Some((url, legacy_id)) = old_boards_sync::demo_source(pool, config, demo_id).await? else {
+        return Ok(missing());
+    };
+    match old_boards_sync::fetch_demo(&url, legacy_id).await {
+        Ok((_, bytes)) => Ok(HttpResponse::Ok()
+            .content_type(mime::APPLICATION_OCTET_STREAM)
+            .insert_header(attachment(file))
+            .insert_header((header::CACHE_CONTROL, DEMO_CACHE))
+            .body(bytes)),
+        Err(e) if e == old_boards_sync::GONE => Ok(missing()),
+        Err(e) => {
+            log::warn!("demo download {demo_id} from the old board: {e}");
+            Ok(HttpResponse::BadGateway().body("The old board didn't send this demo. Try again in a little while."))
+        }
+    }
 }
 
 #[cfg(test)]

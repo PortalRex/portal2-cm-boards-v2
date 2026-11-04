@@ -209,7 +209,7 @@ docker cp $B:/backups/p2boards-<date>.dump .                      # copy one out
 
 A dump restores with the same `pg_restore` command as above (copy it into the db container as `/tmp/p2boards.dump`).
 
-The old boards' demo archive (~170 GB) isn't included: without it, imported runs' demo downloads report the file isn't available. To add it later, put the folders on the server, mount them into `server` and list them in `DEMO_ARCHIVE` (separated by `;`).
+The old boards' demo archive (~170 GB) isn't included. While the old boards run, it isn't needed: a demo of an imported or pulled run that isn't here is read from the old board when it's downloaded or parsed. When they're retired, put the folders on the server, mount them into `server` and list them in `DEMO_ARCHIVE` (separated by `;`).
 
 ## Original Project Team
 
