@@ -100,12 +100,28 @@ async fn timeline(pool: &PgPool, game_id: i32) -> Result<Arc<Timeline>, sqlx::Er
     }
     let rows = sqlx::query_as::<_, RunRow>(
         r#"
+            -- The runs as the points boards take them ([crate::controllers::game_boards::pb_ranks]):
+            -- the players' own runs, plus co-op runs where a player's half is the 'N/A'
+            -- placeholder (the bundle names them; the run is their partner's half). Without the
+            -- second, a player whose best is such a run kept a slower one here, and their place
+            -- (and everyone's below them) came out lower than on the boards.
+            WITH halves AS (
+                SELECT cl.profile_number, cl.id, cl.map_id, cl.score, cl.timestamp, cl.coop_id,
+                    cl.banned, cl.verified, cl.category_id
+                FROM changelog AS cl
+                UNION ALL
+                SELECT CASE WHEN ph.id = cb.cl_id1 THEN cb.p_id1 ELSE cb.p_id2 END, r.id, r.map_id, r.score,
+                    r.timestamp, cb.id, r.banned, r.verified, r.category_id
+                FROM coop_bundled AS cb
+                    JOIN changelog AS ph ON (ph.id IN (cb.cl_id1, cb.cl_id2) AND ph.profile_number = 'N/A')
+                    JOIN changelog AS r ON (r.id IN (cb.cl_id1, cb.cl_id2) AND r.id <> ph.id)
+            )
             -- About 40k imported runs have no date; they count from Portal 2's release, as the
             -- boards count them.
             SELECT cl.map_id, m.chapter_id, c.game_mode, cl.profile_number, cl.score,
                 COALESCE(cl.timestamp, TIMESTAMP '2011-04-19 00:00:00') AS timestamp,
                 COALESCE(cl.coop_id, -cl.id) AS run_key, cl.id
-            FROM changelog AS cl
+            FROM halves AS cl
                 JOIN maps AS m ON m.steam_id = cl.map_id
                 JOIN chapters AS c ON c.id = m.chapter_id
             WHERE c.game_id = $1 AND cl.verified AND NOT cl.banned
@@ -182,12 +198,9 @@ fn totals_at(t: &Timeline, me: u32, ends: &[NaiveDateTime]) -> Vec<Vec<f64>> {
         if !map.runs.iter().any(|r| r.1 == me) {
             continue;
         }
-        // Sweep the map's runs in time order, keeping each player's best and a count of bests
-        // per time (players, or distinct runs when co-op ranks by run), and read the player's
+        // Sweep the map's runs in time order, keeping everyone's bests, and read the player's
         // rank at each sample date.
-        let mut best: HashMap<u32, (i32, i64)> = HashMap::new();
-        let mut run_refs: HashMap<i64, u32> = HashMap::new();
-        let mut counts: BTreeMap<i32, u32> = BTreeMap::new();
+        let mut entries = Entries::new(by_run);
         let mut i = 0;
         // The player's points on this map only change when its runs do: worked out again then,
         // carried over otherwise (there can be thousands of sample instants).
@@ -196,52 +209,102 @@ fn totals_at(t: &Timeline, me: u32, ends: &[NaiveDateTime]) -> Vec<Vec<f64>> {
             let before = i;
             while i < map.runs.len() && map.runs[i].0 <= *end {
                 let (_, p, s, run) = map.runs[i];
-                match best.get(&p) {
-                    Some(&(old, _)) if old <= s => {}
-                    old => {
-                        if let Some(&(o, orun)) = old {
-                            let gone = if by_run {
-                                let refs = run_refs.entry(orun).or_insert(1);
-                                *refs -= 1;
-                                *refs == 0
-                            } else {
-                                true
-                            };
-                            if gone {
-                                run_refs.remove(&orun);
-                                if let Some(c) = counts.get_mut(&o) {
-                                    *c -= 1;
-                                    if *c == 0 {
-                                        counts.remove(&o);
-                                    }
-                                }
-                            }
-                        }
-                        best.insert(p, (s, run));
-                        let new = if by_run {
-                            let refs = run_refs.entry(run).or_insert(0);
-                            *refs += 1;
-                            *refs == 1
-                        } else {
-                            true
-                        };
-                        if new {
-                            *counts.entry(s).or_insert(0) += 1;
-                        }
-                    }
-                }
+                entries.add(p, s, run);
                 i += 1;
             }
             if i != before {
-                points = best.get(&me).map_or(0.0, |&(mine, _)| {
-                    let faster: u32 = counts.range(..mine).map(|(_, c)| *c).sum();
-                    score(faster as i32 + 1) as f64
-                });
+                points = entries.rank(me).map_or(0.0, |rank| score(rank as i32) as f64);
             }
             totals[si][map.mode] += points;
         }
     }
     totals
+}
+
+/// Everyone's bests on one map as its runs come in, ranked as the points boards rank them
+/// ([crate::controllers::game_boards::pb_ranks]): one entry per player, or per run when co-op
+/// ranks by run. A run counts once, at the fastest of the bests its players have on it (the halves
+/// of a badly paired run can have different times), and its players share its rank.
+struct Entries {
+    by_run: bool,
+    /// Each player's best: (time, run).
+    best: HashMap<u32, (i32, i64)>,
+    /// By run: the times of the bests on each run.
+    runs: HashMap<i64, Vec<i32>>,
+    /// Entries per time.
+    counts: BTreeMap<i32, u32>,
+}
+
+impl Entries {
+    fn new(by_run: bool) -> Self {
+        Entries { by_run, best: HashMap::new(), runs: HashMap::new(), counts: BTreeMap::new() }
+    }
+
+    /// A run by player `p`: their new best when faster than the one they have (the first of
+    /// equal times stays).
+    fn add(&mut self, p: u32, s: i32, run: i64) {
+        let old = self.best.get(&p).copied();
+        if old.is_some_and(|(o, _)| o <= s) {
+            return;
+        }
+        self.best.insert(p, (s, run));
+        if !self.by_run {
+            if let Some((o, _)) = old {
+                self.uncount(o);
+            }
+            *self.counts.entry(s).or_insert(0) += 1;
+            return;
+        }
+        if let Some((o, orun)) = old {
+            self.change_run(orun, |times| {
+                if let Some(at) = times.iter().position(|&t| t == o) {
+                    times.swap_remove(at);
+                }
+            });
+        }
+        self.change_run(run, |times| times.push(s));
+    }
+
+    /// Changes the times on `run`, moving the run's entry to its new fastest time.
+    fn change_run(&mut self, run: i64, change: impl FnOnce(&mut Vec<i32>)) {
+        let times = self.runs.entry(run).or_default();
+        let was = times.iter().min().copied();
+        change(times);
+        let now = times.iter().min().copied();
+        if times.is_empty() {
+            self.runs.remove(&run);
+        }
+        if was == now {
+            return;
+        }
+        if let Some(w) = was {
+            self.uncount(w);
+        }
+        if let Some(n) = now {
+            *self.counts.entry(n).or_insert(0) += 1;
+        }
+    }
+
+    fn uncount(&mut self, s: i32) {
+        if let Some(c) = self.counts.get_mut(&s) {
+            *c -= 1;
+            if *c == 0 {
+                self.counts.remove(&s);
+            }
+        }
+    }
+
+    /// The time a player's best is ranked at: their own, or their run's fastest.
+    fn ranked_time(&self, p: u32) -> Option<i32> {
+        let &(s, run) = self.best.get(&p)?;
+        Some(if self.by_run { self.runs.get(&run).and_then(|t| t.iter().min().copied()).unwrap_or(s) } else { s })
+    }
+
+    /// A player's rank (None without a run yet): one more than the entries faster than theirs.
+    fn rank(&self, p: u32) -> Option<u32> {
+        let s = self.ranked_time(p)?;
+        Some(self.counts.range(..s).map(|(_, c)| *c).sum::<u32>() + 1)
+    }
 }
 
 /// A player's best time on one map as of a moment, with its rank and points then.
@@ -347,28 +410,23 @@ struct Best {
 /// Everyone's best on `map` as of `at`, ranked as the points boards rank them (ties share a rank;
 /// co-op counts runs, not players, when `by_run`).
 fn bests_at(map: &MapTimeline, at: NaiveDateTime, by_run: bool) -> Vec<Best> {
-    // Each player's best: (score, run, index in `runs`).
-    let mut best: HashMap<u32, (i32, i64, usize)> = HashMap::new();
+    // Each player's best's index in `runs`, beside the ranking ([Entries]).
+    let mut index: HashMap<u32, usize> = HashMap::new();
+    let mut entries = Entries::new(by_run);
     for (i, &(ts, p, s, run)) in map.runs.iter().enumerate() {
         if ts > at {
             break;
         }
-        if best.get(&p).is_none_or(|&(old, _, _)| s < old) {
-            best.insert(p, (s, run, i));
+        if index.get(&p).is_none_or(|&b| s < map.runs[b].2) {
+            index.insert(p, i);
         }
+        entries.add(p, s, run);
     }
-    // Entries per time (players, or distinct runs when co-op ranks by run).
-    let mut counts: BTreeMap<i32, u32> = BTreeMap::new();
-    let mut runs_seen = std::collections::HashSet::new();
-    for &(s, run, _) in best.values() {
-        if !by_run || runs_seen.insert(run) {
-            *counts.entry(s).or_insert(0) += 1;
-        }
-    }
-    best.into_iter()
-        .map(|(player, (s, _, index))| {
-            let rank = counts.range(..s).map(|(_, c)| *c).sum::<u32>() + 1;
-            Best { player, score: s, rank, points: score(rank as i32) as f64, index }
+    index
+        .into_iter()
+        .map(|(player, index)| {
+            let rank = entries.rank(player).unwrap_or(1);
+            Best { player, score: map.runs[index].2, rank, points: score(rank as i32) as f64, index }
         })
         .collect()
 }
@@ -940,6 +998,29 @@ async fn compute_history(pool: &PgPool, game_id: i32, profile_number: &str) -> R
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_coop_run_counts_once_at_its_fastest_half() {
+        let mut e = Entries::new(true);
+        // A badly paired run: a's half says 2036, b's 2035.
+        e.add(0, 2036, 1);
+        e.add(1, 2035, 1);
+        e.add(2, 2040, 2);
+        assert_eq!((e.rank(0), e.rank(1), e.rank(2)), (Some(1), Some(1), Some(2)));
+        // a moves on to a run of their own; b keeps run 1 at 2035.
+        e.add(0, 2035, 3);
+        assert_eq!(e.rank(2), Some(3));
+        // b moves on too: run 1 is gone.
+        e.add(1, 2030, 4);
+        assert_eq!((e.rank(1), e.rank(0), e.rank(2)), (Some(1), Some(2), Some(3)));
+        assert_eq!(e.rank(9), None);
+
+        // By player, each player is an entry at their own time.
+        let mut p = Entries::new(false);
+        p.add(0, 2036, 1);
+        p.add(1, 2035, 1);
+        assert_eq!((p.rank(1), p.rank(0)), (Some(1), Some(2)));
+    }
 
     fn ts(day: u32) -> NaiveDateTime {
         NaiveDate::from_ymd_opt(2026, 1, day).unwrap().and_hms_opt(12, 0, 0).unwrap()

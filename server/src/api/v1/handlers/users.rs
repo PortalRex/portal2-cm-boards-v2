@@ -506,8 +506,8 @@ async fn profile_points_peak(
     let game_id = query.game_id.unwrap_or(1);
     let mut peaks = (*crate::tools::points_history::points_peak(pool.get_ref(), game_id, &profile_number).await?).clone();
     // The peak comes from replaying the run history, the points now (on the profile beside it) from
-    // the points cache. Where the two disagree (a co-op run whose halves are paired into different
-    // bundles counts twice in the history), the peak is still never below the points now.
+    // the points cache. They rank runs the same way, but should they ever disagree, the peak is
+    // still never below the points now.
     if game_id == 1 {
         let today = chrono::Utc::now().date_naive();
         for w in profile_points(pool.get_ref(), &points_cache, &profile_number).await? {
