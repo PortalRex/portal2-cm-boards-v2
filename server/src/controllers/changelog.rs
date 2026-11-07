@@ -346,7 +346,7 @@ pub async fn build_filtered_changelog(pool: &PgPool, params: ChangelogQueryParam
     enum Filter {
         Raw(String),
         Int(&'static str, i64, &'static str),
-        Text(&'static str, String),
+        Text(&'static str, String, &'static str),
         Texts(&'static str, Vec<String>),
         /// Runs listed after the one with this date and id (ORDER BY below).
         After(Option<NaiveDateTime>, i64),
@@ -368,7 +368,22 @@ pub async fn build_filtered_changelog(pool: &PgPool, params: ChangelogQueryParam
         filters.push(Filter::Raw(if yt { "cl.youtube_id IS NOT NULL" } else { "cl.youtube_id IS NULL" }.into()));
     }
     if params.wr_gain == Some(true) {
-        filters.push(Filter::Raw("cl.post_rank = 1".into()));
+        filters.push(match params.chamber.clone() {
+            // A map's history also takes runs that were behind a run since banned or removed from
+            // the history when set: the best valid time yet (as on the Stats page; imported runs
+            // without a rank aside). Too slow without a map, where it stays the runs that were
+            // rank 1 when set.
+            Some(chamber) => Filter::Text(
+                "(cl.post_rank = 1 OR cl.id IN (SELECT r.id FROM (
+                    SELECT f.id, f.score, f.post_rank, MIN(f.score) OVER (PARTITION BY f.category_id ORDER BY f.timestamp, f.id) AS best
+                    FROM changelog AS f LEFT JOIN users AS fu ON fu.profile_number = f.profile_number
+                    WHERE f.verified IS TRUE AND f.banned = false AND f.wr_hidden = false AND fu.banned IS NOT TRUE
+                      AND f.timestamp IS NOT NULL AND f.profile_number <> 'N/A' AND f.map_id = ",
+                chamber,
+                ") AS r WHERE r.score = r.best AND r.post_rank IS NOT NULL))",
+            ),
+            None => Filter::Raw("cl.post_rank = 1".into()),
+        });
         // Runs staff removed from the WR history stay out of it unless asked for.
         if params.include_hidden_wr != Some(true) {
             filters.push(Filter::Raw("cl.wr_hidden = false".into()));
@@ -401,13 +416,13 @@ pub async fn build_filtered_changelog(pool: &PgPool, params: ChangelogQueryParam
         if !is_map_id(&chamber) {
             return Err(sqlx::Error::RowNotFound);
         }
-        filters.push(Filter::Text("cl.map_id = ", chamber));
+        filters.push(Filter::Text("cl.map_id = ", chamber, ""));
     }
     if let Some(profile_number) = params.profile_number {
         if !is_numeric(&profile_number) {
             return Err(sqlx::Error::RowNotFound);
         }
-        filters.push(Filter::Text("cl.profile_number = ", profile_number));
+        filters.push(Filter::Text("cl.profile_number = ", profile_number, ""));
     } else if let Some(nick_name) = params.nick_name {
         let profile_numbers = Users::check_board_name(pool, &nick_name).await?;
         if profile_numbers.is_empty() {
@@ -442,8 +457,8 @@ pub async fn build_filtered_changelog(pool: &PgPool, params: ChangelogQueryParam
             Filter::Int(sql, value, suffix) => {
                 query.push(sql).push_bind(value).push(suffix);
             }
-            Filter::Text(sql, value) => {
-                query.push(sql).push_bind(value);
+            Filter::Text(sql, value, suffix) => {
+                query.push(sql).push_bind(value).push(suffix);
             }
             Filter::Texts(sql, values) => {
                 query.push(sql).push_bind(values).push(")");

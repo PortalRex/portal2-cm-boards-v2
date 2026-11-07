@@ -1,8 +1,9 @@
 //! World record statistics for the Stats page, from the world record history (the same runs the
-//! map pages' WR chart shows: rank 1 when set, verified, not banned or removed from the history,
-//! in the map's main category, by an unbanned player). Per map the history is split into
-//! *reigns*: each faster record time, from the first run with it until a faster one; players who
-//! tie a record join its reign from their own run.
+//! map pages' WR chart shows: rank 1 when set, or the best time yet among the runs that count -
+//! verified, not banned or removed from the history, by an unbanned player - so a run that was
+//! behind one banned later is a record from its own day; in the map's main category). Per map the
+//! history is split into *reigns*: each faster record time, from the first run with it until a
+//! faster one; players who tie a record join its reign from their own run.
 //!
 //! From that: every map's current record, the longest- and shortest-lasting records, the longest
 //! streaks one
@@ -227,14 +228,24 @@ async fn compute(pool: &PgPool, game_id: i32) -> Result<WrStats, sqlx::Error> {
                 COALESCE(u.board_name, u.steam_name, cl.profile_number) AS user_name, u.avatar,
                 NULLIF(CASE WHEN cb.p_id1 = cl.profile_number THEN cb.p_id2 ELSE cb.p_id1 END, 'N/A') AS partner_number,
                 COALESCE(pu.board_name, pu.steam_name) AS partner_name, pu.avatar AS partner_avatar
-            FROM changelog AS cl
+            FROM (
+                -- Runs that count, each with the best time on its map up to it.
+                SELECT cl.*, MIN(cl.score) OVER (PARTITION BY cl.map_id ORDER BY cl.timestamp, cl.id) AS best
+                FROM changelog AS cl
+                    JOIN maps AS m ON m.steam_id = cl.map_id
+                    JOIN chapters AS c ON c.id = m.chapter_id
+                    JOIN users AS u ON u.profile_number = cl.profile_number
+                WHERE c.game_id = $1 AND cl.verified IS TRUE AND cl.banned = false AND cl.wr_hidden = false
+                  AND cl.category_id = m.default_cat_id AND cl.timestamp IS NOT NULL AND cl.profile_number <> 'N/A' AND NOT u.banned
+            ) AS cl
                 JOIN maps AS m ON m.steam_id = cl.map_id
                 JOIN chapters AS c ON c.id = m.chapter_id
                 JOIN users AS u ON u.profile_number = cl.profile_number
                 LEFT JOIN coop_bundled AS cb ON cb.id = cl.coop_id
                 LEFT JOIN users AS pu ON pu.profile_number = (CASE WHEN cb.p_id1 = cl.profile_number THEN cb.p_id2 ELSE cb.p_id1 END)
-            WHERE c.game_id = $1 AND cl.post_rank = 1 AND cl.verified IS TRUE AND cl.banned = false AND cl.wr_hidden = false
-              AND cl.category_id = m.default_cat_id AND cl.timestamp IS NOT NULL AND cl.profile_number <> 'N/A' AND NOT u.banned
+            -- Imported runs without a rank (Portal 2's earliest) count only when they were rank 1:
+            -- the boards' early history is incomplete.
+            WHERE cl.post_rank = 1 OR (cl.score = cl.best AND cl.post_rank IS NOT NULL)
             ORDER BY cl.map_id, cl.timestamp, cl.id
         "#,
     )

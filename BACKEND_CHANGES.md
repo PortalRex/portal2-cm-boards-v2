@@ -218,6 +218,9 @@ All under `/api/v1`. Auth: **public**, **signed in**, **staff** (any tier or ser
 - **`GET /changelog`** gains `game_id`, `verified` (`false` = only pending), `include_hidden_wr`, `max_rank` (runs that ranked that high or better when set, e.g. 100) and `since_days` (runs from the last N days), and returns per row:
   co-op blue/orange players (host first), whether the colours are known, reaction counts, `wr_hidden`, `portals`.
   With `wr_gain=true` it now leaves out runs removed from WR history, banned runs, runs by banned players and pending runs.
+  With `wr_gain=true` and a `chamber`, it also takes runs that were the best valid time yet when set but not rank 1
+  (behind a run banned, hidden or unverified since), as the Stats page's record history does; without a map it stays the
+  runs that were rank 1 when set.
 - **`GET /changelog`** gains `before` (a run id): the next page, the runs listed after that run in the list's own
   order (newest first, undated runs last), for Score Updates' endless list. Rows sharing a timestamp are now ordered by
   id (descending), so pages never overlap or skip; an unknown id gives an empty list. `first` / `last` (by id) are
@@ -727,7 +730,9 @@ the background after the points boards (startup and after each change); an out-o
 one is built, so no request waits for it.
 
 `GET /stats/wr?game_id=` (`controllers/wr_stats.rs`) feeds the Records, History and Race tabs. From the world
-record history, each map's records are split into reigns (each faster record time until a faster one; players who tie
+record history (runs that were rank 1 when set, and runs that were the best valid time yet when set, so a run that was
+behind one banned, hidden or unverified later is a record from its own day; imported runs without a rank only when
+rank 1), each map's records are split into reigns (each faster record time until a faster one; players who tie
 join from their own run). It answers every map's current record with how long it has stood and the total time per
 board; per player the maps held now, days spent holding records and record runs set; the longest-lasting records
 (standing ones included, with who beat them) and the shortest-lasting (`shortest`: the 100 quickest-beaten, to the
