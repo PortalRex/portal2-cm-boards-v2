@@ -542,8 +542,9 @@ async fn profile_stats(pool: web::Data<PgPool>, profile_number: web::Path<String
 ///
 /// ## Parameters:
 /// - `game_id`
-///     - **Optional** - `i32` : The game or season. Portal 2's bests come with their rank and the
-///       gaps to the next time and the WR; other games' leave those out (`/ranks/game` has ranks).
+///     - **Optional** - `i32` : The game or season. Each best comes with its rank and the gaps to
+///       the next time and the WR (Portal 2's from the ranks cache, other games' from their points
+///       boards, as `/ranks/game`).
 ///
 /// ## Example endpoints:
 ///  - `/api/v1/profile/scores/76561198039230536`
@@ -561,26 +562,37 @@ async fn profile_scores(
     profile_number: web::Path<String>,
     query: web::Query<StatsQuery>,
     cache: web::Data<CacheState>,
+    points_cache: web::Data<PointsCache>,
 ) -> Result<impl Responder> {
     let profile_number = profile_number.into_inner();
     let game_id = query.game_id.unwrap_or(1);
     let mut scores = ProfileScore::get_profile_scores(pool.get_ref(), &profile_number, game_id).await?;
-    // The ranks cache is Portal 2's.
-    if game_id != 1 {
-        return Ok(web::Json(scores));
-    }
-    let r = &*cache.ranks.lock().await;
-    let ranks = r.current_ranks.get(&profile_number);
-    for pb in scores.iter_mut() {
-        pb.rank = ranks.and_then(|m| m.get(&pb.map_id)).copied();
-        if let Some(board) = r.map_scores.get(&pb.map_id).filter(|b| !b.is_empty()) {
-            pb.delta_to_wr = Some(pb.score - board[0]);
-            // Distinct scores are ascending; the next better time is the last one below ours.
-            let better = board.partition_point(|&s| s < pb.score);
-            pb.delta_to_next = better.checked_sub(1).map(|i| pb.score - board[i]);
+    if game_id == 1 {
+        let r = &*cache.ranks.lock().await;
+        let ranks = r.current_ranks.get(&profile_number);
+        for pb in scores.iter_mut() {
+            pb.rank = ranks.and_then(|m| m.get(&pb.map_id)).copied();
+            add_gaps(pb, r.map_scores.get(&pb.map_id));
+        }
+    } else {
+        // The ranks cache is Portal 2's; other games rank on their points boards.
+        let ranks = points_cache.ranks(pool.get_ref(), game_id, &profile_number).await?;
+        let times = points_cache.map_times(pool.get_ref(), game_id).await?;
+        for pb in scores.iter_mut() {
+            pb.rank = ranks.get(&pb.map_id).copied();
+            add_gaps(pb, times.get(&pb.map_id));
         }
     }
     Ok(web::Json(scores))
+}
+
+/// A best's gaps to the WR and to the next time up, from the map's distinct times (ascending).
+fn add_gaps(pb: &mut ProfileScore, board: Option<&Vec<i32>>) {
+    let Some(board) = board.filter(|b| !b.is_empty()) else { return };
+    pb.delta_to_wr = Some(pb.score - board[0]);
+    // The next better time is the last one below ours.
+    let better = board.partition_point(|&s| s < pb.score);
+    pb.delta_to_next = better.checked_sub(1).map(|i| pb.score - board[i]);
 }
 
 /// A player's sp (-1), coop (-2) and overall (-3) points with placements, from the points cache.
@@ -671,4 +683,41 @@ pub async fn profile_from_cache(
     // Players with no ranked runs have no entry in the rank cache.
     let ranks = r.current_ranks.get(profile_number).cloned().unwrap_or_default();
     Ok((points, ranks))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn pb(score: i32) -> ProfileScore {
+        ProfileScore {
+            map_id: "3".into(),
+            score,
+            timestamp: None,
+            changelog_id: 1,
+            is_multiplayer: false,
+            partner_profile_number: None,
+            partner_name: None,
+            partner_avatar: None,
+            rank: None,
+            delta_to_wr: None,
+            delta_to_next: None,
+        }
+    }
+
+    #[test]
+    fn gaps_are_to_the_wr_and_the_next_time_up() {
+        let board = vec![1445, 1448, 1449, 1466];
+        let mut third = pb(1449);
+        add_gaps(&mut third, Some(&board));
+        assert_eq!((third.delta_to_wr, third.delta_to_next), (Some(4), Some(1)));
+        // The record itself: nothing faster to close in on.
+        let mut first = pb(1445);
+        add_gaps(&mut first, Some(&board));
+        assert_eq!((first.delta_to_wr, first.delta_to_next), (Some(0), None));
+        // A map with no times leaves the gaps out.
+        let mut none = pb(1500);
+        add_gaps(&mut none, None);
+        assert_eq!((none.delta_to_wr, none.delta_to_next), (None, None));
+    }
 }

@@ -241,6 +241,23 @@ impl PointsCache {
         .await
     }
 
+    /// Every map's distinct best times in the game, fastest first (`{ map_id: [score, ...] }`), for
+    /// the gaps to the WR and the next time up.
+    pub async fn map_times(&self, pool: &PgPool, game_id: i32) -> Result<HashMap<String, Vec<i32>>, sqlx::Error> {
+        self.with_game(pool, game_id, |g| {
+            let mut times: HashMap<String, Vec<i32>> = HashMap::new();
+            for pb in &g.pbs {
+                times.entry(pb.map_id.clone()).or_default().push(pb.score);
+            }
+            for t in times.values_mut() {
+                t.sort_unstable();
+                t.dedup();
+            }
+            times
+        })
+        .await
+    }
+
     /// Remembers the pool and builds the warm boards in the background (startup).
     pub fn start(self: &Arc<Self>, pool: PgPool) {
         let _ = self.pool.set(pool);
