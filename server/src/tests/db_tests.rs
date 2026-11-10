@@ -573,6 +573,26 @@ async fn test_db_pictures_only_from_steam_or_imgur() {
     cleanup().await;
 }
 
+/// Inserts a co-op run on `map`: one half per player, bundled, each half marked with `note`.
+/// `b_half` is whose row the partner's half is (the 'N/A' placeholder for a partner without a run of
+/// their own). Returns the id of `a`'s half.
+#[allow(clippy::too_many_arguments)]
+async fn insert_coop_run(pool: &PgPool, map: &str, cat: i32, note: &str, a: &str, b: &str, b_half: &str, score: i32, b_verified: bool) -> i64 {
+    let mut halves = Vec::new();
+    for (who, verified) in [(a, true), (b_half, b_verified)] {
+        let id: i64 = sqlx::query_scalar(
+            "INSERT INTO changelog (timestamp, profile_number, score, map_id, banned, submission, category_id, verified, note) VALUES (now(), $1, $2, $3, false, 1, $4, $5, $6) RETURNING id",
+        )
+        .bind(who).bind(score).bind(map).bind(cat).bind(verified).bind(note)
+        .fetch_one(pool).await.unwrap();
+        halves.push(id);
+    }
+    let id: i64 = sqlx::query_scalar("INSERT INTO coop_bundled (p_id1, p_id2, p1_is_host, cl_id1, cl_id2) VALUES ($1, $2, true, $3, $4) RETURNING id")
+        .bind(a).bind(b).bind(halves[0]).bind(halves[1]).fetch_one(pool).await.unwrap();
+    sqlx::query("UPDATE changelog SET coop_id = $1 WHERE id IN ($2, $3)").bind(id).bind(halves[0]).bind(halves[1]).execute(pool).await.unwrap();
+    halves[0]
+}
+
 #[actix_web::test]
 async fn test_db_profile_pbs_skip_coop_runs_with_a_banned_partner() {
     use crate::models::users::ProfileScore;
@@ -610,27 +630,7 @@ async fn test_db_profile_pbs_skip_coop_runs_with_a_banned_partner() {
     .fetch_one(&pool)
     .await
     .unwrap();
-    // A co-op run: one half per player (`b_half` is whose row the partner's half is), bundled.
-    let coop = |a: &'static str, b: &'static str, b_half: &'static str, score: i32, b_verified: bool| {
-        let (pool, map) = (pool.clone(), map.clone());
-        async move {
-            let half = |who: &'static str, verified: bool| {
-                let (pool, map) = (pool.clone(), map.clone());
-                async move {
-                    sqlx::query_scalar::<_, i64>(
-                        "INSERT INTO changelog (timestamp, profile_number, score, map_id, banned, submission, category_id, verified, note) VALUES (now(), $1, $2, $3, false, 1, $4, $5, 'test-pb') RETURNING id",
-                    )
-                    .bind(who).bind(score).bind(&map).bind(cat).bind(verified)
-                    .fetch_one(&pool).await.unwrap()
-                }
-            };
-            let (h1, h2) = (half(a, true).await, half(b_half, b_verified).await);
-            let id: i64 = sqlx::query_scalar("INSERT INTO coop_bundled (p_id1, p_id2, p1_is_host, cl_id1, cl_id2) VALUES ($1, $2, true, $3, $4) RETURNING id")
-                .bind(a).bind(b).bind(h1).bind(h2).fetch_one(&pool).await.unwrap();
-            sqlx::query("UPDATE changelog SET coop_id = $1 WHERE id IN ($2, $3)").bind(id).bind(h1).bind(h2).execute(&pool).await.unwrap();
-            h1
-        }
-    };
+    let coop = |a, b, b_half, score, b_verified| insert_coop_run(&pool, &map, cat, "test-pb", a, b, b_half, score, b_verified);
     let counted = coop("test-pb-me", "test-pb-friend", "test-pb-friend", 3000, true).await;
     coop("test-pb-me", "test-pb-cheater", "test-pb-cheater", 2000, true).await;
     coop("test-pb-me", "test-pb-pending", "test-pb-pending", 1000, false).await;
@@ -659,6 +659,68 @@ async fn test_db_profile_pbs_skip_coop_runs_with_a_banned_partner() {
     let rows = ProfileScore::get_profile_scores(&pool, "test-pb-me", 1).await.unwrap();
     let best = rows.iter().find(|r| r.map_id == map).unwrap();
     assert_eq!((best.score, best.changelog_id, best.partner_profile_number.as_deref()), (400, hosts_half, Some("test-pb-host")));
+    cleanup().await;
+    if !had_placeholder {
+        sqlx::query("DELETE FROM users WHERE profile_number = 'N/A'").execute(&pool).await.unwrap();
+    }
+}
+
+#[actix_web::test]
+async fn test_db_profile_stats_skip_coop_runs_with_a_banned_partner() {
+    use crate::controllers::profile_stats::profile_stats;
+    let (_, pool) = get_config().await.expect("Error getting config and DB pool");
+    // Our own rows, marked with a note (removed again at the end).
+    let cleanup = || async {
+        for sql in [
+            "UPDATE changelog SET coop_id = NULL WHERE note = 'test-ps'",
+            "DELETE FROM coop_bundled WHERE mirror_of IN (SELECT id FROM coop_bundled WHERE p_id1 LIKE 'test-ps-%')",
+            "DELETE FROM coop_bundled WHERE p_id1 LIKE 'test-ps-%'",
+            "DELETE FROM changelog WHERE mirror_of IN (SELECT id FROM changelog WHERE note = 'test-ps')",
+            "DELETE FROM changelog WHERE note = 'test-ps'",
+            "DELETE FROM users WHERE profile_number LIKE 'test-ps-%'",
+        ] {
+            sqlx::query(sql).execute(&pool).await.unwrap();
+        }
+    };
+    cleanup().await;
+    for (id, banned) in [("test-ps-me", false), ("test-ps-friend", false), ("test-ps-cheater", true), ("test-ps-pending", false), ("test-ps-ghost", true)] {
+        sqlx::query("INSERT INTO users (profile_number, steam_name, banned) VALUES ($1, $1, $2)").bind(id).bind(banned).execute(&pool).await.unwrap();
+    }
+    let had_placeholder: bool = sqlx::query_scalar("SELECT EXISTS (SELECT 1 FROM users WHERE profile_number = 'N/A')").fetch_one(&pool).await.unwrap();
+    sqlx::query("INSERT INTO users (profile_number, steam_name) VALUES ('N/A', 'N/A') ON CONFLICT DO NOTHING").execute(&pool).await.unwrap();
+    let (map, cat): (String, i32) = sqlx::query_as(
+        "SELECT m.steam_id, m.default_cat_id FROM maps AS m JOIN chapters AS c ON c.id = m.chapter_id WHERE c.game_id = 1 AND c.is_multiplayer AND m.default_cat_id IS NOT NULL AND m.source_map IS NULL ORDER BY m.id LIMIT 1",
+    )
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    let coop = |a, b, b_half, score, b_verified| insert_coop_run(&pool, &map, cat, "test-ps", a, b, b_half, score, b_verified);
+    coop("test-ps-me", "test-ps-friend", "test-ps-friend", 3000, true).await;
+    coop("test-ps-me", "test-ps-cheater", "test-ps-cheater", 2000, true).await;
+    coop("test-ps-me", "test-ps-pending", "test-ps-pending", 1000, false).await;
+    coop("test-ps-me", "test-ps-ghost", "N/A", 500, true).await;
+    let partners = |stats: &crate::controllers::profile_stats::ProfileStats| {
+        let mut ids: Vec<String> = stats.partners.iter().map(|p| p.profile_number.clone()).collect();
+        ids.sort();
+        ids
+    };
+
+    let stats = profile_stats(&pool, "test-ps-me", 1).await.unwrap();
+    assert_eq!(
+        partners(&stats),
+        ["test-ps-friend", "test-ps-pending"],
+        "a banned partner (with a run of their own or not) isn't listed"
+    );
+    assert_eq!(stats.unique_partners, 2);
+    assert_eq!((stats.summary.runs, stats.summary.verified_runs), (2, 1), "runs with a banned partner aren't counted; one with an unverified half isn't verified");
+    assert_eq!(stats.summary.coop_maps, 1);
+
+    // Once the partner is unbanned, their runs count again.
+    sqlx::query("UPDATE users SET banned = false WHERE profile_number = 'test-ps-cheater'").execute(&pool).await.unwrap();
+    let stats = profile_stats(&pool, "test-ps-me", 1).await.unwrap();
+    assert_eq!(partners(&stats), ["test-ps-cheater", "test-ps-friend", "test-ps-pending"]);
+    assert_eq!((stats.summary.runs, stats.summary.verified_runs), (3, 2));
+
     cleanup().await;
     if !had_placeholder {
         sqlx::query("DELETE FROM users WHERE profile_number = 'N/A'").execute(&pool).await.unwrap();
