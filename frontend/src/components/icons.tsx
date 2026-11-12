@@ -41,6 +41,7 @@ export {
   Inbox as InboxIcon,
   Hourglass as PendingIcon,
   Ban as BannedIcon,
+  CircleCheck as VerifyIcon,
   Repeat as SwapIcon,
   Pencil as EditIcon,
   ShieldUser as ShieldIcon,

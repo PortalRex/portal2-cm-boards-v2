@@ -8,10 +8,7 @@ import { queryKeys } from '@/lib/query-keys'
 
 type Reason = string | undefined
 
-export { setRunBanned } from '@/lib/runs/moderation'
-
-export const setRunVerified = (changelogId: number, verified: boolean, reason: Reason) =>
-  api.put(`/admin/runs/${changelogId}/verified`, { body: { verified, reason } })
+export { setRunBanned, setRunVerified } from '@/lib/runs/moderation'
 
 export const deleteRun = (changelogId: number, reason: Reason) =>
   api.delete(`/admin/runs/${changelogId}`, { body: { reason } })

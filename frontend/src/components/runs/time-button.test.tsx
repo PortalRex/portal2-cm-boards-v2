@@ -81,6 +81,61 @@ describe('run history dialog', () => {
     expect(within(dialog).queryByRole('button', { name: /ban run/i })).not.toBeInTheDocument()
   })
 
+  describe('approving pending runs', () => {
+    // A pending run, a verified one, and a banned pending one (unban it first).
+    const runs = [
+      { ...row(501, 3711, false), verified: false },
+      { ...row(502, 3800, false), verified: true },
+      { ...row(503, 3600, true), verified: false },
+    ]
+    const serveVerify = (status = 200) => {
+      const sent: { id: string; body: unknown }[] = []
+      server.use(
+        http.get(`${API}/changelog`, () => HttpResponse.json(runs)),
+        http.put(`${API}/admin/runs/:id/verified`, async ({ params, request }) => {
+          sent.push({ id: String(params.id), body: await request.json() })
+          return status === 200
+            ? new HttpResponse(null, { status })
+            : new HttpResponse('Run not found.', { status })
+        }),
+      )
+      return sent
+    }
+
+    it('lets staff verify a pending run from the list', async () => {
+      const sent = serveVerify()
+      await renderWithProviders(<TimeButton score={3711} players={[player]} map={map} />, {
+        user: 'verifier',
+      })
+      const dialog = await openHistory()
+      await within(dialog).findByText('37.11')
+      const [verify, ...others] = within(dialog).getAllByRole('button', { name: 'Verify run' })
+      expect(others).toHaveLength(0)
+      expect(within(dialog).getAllByRole('row')[1]).toContainElement(verify!)
+      await userEvent.click(verify!)
+      expect(sent).toEqual([{ id: '501', body: { verified: true } }])
+    })
+
+    it('says so when verifying fails', async () => {
+      serveVerify(404)
+      await renderWithProviders(<TimeButton score={3711} players={[player]} map={map} />, {
+        user: 'verifier',
+      })
+      const dialog = await openHistory()
+      await userEvent.click(await within(dialog).findByRole('button', { name: 'Verify run' }))
+      expect(await within(dialog).findByTitle("Couldn't verify this run: Run not found.")).toBeInTheDocument()
+    })
+
+    it('shows players no verify button', async () => {
+      serveVerify()
+      await renderWithProviders(<TimeButton score={3711} players={[player]} map={map} />, { user: 'player' })
+      const dialog = await openHistory()
+      await within(dialog).findByText('37.11')
+      expect(within(dialog).getAllByText('Pending')).toHaveLength(1)
+      expect(within(dialog).queryByRole('button', { name: 'Verify run' })).not.toBeInTheDocument()
+    })
+  })
+
   it("shows each co-op run's partner, unknown when no one is on record", async () => {
     const doors = { id: '47741', title: 'Doors', mode: 'coop', game: 'portal2', chapter: 'Team Building' }
     const coop = (id: number, partner: { pn: string; name: string } | null): ChangelogRaw => ({

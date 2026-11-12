@@ -28,6 +28,7 @@ import { changelogQueryOptions } from '@/lib/runs/changelog'
 import type { Player, Run, RunMap } from '@/types/runs'
 import { BanToggle } from './ban-toggle'
 import { AutorenderLink, CommentButton, DemoLink, YouTubeLink } from './run-media'
+import { VerifyButton } from './verify-button'
 
 type Person = Pick<Player, 'profileNumber' | 'name' | 'avatar'>
 
@@ -269,9 +270,13 @@ function HistoryTable({
               </span>
             ) : (
               !r.verified && (
-                <span className="ml-2 rounded-[4px] bg-pending px-3 py-1 text-[15px] tracking-[0.12em] text-pending-text uppercase">
-                  Pending
-                </span>
+                <>
+                  <span className="ml-2 rounded-[4px] bg-pending px-3 py-1 text-[15px] tracking-[0.12em] text-pending-text uppercase">
+                    Pending
+                  </span>
+                  {/* Beside the badge rather than with the links, so staff can approve on phones too. */}
+                  <VerifyButton run={r} size={20} className="ml-2" />
+                </>
               )
             )}
           </span>
