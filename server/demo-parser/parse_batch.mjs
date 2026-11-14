@@ -27,6 +27,7 @@ import { cpus } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Worker, isMainThread, parentPort, workerData } from "node:worker_threads";
+import { readDemo } from "./read_demo.mjs";
 import { Messages, SourceDemo, SourceDemoParser } from "@nekz/sdp";
 import { isSarMessage, readSarMessages, SarDataType } from "@nekz/sdp/utils";
 import { finishedRun } from "./cm_time.mjs";
@@ -84,7 +85,7 @@ function tailChecksum(bytes) {
 }
 
 function parse(path, lists) {
-  const data = readFileSync(path);
+  const data = readDemo(path);
   const bytes = new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
   const buffer = SourceDemoParser.default().prepare(data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength));
   const demo = SourceDemo.default();

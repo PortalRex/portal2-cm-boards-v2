@@ -125,17 +125,8 @@ pub(crate) fn bad(msg: impl Into<String>) -> HttpResponse {
 
 /// Saves upload bytes under the demo storage directory and returns the path.
 pub(crate) async fn save_demo(config: &Config, bytes: &[u8], name: &str) -> std::result::Result<PathBuf, String> {
-    let dir = config.demo.storage.as_deref().filter(|d| !d.is_empty()).ok_or("Demo uploads aren't set up on this server.")?;
-    tokio::fs::create_dir_all(dir).await.map_err(|e| {
-        log::error!("demo storage: {e}");
-        "Demo uploads aren't available right now.".to_string()
-    })?;
-    let path = Path::new(dir).join(sanitize_filename::sanitize(name));
-    tokio::fs::write(&path, bytes).await.map_err(|e| {
-        log::error!("demo storage: {e}");
-        "Demo uploads aren't available right now.".to_string()
-    })?;
-    Ok(path)
+    let dir = demo_storage(config)?;
+    crate::tools::demo_files::write(dir, &sanitize_filename::sanitize(name), bytes).await.map_err(storage_error)
 }
 
 /// Whether `bytes` start like a Source engine demo (its header).
@@ -143,12 +134,25 @@ pub(crate) fn is_demo_file(bytes: &[u8]) -> bool {
     bytes.len() >= 1072 && &bytes[..8] == b"HL2DEMO\0"
 }
 
-/// Parses an uploaded demo via a temporary file.
+/// The demo storage folder (`DEMO.STORAGE`).
+fn demo_storage(config: &Config) -> std::result::Result<&Path, String> {
+    config.demo.storage.as_deref().filter(|d| !d.is_empty()).map(Path::new).ok_or_else(|| "Demo uploads aren't set up on this server.".into())
+}
+
+fn storage_error(e: std::io::Error) -> String {
+    log::error!("demo storage: {e}");
+    "Demo uploads aren't available right now.".into()
+}
+
+/// Parses an uploaded demo via a temporary (uncompressed) file.
 pub(crate) async fn parse_upload(config: &Config, bytes: &[u8]) -> std::result::Result<DemoInfo, String> {
     if !is_demo_file(bytes) {
         return Err("That file isn't a Source engine demo (.dem).".into());
     }
-    let path = save_demo(config, bytes, &format!("upload_{}.dem.tmp", crate::tools::auth::random_token())).await?;
+    let dir = demo_storage(config)?;
+    tokio::fs::create_dir_all(dir).await.map_err(storage_error)?;
+    let path = dir.join(format!("upload_{}.dem.tmp", crate::tools::auth::random_token()));
+    tokio::fs::write(&path, bytes).await.map_err(storage_error)?;
     let info = submissions::parse_demo(&config.demo, &path).await;
     let _ = tokio::fs::remove_file(&path).await;
     info
@@ -485,7 +489,7 @@ pub(crate) async fn record_submission(pool: &PgPool, config: &Config, cache: &Ca
                 }
             }
             if let (Some(name), Some(dir)) = (&demo_file, config.demo.storage.as_deref()) {
-                let _ = tokio::fs::remove_file(Path::new(dir).join(name)).await;
+                crate::tools::demo_files::remove(Path::new(dir), name).await;
             }
             return Ok(Err(match refused {
                 Refused::NotFound(m) => HttpResponse::NotFound().body(m),
@@ -756,7 +760,7 @@ async fn same_as_run_demo(pool: &PgPool, config: &Config, run: &submissions::Pro
     let Some(path) = crate::tools::demo_files::locate(&config.demo, &file, Some(run.id)).await else {
         return Ok(false);
     };
-    Ok(tokio::fs::read(&path).await.is_ok_and(|existing| existing == bytes))
+    Ok(crate::tools::demo_files::read(&path).await.is_ok_and(|existing| existing == bytes))
 }
 
 /// **GET** The signed-in player's pending runs that need their demo, newest first (at most 50):
@@ -795,8 +799,27 @@ async fn demo_download(req: HttpRequest, pool: web::Data<PgPool>, config: web::D
     let Some(path) = crate::tools::demo_files::locate(&config.demo, &file, changelog_id).await else {
         return old_board_download(pool.get_ref(), &config, demo_id, &file).await;
     };
+    let compressed = crate::tools::demo_files::is_compressed(&path);
+    // A compressed demo for a client that can't unpack gzip itself (scripts, autorender) is
+    // unpacked here.
+    if compressed && !accepts_gzip(&req) {
+        let bytes = match crate::tools::demo_files::read(&path).await {
+            Ok(b) => b,
+            Err(e) => {
+                log::error!("demo download {}: {e}", path.display());
+                return Ok(HttpResponse::NotFound().body("This demo's file isn't available."));
+            }
+        };
+        return Ok(HttpResponse::Ok()
+            .content_type(mime::APPLICATION_OCTET_STREAM)
+            .insert_header(attachment(&file))
+            .insert_header((header::CACHE_CONTROL, DEMO_CACHE))
+            .insert_header((header::VARY, "Accept-Encoding"))
+            .body(bytes));
+    }
     // Streamed from disk (not read into memory), with ranges, ETag and Last-Modified so a
-    // browser that already has it gets a 304.
+    // browser that already has it gets a 304. A compressed one is sent as it is, with
+    // `Content-Encoding: gzip`, and the browser unpacks it into the `.dem`.
     let named = match NamedFile::open_async(&path).await {
         Ok(f) => f,
         Err(e) => {
@@ -804,6 +827,7 @@ async fn demo_download(req: HttpRequest, pool: web::Data<PgPool>, config: web::D
             return Ok(HttpResponse::NotFound().body("This demo's file isn't available."));
         }
     };
+    let named = if compressed { named.set_content_encoding(header::ContentEncoding::Gzip) } else { named };
     let mut res = named
         .set_content_type(mime::APPLICATION_OCTET_STREAM)
         .set_content_disposition(attachment(&file))
@@ -811,6 +835,12 @@ async fn demo_download(req: HttpRequest, pool: web::Data<PgPool>, config: web::D
         .use_last_modified(true)
         .into_response(&req);
     res.headers_mut().insert(header::CACHE_CONTROL, header::HeaderValue::from_static(DEMO_CACHE));
+    if compressed {
+        res.headers_mut().insert(header::VARY, header::HeaderValue::from_static("Accept-Encoding"));
+        // actix-files marks a partial response (a resumed download) `identity`, but its bytes
+        // are a range of the gzipped file: say so, or the client stitches gzip into the `.dem`.
+        res.headers_mut().insert(header::CONTENT_ENCODING, header::HeaderValue::from_static("gzip"));
+    }
     Ok(res)
 }
 
@@ -822,6 +852,19 @@ fn attachment(file: &str) -> header::ContentDisposition {
         disposition: header::DispositionType::Attachment,
         parameters: vec![header::DispositionParam::Filename(file.replace('"', ""))],
     }
+}
+
+/// Whether the request's `Accept-Encoding` takes gzip (`gzip` or `*`, without `q=0`).
+fn accepts_gzip(req: &HttpRequest) -> bool {
+    let Some(value) = req.headers().get(header::ACCEPT_ENCODING).and_then(|v| v.to_str().ok()) else {
+        return false;
+    };
+    value.split(',').any(|part| {
+        let mut params = part.split(';').map(str::trim);
+        let coding = params.next().unwrap_or("");
+        let refused = params.any(|p| p.strip_prefix("q=").and_then(|q| q.trim().parse::<f32>().ok()) == Some(0.0));
+        (coding.eq_ignore_ascii_case("gzip") || coding == "*") && !refused
+    })
 }
 
 /// A demo the old board keeps, passed through from it.
@@ -846,7 +889,7 @@ async fn old_board_download(pool: &PgPool, config: &Config, demo_id: i64, file: 
 
 #[cfg(test)]
 mod tests {
-    use super::parse_time;
+    use super::{accepts_gzip, parse_time};
 
     #[test]
     fn times() {
@@ -855,5 +898,16 @@ mod tests {
         assert_eq!(parse_time("2345"), Some(2345));
         assert_eq!(parse_time("1:75.00"), None);
         assert_eq!(parse_time("abc"), None);
+    }
+
+    #[test]
+    fn gzip_accepted() {
+        let with = |v: &str| actix_web::test::TestRequest::default().insert_header(("Accept-Encoding", v)).to_http_request();
+        assert!(accepts_gzip(&with("gzip, deflate, br, zstd")));
+        assert!(accepts_gzip(&with("br;q=1.0, gzip;q=0.8")));
+        assert!(accepts_gzip(&with("*")));
+        assert!(!accepts_gzip(&with("identity")));
+        assert!(!accepts_gzip(&with("gzip;q=0, br")));
+        assert!(!accepts_gzip(&actix_web::test::TestRequest::default().to_http_request()));
     }
 }

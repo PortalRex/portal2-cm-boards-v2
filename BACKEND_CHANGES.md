@@ -65,7 +65,7 @@ New environment variables for the server (dotted names, as in `server/.env.examp
 | `SERVER.PUBLIC_URL` | Production | Public address of the site, which serves the API under `/api` (e.g. `https://board.portal2.sr`). Steam sign-in returns here; session cookies are `Secure` when it's https; sign-in redirects other hosts to it. Default `http://localhost:3000`. |
 | `SERVICE.TOKEN` | For `/backend` | Shared secret for the board's own services, sent as `X-Service-Token`. Unset = service access off (only signed-in staff can write). Also salts run-report reporter hashes. |
 | `DEMO.PARSER` | For submissions | Path to `server/demo-parser/parse_demo.mjs` (run `npm install` in that folder). |
-| `DEMO.STORAGE` | For submissions | Directory submitted demos are saved in. |
+| `DEMO.STORAGE` | For submissions | Directory submitted demos are saved in, gzip-compressed as `<name>.dem.gz` (about 40% of the size; runs keep the plain `.dem` name, and plain files already there keep working). |
 | `DEMO.NODE` | No | Node executable if `node` isn't on the PATH (Node 18+). |
 | `SERVER.BEHIND_PROXY` | Production | `true` when a reverse proxy is in front: client addresses (rate limits, anonymous report de-duplication) are read from `X-Forwarded-For`. Off by default, since that header can't be trusted without a proxy. Bind `SERVER.HOST` to `127.0.0.1` behind the proxy so clients can't reach the server directly. |
 | `SYNC.STEAM` / `SYNC.MINUTES` / `SYNC.RANK_LIMIT` | No | Pull new Portal 2 times from Steam's leaderboards: off unless `SYNC.STEAM=true`; every 10 minutes; times in each map's top 500 on Steam. See [§13](#13-steam-sync). |
@@ -163,7 +163,7 @@ All under `/api/v1`. Auth: **public**, **signed in**, **staff** (any tier or ser
 | `POST /runs/{id}/report` | public | Report a run anonymously (reason + details). |
 | `POST /submissions/preview` | signed in | Read a demo (multipart `demo`): map, time, players, matching board maps. Saves nothing. |
 | `POST /submissions` | signed in | Submit a run from a demo; admins may also enter map/time/player/partner by hand. See [§8](#8-run-submissions-and-demos). |
-| `GET /demos/{id}/file` | public | Download a run's demo (as an attachment, cached a day). Looked up in `DEMO.STORAGE`, then `DEMO.ARCHIVE`, then passed through from the old board for a run pulled from one. See [§8](#8-run-submissions-and-demos). |
+| `GET /demos/{id}/file` | public | Download a run's demo (as an attachment, cached a day). Looked up in `DEMO.STORAGE`, then `DEMO.ARCHIVE`, then passed through from the old board for a run pulled from one. A compressed demo is sent as it is with `Content-Encoding: gzip` (the browser saves the `.dem`; resumed ranges stay gzip), or unpacked by the server for a client whose `Accept-Encoding` doesn't take gzip (scripts, autorender). See [§8](#8-run-submissions-and-demos). |
 | `GET /user/waiting-demos` | signed in | Your pending runs that need your demo, newest first (at most 50): your own without one, and co-op runs you're the partner in (no run of your own) still missing your view. Only runs that are still their player's PB on the map (no faster unbanned run, nor an equal verified one): an older time since beaten needs no demo. Each: `changelog_id` (add it with `POST /runs/{id}/demo`), `map_id`, `map_name`, `is_coop`, `score`, `timestamp`, `partner`, `partner_name`. |
 | `POST /runs/{id}/demo` | signed in | Add the demo for a pending run (its player, co-op partner or staff); checked against the run, then verified. |
 

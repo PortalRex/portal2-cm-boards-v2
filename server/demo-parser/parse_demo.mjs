@@ -12,7 +12,7 @@
 // joined after recording started. Uses @nekz/sdp, as board.portal2.sr's demo validator did.
 //
 // Usage: node parse_demo.mjs <demo path>
-import { readFileSync } from "node:fs";
+import { readDemo } from "./read_demo.mjs";
 import { SourceDemo, SourceDemoParser } from "@nekz/sdp";
 import { finishedRun } from "./cm_time.mjs";
 
@@ -56,7 +56,7 @@ if (!path) {
 }
 
 try {
-  const data = readFileSync(path);
+  const data = readDemo(path);
   const bytes = new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
   const parser = SourceDemoParser.default();
   const buffer = parser.prepare(data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength));
